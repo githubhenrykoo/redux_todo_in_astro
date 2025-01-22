@@ -1,7 +1,8 @@
-import {createSlice, nanoid} from '@reduxjs/toolkit';
+import {createSlice} from '@reduxjs/toolkit';
 
 const initialState = {
     todos: [],
+    searchQuery: '',
 }
 
 export const todoSlice = createSlice({
@@ -10,18 +11,31 @@ export const todoSlice = createSlice({
     reducers: {
         addTodo: (state, action) => {
             state.todos.push({
-                id: nanoid(),
+                id: Date.now(),
                 text: action.payload,
-                completed: false,
             })
         },
         removeTodo: (state, action) => {
             state.todos = state.todos.filter(todo => 
             todo.id !== action.payload)
+        },
+        setSearchQuery: (state, action) => {
+            state.searchQuery = action.payload;
         }
     }
 })
 
-export const {addTodo, removeTodo} = todoSlice.actions
+export const {addTodo, removeTodo, setSearchQuery} = todoSlice.actions
+
+// Selector to get filtered todos
+export const selectFilteredTodos = (state) => {
+    const {todos, searchQuery} = state.todo;
+    if (!searchQuery.trim()) {
+        return todos;
+    }
+    return todos.filter((todo) =>
+        todo.text.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+};
 
 export default todoSlice.reducer

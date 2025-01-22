@@ -5,10 +5,17 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "serve": "astro serve",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.1.8"
+    "@astrojs/react": "latest",
+    "@reduxjs/toolkit": "^2.5.0",
+    "astro": "^5.1.8",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
+    "tailwindcss": "^3.4.17"
   }
 }

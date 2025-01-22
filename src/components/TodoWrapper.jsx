@@ -11,9 +11,11 @@ export default function TodoWrapper() {
   return (
     <Provider store={store}>
       <div className="todo-app">
-        <AddTodo />
-        <SearchTodo />
-        <ToDos />
+      <SearchTodo />
+
+      <AddTodo />
+
+      <ToDos />
       </div>
     </Provider>
   );

@@ -1,11 +1,13 @@
 ---
 import '../styles/globals.css';
+import PanelGroupWrapper from '../components/PanelGroupWrapper';
 
 interface Props {
-	title?: string;
+	title: string;
 }
 
-const { title = 'Todo App in Astro/React-Redux' } = Astro.props;
+const { title } = Astro.props;
+
 ---
 
 <!doctype html>
@@ -16,12 +18,17 @@ const { title = 'Todo App in Astro/React-Redux' } = Astro.props;
 		<meta name="viewport" content="width=device-width" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="generator" content={Astro.generator} />
-		<title> {title} </title>
+		<title>{title}</title>
 	</head>
 	<body>
-		<slot />
+		<PanelGroupWrapper client:load>
+			<Fragment slot="default">
+				<slot />
+			</Fragment>
+		</PanelGroupWrapper>
 	</body>
 </html>
+
 <style is:global>
 	:root {
 		--accent: 136, 58, 234;

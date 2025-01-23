@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { removeTodo, selectFilteredTodos } from '../features/todo/todoSlice';
+import { removeTodo, selectFilteredTodos } from '../features/todoSlice';
 import { FiTrash2 } from 'react-icons/fi';
 
 export default function ToDos() {
@@ -16,7 +16,7 @@ export default function ToDos() {
   return (
     <div className="mt-6">
       <h2 className="text-2xl font-bold mb-4 text-gray-800">Your Todos</h2>
-      {todos.length === 0 ? (
+      {!todos || todos.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <p className="text-gray-500">No todos found</p>
         </div>

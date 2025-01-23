@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
-import { setSearchQuery } from '../features/todo/todoSlice';
+import { setSearchQuery } from '../features/todoSlice';
 import { FiSearch } from 'react-icons/fi';
 
 export default function SearchTodo() {

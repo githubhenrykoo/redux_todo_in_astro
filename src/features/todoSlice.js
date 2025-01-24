@@ -13,7 +13,7 @@ export const todoSlice = createSlice({
         addTodo: (state, action) => {
             state.todos.push({
                 id: Date.now(),
-                text: action.payload,
+                content: action.payload,
             });
             state.selectedContent = action.payload; // Assign the payload to selectedContent    
         },
@@ -28,7 +28,7 @@ export const todoSlice = createSlice({
         selectTodo: (state, action) => {
             const todo = state.todos.find(todo => todo.id === action.payload);
             if (todo) {
-                state.selectedContent = todo.text;
+                state.selectedContent = todo.content;
             }
         },
     }
@@ -51,7 +51,7 @@ export const selectFilteredTodos = state => {
     }
     
     return todos.filter((todo) =>
-        todo.text.toLowerCase().includes(searchQuery.toLowerCase())
+        todo.content.toLowerCase().includes(searchQuery.toLowerCase())
     );
 };
 

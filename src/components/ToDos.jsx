@@ -36,7 +36,7 @@ export default function ToDos() {
                 <div className="flex-shrink-0">
                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
                 </div>
-                <span className="text-gray-700">{todo.text}</span>
+                <span className="text-gray-700">{todo.content}</span>
               </div>
               <button 
                 onClick={(e) => {

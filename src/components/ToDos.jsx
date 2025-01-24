@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { removeTodo, selectFilteredTodos } from '../features/todoSlice';
+import { removeTodo, selectFilteredTodos, selectTodo } from '../features/todoSlice';
 import { FiTrash2 } from 'react-icons/fi';
 
 export default function ToDos() {
@@ -11,6 +11,10 @@ export default function ToDos() {
 
   const handleRemove = (id) => {
     dispatch(removeTodo(id));
+  };
+
+  const handleSelect = (id) => {
+    dispatch(selectTodo(id));
   };
 
   return (
@@ -25,7 +29,8 @@ export default function ToDos() {
           {todos.map((todo) => (
             <li 
               key={todo.id} 
-              className="group flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+              className="group flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+              onClick={() => handleSelect(todo.id)}
             >
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0">
@@ -34,7 +39,10 @@ export default function ToDos() {
                 <span className="text-gray-700">{todo.text}</span>
               </div>
               <button 
-                onClick={() => handleRemove(todo.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(todo.id);
+                }}
                 className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
               >
                 <span className="sr-only">Remove todo</span>

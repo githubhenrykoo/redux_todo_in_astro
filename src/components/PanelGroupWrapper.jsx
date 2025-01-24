@@ -6,6 +6,7 @@ import ResizeHandle from './ui/ResizeHandle';
 import SearchTodo from './SearchTodo';
 import ToDos from './ToDos';
 import AddTodo from './AddTodo';
+import ContentDetailView from './ui/placeholder/ContentDetailView';
 
 const PanelLabel = ({ children }) => (
   <div className="absolute top-0 left-0 right-0 bg-slate-100 px-4 py-1 text-xs font-medium text-slate-600 border-b border-slate-200">
@@ -47,7 +48,6 @@ export default function PanelGroupWrapper({ children }) {
                     <PanelLabel>Asset Navigator</PanelLabel>
                     <div className="h-full pt-8 p-4">
                       <div className="flex flex-col h-full">
-
                         <SearchTodo />
                         <div className="flex-1 overflow-auto">
                           <ToDos />
@@ -64,7 +64,8 @@ export default function PanelGroupWrapper({ children }) {
                   <div className="h-full bg-white relative">
                     <PanelLabel>Workspace</PanelLabel>
                     <div className="h-full pt-8 p-4">
-                    <AddTodo />
+                      <AddTodo />
+                      <ContentDetailView />
                       {children?.default}
                     </div>
                   </div>

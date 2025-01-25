@@ -1,139 +1,117 @@
 # Todo App with Redux in Astro
 
-A modern Todo application built with Astro, React, and Redux, demonstrating the integration of Redux state management in an Astro application. This project showcases best practices for component architecture, state management, and modern UI design.
+A modern Todo application built with Astro, React, and Redux, demonstrating the integration of Redux state management in an Astro application. This project showcases best practices for component architecture, state management, and modern UI design with a panel-based layout system.
 
 ## 🚀 Features
 
-- Add and remove todos
-- Real-time search with debouncing
-- Responsive and modern UI
+- Add and remove todos with real-time updates
+- Real-time search functionality
+- Action history logging
+- Resizable panel layout
+- Modern, responsive UI with dark theme support
 - Client-side state management with Redux
-- Smooth animations and transitions
-
-This app is built using the **Astro framework**, leveraging its capabilities for hybrid rendering and performance optimization. Many design decisions are made with both **Astro** and **React** in mind, ensuring a seamless integration of interactive components and efficient state management.
+- Hybrid rendering using Astro and React components
 
 ## 🛠️ Technical Stack
 
 ### Core Technologies
-- **Astro**: The main framework, providing excellent performance and hybrid rendering capabilities
-- **React**: Used for interactive components
+- **Astro**: Main framework providing excellent performance and hybrid rendering
+- **React**: Used for interactive components and state management
 - **Redux Toolkit**: State management solution
 - **TailwindCSS**: Utility-first CSS framework for styling
 
 ### Key Libraries
-- **react-icons**: Provides a comprehensive collection of icons (FiSearch, FiTrash2) for the UI
-- **@reduxjs/toolkit**: Simplified Redux development with built-in best practices
+- **react-icons**: Comprehensive icon collection
+- **@reduxjs/toolkit**: Simplified Redux development
+- **react-resizable-panels**: Flexible panel layout system
 
 ## 🏗️ Project Structure
 
-### Components
+### Core Components
 
-#### 1. TodoWrapper (`TodoWrapper.jsx`)
-- Main component that wraps the Redux Provider
-- Provides Redux context to child components
-- Ensures proper client-side rendering with `client:only="react"`
+#### Panel Components
+1. **TopBanner** (`panels/TopBanner.astro`)
+   - Main navigation header
+   - Theme switching functionality
+   - Built as an Astro component for static rendering
 
-#### 2. AddTodo (`AddTodo.jsx`)
-- Handles todo creation
-- Features:
-  - Input validation
-  - Form submission handling
-  - Modern UI with Tailwind CSS
+2. **Sidebar** (`panels/Sidebar.astro`)
+   - Navigation sidebar with icon-based menu
+   - Static rendering with Astro
 
-#### 3. SearchTodo (`SearchTodo.jsx`)
-- Implements real-time search functionality
-- Features:
-  - Debounced search to optimize performance
-  - Search icon from react-icons (FiSearch)
-  - Instant filtering of todos
+3. **SearchAndTodos** (`panels/SearchAndTodos.jsx`)
+   - Combines search and todo list functionality
+   - React component for interactive features
+   - Integrated with Redux for state management
 
-#### 4. ToDos (`ToDos.jsx`)
-- Displays the list of todos
-- Features:
-  - Filtered todo display
-  - Delete functionality
-  - Smooth hover animations
-  - Trash icon from react-icons (FiTrash2)
+4. **ItemDetailPanel** (`panels/ItemDetailPanel.jsx`)
+   - Handles todo creation and editing
+   - Form-based interface with validation
+   - React component with Redux integration
 
-### Redux Implementation
+5. **ActionLogPanel** (`panels/ActionLogPanelReact.jsx`)
+   - Displays history of todo actions
+   - Real-time updates through Redux
+   - React component for dynamic updates
 
-#### Todo Slice (`todoSlice.js`)
-- Manages the todo state
-- Actions:
-  - `addTodo`: Creates new todos
-  - `removeTodo`: Deletes existing todos
-  - `setSearchQuery`: Updates search filter
-- Includes a selector for filtered todos
+#### Layout Components
+1. **ResizablePanels** (`panels/ResizablePanels.astro`)
+   - Main layout component
+   - Handles panel resizing and organization
+   - Built with Astro for optimal performance
 
-## 💡 Design Philosophy
+2. **DefaultLayout** (`layouts/DefaultLayout.astro`)
+   - Base layout template
+   - Handles meta tags and global styles
+   - Integrates all panel components
 
-This application demonstrates an systematic approach to data management by using the ToDo pattern as a generalized functional abstraction. Instead of limiting ToDos to traditional task management, this implementation treats them as a universal container for any type of content:
+3. **PanelGroupLayout** (`layouts/PanelGroupLayout.jsx`)
+   - Manages panel organization and Redux provider
+   - Handles responsive layout behavior
 
-- **Flexible Content Storage**: Each ToDo item serves as a generic container that can hold any type of data or content
-- **Universal Selection Model**: The selection mechanism built into the ToDo system allows for consistent handling of any content type
-- **Standardized CRUD Operations**: Using ToDos as an abstraction provides a uniform interface for creating, reading, updating, and deleting any type of content
-- **Unified Search Interface**: The search functionality works across all content types thanks to the consistent ToDo structure
+### State Management
+- Redux store configuration in `store.js`
+- Todo slice implementation in `features/todoSlice.js`
+- Utility functions in `lib/utils.js`
 
-This abstraction provides several benefits:
-- Simplified state management through a single, consistent data model
-- Reusable components that can work with any content type
-- Uniform handling of selection, filtering, and display logic
-- Easy extensibility for new content types without changing the core architecture
+## 📦 Project Organization
 
-## 🎨 UI/UX Features
-
-### Styling
-- Consistent color scheme using Tailwind CSS
-- Responsive design
-- Interactive hover states
-- Smooth transitions and animations
-
-### User Experience
-- Real-time search filtering
-- Clear feedback for user actions
-- Intuitive icon placement
-- Helpful placeholder text and labels
+```
+src/
+├── components/
+│   ├── panels/                 # Panel-based components
+│   │   ├── TopBanner.astro
+│   │   ├── Sidebar.astro
+│   │   ├── SearchAndTodos.jsx
+│   │   ├── ItemDetailPanel.jsx
+│   │   ├── ActionLogPanelReact.jsx
+│   │   └── ResizablePanels.astro
+│   └── ui/                     # Shared UI components
+├── features/                   # Redux slices
+├── layouts/                    # Layout components
+├── lib/                       # Utility functions
+├── pages/                     # Astro pages
+└── styles/                    # Global styles
+```
 
 ## 🚀 Getting Started
 
 1. Clone the repository
-```bash
-git clone [repository-url]
-```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+4. Open [http://localhost:4321](http://localhost:4321) in your browser
 
-2. Install dependencies
-```bash
-npm install
-```
+## 🎨 Design Philosophy
 
-3. Run the development server
-```bash
-npm run dev
-```
-
-## 🛠️ Development
-
-### Adding New Features
-1. Create new components in the `components` directory
-2. Update Redux store in `features/todo` if new state management is needed
-3. Implement new UI features using Tailwind CSS
-4. Add new icons from react-icons as needed
-
-### Best Practices
-- Use client:only="react" for interactive components
-- Implement debouncing for search functionality
-- Follow Redux Toolkit patterns for state management
-- Maintain consistent styling with Tailwind CSS
-
-## 📚 Key Learnings
-- Integration of Redux with Astro
-- Component architecture in a hybrid framework
-- State management patterns
-- Modern UI implementation with Tailwind CSS
-- Icon management with react-icons
-
-## 🤝 Contributing
-Feel free to submit issues and enhancement requests!
-
-## 📝 License
-This project is MIT licensed.
+This project demonstrates a modern approach to web application architecture by:
+- Leveraging Astro's static rendering for performance
+- Using React for interactive components
+- Implementing a flexible panel-based layout
+- Managing state with Redux
+- Following responsive design principles

@@ -9,6 +9,7 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
+        '@': path.resolve('./src'),
         '@pages': path.resolve('./src/pages')
       }
     }

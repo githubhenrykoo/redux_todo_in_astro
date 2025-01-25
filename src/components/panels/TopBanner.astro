@@ -1,0 +1,39 @@
+---
+import { cn } from '../../lib/utils';
+import { FiSun } from 'react-icons/fi';
+
+const { class: className, ...props } = Astro.props;
+
+const handleThemeToggle = () => {
+  // Implement theme toggle functionality here
+  console.log('Theme toggle clicked');
+};
+
+const handleLogin = () => {
+  // Implement login functionality here
+  console.log("Login clicked");
+};
+---
+
+<div class={cn(
+  "w-full h-full bg-background border-b flex items-center px-6",
+  className
+)} {...props}>
+  <div class="flex justify-between items-center w-full">
+    <h1 class="text-xl font-semibold text-foreground">Top Banner</h1>
+    <div class="flex items-center space-x-4">
+      <div class="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
+      <div class="w-24 h-4 rounded bg-muted animate-pulse"></div>
+      <button onclick={handleThemeToggle} class="text-gray-700 hover:text-gray-900">
+        <FiSun class="w-6 h-6" />
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function handleLogin() {
+    // Implement login functionality here
+    console.log("Login clicked");
+  }
+</script>

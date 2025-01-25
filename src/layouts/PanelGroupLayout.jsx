@@ -2,11 +2,9 @@ import React from 'react';
 import { Provider } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { store } from '../store';
-import ActionLogPanel from '../components/ActionLogPanel';
-import ToDos from '../components/ToDos';
-import AddTodo from '../components/AddTodo';
-import SearchTodo from '../components/SearchTodo';
-
+import ActionLogPanel from '../components/panels/ActionLogPanelReact';
+import SearchAndTodos from '../components/panels/SearchAndTodos';
+import ItemDetailPanel from '../components/panels/ItemDetailPanel';
 
 const PanelGroupLayout = () => {
   return (
@@ -16,8 +14,7 @@ const PanelGroupLayout = () => {
         <Panel defaultSize={30} minSize={20}>
           <div className="h-full bg-white relative">
             <div className="h-full pt-8 p-4">
-              <SearchTodo />
-              <ToDos />
+              <SearchAndTodos />
             </div>
           </div>
         </Panel>
@@ -28,7 +25,7 @@ const PanelGroupLayout = () => {
         <Panel>
           <div className="h-full bg-white relative">
             <div className="h-full pt-8 p-4">
-              <AddTodo />
+              <ItemDetailPanel />
             </div>
           </div>
         </Panel>

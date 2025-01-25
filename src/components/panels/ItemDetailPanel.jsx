@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { addTodo } from '../features/todoSlice'
-import ContentDetailView from './ui/placeholder/ContentDetailView';
+import { addTodo } from '../../features/todoSlice.js'
+import ContentDetailView from '../ui/placeholder/ContentDetailView.jsx';
 
-export default function AddTodo() {
+export default function ItemDetailPanel() {
   const [input, setInput] = useState('')
   const dispatch = useDispatch()
 

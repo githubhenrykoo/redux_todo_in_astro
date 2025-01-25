@@ -1,9 +1,9 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { selectActionHistory } from '../features/todoSlice';
-import { formatTimestamp, getActionText } from '../utils/actionHelpers';
+import { selectActionHistory } from '../../features/todoSlice';
+import { formatTimestamp, getActionText } from '../../utils/actionHelpers';
 
-const ActionLogPanel = () => {
+const ActionLogPanelReact = () => {
   const actionHistory = useSelector(selectActionHistory);
 
   return (
@@ -27,4 +27,4 @@ const ActionLogPanel = () => {
   );
 };
 
-export default ActionLogPanel;
+export default ActionLogPanelReact;

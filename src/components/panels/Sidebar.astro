@@ -1,0 +1,43 @@
+---
+import { cn } from '../../lib/utils';
+import { FaCode, FaSearch, FaBug, FaTerminal, FaCog } from 'react-icons/fa';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className, ...props } = Astro.props;
+
+---
+
+<div class={cn(
+  "flex flex-col h-screen bg-gray-50 border-r border-gray-200",
+  className
+)} {...props}>
+  <div class="flex-1 flex flex-col justify-between py-4">
+    <div class="space-y-6">
+      <div class="flex items-center justify-center w-12 h-12 hover:bg-gray-100 transition-colors border-l-2 border-blue-500 bg-gray-50">
+        <FaCode class="text-lg text-blue-600" />
+      </div>
+      <div class="flex items-center justify-center w-12 h-12 hover:bg-gray-100 transition-colors">
+        <FaSearch class="text-lg text-gray-600" />
+      </div>
+      <div class="flex items-center justify-center w-12 h-12 hover:bg-gray-100 transition-colors">
+        <FaBug class="text-lg text-gray-600" />
+      </div>
+      <div class="flex items-center justify-center w-12 h-12 hover:bg-gray-100 transition-colors">
+        <FaTerminal class="text-lg text-gray-600" />
+      </div>
+    </div>
+    <div>
+      <div class="flex items-center justify-center w-12 h-12 hover:bg-gray-100 transition-colors">
+        <FaCog class="text-lg text-gray-600" />
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+<script>
+  // Add any client-side functionality here if needed
+</script>

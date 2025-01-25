@@ -9,38 +9,34 @@ import ItemDetailPanel from '../components/panels/ItemDetailPanel';
 const PanelGroupLayout = () => {
   return (
     <Provider store={store}>
-      <PanelGroup direction="horizontal">
-        {/* Item Collection Panel */}
-        <Panel defaultSize={30} minSize={20}>
-          <div className="h-full bg-white relative">
-            <div className="h-full pt-8 p-4">
+      <div className="h-screen overflow-hidden">
+        <PanelGroup direction="horizontal" className="h-full">
+          {/* Item Collection Panel */}
+          <Panel defaultSize={30} minSize={20}>
+            <div className="h-full overflow-hidden">
               <SearchAndTodos />
             </div>
-          </div>
-        </Panel>
+          </Panel>
 
-        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
+          <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
 
-        {/* Create New Item Panel */}
-        <Panel>
-          <div className="h-full bg-white relative">
-            <div className="h-full pt-8 p-4">
+          {/* Create New Item Panel */}
+          <Panel>
+            <div className="h-full overflow-hidden">
               <ItemDetailPanel />
             </div>
-          </div>
-        </Panel>
+          </Panel>
 
-        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
+          <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
 
-        {/* Action History Panel */}
-        <Panel defaultSize={30} minSize={20}>
-          <div className="h-full bg-white relative">
-            <div className="h-full pt-8 p-4">
+          {/* Action History Panel */}
+          <Panel defaultSize={30} minSize={20}>
+            <div className="h-full overflow-hidden">
               <ActionLogPanel />
             </div>
-          </div>
-        </Panel>
-      </PanelGroup>
+          </Panel>
+        </PanelGroup>
+      </div>
     </Provider>
   );
 };

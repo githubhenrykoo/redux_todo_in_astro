@@ -34,9 +34,9 @@ export default function ItemDetailPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
-      {/* Header - Fixed Height */}
-      <div className="flex justify-between items-center px-4 py-2 bg-gray-100 flex-shrink-0">
+    <div className="flex flex-col h-full">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 flex justify-between items-center px-4 py-2 bg-gray-100 border-b">
         <h2 className="text-lg font-semibold text-gray-700">
           {isEditing ? 'Push New Content' : 'Content Details'}
         </h2>
@@ -68,8 +68,8 @@ export default function ItemDetailPanel() {
         </div>
       </div>
 
-      {/* Content Area - Flexible Height with Scroll */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-auto">
         <ContentEditor
           content={isEditing ? editContent : (selectedContent || '')}
           onChange={handleContentChange}

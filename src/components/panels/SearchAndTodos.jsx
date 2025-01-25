@@ -4,9 +4,16 @@ import ToDos from '../ToDos';
 
 const SearchAndTodos = () => {
   return (
-    <div className="h-full pt-8 p-4">
-      <SearchTodo />
-      <ToDos />
+    <div className="flex flex-col h-full">
+      {/* Fixed Search Section */}
+      <div className="flex-shrink-0 p-4 border-b bg-white">
+        <SearchTodo />
+      </div>
+
+      {/* Scrollable Todos Section */}
+      <div className="flex-1 overflow-auto p-4">
+        <ToDos />
+      </div>
     </div>
   );
 };

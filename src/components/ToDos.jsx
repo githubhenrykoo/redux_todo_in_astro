@@ -4,6 +4,33 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeTodo, selectFilteredTodos, selectTodo } from '../features/todoSlice';
 import { FiTrash2 } from 'react-icons/fi';
+import { 
+  FiFile, 
+  FiFileText, 
+  FiImage, 
+  FiCode 
+} from 'react-icons/fi';
+import { ContentTypeInterpreter } from '../utils/content_type_detector';
+
+const contentInterpreter = new ContentTypeInterpreter();
+
+const getContentIcon = (content) => {
+  const { mimeType } = contentInterpreter.detectContentType(content);
+  
+  switch (mimeType) {
+    case 'text/plain':
+      return <FiFileText className="w-5 h-5 text-gray-600" />;
+    case 'application/json':
+      return <FiCode className="w-5 h-5 text-blue-600" />;
+    case 'image/jpeg':
+    case 'image/png':
+    case 'image/webp':
+    case 'image/gif':
+      return <FiImage className="w-5 h-5 text-green-600" />;
+    default:
+      return <FiFile className="w-5 h-5 text-gray-400" />;
+  }
+};
 
 export default function ToDos() {
   const dispatch = useDispatch();
@@ -34,7 +61,7 @@ export default function ToDos() {
             >
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  {getContentIcon(todo.content)}
                 </div>
                 <span className="text-gray-700">{todo.content}</span>
               </div>

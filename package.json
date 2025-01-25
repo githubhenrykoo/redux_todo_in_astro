@@ -7,7 +7,8 @@
     "build": "astro build",
     "serve": "astro serve",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "dependencies": {
     "@astrojs/react": "latest",
@@ -30,7 +31,9 @@
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.26.7",
     "autoprefixer": "^10.4.20",
+    "jest": "^29.7.0",
     "tailwindcss-animate": "^1.0.7"
   }
 }

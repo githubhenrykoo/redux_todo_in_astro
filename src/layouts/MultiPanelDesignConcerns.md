@@ -75,7 +75,7 @@ Copy
 | S |                         Top_Banner                      |
 | i |------------------+-------------------+------------------+
 | d | Asset_Navigator  |                   |                  |
-| e | (List of assets) |     Workspace     | Chat_Panel       |
+| e | (List of assets) |     Workspace     | Action_History   |
 | b |                  |                   |                  |
 | a |                  |                   |                  |
 | r |                  |                   |                  |

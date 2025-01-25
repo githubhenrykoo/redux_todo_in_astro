@@ -35,7 +35,7 @@ export default function SearchTodo() {
   return (
     <div className="mb-6">
       <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-        Search Todos
+        Search Items
       </label>
       <div className="flex gap-2 items-center">
         <input

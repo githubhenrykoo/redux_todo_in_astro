@@ -19,7 +19,7 @@ export default function ToDos() {
 
   return (
     <div className="mt-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Your Todos</h2>
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">Item Collection</h2>
       {!todos || todos.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
           <p className="text-gray-500">No todos found</p>

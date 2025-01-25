@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { addTodo } from '../features/todoSlice'
+import ContentDetailView from './ui/placeholder/ContentDetailView';
 
 export default function AddTodo() {
   const [input, setInput] = useState('')
@@ -17,9 +18,10 @@ export default function AddTodo() {
   }
 
   return (
+    <>
     <form onSubmit={addTodoHandler} className="mb-6">
       <label htmlFor="add-todo" className="block text-sm font-medium text-gray-700 mb-2">
-        Add New Todo
+        Add New Item
       </label>
       <div className="flex gap-2">
         <input
@@ -38,8 +40,11 @@ export default function AddTodo() {
         </button>
       </div>
       <p className="mt-1 text-sm text-gray-500">
-        Press Enter or click Add to create a new todo
+        Press Enter or click Add to create a new item...
       </p>
     </form>
+
+    <ContentDetailView />
+    </>
   )
 }

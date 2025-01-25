@@ -1,6 +1,8 @@
 ---
 import '../styles/globals.css';
+import ResizablePanels from '../components/panels/ResizablePanels.astro';
 import PanelGroupLayout from './PanelGroupLayout';
+import { TopBanner, Sidebar } from '../components/ui/placeholder';
 
 interface Props {
 	title: string;
@@ -21,11 +23,11 @@ const { title } = Astro.props;
 		<title>{title}</title>
 	</head>
 	<body>
-		<PanelGroupLayout client:load>
-			<!-- <Fragment slot="default">
-				<slot />
-			</Fragment> -->
-		</PanelGroupLayout>
+		<ResizablePanels>
+			<TopBanner slot="banner" client:load />
+			<Sidebar slot="sidebar" client:load />
+			<PanelGroupLayout client:load />
+		</ResizablePanels>
 	</body>
 </html>
 

@@ -1,0 +1,23 @@
+---
+import PanelLabel from '../ui/PanelLabel.astro';
+---
+
+<div class="flex flex-col h-screen">
+  <!-- Top Banner -->
+  <header class="h-16 bg-white border-b">
+    <slot name="banner" />
+  </header>
+
+  <!-- Main Content Area -->
+  <div class="flex-1 flex">
+    <!-- Static Sidebar -->
+    <aside class="w-12 bg-gray-50 border-r border-gray-200">
+      <slot name="sidebar" />
+    </aside>
+
+    <!-- Resizable Panels Container -->
+    <div class="flex-1">
+      <slot />
+    </div>
+  </div>
+</div>

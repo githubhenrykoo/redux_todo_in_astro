@@ -1,50 +1,87 @@
 'use client';
 
-import React, { useState } from 'react'
-import { useDispatch } from 'react-redux'
-import { addTodo } from '../../features/todoSlice.js'
-import ContentDetailView from '../ui/placeholder/ContentDetailView.jsx';
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { addTodo } from '../../features/todoSlice.js';
+import ContentEditor from '../ui/ContentEditor';
 
 export default function ItemDetailPanel() {
-  const [input, setInput] = useState('')
-  const dispatch = useDispatch()
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState('');
+  const selectedContent = useSelector(state => state.todo.selectedContent);
+  const dispatch = useDispatch();
 
-  const addTodoHandler = (e) => {
-    e.preventDefault()
-    if (input.trim()) {
-      dispatch(addTodo(input))
-      setInput('')
+  const handleContentChange = (newContent) => {
+    setEditContent(newContent);
+  };
+
+  const handleSubmit = () => {
+    if (editContent.trim()) {
+      dispatch(addTodo(editContent));
+      setEditContent('');
+      setIsEditing(false);
     }
-  }
+  };
+
+  const handleNewClick = () => {
+    setIsEditing(true);
+    setEditContent('');
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditContent('');
+  };
 
   return (
-    <>
-    <form onSubmit={addTodoHandler} className="mb-6">
-      <label htmlFor="add-todo" className="block text-sm font-medium text-gray-700 mb-2">
-        Add New Item
-      </label>
-      <div className="flex gap-2">
-        <input
-          id="add-todo"
-          type="text" 
-          value={input}  
-          onChange={(e) => setInput(e.target.value)} 
-          placeholder="What needs to be done?"
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-        <button
-          type="submit"
-          className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-200"
-        >
-          Add
-        </button>
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      {/* Header - Fixed Height */}
+      <div className="flex justify-between items-center px-4 py-2 bg-gray-100 flex-shrink-0">
+        <h2 className="text-lg font-semibold text-gray-700">
+          {isEditing ? 'Push New Content' : 'Content Details'}
+        </h2>
+        <div className="flex gap-2">
+          {!isEditing && (
+            <button
+              onClick={handleNewClick}
+              className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Push New Content
+            </button>
+          )}
+          {isEditing && (
+            <>
+              <button
+                onClick={handleCancel}
+                className="px-4 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Save
+              </button>
+            </>
+          )}
+        </div>
       </div>
-      <p className="mt-1 text-sm text-gray-500">
-        Press Enter or click Add to create a new item...
-      </p>
-    </form>
 
-    <ContentDetailView />
-    </>
-  )
+      {/* Content Area - Flexible Height with Scroll */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <ContentEditor
+          content={isEditing ? editContent : (selectedContent || '')}
+          onChange={handleContentChange}
+          onSave={isEditing ? handleSubmit : undefined}
+          title={isEditing ? 'Edit Content' : 'Content Viewer'}
+          isReadOnly={!isEditing}
+          theme={isEditing ? 'light' : 'dark'}
+          showLineNumbers={true}
+          language="Plain Text"
+          className="h-full"
+        />
+      </div>
+    </div>
+  );
 }

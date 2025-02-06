@@ -1,13 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import todoReducer from './features/todoSlice';
 import themeReducer from './features/themeSlice';
-import interfaceReducer from './features/interfaceSlice';
+import panelLayoutReducer from './features/panelLayoutSlice';
 
 export const store = configureStore({
   reducer: {
     todo: todoReducer,
     theme: themeReducer,
-    interface: interfaceReducer
+    interface: panelLayoutReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

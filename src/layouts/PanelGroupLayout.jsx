@@ -5,6 +5,7 @@ import { store } from '../store';
 import ActionLogPanel from '../components/panels/ActionLogPanelReact';
 import SearchAndTodos from '../components/panels/SearchAndTodos';
 import ItemDetailPanel from '../components/panels/ItemDetailPanel';
+import SearchANDPrompts from '../components/panels/SearchANDPrompts';
 
 const PanelGroupLayout = () => {
   return (
@@ -14,7 +15,7 @@ const PanelGroupLayout = () => {
           {/* Item Collection Panel */}
           <Panel defaultSize={30} minSize={20}>
             <div className="h-full overflow-hidden">
-              <SearchAndTodos />
+              <SearchANDPrompts />
             </div>
           </Panel>
 

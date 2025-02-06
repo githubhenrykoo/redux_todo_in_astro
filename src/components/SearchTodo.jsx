@@ -34,7 +34,7 @@ export default function SearchTodo() {
 
   return (
     <div className="mb-6">
-      <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+      <label htmlFor="search" className="block text-sm font-medium text-foreground mb-2">
         Search Items
       </label>
       <div className="flex gap-2 items-center">
@@ -44,13 +44,14 @@ export default function SearchTodo() {
           value={searchInput}
           onChange={handleSearch}
           placeholder="Type to filter todos..."
-          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="flex-1 px-4 py-2 border border-neutral-200 dark:border-neutral-800 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
         />
         <button 
-          className="bg-gray-100 p-2 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+          className="bg-muted p-2 rounded-lg hover:bg-muted-foreground/10 transition-colors duration-200"
           onClick={() => debouncedSearch(searchInput)}
+          aria-label="Search"
         >
-          <FiSearch className="text-gray-600" size={16} />
+          <FiSearch className="w-5 h-5 text-muted-foreground" />
         </button>
       </div>
       <p className="mt-1 text-sm text-gray-500">

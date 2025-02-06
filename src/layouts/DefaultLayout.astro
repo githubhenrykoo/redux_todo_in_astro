@@ -24,7 +24,7 @@ const initialTheme = store.getState().theme?.mode || 'light';
 		<meta name="generator" content={Astro.generator} />
 		<title>{title}</title>
 	</head>
-	<body class="min-h-screen bg-background text-foreground">
+	<body class="min-h-screen bg-background text-foreground antialiased">
 		<ResizablePanels>
 			<TopBanner slot="banner" />
 			<Sidebar slot="sidebar" />
@@ -35,6 +35,11 @@ const initialTheme = store.getState().theme?.mode || 'light';
 
 <script>
 	import { store } from '../store';
+
+	// Apply initial theme
+	const initialTheme = store.getState().theme?.mode || 'light';
+	document.documentElement.classList.remove('light', 'dark');
+	document.documentElement.classList.add(initialTheme);
 
 	// Subscribe to theme changes
 	store.subscribe(() => {
@@ -60,8 +65,8 @@ const initialTheme = store.getState().theme?.mode || 'light';
 	}
 	html {
 		font-family: system-ui, sans-serif;
-		background: #f6f6f6;
-		background-size: 224px;
+		background-color: hsl(var(--background));
+		color: hsl(var(--foreground));
 	}
 	code {
 		font-family:

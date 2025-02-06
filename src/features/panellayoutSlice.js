@@ -43,7 +43,7 @@ const initialState = {
 };
 
 const panellayoutSlice = createSlice({
-    name: 'panelLayout',
+    name: 'panellayout',
     initialState,
     reducers: {
         setMode: (state, action) => {
@@ -113,18 +113,18 @@ export const {
 } = panellayoutSlice.actions;
 
 // Selectors
-export const selectMode = state => state.panelLayout.mode;
-export const selectIsTodoLayout = state => state.panelLayout.mode === LAYOUT_MODES[0];
-export const selectIsGenerateLayout = state => state.panelLayout.mode === LAYOUT_MODES[1];
-export const selectIsNoteLayout = state => state.panelLayout.mode === LAYOUT_MODES[2];
+export const selectMode = state => state.panellayout.mode;
+export const selectIsTodoLayout = state => state.panellayout.mode === LAYOUT_MODES[0];
+export const selectIsGenerateLayout = state => state.panellayout.mode === LAYOUT_MODES[1];
+export const selectIsNoteLayout = state => state.panellayout.mode === LAYOUT_MODES[2];
 
 export const selectPanelConfiguration = createSelector(
-    state => state.panelLayout.panels,
+    state => state.panellayout.panels,
     panels => panels
 );
 
 export const selectPanelSizes = createSelector(
-    state => state.panelLayout.panels,
+    state => state.panellayout.panels,
     panels => ({
         leftPanelSize: panels.left.size,
         middlePanelSize: panels.middle.size,
@@ -133,7 +133,7 @@ export const selectPanelSizes = createSelector(
 );
 
 export const selectPanelVisibility = createSelector(
-    state => state.panelLayout.panels,
+    state => state.panellayout.panels,
     panels => ({
         leftPanelVisible: panels.left.visible,
         middlePanelVisible: panels.middle.visible,
@@ -142,7 +142,7 @@ export const selectPanelVisibility = createSelector(
 );
 
 export const selectEditorPreferences = createSelector(
-    state => state.panelLayout,
+    state => state.panellayout,
     layout => ({
         showLineNumbers: layout.showLineNumbers,
         showStatusBar: layout.showStatusBar,

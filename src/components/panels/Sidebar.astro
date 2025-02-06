@@ -81,10 +81,10 @@ const { class: className, ...props } = Astro.props;
   }
 
   // Initialize button state based on current mode
-  updateActiveButton(store.getState().panelLayout.mode);
+  updateActiveButton(store.getState().panellayout.mode);
 
   // Subscribe to store changes to update button states
   store.subscribe(() => {
-    updateActiveButton(store.getState().panelLayout.mode);
+    updateActiveButton(store.getState().panellayout.mode);
   });
 </script>

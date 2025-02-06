@@ -1,17 +1,25 @@
 ---
-import { cn } from '../../lib/utils';
-import { FiSun } from 'react-icons/fi';
+import { FiSun, FiMoon } from 'react-icons/fi';
+import { store } from '../../store'; // Adjust the import path as needed
+import { toggleTheme } from '../../features/themeSlice';
+import { cn } from '../../utils/cn'; // Import cn utility if it exists
 
-const { class: className, ...props } = Astro.props;
+// Get initial theme mode from store
+const themeMode = store.getState().theme?.mode || 'light';
+
+// Optional props with default values
+interface Props {
+  className?: string;
+  [key: string]: any;
+}
+
+const { 
+  className = '', 
+  ...props 
+} = Astro.props;
 
 const handleThemeToggle = () => {
-  // Implement theme toggle functionality here
-  console.log('Theme toggle clicked');
-};
-
-const handleLogin = () => {
-  // Implement login functionality here
-  console.log("Login clicked");
+  store.dispatch(toggleTheme());
 };
 ---
 
@@ -24,16 +32,25 @@ const handleLogin = () => {
     <div class="flex items-center space-x-4">
       <div class="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
       <div class="w-24 h-4 rounded bg-muted animate-pulse"></div>
-      <button onclick={handleThemeToggle} class="text-gray-700 hover:text-gray-900">
-        <FiSun class="w-6 h-6" />
+      <button 
+        onclick="window.handleThemeToggle()"
+        class="text-gray-700 hover:text-gray-900"
+        aria-label="Toggle theme"
+      >
+        {themeMode === 'light' ? (
+          <FiMoon className="w-6 h-6" />
+        ) : (
+          <FiSun className="w-6 h-6" />
+        )}
       </button>
     </div>
   </div>
 </div>
 
 <script>
-  function handleLogin() {
-    // Implement login functionality here
-    console.log("Login clicked");
-  }
+  window.handleThemeToggle = handleThemeToggle;
+  // Optional: Add listener for system theme changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    // You might want to dispatch toggleTheme or add a system preference handler
+  });
 </script>

@@ -50,8 +50,9 @@ interface RootState {
     media: MediaState;
   };
   ui: {
-    panels: PanelState;
-    navigation: NavigationState;
+    panels: PanelState[];
+    activePanel: string;
+    savedLayouts: Record<string, PanelState[]>;
   };
 }
 ```
@@ -93,6 +94,102 @@ interface ContentAdapter<T> {
   deserialize: (raw: string) => T;
   validate: (content: unknown) => content is T;
 }
+```
+
+### 5. Panel Implementation
+
+#### Base Components
+```astro
+// ResizablePanel.astro
+---
+const { defaultSize = 30, minSize = 20 } = Astro.props;
+---
+<aside style={`flex: ${defaultSize}%; min-width: ${minSize}%`} 
+       class="h-full overflow-hidden">
+  <slot />
+</aside>
+<div class="w-1 bg-slate-200 hover:bg-slate-400 transition-colors cursor-ew-resize">
+</div>
+
+// PanelGroupLayout.astro
+---
+---
+<div class="h-screen flex">
+  <slot />
+</div>
+```
+
+#### Panel State Management
+```typescript
+// Panel Types
+interface PanelConfig {
+  type: PanelType;
+  defaultSize: number;
+  minSize: number;
+  content: Component;
+}
+
+// Panel State
+interface PanelState {
+  id: string;
+  type: PanelType;
+  size: number;
+  isVisible: boolean;
+  content: any;
+}
+
+// Redux Slice
+const panelSlice = createSlice({
+  name: 'panels',
+  initialState,
+  reducers: {
+    updatePanelSize: (state, action) => {
+      const { id, size } = action.payload;
+      const panel = state.panels.find(p => p.id === id);
+      if (panel) panel.size = size;
+    },
+    togglePanelVisibility: (state, action) => {
+      const { id } = action.payload;
+      const panel = state.panels.find(p => p.id === id);
+      if (panel) panel.isVisible = !panel.isVisible;
+    }
+  }
+});
+```
+
+### 6. Content Integration
+
+#### Dynamic Panel Loading
+```typescript
+const loadPanel = async (config: PanelConfig) => {
+  const Panel = await import(`./panels/${config.type}.astro`);
+  return (
+    <ResizablePanel 
+      defaultSize={config.defaultSize} 
+      minSize={config.minSize}
+    >
+      <Panel.default content={config.content} />
+    </ResizablePanel>
+  );
+};
+```
+
+#### Layout Persistence
+```typescript
+// Local Storage Integration
+const persistLayout = (layout: LayoutState) => {
+  localStorage.setItem('panel-layout', JSON.stringify(layout));
+};
+
+// Redux Middleware
+const layoutPersistenceMiddleware = store => next => action => {
+  const result = next(action);
+  if (action.type.startsWith('panels/')) {
+    const state = store.getState();
+    persistLayout(state.ui.panels);
+  }
+  return result;
+};
 ```
 
 ## Implementation Strategy
@@ -185,3 +282,46 @@ src/
 1. Unit tests for reducers and selectors
 2. Integration tests for panel system
 3. E2E tests for critical paths
+
+## Implementation Guidelines
+
+### 1. Panel Development
+- Use Astro slots for content injection
+- Implement resize handlers with debouncing
+- Support dynamic content loading
+- Maintain accessibility standards
+
+### 2. State Management
+- Separate layout state from content state
+- Use Redux for global panel management
+- Implement local storage persistence
+- Handle panel visibility efficiently
+
+### 3. Performance Optimization
+- Lazy load panel content
+- Implement resize debouncing
+- Use efficient state updates
+- Optimize panel transitions
+
+### 4. Accessibility
+- Implement keyboard navigation
+- Add ARIA attributes
+- Support screen readers
+- Maintain focus management
+
+## Migration Strategy
+
+### Phase 1: Core Implementation
+1. Set up base panel components
+2. Implement Redux state management
+3. Add layout persistence
+
+### Phase 2: Feature Integration
+1. Integrate content adapters
+2. Add dynamic panel loading
+3. Implement panel registry
+
+### Phase 3: Enhancement
+1. Add accessibility features
+2. Optimize performance
+3. Implement advanced layouts

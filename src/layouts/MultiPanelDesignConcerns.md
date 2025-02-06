@@ -4,50 +4,619 @@
 
 A reusable multimedia-chat interface should be:
 
-    Content-agnostic (supports images, video, 3D models, documents)
+- Content-agnostic (supports images, video, 3D models, documents)
+- Collaboration-first with real-time interaction capabilities
+- Context-aware of media types and workflows
+- Conversation-integrated (chat tied to content)
+- Cross-platform consistent across devices
+- Functionally pure with isolated side effects
 
-    Collaboration-first with real-time interaction capabilities
+## Panel Architecture
 
-    Context-aware of media types and workflows
+### Core Panel Types
 
-    Conversation-integrated (chat tied to content)
+1. **Media Workspace (Primary)**
+   - Central canvas for media interaction
+   - Supports layered editing/preview
+   - Multiple tabbed workspaces
+   - Pure rendering functions
 
-    Cross-platform consistent across devices
+2. **Conversation Hub (Secondary)**
+   - Threaded chat with media annotations
+   - Collaborative cursor/pointer sharing
+   - Context-aware suggestion panel
+   - Immutable message history
 
-# Panel Architecture
-## Core Panel Types
+3. **Asset Navigator (Secondary)**
+   - Unified media library (local/cloud)
+   - Version history timeline
+   - Metadata inspector
+   - Pure state transformations
 
-    Media Workspace (Primary)
+4. **Tool Orchestrator (Utility)**
+   - Adaptive editing tools palette
+   - AI-assisted quick actions
+   - Session participants roster
+   - Side-effect isolation
 
-        Central canvas for media interaction
+### Functional Implementation Architecture
 
-        Supports layered editing/preview
+#### 1. Pure Panel Components
 
-        Multiple tabbed workspaces
+```astro
+// ResizablePanel.astro - Pure Component
+---
+interface Props {
+  defaultSize: number;
+  minSize: number;
+  id: string;
+}
 
-    Conversation Hub (Secondary)
+const { defaultSize = 30, minSize = 20, id } = Astro.props;
+---
+<aside 
+  id={id}
+  style={`flex: ${defaultSize}%; min-width: ${minSize}%`} 
+  class="h-full overflow-hidden"
+  x-data={`{ 
+    size: ${defaultSize},
+    resize(newSize) {
+      this.size = Math.max(${minSize}, Math.min(newSize, 100 - ${minSize}));
+    }
+  }`}
+>
+  <slot />
+</aside>
+```
 
-        Threaded chat with media annotations
+#### 2. Functional Layout Framework
 
-        Collaborative cursor/pointer sharing
+```astro
+// PanelGroupLayout.astro - Pure Container
+---
+interface Props {
+  layout: Layout;
+}
 
-        Context-aware suggestion panel
+const { layout } = Astro.props;
+---
+<div class="h-screen flex">
+  {layout.panels.map(panel => (
+    <ResizablePanel
+      id={panel.id}
+      defaultSize={panel.size}
+      minSize={panel.minSize}
+    >
+      <slot name={panel.id} />
+    </ResizablePanel>
+  ))}
+</div>
+```
 
-    Asset Navigator (Secondary)
+### Pure State Management
 
-        Unified media library (local/cloud)
+#### 1. Immutable Panel State
+```typescript
+// Pure state types
+type PanelId = string;
+type Size = number;
 
-        Version history timeline
+interface PanelState {
+  readonly id: PanelId;
+  readonly type: PanelType;
+  readonly size: Size;
+  readonly isVisible: boolean;
+  readonly content: unknown;
+}
 
-        Metadata inspector
+// Pure state transformations
+const updatePanelSize = (
+  state: PanelState,
+  newSize: Size
+): PanelState => ({
+  ...state,
+  size: Math.max(state.minSize, Math.min(newSize, 100 - state.minSize))
+});
 
-    Tool Orchestrator (Utility)
+const togglePanelVisibility = (
+  state: PanelState
+): PanelState => ({
+  ...state,
+  isVisible: !state.isVisible
+});
+```
 
-        Adaptive editing tools palette
+#### 2. Side Effect Isolation
+```typescript
+// Side effect wrapper for resize handling
+const createResizeHandler = (
+  panelId: PanelId,
+  dispatch: Dispatch
+) => {
+  let startX: number;
+  let startSize: Size;
 
-        AI-assisted quick actions
+  const start = (e: MouseEvent) => {
+    startX = e.clientX;
+    startSize = getPanelSize(panelId);
+    
+    // Isolate document-level effects
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', end);
+  };
 
-        Session participants roster
+  const move = (e: MouseEvent) => {
+    const delta = e.clientX - startX;
+    const newSize = startSize + (delta / window.innerWidth) * 100;
+    
+    // Pure state update through Redux
+    dispatch(updatePanelSize({ id: panelId, size: newSize }));
+  };
+
+  const end = () => {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', end);
+  };
+
+  return { start };
+};
+```
+
+### Functional Workflow Patterns
+
+#### 1. Pure Layout Composition
+```typescript
+// Pure layout configuration
+const createVideoReviewLayout = (
+  content: VideoContent
+): Layout => ({
+  panels: [
+    {
+      id: 'asset-browser',
+      type: 'browser',
+      size: 25,
+      content: content.versions
+    },
+    {
+      id: 'media-workspace',
+      type: 'player',
+      size: 50,
+      content: content.current
+    },
+    {
+      id: 'conversation',
+      type: 'chat',
+      size: 25,
+      content: content.comments
+    }
+  ]
+});
+```
+
+#### 2. Pure Content Transformations
+```typescript
+// Pure content processing
+const processMediaContent = (
+  content: RawContent
+): ProcessedContent => ({
+  ...content,
+  thumbnail: generateThumbnail(content),
+  metadata: extractMetadata(content),
+  preview: createPreview(content)
+});
+```
+
+# Focus Management System
+
+Focus management is a crucial aspect of panel-based web applications, ensuring proper keyboard navigation and accessibility. This section outlines our approach to managing focus across multiple panels.
+
+## Core Focus Management
+
+```typescript
+// Core Focus Management System
+interface FocusManager {
+  // Track currently focused panel
+  currentFocusedPanel: string | null;
+  
+  // Get focusable elements within a panel
+  getFocusableElements(panel: HTMLElement): HTMLElement[] {
+    return Array.from(panel.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    ));
+  }
+  
+  // Move focus to next panel
+  moveFocusToNextPanel(currentPanelId: string): void {
+    const nextPanel = this.getNextPanel(currentPanelId);
+    if (nextPanel) {
+      const focusableElements = this.getFocusableElements(nextPanel);
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+    }
+  }
+  
+  // Handle focus trapping within a panel
+  trapFocus(panel: HTMLElement): void {
+    const focusableElements = this.getFocusableElements(panel);
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+    
+    panel.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Tab') {
+        if (e.shiftKey && document.activeElement === firstFocusable) {
+          e.preventDefault();
+          lastFocusable.focus();
+        } else if (!e.shiftKey && document.activeElement === lastFocusable) {
+          e.preventDefault();
+          firstFocusable.focus();
+        }
+      }
+    });
+  }
+}
+```
+
+## Panel-Specific Focus Management
+
+```typescript
+// Panel Focus Management Implementation
+class PanelFocusManager {
+  // Set initial focus when panel opens
+  setInitialFocus(panel: HTMLElement): void {
+    const defaultFocusElement = panel.querySelector('[data-default-focus]');
+    if (defaultFocusElement instanceof HTMLElement) {
+      defaultFocusElement.focus();
+    }
+  }
+  
+  // Handle focus when panel becomes active
+  handlePanelActivation(panel: HTMLElement): void {
+    // Store last focused element
+    const lastFocused = document.activeElement;
+    
+    // Set focus to panel
+    this.setInitialFocus(panel);
+    
+    // Store for restoration
+    panel.dataset.lastFocused = lastFocused?.id;
+  }
+  
+  // Restore focus when panel closes
+  restoreFocus(panel: HTMLElement): void {
+    const lastFocusedId = panel.dataset.lastFocused;
+    if (lastFocusedId) {
+      const element = document.getElementById(lastFocusedId);
+      element?.focus();
+    }
+  }
+}
+```
+
+## Keyboard Navigation System
+
+```typescript
+// Keyboard Navigation Implementation
+const handlePanelKeyboard = (event: KeyboardEvent): void => {
+  switch(event.key) {
+    case 'ArrowRight':
+      moveFocusToNextPanel();
+      break;
+    case 'ArrowLeft':
+      moveFocusToPreviousPanel();
+      break;
+    case 'Escape':
+      closeActivePanel();
+      break;
+    case 'F6':
+      // Common shortcut for moving between panels
+      togglePanelFocus();
+      break;
+  }
+};
+```
+
+## Accessibility Enhancements
+
+```typescript
+// Accessibility Implementation
+interface AccessiblePanel {
+  // ARIA attributes
+  setAriaAttributes(panel: HTMLElement): void {
+    panel.setAttribute('role', 'region');
+    panel.setAttribute('aria-label', 'Panel content');
+    panel.setAttribute('tabindex', '-1');
+  }
+  
+  // Focus announcement
+  announceForScreenReader(message: string): void {
+    const announcement = document.createElement('div');
+    announcement.setAttribute('aria-live', 'polite');
+    announcement.textContent = message;
+    // Clean up after announcement
+    setTimeout(() => announcement.remove(), 1000);
+  }
+}
+```
+
+## Focus Management Best Practices
+
+1. **Focus Trapping**
+   - Contain focus within active panels
+   - Prevent focus from leaving modal dialogs
+   - Handle edge cases (first/last focusable elements)
+
+2. **Focus Restoration**
+   - Save focus state before panel switches
+   - Restore focus when returning to previous panel
+   - Handle focus history for nested panels
+
+3. **Focus Indicators**
+   - Provide visible focus indicators
+   - Support high contrast modes
+   - Maintain consistent focus styles
+
+4. **Focus Order**
+   - Match visual layout with tab order
+   - Ensure logical navigation flow
+   - Support both LTR and RTL layouts
+
+5. **Keyboard Shortcuts**
+   - `Tab`: Navigate between focusable elements
+   - `Shift + Tab`: Reverse navigation
+   - `Arrow Keys`: Navigate between panels
+   - `Escape`: Close active panel/dialog
+   - `F6`: Toggle between major UI sections
+
+6. **Screen Reader Support**
+   - Announce panel changes
+   - Provide meaningful labels
+   - Support ARIA landmarks
+   - Include skip links for navigation
+
+## Implementation Guidelines
+
+1. Use `tabindex="0"` for interactive panels
+2. Maintain focus history stack for nested navigation
+3. Provide clear visual indicators for focused elements
+4. Support both mouse and keyboard interactions
+5. Implement consistent keyboard shortcuts
+6. Handle focus for dynamic content updates
+7. Test with screen readers and keyboard navigation
+
+This focus management system ensures:
+- Efficient keyboard navigation
+- Improved accessibility compliance
+- Better user experience for all users
+- Consistent behavior across different panels
+- Proper support for assistive technologies
+
+# Redux Integration with Focus Management
+
+Focus management can be effectively integrated with Redux to maintain a single source of truth for focus state across the application. This approach provides predictable focus behavior and enables features like focus history and state persistence.
+
+## Focus State Management
+
+```typescript
+// Focus State Types
+interface FocusState {
+  activePanelId: string | null;
+  focusHistory: string[];
+  lastFocusedElements: Record<string, string>;
+  trapFocusEnabled: boolean;
+}
+
+// Focus Slice
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+
+const focusSlice = createSlice({
+  name: 'focus',
+  initialState: {
+    activePanelId: null,
+    focusHistory: [],
+    lastFocusedElements: {},
+    trapFocusEnabled: true
+  } as FocusState,
+  reducers: {
+    setActivePanel: (state, action: PayloadAction<string>) => {
+      state.focusHistory.push(state.activePanelId!);
+      state.activePanelId = action.payload;
+    },
+    setLastFocusedElement: (state, action: PayloadAction<{panelId: string, elementId: string}>) => {
+      state.lastFocusedElements[action.payload.panelId] = action.payload.elementId;
+    },
+    popFocusHistory: (state) => {
+      state.activePanelId = state.focusHistory.pop() ?? null;
+    },
+    toggleTrapFocus: (state) => {
+      state.trapFocusEnabled = !state.trapFocusEnabled;
+    }
+  }
+});
+```
+
+## Focus Management Middleware
+
+```typescript
+// Focus Management Middleware
+const focusMiddleware: Middleware = store => next => action => {
+  const result = next(action);
+  const state = store.getState();
+  
+  // Handle focus changes based on actions
+  if (focusSlice.actions.setActivePanel.match(action)) {
+    const panelElement = document.getElementById(action.payload);
+    const lastFocusedId = state.focus.lastFocusedElements[action.payload];
+    
+    if (panelElement) {
+      if (lastFocusedId) {
+        // Restore last focused element
+        const element = panelElement.querySelector(`#${lastFocusedId}`);
+        (element as HTMLElement)?.focus();
+      } else {
+        // Focus first focusable element
+        const firstFocusable = getFocusableElements(panelElement)[0];
+        firstFocusable?.focus();
+      }
+    }
+  }
+  
+  return result;
+};
+```
+
+## Focus-Aware Components
+
+```typescript
+// Focus-Aware Panel Component
+interface FocusAwarePanelProps {
+  id: string;
+  children: React.ReactNode;
+}
+
+const FocusAwarePanel: React.FC<FocusAwarePanelProps> = ({ id, children }) => {
+  const dispatch = useDispatch();
+  const activePanelId = useSelector((state: RootState) => state.focus.activePanelId);
+  const trapFocusEnabled = useSelector((state: RootState) => state.focus.trapFocusEnabled);
+  
+  // Handle focus events
+  const handleFocus = (e: FocusEvent) => {
+    if (e.target instanceof HTMLElement) {
+      dispatch(focusSlice.actions.setLastFocusedElement({
+        panelId: id,
+        elementId: e.target.id
+      }));
+    }
+  };
+  
+  // Set up focus trapping
+  useEffect(() => {
+    const panel = document.getElementById(id);
+    if (panel && trapFocusEnabled && activePanelId === id) {
+      const cleanup = setupFocusTrap(panel);
+      return cleanup;
+    }
+  }, [id, trapFocusEnabled, activePanelId]);
+  
+  return (
+    <div 
+      id={id}
+      role="region"
+      onFocus={handleFocus}
+      tabIndex={-1}
+      aria-label={`Panel ${id}`}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+## Focus Management Hooks
+
+```typescript
+// Custom Focus Management Hooks
+const usePanelFocus = (panelId: string) => {
+  const dispatch = useDispatch();
+  const activePanelId = useSelector((state: RootState) => state.focus.activePanelId);
+  
+  const activatePanel = useCallback(() => {
+    dispatch(focusSlice.actions.setActivePanel(panelId));
+  }, [dispatch, panelId]);
+  
+  const deactivatePanel = useCallback(() => {
+    dispatch(focusSlice.actions.popFocusHistory());
+  }, [dispatch]);
+  
+  return {
+    isActive: activePanelId === panelId,
+    activatePanel,
+    deactivatePanel
+  };
+};
+
+// Focus History Hook
+const useFocusHistory = () => {
+  const focusHistory = useSelector((state: RootState) => state.focus.focusHistory);
+  const dispatch = useDispatch();
+  
+  const goBack = useCallback(() => {
+    if (focusHistory.length > 0) {
+      dispatch(focusSlice.actions.popFocusHistory());
+    }
+  }, [dispatch, focusHistory.length]);
+  
+  return { focusHistory, goBack };
+};
+```
+
+## Focus State Persistence
+
+```typescript
+// Focus State Persistence
+const persistFocusState = (state: FocusState) => {
+  localStorage.setItem('focusState', JSON.stringify({
+    activePanelId: state.activePanelId,
+    lastFocusedElements: state.lastFocusedElements
+  }));
+};
+
+const loadPersistedFocusState = (): Partial<FocusState> => {
+  const saved = localStorage.getItem('focusState');
+  return saved ? JSON.parse(saved) : {};
+};
+```
+
+## Usage Example
+
+```typescript
+// Application Setup
+const store = configureStore({
+  reducer: {
+    focus: focusSlice.reducer,
+    // ... other reducers
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(focusMiddleware),
+  preloadedState: {
+    focus: {
+      ...initialFocusState,
+      ...loadPersistedFocusState()
+    }
+  }
+});
+
+// Panel Implementation
+const MediaPanel: React.FC = () => {
+  const { isActive, activatePanel } = usePanelFocus('media-panel');
+  
+  return (
+    <FocusAwarePanel id="media-panel">
+      <button onClick={activatePanel}>
+        Activate Media Panel
+      </button>
+      {/* Panel content */}
+    </FocusAwarePanel>
+  );
+};
+```
+
+This Redux integration provides several benefits:
+- Centralized focus state management
+- Predictable focus behavior
+- Focus history tracking
+- State persistence
+- Reusable focus management hooks
+- Type-safe focus operations
+- Testable focus logic
+
+The system can be extended to support:
+- Complex focus patterns
+- Multi-window applications
+- Nested focus contexts
+- Focus-based animations
+- A11y announcements
+- Keyboard shortcuts
 
 # Naming Convention System
 Structural Pattern
@@ -190,63 +759,6 @@ Base Components
         Quick AI actions
 
         Session controls
-
-# Technical Considerations
-Performance
-
-    Web Workers for media processing
-
-    Canvas-based rendering
-
-    Differential sync for large files
-
-Security
-
-    End-to-end media encryption
-
-    Permission-based access
-
-    Content moderation tools
-
-Accessibility
-
-    Screen reader media descriptions
-
-    Keyboard media navigation
-
-    Color-contrast chat themes
-
-Recommended Stack
-
-    Core Framework
-
-        React + TypeScript
-
-        Redux Toolkit + Media Fragments API
-
-    Collaboration
-
-        Yjs CRDTs
-
-        WebRTC for P2P
-
-        MediaSoup for streaming
-
-    Media Processing
-
-        FFmpeg.wasm
-
-        Three.js (3D)
-
-        PDF.js (Documents)
-
-    UI System
-
-        react-resizable-panels
-
-        Fabric.js (Canvas)
-
-        Video.js/ReactPlayer
 
 # Workflow Examples
 

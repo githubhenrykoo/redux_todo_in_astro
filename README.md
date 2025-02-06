@@ -115,3 +115,128 @@ This project demonstrates a modern approach to web application architecture by:
 - Implementing a flexible panel-based layout
 - Managing state with Redux
 - Following responsive design principles
+
+## MCard Implementation
+
+### Overview
+
+A foundational content management system that integrates Redux with Astro's Content Layer, utilizing MCard for content-addressable storage. This system implements an algebraically closed data structure that enables individual knowledge owners to manage their personal namespace of hash-value-based data content.
+
+### Core Features
+
+#### Content Management
+- Content-addressable storage using cryptographic hashes
+- Microsecond-precision temporal ordering
+- Cross-platform compatibility (JavaScript/Python)
+- Full-text search capabilities
+- Bidirectional synchronization
+
+#### UI Components
+- Retractable mini and wide sidebar
+- Scrollable sidebar menu
+- Sheet menu for mobile
+- Grouped menu with labels
+- Collapsible submenu
+
+### Architecture
+
+#### MCard Core
+The system uses a unified `Card_Collection` class for both client-side and server-side content management:
+
+```typescript
+interface MCard {
+  content: Buffer;          // The actual data being stored
+  hash: string;            // Cryptographic hash of content
+  g_time: string;         // Timezone-aware timestamp
+  content_type: string;   // Content type identifier
+}
+```
+
+#### Data Schema
+Primary table structure in SQLite:
+```sql
+CREATE TABLE card (
+  hash TEXT PRIMARY KEY,    -- Unique identifier
+  content BLOB NOT NULL,    -- Binary or UTF-8 encoded data
+  g_time TEXT NOT NULL     -- Global timestamp
+);
+
+-- Full-text search support
+CREATE VIRTUAL TABLE documents USING fts5(content);
+```
+
+#### Directory Structure
+```
+src/
+├── content/           # Content management
+│   ├── model/        # Core data models
+│   └── collections/  # Astro collections
+├── components/       # React components
+├── integrations/     # External integrations
+├── network/         # P2P networking
+└── storage/         # Storage engines
+```
+
+### Tech Stack
+
+#### Frontend
+- Astro
+- React
+- Redux
+- Shadcn/ui
+- Tailwind CSS
+- TypeScript
+
+#### Backend
+- SQLite
+- Astro DB
+- libP2P
+
+### Installation
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Configure environment:
+```bash
+cp .env.example .env
+```
+
+3. Initialize database:
+```bash
+npm run init-db
+```
+
+### Core Concepts
+
+#### Content Integrity
+- Every piece of content is uniquely identified by its hash
+- Multiple hash algorithms supported (SHA-256 default)
+- Collision detection and resolution
+- Content type validation
+
+#### Storage Management
+- Local SQLite storage
+- Astro DB integration
+- P2P content distribution
+- Automatic synchronization
+
+#### Search Capabilities
+- Full-text search using FTS5
+- Content type filtering
+- Temporal queries
+- Hash-based lookups
+
+### Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+### License
+
+[License details here]

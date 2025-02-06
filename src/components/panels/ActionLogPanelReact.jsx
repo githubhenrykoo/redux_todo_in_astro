@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { selectActionHistory } from '../../features/todoSlice';
+import { selectThemeMode } from '../../features/themeSlice';
 import { formatTimestamp, getActionText } from '../../utils/actionHelpers';
 import { FiFile, FiFileText, FiImage, FiCode } from 'react-icons/fi';
 import { ContentTypeInterpreter } from '../../utils/content_type_detector';
+import { cn } from '../../utils/cn';
 
 const contentInterpreter = new ContentTypeInterpreter();
 
@@ -27,6 +29,8 @@ const getContentIcon = (content) => {
 
 const ActionLogPanelReact = () => {
   const actionHistory = useSelector(selectActionHistory);
+  const themeMode = useSelector(selectThemeMode);
+  const isDark = themeMode === 'dark';
   const scrollRef = useRef(null);
 
   // Auto-scroll to the latest action when new actions are added
@@ -39,14 +43,22 @@ const ActionLogPanelReact = () => {
   return (
     <div className="flex flex-col h-full">
       {/* Fixed Header */}
-      <div className="flex-shrink-0 p-4 bg-white border-b">
+      <div className={cn(
+        "flex-shrink-0 p-4 border-b",
+        isDark 
+          ? "bg-neutral-900 text-white border-neutral-800" 
+          : "bg-white text-neutral-900 border-neutral-200"
+      )}>
         <h1 className="text-xl font-bold">Action History</h1>
       </div>
 
       {/* Scrollable Content */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-auto p-4"
+        className={cn(
+          "flex-1 overflow-auto p-4",
+          isDark ? "bg-neutral-900" : "bg-white"
+        )}
       >
         <div className="space-y-2">
           {actionHistory.length === 0 ? (

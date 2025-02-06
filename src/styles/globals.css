@@ -80,6 +80,12 @@
   .bg-background {
     background-color: hsl(var(--background));
   }
+  .bg-card {
+    background-color: hsl(var(--card));
+  }
+  .text-card-foreground {
+    color: hsl(var(--card-foreground));
+  }
   .text-foreground {
     color: hsl(var(--foreground));
   }
@@ -94,5 +100,14 @@
   }
   .text-primary {
     color: hsl(var(--primary));
+  }
+  .bg-destructive {
+    background-color: hsl(var(--destructive));
+  }
+  .text-destructive-foreground {
+    color: hsl(var(--destructive-foreground));
+  }
+  .text-accent {
+    color: hsl(var(--accent));
   }
 }

@@ -19,16 +19,16 @@ const getContentIcon = (content) => {
   
   switch (mimeType) {
     case 'text/plain':
-      return <FiFileText className="w-5 h-5 text-gray-600" />;
+      return <FiFileText className="w-5 h-5 text-muted-foreground" />;
     case 'application/json':
-      return <FiCode className="w-5 h-5 text-blue-600" />;
+      return <FiCode className="w-5 h-5 text-primary" />;
     case 'image/jpeg':
     case 'image/png':
     case 'image/webp':
     case 'image/gif':
-      return <FiImage className="w-5 h-5 text-green-600" />;
+      return <FiImage className="w-5 h-5 text-accent" />;
     default:
-      return <FiFile className="w-5 h-5 text-gray-400" />;
+      return <FiFile className="w-5 h-5 text-muted-foreground/70" />;
   }
 };
 
@@ -46,31 +46,31 @@ export default function ToDos() {
 
   return (
     <div className="mt-6">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800">Item Collection</h2>
+      <h2 className="text-2xl font-bold mb-4 text-foreground">Item Collection</h2>
       {!todos || todos.length === 0 ? (
-        <div className="text-center py-8 bg-gray-50 rounded-lg">
-          <p className="text-gray-500">No todos found</p>
+        <div className="text-center py-8 bg-muted rounded-lg">
+          <p className="text-muted-foreground">No todos found</p>
         </div>
       ) : (
         <ul className="space-y-3">
           {todos.map((todo) => (
             <li 
               key={todo.id} 
-              className="group flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+              className="group flex items-center justify-between p-4 bg-card border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
               onClick={() => handleSelect(todo.id)}
             >
               <div className="flex items-center space-x-3">
                 <div className="flex-shrink-0">
                   {getContentIcon(todo.content)}
                 </div>
-                <span className="text-gray-700">{todo.content}</span>
+                <span className="text-card-foreground">{todo.content}</span>
               </div>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRemove(todo.id);
                 }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 text-white px-2 py-1 rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-destructive text-destructive-foreground px-2 py-1 rounded-md hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-opacity-50"
               >
                 <span className="sr-only">Remove todo</span>
                 <FiTrash2 size={16} />

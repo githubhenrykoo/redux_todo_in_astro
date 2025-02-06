@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { cn } from '../../utils/cn';
 
 interface ContentEditorProps {
   content: string;
@@ -9,7 +10,6 @@ interface ContentEditorProps {
   language?: string;
   className?: string;
   showLineNumbers?: boolean;
-  theme?: 'dark' | 'light';
 }
 
 const ContentEditor: React.FC<ContentEditorProps> = ({
@@ -21,7 +21,6 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
   language = 'Plain Text',
   className = '',
   showLineNumbers = true,
-  theme = 'dark',
 }) => {
   const [localContent, setLocalContent] = useState(content);
   const contentLines = localContent.split('\n');
@@ -45,35 +44,17 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
     }
   };
 
-  // Theme-based styles
-  const themeStyles = {
-    dark: {
-      header: 'bg-gray-800 text-white',
-      body: 'bg-gray-900 text-gray-100',
-      lineNumbers: 'bg-gray-800 text-gray-500',
-      statusBar: 'bg-gray-800 text-gray-400',
-      hoverBg: 'hover:bg-gray-800',
-    },
-    light: {
-      header: 'bg-gray-200 text-gray-800',
-      body: 'bg-white text-gray-900',
-      lineNumbers: 'bg-gray-100 text-gray-500',
-      statusBar: 'bg-gray-200 text-gray-600',
-      hoverBg: 'hover:bg-gray-100',
-    },
-  }[theme];
-
   return (
-    <div className={`content-editor flex flex-col min-h-0 h-full ${className}`}>
+    <div className={cn('content-editor flex flex-col min-h-0 h-full', className)}>
       {/* Header */}
-      <div className={`${themeStyles.header} px-4 py-2 text-sm flex items-center justify-between flex-shrink-0`}>
-        <span>{title}</span>
+      <div className="dark:bg-white bg-neutral-900 px-4 py-2 text-sm flex items-center justify-between flex-shrink-0 border-b dark:border-neutral-200 border-neutral-800">
+        <span className="dark:text-neutral-900 text-white">{title}</span>
         <div className="flex items-center space-x-2">
-          {isReadOnly && <span className="text-gray-400">Read Only</span>}
+          {isReadOnly && <span className="dark:text-neutral-500 text-neutral-400">Read Only</span>}
           {!isReadOnly && onSave && (
             <button
               onClick={onSave}
-              className="px-2 py-1 text-xs rounded border border-gray-600 hover:bg-gray-700"
+              className="px-2 py-1 text-xs rounded border-0 dark:bg-neutral-900 bg-white dark:text-white text-neutral-900 hover:bg-white/90 dark:hover:bg-neutral-900/90 transition-colors"
             >
               Save
             </button>
@@ -82,11 +63,11 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       </div>
 
       {/* Editor Body - Scrollable Container */}
-      <div className={`flex-1 min-h-0 overflow-hidden relative ${themeStyles.body}`}>
+      <div className="flex-1 min-h-0 overflow-hidden relative dark:bg-white bg-neutral-900 dark:text-neutral-900 text-white">
         {/* Line Numbers - Fixed Position */}
         {showLineNumbers && (
           <div
-            className={`absolute left-0 top-0 bottom-0 ${themeStyles.lineNumbers} select-none overflow-hidden`}
+            className="absolute left-0 top-0 bottom-0 dark:bg-neutral-100 bg-neutral-800 dark:text-neutral-500 text-neutral-400 select-none overflow-hidden border-r dark:border-neutral-200 border-neutral-800"
             style={{ width: `${lineNumberWidth + 3}ch`, minWidth: '3ch' }}
           >
             <div className="h-full overflow-auto invisible-scrollbar">
@@ -111,7 +92,7 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
             <pre className="font-mono text-sm p-4 whitespace-pre overflow-x-auto">
               <code>
                 {contentLines.map((line, idx) => (
-                  <div key={idx} className={`${themeStyles.hoverBg} leading-6`}>
+                  <div key={idx} className="dark:hover:bg-neutral-100 hover:bg-neutral-800 leading-6">
                     {line || '\n'}
                   </div>
                 ))}
@@ -122,7 +103,7 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
               value={localContent}
               onChange={handleContentChange}
               onKeyDown={handleKeyDown}
-              className={`w-full h-full resize-none outline-none font-mono text-sm p-4 ${themeStyles.body}`}
+              className="w-full h-full resize-none outline-none font-mono text-sm p-4 dark:bg-white bg-neutral-900 dark:text-neutral-900 text-white"
               spellCheck={false}
               autoCapitalize="off"
               autoComplete="off"
@@ -133,7 +114,7 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       </div>
 
       {/* Status Bar */}
-      <div className={`${themeStyles.statusBar} px-4 py-1 text-xs flex items-center justify-between flex-shrink-0`}>
+      <div className="dark:bg-neutral-100 bg-neutral-800 px-4 py-1 text-xs flex items-center justify-between flex-shrink-0 dark:text-neutral-500 text-neutral-400 border-t dark:border-neutral-200 border-neutral-800">
         <div>
           {contentLines.length} {contentLines.length === 1 ? 'line' : 'lines'}
         </div>

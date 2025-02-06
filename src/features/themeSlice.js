@@ -49,19 +49,23 @@ export const themeSlice = createSlice({
      */
     toggleTheme: (state) => {
       state.mode = state.mode === 'light' ? 'dark' : 'light';
-      updateCSSVariables(state.colors[state.mode]);
+      updateCSSVariables(state.colors[state.mode], state.mode);
       localStorage.setItem('theme', state.mode);
     }
   }
 });
 
 // Update root CSS variables when theme changes
-const updateCSSVariables = (colors) => {
+const updateCSSVariables = (colors, mode) => {
   if (typeof document === 'undefined') return;
   
-  const root = document.documentElement;
+  // Update the HTML class for Tailwind/shadcn theme
+  document.documentElement.classList.remove('light', 'dark');
+  document.documentElement.classList.add(mode);
+  
+  // Update CSS variables for custom colors
   Object.entries(colors).forEach(([key, value]) => {
-    root.style.setProperty(`--color-${key}`, value);
+    document.documentElement.style.setProperty(`--${key}`, value);
   });
 };
 

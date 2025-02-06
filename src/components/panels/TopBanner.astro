@@ -1,8 +1,8 @@
 ---
 import { FiSun, FiMoon } from 'react-icons/fi';
-import { store } from '../../store'; // Adjust the import path as needed
+import { store } from '../../store';
 import { toggleTheme } from '../../features/themeSlice';
-import { cn } from '../../utils/cn'; // Import cn utility if it exists
+import { cn } from '../../utils/cn';
 
 // Get initial theme mode from store
 const themeMode = store.getState().theme?.mode || 'light';
@@ -17,10 +17,6 @@ const {
   className = '', 
   ...props 
 } = Astro.props;
-
-const handleThemeToggle = () => {
-  store.dispatch(toggleTheme());
-};
 ---
 
 <div class={cn(
@@ -34,7 +30,7 @@ const handleThemeToggle = () => {
       <div class="w-24 h-4 rounded bg-muted animate-pulse"></div>
       <button 
         onclick="window.handleThemeToggle()"
-        class="text-gray-700 hover:text-gray-900"
+        class="text-foreground hover:text-foreground/80"
         aria-label="Toggle theme"
       >
         {themeMode === 'light' ? (
@@ -48,9 +44,28 @@ const handleThemeToggle = () => {
 </div>
 
 <script>
-  window.handleThemeToggle = handleThemeToggle;
+  import { store } from '../../store';
+  import { toggleTheme } from '../../features/themeSlice';
+
+  // Define the theme toggle function in the client-side script
+  window.handleThemeToggle = () => {
+    store.dispatch(toggleTheme());
+  };
+
   // Optional: Add listener for system theme changes
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    // You might want to dispatch toggleTheme or add a system preference handler
+    const newTheme = e.matches ? 'dark' : 'light';
+    if (store.getState().theme.mode !== newTheme) {
+      store.dispatch(toggleTheme());
+    }
   });
+</script>
+
+<script>
+  // TypeScript declaration for the global function
+  declare global {
+    interface Window {
+      handleThemeToggle: () => void;
+    }
+  }
 </script>

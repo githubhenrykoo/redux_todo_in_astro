@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { cn } from '../../utils/cn';
+import { useSelector } from 'react-redux';
+import { selectThemeMode } from '../../features/themeSlice';
 
 interface ContentEditorProps {
   content: string;
@@ -25,6 +27,8 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
   const [localContent, setLocalContent] = useState(content);
   const contentLines = localContent.split('\n');
   const lineNumberWidth = contentLines.length.toString().length;
+  const themeMode = useSelector(selectThemeMode);
+  const isDark = themeMode === 'dark';
 
   // Update local content when prop changes
   useEffect(() => {
@@ -47,14 +51,26 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
   return (
     <div className={cn('content-editor flex flex-col min-h-0 h-full', className)}>
       {/* Header */}
-      <div className="dark:bg-white bg-neutral-900 px-4 py-2 text-sm flex items-center justify-between flex-shrink-0 border-b dark:border-neutral-200 border-neutral-800">
-        <span className="dark:text-neutral-900 text-white">{title}</span>
+      <div className={cn(
+        "px-4 py-2 text-sm flex items-center justify-between flex-shrink-0 border-b",
+        isDark ? "bg-white text-neutral-900 border-neutral-200" : "bg-neutral-900 text-white border-neutral-800"
+      )}>
+        <span>{title}</span>
         <div className="flex items-center space-x-2">
-          {isReadOnly && <span className="dark:text-neutral-500 text-neutral-400">Read Only</span>}
+          {isReadOnly && (
+            <span className={isDark ? "text-neutral-500" : "text-neutral-400"}>
+              Read Only
+            </span>
+          )}
           {!isReadOnly && onSave && (
             <button
               onClick={onSave}
-              className="px-2 py-1 text-xs rounded border-0 dark:bg-neutral-900 bg-white dark:text-white text-neutral-900 hover:bg-white/90 dark:hover:bg-neutral-900/90 transition-colors"
+              className={cn(
+                "px-2 py-1 text-xs rounded border-0 transition-colors",
+                isDark 
+                  ? "bg-neutral-900 text-white hover:bg-neutral-800" 
+                  : "bg-white text-neutral-900 hover:bg-neutral-100"
+              )}
             >
               Save
             </button>
@@ -63,11 +79,19 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       </div>
 
       {/* Editor Body - Scrollable Container */}
-      <div className="flex-1 min-h-0 overflow-hidden relative dark:bg-white bg-neutral-900 dark:text-neutral-900 text-white">
+      <div className={cn(
+        "flex-1 min-h-0 overflow-hidden relative",
+        isDark ? "bg-white text-neutral-900" : "bg-neutral-900 text-white"
+      )}>
         {/* Line Numbers - Fixed Position */}
         {showLineNumbers && (
           <div
-            className="absolute left-0 top-0 bottom-0 dark:bg-neutral-100 bg-neutral-800 dark:text-neutral-500 text-neutral-400 select-none overflow-hidden border-r dark:border-neutral-200 border-neutral-800"
+            className={cn(
+              "absolute left-0 top-0 bottom-0 select-none overflow-hidden border-r",
+              isDark 
+                ? "bg-neutral-100 text-neutral-500 border-neutral-200" 
+                : "bg-neutral-800 text-neutral-400 border-neutral-800"
+            )}
             style={{ width: `${lineNumberWidth + 3}ch`, minWidth: '3ch' }}
           >
             <div className="h-full overflow-auto invisible-scrollbar">
@@ -92,7 +116,15 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
             <pre className="font-mono text-sm p-4 whitespace-pre overflow-x-auto">
               <code>
                 {contentLines.map((line, idx) => (
-                  <div key={idx} className="dark:hover:bg-neutral-100 hover:bg-neutral-800 leading-6">
+                  <div 
+                    key={idx} 
+                    className={cn(
+                      "leading-6",
+                      isDark 
+                        ? "hover:bg-neutral-100" 
+                        : "hover:bg-neutral-800"
+                    )}
+                  >
                     {line || '\n'}
                   </div>
                 ))}
@@ -103,7 +135,12 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
               value={localContent}
               onChange={handleContentChange}
               onKeyDown={handleKeyDown}
-              className="w-full h-full resize-none outline-none font-mono text-sm p-4 dark:bg-white bg-neutral-900 dark:text-neutral-900 text-white"
+              className={cn(
+                "w-full h-full resize-none outline-none font-mono text-sm p-4",
+                isDark 
+                  ? "bg-white text-neutral-900" 
+                  : "bg-neutral-900 text-white"
+              )}
               spellCheck={false}
               autoCapitalize="off"
               autoComplete="off"
@@ -114,7 +151,12 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       </div>
 
       {/* Status Bar */}
-      <div className="dark:bg-neutral-100 bg-neutral-800 px-4 py-1 text-xs flex items-center justify-between flex-shrink-0 dark:text-neutral-500 text-neutral-400 border-t dark:border-neutral-200 border-neutral-800">
+      <div className={cn(
+        "px-4 py-1 text-xs flex items-center justify-between flex-shrink-0 border-t",
+        isDark 
+          ? "bg-neutral-100 text-neutral-500 border-neutral-200" 
+          : "bg-neutral-800 text-neutral-400 border-neutral-800"
+      )}>
         <div>
           {contentLines.length} {contentLines.length === 1 ? 'line' : 'lines'}
         </div>

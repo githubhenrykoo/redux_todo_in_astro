@@ -16,28 +16,75 @@ const { class: className, ...props } = Astro.props;
 )} {...props}>
   <div class="flex-1 flex flex-col justify-between py-4">
     <div class="space-y-6">
-      <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors border-l-2 border-primary bg-muted">
+      <button
+        id="todoLayoutBtn"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors border-l-2 border-primary bg-muted"
+      >
         <FaCode className="text-lg text-primary" />
-      </div>
+      </button>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
         <FaSearch className="text-lg text-muted-foreground" />
       </div>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
         <FaBug className="text-lg text-muted-foreground" />
       </div>
-      <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
+      <button
+        id="generateLayoutBtn"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors"
+      >
         <FaTerminal className="text-lg text-muted-foreground" />
-      </div>
+      </button>
     </div>
     <div>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
         <FaCog className="text-lg text-muted-foreground" />
       </div>
     </div>
-    
   </div>
 </div>
 
 <script>
-  // Add any client-side functionality here if needed
+  import { store } from '../../store';
+  import { setMode } from '../../features/panellayoutSlice';
+
+  // Get button elements
+  const todoLayoutBtn = document.getElementById('todoLayoutBtn');
+  const generateLayoutBtn = document.getElementById('generateLayoutBtn');
+
+  // Add click handlers
+  todoLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(setMode('todo_layout'));
+    updateActiveButton('todo_layout');
+  });
+
+  generateLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(setMode('generate_layout'));
+    updateActiveButton('generate_layout');
+  });
+
+  // Function to update active button styles
+  function updateActiveButton(mode: string) {
+    // Remove active styles from all buttons
+    todoLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    generateLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    generateLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+
+    // Add active styles to the selected button
+    if (mode === 'todo_layout') {
+      todoLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      todoLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (mode === 'generate_layout') {
+      generateLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      generateLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    }
+  }
+
+  // Initialize button state based on current mode
+  updateActiveButton(store.getState().panelLayout.mode);
+
+  // Subscribe to store changes to update button states
+  store.subscribe(() => {
+    updateActiveButton(store.getState().panelLayout.mode);
+  });
 </script>

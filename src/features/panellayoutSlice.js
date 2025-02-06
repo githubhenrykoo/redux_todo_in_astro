@@ -2,13 +2,15 @@ import { createSlice } from '@reduxjs/toolkit';
 import { createSelector } from 'reselect';
 
 // Layout modes for different interfaces
-export const LAYOUT_MODES = ['todo_layout', 'question_layout', 'note_layout'];
+export const LAYOUT_MODES = ['todo_layout', 'generate_layout', 'note_layout'];
 
 // Panel types
 export const PANEL_TYPES = {
     SEARCH_TODOS: 'SearchAndTodos',
+    SEARCH_PROMPTS: 'SearchANDPrompts',
     ITEM_DETAIL: 'ItemDetailPanel',
-    ACTION_LOG: 'ActionLogPanel'
+    ACTION_LOG: 'ActionLogPanel',
+    GENERATE_PANEL: 'GeneratePanel'
 };
 
 const initialState = {
@@ -40,13 +42,36 @@ const initialState = {
     wrapText: true
 };
 
-const panelLayoutSlice = createSlice({
+const panellayoutSlice = createSlice({
     name: 'panelLayout',
     initialState,
     reducers: {
         setMode: (state, action) => {
             if (LAYOUT_MODES.includes(action.payload)) {
                 state.mode = action.payload;
+                // Update panel configuration based on mode
+                if (action.payload === 'generate_layout') {
+                    state.panels = {
+                        left: {
+                            type: PANEL_TYPES.SEARCH_PROMPTS,
+                            size: 30,
+                            minSize: 20,
+                            visible: true
+                        },
+                        middle: {
+                            type: PANEL_TYPES.ITEM_DETAIL,
+                            size: 40,
+                            minSize: 20,
+                            visible: true
+                        },
+                        right: {
+                            type: PANEL_TYPES.GENERATE_PANEL,
+                            size: 30,
+                            minSize: 20,
+                            visible: true
+                        }
+                    };
+                }
             }
         },
         setPanelSize: (state, action) => {
@@ -85,12 +110,12 @@ export const {
     toggleStatusBar,
     toggleWrapText,
     resetLayout
-} = panelLayoutSlice.actions;
+} = panellayoutSlice.actions;
 
 // Selectors
 export const selectMode = state => state.panelLayout.mode;
 export const selectIsTodoLayout = state => state.panelLayout.mode === LAYOUT_MODES[0];
-export const selectIsQuestionLayout = state => state.panelLayout.mode === LAYOUT_MODES[1];
+export const selectIsGenerateLayout = state => state.panelLayout.mode === LAYOUT_MODES[1];
 export const selectIsNoteLayout = state => state.panelLayout.mode === LAYOUT_MODES[2];
 
 export const selectPanelConfiguration = createSelector(
@@ -125,4 +150,4 @@ export const selectEditorPreferences = createSelector(
     })
 );
 
-export default panelLayoutSlice.reducer;
+export default panellayoutSlice.reducer;

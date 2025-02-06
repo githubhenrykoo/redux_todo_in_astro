@@ -6,6 +6,7 @@ import ActionLogPanel from '../components/panels/ActionLogPanelReact';
 import SearchAndTodos from '../components/panels/SearchAndTodos';
 import ItemDetailPanel from '../components/panels/ItemDetailPanel';
 import SearchANDPrompts from '../components/panels/SearchANDPrompts';
+import GeneratePanel from '../components/panels/GeneratePanel';
 
 const PanelGroupLayout = () => {
   return (
@@ -33,7 +34,7 @@ const PanelGroupLayout = () => {
           {/* Action History Panel */}
           <Panel defaultSize={30} minSize={20}>
             <div className="h-full overflow-hidden">
-              <ActionLogPanel />
+              <GeneratePanel />
             </div>
           </Panel>
         </PanelGroup>

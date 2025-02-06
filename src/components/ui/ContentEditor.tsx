@@ -53,12 +53,14 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       {/* Header */}
       <div className={cn(
         "px-4 py-2 text-sm flex items-center justify-between flex-shrink-0 border-b",
-        isDark ? "bg-white text-neutral-900 border-neutral-200" : "bg-neutral-900 text-white border-neutral-800"
+        isDark 
+          ? "bg-neutral-900 text-white border-neutral-800" 
+          : "bg-white text-neutral-900 border-neutral-200"
       )}>
         <span>{title}</span>
         <div className="flex items-center space-x-2">
           {isReadOnly && (
-            <span className={isDark ? "text-neutral-500" : "text-neutral-400"}>
+            <span className={isDark ? "text-neutral-400" : "text-neutral-500"}>
               Read Only
             </span>
           )}
@@ -68,8 +70,8 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
               className={cn(
                 "px-2 py-1 text-xs rounded border-0 transition-colors",
                 isDark 
-                  ? "bg-neutral-900 text-white hover:bg-neutral-800" 
-                  : "bg-white text-neutral-900 hover:bg-neutral-100"
+                  ? "bg-neutral-800 text-white hover:bg-neutral-700" 
+                  : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
               )}
             >
               Save
@@ -81,7 +83,7 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       {/* Editor Body - Scrollable Container */}
       <div className={cn(
         "flex-1 min-h-0 overflow-hidden relative",
-        isDark ? "bg-white text-neutral-900" : "bg-neutral-900 text-white"
+        isDark ? "bg-neutral-900 text-white" : "bg-white text-neutral-900"
       )}>
         {/* Line Numbers - Fixed Position */}
         {showLineNumbers && (
@@ -89,8 +91,8 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
             className={cn(
               "absolute left-0 top-0 bottom-0 select-none overflow-hidden border-r",
               isDark 
-                ? "bg-neutral-100 text-neutral-500 border-neutral-200" 
-                : "bg-neutral-800 text-neutral-400 border-neutral-800"
+                ? "bg-neutral-800 text-neutral-400 border-neutral-700" 
+                : "bg-neutral-100 text-neutral-500 border-neutral-200"
             )}
             style={{ width: `${lineNumberWidth + 3}ch`, minWidth: '3ch' }}
           >
@@ -121,8 +123,8 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
                     className={cn(
                       "leading-6",
                       isDark 
-                        ? "hover:bg-neutral-100" 
-                        : "hover:bg-neutral-800"
+                        ? "hover:bg-neutral-800" 
+                        : "hover:bg-neutral-100"
                     )}
                   >
                     {line || '\n'}
@@ -138,8 +140,8 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
               className={cn(
                 "w-full h-full resize-none outline-none font-mono text-sm p-4",
                 isDark 
-                  ? "bg-white text-neutral-900" 
-                  : "bg-neutral-900 text-white"
+                  ? "bg-neutral-900 text-white" 
+                  : "bg-white text-neutral-900"
               )}
               spellCheck={false}
               autoCapitalize="off"
@@ -154,8 +156,8 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
       <div className={cn(
         "px-4 py-1 text-xs flex items-center justify-between flex-shrink-0 border-t",
         isDark 
-          ? "bg-neutral-100 text-neutral-500 border-neutral-200" 
-          : "bg-neutral-800 text-neutral-400 border-neutral-800"
+          ? "bg-neutral-800 text-neutral-400 border-neutral-700" 
+          : "bg-neutral-100 text-neutral-500 border-neutral-200"
       )}>
         <div>
           {contentLines.length} {contentLines.length === 1 ? 'line' : 'lines'}

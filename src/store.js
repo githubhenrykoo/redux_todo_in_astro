@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import todoReducer from './features/todoSlice';
 import themeReducer from './features/themeSlice';
+import interfaceReducer from './features/interfaceSlice';
 
 export const store = configureStore({
   reducer: {
     todo: todoReducer,
-    theme: themeReducer
+    theme: themeReducer,
+    interface: interfaceReducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

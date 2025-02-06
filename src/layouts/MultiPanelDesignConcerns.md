@@ -618,6 +618,348 @@ The system can be extended to support:
 - A11y announcements
 - Keyboard shortcuts
 
+# Drag and Drop Integration
+
+This section outlines the implementation of drag and drop functionality within our panel system, focusing on Redux integration and composability patterns.
+
+## Framework Selection and Integration
+
+### 1. Recommended Libraries
+
+```typescript
+// Popular DnD Libraries and Their Use Cases
+interface DnDFramework {
+  name: string;
+  bestFor: string[];
+  reduxIntegration: string;
+}
+
+const dndFrameworks: DnDFramework[] = [
+  {
+    name: 'react-dnd',
+    bestFor: [
+      'Complex drag and drop interactions',
+      'Custom drag previews',
+      'Multiple drop targets',
+      'Redux integration via monitors'
+    ],
+    reduxIntegration: 'Direct middleware support'
+  },
+  {
+    name: '@dnd-kit/core',
+    bestFor: [
+      'Modern, lightweight implementation',
+      'Accessible by default',
+      'Touch devices support',
+      'Virtualized lists'
+    ],
+    reduxIntegration: 'Via custom sensors'
+  },
+  {
+    name: 'react-beautiful-dnd',
+    bestFor: [
+      'List and grid reordering',
+      'Natural dropping animations',
+      'Screen reader support',
+      'Touch screen support'
+    ],
+    reduxIntegration: 'Through state updates'
+  }
+];
+```
+
+## Redux DnD State Management
+
+```typescript
+// DnD State Types
+interface DragState {
+  isDragging: boolean;
+  sourceId: string | null;
+  targetId: string | null;
+  itemType: string | null;
+  item: any;
+  position: { x: number; y: number } | null;
+}
+
+// DnD Slice
+const dndSlice = createSlice({
+  name: 'dnd',
+  initialState: {
+    isDragging: false,
+    sourceId: null,
+    targetId: null,
+    itemType: null,
+    item: null,
+    position: null
+  } as DragState,
+  reducers: {
+    dragStart: (state, action: PayloadAction<{
+      sourceId: string;
+      itemType: string;
+      item: any;
+    }>) => {
+      state.isDragging = true;
+      state.sourceId = action.payload.sourceId;
+      state.itemType = action.payload.itemType;
+      state.item = action.payload.item;
+    },
+    dragOver: (state, action: PayloadAction<{
+      targetId: string;
+      position: { x: number; y: number };
+    }>) => {
+      state.targetId = action.payload.targetId;
+      state.position = action.payload.position;
+    },
+    dragEnd: (state) => {
+      return {
+        isDragging: false,
+        sourceId: null,
+        targetId: null,
+        itemType: null,
+        item: null,
+        position: null
+      };
+    }
+  }
+});
+```
+
+## Composable DnD Components
+
+```typescript
+// Draggable Panel Component
+interface DraggablePanelProps extends FocusAwarePanelProps {
+  dragType: string;
+  dragData: any;
+}
+
+const DraggablePanel: React.FC<DraggablePanelProps> = ({
+  id,
+  children,
+  dragType,
+  dragData
+}) => {
+  const dispatch = useDispatch();
+  const { isDragging } = useDragLayer((monitor) => ({
+    isDragging: monitor.isDragging()
+  }));
+
+  const [{ opacity }, dragRef] = useDrag({
+    type: dragType,
+    item: () => {
+      dispatch(dndSlice.actions.dragStart({
+        sourceId: id,
+        itemType: dragType,
+        item: dragData
+      }));
+      return { id, type: dragType, data: dragData };
+    },
+    collect: (monitor) => ({
+      opacity: monitor.isDragging() ? 0.5 : 1
+    }),
+    end: () => dispatch(dndSlice.actions.dragEnd())
+  });
+
+  return (
+    <FocusAwarePanel id={id}>
+      <div ref={dragRef} style={{ opacity }}>
+        {children}
+      </div>
+    </FocusAwarePanel>
+  );
+};
+
+// Droppable Zone Component
+interface DroppableZoneProps {
+  id: string;
+  acceptTypes: string[];
+  onDrop: (item: any) => void;
+}
+
+const DroppableZone: React.FC<DroppableZoneProps> = ({
+  id,
+  acceptTypes,
+  onDrop,
+  children
+}) => {
+  const dispatch = useDispatch();
+  
+  const [{ isOver }, dropRef] = useDrop({
+    accept: acceptTypes,
+    drop: (item: any) => {
+      onDrop(item);
+      dispatch(dndSlice.actions.dragEnd());
+    },
+    hover: (item: any, monitor) => {
+      const clientOffset = monitor.getClientOffset();
+      if (clientOffset) {
+        dispatch(dndSlice.actions.dragOver({
+          targetId: id,
+          position: clientOffset
+        }));
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
+
+  return (
+    <div 
+      ref={dropRef}
+      style={{ 
+        backgroundColor: isOver ? 'rgba(0,0,0,0.1)' : 'transparent'
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+## Panel Composition with DnD
+
+```typescript
+// Composable Panel Layout with DnD
+const DraggablePanelLayout: React.FC = () => {
+  const dispatch = useDispatch();
+  
+  const handlePanelDrop = (source: string, target: string) => {
+    dispatch(panelActions.swapPanels({ source, target }));
+  };
+
+  return (
+    <PanelGroupLayout>
+      <DraggablePanel
+        id="media-panel"
+        dragType="PANEL"
+        dragData={{ type: 'media' }}
+      >
+        <DroppableZone
+          id="media-drop"
+          acceptTypes={['PANEL']}
+          onDrop={(item) => handlePanelDrop(item.id, 'media-panel')}
+        >
+          <MediaContent />
+        </DroppableZone>
+      </DraggablePanel>
+      
+      <DraggablePanel
+        id="chat-panel"
+        dragType="PANEL"
+        dragData={{ type: 'chat' }}
+      >
+        <DroppableZone
+          id="chat-drop"
+          acceptTypes={['PANEL']}
+          onDrop={(item) => handlePanelDrop(item.id, 'chat-panel')}
+        >
+          <ChatContent />
+        </DroppableZone>
+      </DraggablePanel>
+    </PanelGroupLayout>
+  );
+};
+```
+
+## DnD Performance Optimizations
+
+```typescript
+// Optimized DnD Monitoring
+const useDragMonitor = (panelId: string) => {
+  const isDragging = useSelector((state: RootState) => 
+    state.dnd.isDragging && state.dnd.sourceId === panelId
+  );
+  
+  const isOver = useSelector((state: RootState) =>
+    state.dnd.targetId === panelId
+  );
+  
+  return { isDragging, isOver };
+};
+
+// Memoized Drag Preview
+const DragPreview: React.FC<{ content: React.ReactNode }> = memo(
+  ({ content }) => (
+    <div className="drag-preview">
+      {content}
+    </div>
+  ),
+  (prev, next) => prev.content === next.content
+);
+```
+
+## Composability Guidelines
+
+1. **Panel Independence**
+   - Panels should be self-contained drag sources
+   - Drop zones should be independent of panel content
+   - Use composition over inheritance for DnD behavior
+
+2. **State Management**
+   - Keep drag state in Redux for global access
+   - Use local state for UI feedback
+   - Maintain clear separation between DnD and panel state
+
+3. **Event Handling**
+   - Implement drag events at panel level
+   - Handle drops through Redux actions
+   - Use middleware for complex DnD logic
+
+4. **Performance**
+   - Memoize drag previews
+   - Use selective rendering for drag feedback
+   - Optimize drop zone updates
+
+## Framework-Specific Considerations
+
+1. **react-dnd**
+   ```typescript
+   // Custom Monitor
+   const usePanelDragMonitor = () => {
+     const collected = useDragLayer((monitor) => ({
+       isDragging: monitor.isDragging(),
+       currentOffset: monitor.getSourceClientOffset(),
+       item: monitor.getItem()
+     }));
+     return collected;
+   };
+   ```
+
+2. **@dnd-kit/core**
+   ```typescript
+   // Custom Sensor
+   const usePanelSensor = () => {
+     const sensors = useSensors(
+       useSensor(PointerSensor),
+       useSensor(KeyboardSensor, {
+         coordinateGetter: sortableKeyboardCoordinates
+       })
+     );
+     return sensors;
+   };
+   ```
+
+3. **react-beautiful-dnd**
+   ```typescript
+   // Droppable Configuration
+   const getPanelDroppableConfig = (panelId: string) => ({
+     droppableId: panelId,
+     type: 'PANEL',
+     direction: 'horizontal',
+     mode: 'standard'
+   });
+   ```
+
+These patterns ensure:
+- Clean separation of concerns
+- Predictable state management
+- Optimal performance
+- Accessibility compliance
+- Touch device support
+- Flexible composition
+- Type safety
+
 # Naming Convention System
 Structural Pattern
 Copy

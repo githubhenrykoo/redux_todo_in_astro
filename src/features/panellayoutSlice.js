@@ -71,6 +71,27 @@ const panellayoutSlice = createSlice({
                             visible: true
                         }
                     };
+                } else if (action.payload === 'todo_layout') {
+                    state.panels = {
+                        left: {
+                            type: PANEL_TYPES.SEARCH_TODOS,
+                            size: 30,
+                            minSize: 20,
+                            visible: true
+                        },
+                        middle: {
+                            type: PANEL_TYPES.ITEM_DETAIL,
+                            size: 40,
+                            minSize: 20,
+                            visible: true
+                        },
+                        right: {
+                            type: PANEL_TYPES.ACTION_LOG,
+                            size: 30,
+                            minSize: 20,
+                            visible: true
+                        }
+                    };
                 }
             }
         },

@@ -1,22 +1,8 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Provider, useSelector } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { store } from '../store';
-
-// Import all panel components statically
-import SearchAndTodos from '../components/panels/SearchAndTodos.jsx';
-import ItemDetailPanel from '../components/panels/ItemDetailPanel.jsx';
-import ActionLogPanelReact from '../components/panels/ActionLogPanelReact.jsx';
-import SearchANDPrompts from '../components/panels/SearchANDPrompts.jsx';
-import GeneratePanel from '../components/panels/GeneratePanel.jsx';
-import ContentDetail from '../components/panels/ContentDetail.jsx';
-
-// Component map
-const COMPONENT_MAP = {
-  SearchAndTodos,
-  ItemDetailPanel,
-  ActionLogPanelReact
-};
+import panelsConfig from '../components/panels/panels.json';
 
 const PanelContent = () => {
   const panellayout = useSelector(state => state.panellayout);
@@ -36,17 +22,21 @@ const PanelContent = () => {
   const { panels } = panellayout;
   console.log('Panels from state:', panels);
 
-  const renderPanel = (panelConfig) => {
+  const renderPanel = async (panelConfig) => {
     console.log('Rendering panel config:', panelConfig);
     if (!panelConfig || !panelConfig.type) return null;
 
     try {
-      const Component = COMPONENT_MAP[panelConfig.type];
-      if (!Component) {
-        console.error(`Component not found for type: ${panelConfig.type}`);
-        return null;
-      }
-      return <Component />;
+      const panelType = panelConfig.type;
+      const componentPath = panelsConfig[panelType]?.component;
+      console.log('Loading component from:', componentPath);
+      
+      const Component = React.lazy(() => import(componentPath));
+      return (
+        <Suspense fallback={<div>Loading...</div>}>
+          <Component />
+        </Suspense>
+      );
     } catch (error) {
       console.error(`Failed to render component for type: ${panelConfig.type}`, error);
       return null;

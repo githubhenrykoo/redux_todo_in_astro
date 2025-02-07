@@ -19,6 +19,12 @@ At its core, the system coordinates with external services and data stores to:
 - Detect and fix errors using AI agents
 - Infer new content relationships from existing knowledge
 
+Static content management follows Astro's conventions:
+- Documentation in `src/assets/md` uses Markdown with front matter
+- Internal document linking through Astro's file-based routing
+- Media assets (images, videos) managed by Astro's asset pipeline
+- Content relationships maintained through standard Astro collections
+
 The architecture implements a REPL-driven development model where:
 - Each cognitive operation (note-taking, code generation, error fixing) is an atomic ToDo
 - Operations can be individually monitored, tested, and verified

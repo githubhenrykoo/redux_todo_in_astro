@@ -72,7 +72,7 @@ const { defaultSize = 30, minSize = 20, id } = Astro.props;
 #### 2. Functional Layout Framework
 
 ```astro
-// PanelGroupLayout.astro - Pure Container
+// PanelGroupLayout.jsx - Pure Container
 ---
 interface Props {
   layout: Layout;

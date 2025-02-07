@@ -33,13 +33,13 @@ const { defaultSize = 30, minSize = 20 } = Astro.props;
 
 ---
 
-### **2. Create the `PanelGroupLayout.astro` Component**
+### **2. Create the `PanelGroupLayout.jsx` Component**
 
 This component defines the overall panel layout and inserts child panels using `<slot />`.
 
 ```markdown
 --- 
-// PanelGroupLayout.astro 
+// PanelGroupLayout.jsx 
 ---  
 <div class="h-screen flex">   
 	<slot /> 
@@ -50,14 +50,14 @@ This component defines the overall panel layout and inserts child panels using `
 
 ---
 
-### **3. Use `PanelGroupLayout.astro` in a Page**
+### **3. Use `PanelGroupLayout.jsx` in a Page**
 
 Now, let’s assemble everything inside a page or another component.
 
 ```markdown
 ---  
 import ResizablePanel from "../components/ResizablePanel.astro"; 
-import PanelGroupLayout from "../components/PanelGroupLayout.astro";
+import PanelGroupLayout from "../components/PanelGroupLayout.jsx";
 ---  
 <PanelGroupLayout>   
 	<ResizablePanel 
@@ -83,7 +83,7 @@ import PanelGroupLayout from "../components/PanelGroupLayout.astro";
 
 - **Use `<slot />`** to allow flexible content insertion.
 - **Encapsulate reusable logic** in `ResizablePanel.astro`.
-- **Keep layout structure separate** with `PanelGroupLayout.astro`.
+- **Keep layout structure separate** with `PanelGroupLayout.jsx`.
 - **Supports resizing by adjusting `flex` values dynamically** (can extend with JS for true resizing).
 
 See [[Resizable Panel Design Caveats]].

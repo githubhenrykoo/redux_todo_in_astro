@@ -14,20 +14,12 @@ const PanelContent = () => {
   const panels = useSelector(state => state.panellayout.panels);
 
   const renderPanel = (type) => {
-    switch (type) {
-      case PANEL_TYPES.SEARCH_TODOS:
-        return <SearchAndTodos />;
-      case PANEL_TYPES.SEARCH_PROMPTS:
-        return <SearchANDPrompts />;
-      case PANEL_TYPES.ITEM_DETAIL:
-        return <ItemDetailPanel />;
-      case PANEL_TYPES.GENERATE_PANEL:
-        return <GeneratePanel />;
-      case PANEL_TYPES.ACTION_LOG:
-        return <ActionLogPanel />;
-      default:
-        return null;
+    const panel = panelConfig[type];
+    if (panel) {
+      const Component = panel.component;
+      return <Component />;
     }
+    return null;
   };
 
   return (

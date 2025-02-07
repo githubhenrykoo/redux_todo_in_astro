@@ -2,22 +2,18 @@ import React from 'react';
 import { Provider, useSelector } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { store } from '../store';
-import ActionLogPanel from '../components/panels/ActionLogPanelReact';
-import SearchAndTodos from '../components/panels/SearchAndTodos';
-import ItemDetailPanel from '../components/panels/ItemDetailPanel';
-import SearchANDPrompts from '../components/panels/SearchANDPrompts';
 import GeneratePanel from '../components/panels/GeneratePanel';
-import { PANEL_TYPES } from '../features/panellayoutSlice';
+import panelConfig from '../components/panels/panels.json';
 
 const PanelContent = () => {
-  const mode = useSelector(state => state.panellayout.mode);
   const panels = useSelector(state => state.panellayout.panels);
+
 
   const renderPanel = (type) => {
     const panel = panelConfig[type];
     if (panel) {
-      const Component = panel.component;
-      return <Component />;
+      const Component = componentMap[panel.component];
+      return Component ? <Component /> : null;
     }
     return null;
   };

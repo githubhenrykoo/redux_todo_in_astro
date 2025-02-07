@@ -8,7 +8,18 @@ const initialState = {
 const panellayoutSlice = createSlice({
   name: "panellayout",
   initialState,
-  reducers: {},
+  reducers: {
+    changeLayout: (state, action) => {
+      const layoutName = action.payload;
+      const newLayout = layoutConfig[layoutName];
+      if (newLayout) {
+        state.panels = newLayout;
+      } else {
+        console.error(`Layout ${layoutName} not found`);
+      }
+    }
+  },
 });
 
+export const { changeLayout } = panellayoutSlice.actions;
 export default panellayoutSlice.reducer;

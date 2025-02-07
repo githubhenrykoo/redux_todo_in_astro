@@ -1,19 +1,19 @@
 {
     "generate_layout": {
         "left": {
-            "type": "PANEL_TYPES.SEARCH_PROMPTS",
+            "type": "SearchANDPrompts",
             "size": 30,
             "minSize": 20,
             "visible": true
         },
         "middle": {
-            "type": "PANEL_TYPES.ITEM_DETAIL", 
+            "type": "ItemDetailPanel", 
             "size": 40,
             "minSize": 20,
             "visible": true
         },
         "right": {
-            "type": "PANEL_TYPES.GENERATE_PANEL",
+            "type": "GeneratePanel",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -21,19 +21,19 @@
     },
     "todo_layout": {
         "left": {
-            "type": "PANEL_TYPES.SEARCH_TODOS",
+            "type": "SearchAndTodos",
             "size": 30,
             "minSize": 20,
             "visible": true
         },
         "middle": {
-            "type": "PANEL_TYPES.ITEM_DETAIL",
+            "type": "ItemDetailPanel",
             "size": 40,
             "minSize": 20,
             "visible": true
         },
         "right": {
-            "type": "PANEL_TYPES.ACTION_LOG",
+            "type": "ActionLogPanelReact",
             "size": 30,
             "minSize": 20,
             "visible": true

@@ -1,4 +1,21 @@
-# Redux + Astro Architecture Design: A Functional Programming Perspective
+# Architecture Decisions
+
+## Overview
+
+This project implements a ToDo-based workflow system using functional programming principles, powered by Redux and Astro. Built as a Progressive Web App (PWA), it serves as a reference implementation for event-driven, state-managed applications with a focus on pure functions and immutable state transformations.
+
+The architecture follows a REPL-driven development model, where each workflow step is represented as an atomic ToDo item that can be individually monitored, tested, and verified. The application leverages Redux for predictable state management, Redux Thunk for complex asynchronous operations, and Redux Saga for event-driven workflows.
+
+Key architectural decisions include:
+- Functional programming paradigm with pure functions and immutable state
+- Event-sourced workflow management using Redux actions
+- Hash-referenced configuration system for workflow definitions
+- REPL-based development and testing workflow
+- Static site generation with Astro for optimal performance
+- React components for interactive UI elements
+- LangChain integration for AI-powered workflow assistance
+
+The system is designed as a self-contained data store, mirroring distributed operating system principles through event sourcing and state management. All components are implemented following functional programming best practices and Astro framework conventions, ensuring maintainability, testability, and scalability.
 
 ## I. Foundational Philosophy: Pure Functions and Declarative Programming
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project implements an AI-powered knowledge capture and execution system that transforms natural language inputs into actionable workflows and executable code. Built as a Progressive Web App (PWA), it serves as a distributed data-centric operating system with a browser-based interface, enabling users to seamlessly transition from note-taking to code generation and execution.
+This project implements an AI-powered Progressive Knowledge Container (PKC) that transforms natural language inputs into actionable workflows and executable code. Built as a Progressive Web App (PWA), it serves as a distributed data-centric operating system with a browser-based interface, enabling users to seamlessly transition from note-taking to code generation and execution. The PKC paradigm ensures that knowledge evolves and accumulates through continuous AI-assisted refinement and execution cycles.
 
 At its core, the system leverages Large Language Models (LLMs) to:
 - Refine and structure natural language descriptions

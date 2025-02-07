@@ -45,7 +45,7 @@ const PanelContent = () => {
         {/* Middle Panel */}
         <Panel defaultSize={panels.middle.size} minSize={panels.middle.minSize}>
           <div className="h-full overflow-hidden">
-            {renderPanel(panels.middle.type)}
+            <GeneratePanel />
           </div>
         </Panel>
 

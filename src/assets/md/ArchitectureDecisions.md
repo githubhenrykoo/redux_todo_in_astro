@@ -8,7 +8,7 @@ Key Design Principles:
 - Minimal core codebase focused on orchestration and [Agentic Workflow](./AgenticWorkflowDesign.md) management
 - External data storage for all substantial content (LLMs, SQLite, IndexedDB)
 - Dynamic loading of functionality through data module definitions
-- JavaScript/WASM implementation for cross-platform compatibility
+- JavaScript/WASM implementation for cross-platform compatibility (see [Deno](https://deno.com/))
 - Browser-based interface for universal accessibility
 
 At its core, the system coordinates with external services and data stores to:

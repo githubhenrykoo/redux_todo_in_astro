@@ -2,12 +2,16 @@
 
 ## Overview
 
-This project implements a lightweight, extensible framework for an AI-powered [Progressive Knowledge Container](./Personal%20Knowledge%20Container.md) (PKC). Built as a Progressive Web App (PWA) using JavaScript and WASM for maximum portability, it serves as a thin orchestration layer between external data stores (LLMs, SQLite, IndexedDB) and a browser-based user interface. The system transforms natural language inputs into actionable workflows and executable code, with all substantial data residing in external storage systems.
+This project implements a data-driven, functionally pure framework for an AI-powered [Progressive Knowledge Container](./Personal%20Knowledge%20Container.md) (PKC). Built as a Progressive Web App (PWA) using JavaScript and WASM, it minimizes hand-written code in favor of version-controlled data structures that define system behavior. The framework serves as a thin orchestration layer that composes pure functions based on declarative configurations, connecting external data stores (LLMs, SQLite, IndexedDB) with a browser-based interface. At its core, the system creates a self-improving workflow that iteratively refines both its knowledge base and operational patterns through structured data management. By encoding complex behaviors in data rather than code, the system can learn and evolve its own workflows while maintaining functional simplicity and predictability.
 
 Key Design Principles:
-- Minimal core codebase focused on orchestration and [Agentic Workflow](./AgenticWorkflowDesign.md) management
+- Functional purity and data-driven development to minimize code complexity
+  - Business logic and behaviors defined through version-controlled data structures
+  - Minimize hand-written functions in favor of data-configured operations
+  - Complex operations composed from simple, pure functions
+- Minimal core codebase focused on data orchestration and [Agentic Workflow](./AgenticWorkflowDesign.md) management
 - External data storage for all substantial content (LLMs, SQLite, IndexedDB)
-- Dynamic loading of functionality through data module definitions
+- Dynamic loading of functionality through declarative data module definitions
 - JavaScript/WASM implementation for cross-platform compatibility (see [Deno](https://deno.com/))
 - Browser-based interface for universal accessibility
 

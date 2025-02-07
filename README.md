@@ -1,12 +1,22 @@
 # Todo App with Redux in Astro
 
-A modern Todo application built with Astro, React, and Redux, demonstrating the integration of Redux state management in an Astro application. This project showcases best practices for component architecture, state management, and modern UI design with a panel-based layout system.
+A modern Todo application built with Astro, React, and Redux, demonstrating a data-driven, functionally pure approach to state management. Built on the foundational principle of Single Source of Truth (SSoT), this project showcases how complex behaviors can be encoded in version-controlled data structures rather than hand-written code. By leveraging the Flux architectural pattern through Redux, the system ensures unidirectional data flow and predictable state mutations, creating a reliable foundation for self-improving workflows.
+
+## 🏛️ Architectural Principles
+
+- **Single Source of Truth (SSoT)**: Redux serves as the central state management system, ensuring consistent and predictable data flow throughout the application
+- **Functional Purity**: Embraces pure functions and immutable state updates to reduce side effects and enhance code reliability
+- **Data-Driven Architecture**: Leverages structured data configurations to drive complex behaviors, reducing manual code maintenance
+- **Flux Architecture**: Implements unidirectional data flow pattern for predictable state updates and improved debugging
+- **Continuous Evolution**: Supports iterative improvements through modular design and data-centric architecture
+
+For detailed architectural decisions and implementation patterns, see [Architecture Decisions](src/assets/md/ArchitectureDecisions.md).
 
 ## 🚀 Features
 
 - Add and remove todos with real-time updates
 - Real-time search functionality
-- Action history logging
+- Action histor
 - Resizable panel layout
 - Modern, responsive UI with dark theme support
 - Client-side state management with Redux
@@ -17,7 +27,7 @@ A modern Todo application built with Astro, React, and Redux, demonstrating the 
 ### Core Technologies
 - **Astro**: Main framework providing excellent performance and hybrid rendering
 - **React**: Used for interactive components and state management
-- **Redux Toolkit**: State management solution
+- **Redux Toolkit**: Implementation of Flux pattern for SSoT and unidirectional data flow
 - **TailwindCSS**: Utility-first CSS framework for styling
 
 ### Key Libraries
@@ -25,74 +35,87 @@ A modern Todo application built with Astro, React, and Redux, demonstrating the 
 - **@reduxjs/toolkit**: Simplified Redux development
 - **react-resizable-panels**: Flexible panel layout system
 
-## 🏗️ Project Structure
-
-### Core Components
-
-#### Panel Components
-1. **TopBanner** (`panels/TopBanner.astro`)
-   - Main navigation header
-   - Theme switching functionality
-   - Built as an Astro component for static rendering
-
-2. **Sidebar** (`panels/Sidebar.astro`)
-   - Navigation sidebar with icon-based menu
-   - Static rendering with Astro
-
-3. **SearchAndTodos** (`panels/SearchAndTodos.jsx`)
-   - Combines search and todo list functionality
-   - React component for interactive features
-   - Integrated with Redux for state management
-
-4. **ItemDetailPanel** (`panels/ItemDetailPanel.jsx`)
-   - Handles todo creation and editing
-   - Form-based interface with validation
-   - React component with Redux integration
-
-5. **ActionLogPanel** (`panels/ActionLogPanelReact.jsx`)
-   - Displays history of todo actions
-   - Real-time updates through Redux
-   - React component for dynamic updates
-
-#### Layout Components
-1. **ResizablePanels** (`panels/ResizablePanels.astro`)
-   - Main layout component
-   - Handles panel resizing and organization
-   - Built with Astro for optimal performance
-
-2. **DefaultLayout** (`layouts/DefaultLayout.astro`)
-   - Base layout template
-   - Handles meta tags and global styles
-   - Integrates all panel components
-
-3. **PanelGroupLayout** (`layouts/PanelGroupLayout.jsx`)
-   - Manages panel organization and Redux provider
-   - Handles responsive layout behavior
-
-### State Management
-- Redux store configuration in `store.js`
-- Todo slice implementation in `features/todoSlice.js`
-- Utility functions in `lib/utils.js`
-
 ## 📦 Project Organization
 
 ```
 src/
+├── assets/
+│   ├── md/                    # Architectural documentation and knowledge base
+│   │   ├── ArchitectureDecisions.md
+│   │   ├── AgenticWorkflowDesign.md
+│   │   ├── MultiPanelDesignConcerns.md
+│   │   └── PanelSystemPatterns.md
 ├── components/
-│   ├── panels/                 # Panel-based components
+│   ├── panels/               # Panel-based components
 │   │   ├── TopBanner.astro
 │   │   ├── Sidebar.astro
 │   │   ├── SearchAndTodos.jsx
-│   │   ├── ItemDetailPanel.jsx
+│   │   ├── GeneratePanel.jsx
+│   │   ├── ContentDetail.jsx
 │   │   ├── ActionLogPanelReact.jsx
 │   │   └── ResizablePanels.astro
-│   └── ui/                     # Shared UI components
-├── features/                   # Redux slices
-├── layouts/                    # Layout components
-├── lib/                       # Utility functions
-├── pages/                     # Astro pages
-└── styles/                    # Global styles
+│   ├── ui/                   # Shared UI components
+│   │   ├── ContentDetailView.jsx
+│   │   ├── ContentEditor.tsx
+│   │   ├── PanelLabel.astro
+│   │   ├── ResizeHandle.jsx
+│   │   └── placeholder/      # UI state management templates
+├── content/                  # Data-driven content management
+│   ├── model/               # Core data models and type systems
+│   │   ├── card-collection.js
+│   │   ├── content_type_detector.js
+│   │   ├── database_schemas.js
+│   │   ├── event-producer.js
+│   │   └── hash/            # Content integrity management
+├── features/                # Redux slices for state management
+├── layouts/                 # Layout components and templates
+├── lib/                    # Utility functions and helpers
+├── pages/                  # Astro page routes
+└── styles/                 # Global styles and theming
 ```
+
+## 🏗️ Project Structure
+
+### Data Layer Components
+
+#### Content Model
+1. **Card Collection** (`content/model/card-collection.js`)
+   - Core data structure implementation
+   - Version-controlled content management
+   - Event-driven state updates
+
+2. **Type System** (`content/model/content_type_detector.js`)
+   - Content type detection and validation
+   - Data structure integrity checks
+   - Schema enforcement
+
+3. **Event Producer** (`content/model/event-producer.js`)
+   - Event-driven architecture implementation
+   - State change propagation
+   - Flux pattern integration
+
+### UI Components
+
+#### Panel System
+1. **ResizablePanels** (`components/panels/ResizablePanels.astro`)
+   - Data-driven layout management
+   - Pure functional component composition
+   - Dynamic panel organization
+
+2. **Content Panels**
+   - Search and Generation (`panels/SearchAndTodos.jsx`, `panels/GeneratePanel.jsx`)
+   - Content Display (`panels/ContentDetail.jsx`)
+   - Action Logging (`panels/ActionLogPanelReact.jsx`)
+
+3. **UI Elements** (`components/ui/`)
+   - Reusable pure components
+   - State-driven placeholders
+   - Type-safe content editors
+
+### Documentation
+- Comprehensive architectural documentation in `assets/md/`
+- Design patterns and decisions
+- System workflow specifications
 
 ## 🚀 Getting Started
 

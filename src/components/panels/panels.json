@@ -1,0 +1,22 @@
+{
+  "SEARCH_TODOS": {
+    "type": "PANEL_TYPES.SEARCH_TODOS",
+    "component": "<SearchAndTodos />"
+  },
+  "SEARCH_PROMPTS": {
+    "type": "PANEL_TYPES.SEARCH_PROMPTS",
+    "component": "<SearchANDPrompts />"
+  },
+  "ITEM_DETAIL": {
+    "type": "PANEL_TYPES.ITEM_DETAIL",
+    "component": "<ItemDetailPanel />"
+  },
+  "GENERATE_PANEL": {
+    "type": "PANEL_TYPES.GENERATE_PANEL",
+    "component": "<GeneratePanel />"
+  },
+  "ACTION_LOG": {
+    "type": "PANEL_TYPES.ACTION_LOG",
+    "component": "<ActionLogPanelReact />"
+  }
+}

@@ -2,10 +2,10 @@
 
 ## Overview
 
-This project implements a lightweight, extensible framework for an AI-powered Progressive Knowledge Container (PKC). Built as a Progressive Web App (PWA) using JavaScript and WASM for maximum portability, it serves as a thin orchestration layer between external data stores (LLMs, SQLite, IndexedDB) and a browser-based user interface. The system transforms natural language inputs into actionable workflows and executable code, with all substantial data residing in external storage systems.
+This project implements a lightweight, extensible framework for an AI-powered [Progressive Knowledge Container](./Personal%20Knowledge%20Container.md) (PKC). Built as a Progressive Web App (PWA) using JavaScript and WASM for maximum portability, it serves as a thin orchestration layer between external data stores (LLMs, SQLite, IndexedDB) and a browser-based user interface. The system transforms natural language inputs into actionable workflows and executable code, with all substantial data residing in external storage systems.
 
 Key Design Principles:
-- Minimal core codebase focused on orchestration and workflow management
+- Minimal core codebase focused on orchestration and [Agentic Workflow](./AgenticWorkflowDesign.md) management
 - External data storage for all substantial content (LLMs, SQLite, IndexedDB)
 - Dynamic loading of functionality through data module definitions
 - JavaScript/WASM implementation for cross-platform compatibility
@@ -51,7 +51,7 @@ Framework Components:
    - Error detection and fixing through AI
    - Responsive PWA interface
 
-The system implements a [[Cubical Logic Model]](./Cubical%20Logic%20Model.md) with the following four aspects, all persisted in external storage:
+The system implements a [Cubical Logic Model](./Cubical%20Logic%20Model.md) with the following four aspects, all persisted in external storage:
 
 1. **Knowledge Capture (Abstract Specification)**
    - Natural language note-taking and refinement

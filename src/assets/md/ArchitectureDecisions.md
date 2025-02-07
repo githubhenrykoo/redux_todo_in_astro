@@ -2,72 +2,80 @@
 
 ## Overview
 
-This project implements a ToDo-based workflow system using functional programming principles, powered by Redux and Astro. Built as a Progressive Web App (PWA), it serves as a reference implementation for event-driven, state-managed applications with a focus on pure functions and immutable state transformations.
+This project implements an AI-powered knowledge capture and execution system that transforms natural language inputs into actionable workflows and executable code. Built as a Progressive Web App (PWA), it serves as a distributed data-centric operating system with a browser-based interface, enabling users to seamlessly transition from note-taking to code generation and execution.
 
-The architecture follows a REPL-driven development model, where each workflow step is represented as an atomic ToDo item that can be individually monitored, tested, and verified. The application leverages Redux for predictable state management, Redux Thunk for complex asynchronous operations, and Redux Saga for event-driven workflows.
+At its core, the system leverages Large Language Models (LLMs) to:
+- Refine and structure natural language descriptions
+- Generate executable source code from specifications
+- Create and manipulate media content
+- Detect and fix errors in various computational systems
+- Infer new content and relationships from existing knowledge
+
+The architecture follows a REPL-driven development model, where each cognitive operation (note-taking, code generation, error fixing) is represented as an atomic ToDo item that can be individually monitored, tested, and verified. The application uses Redux for predictable state management, with Redux Thunk handling complex AI operations and Redux Saga managing event-driven workflows.
 
 Key architectural decisions include:
+- AI-powered natural language processing and code generation
 - Functional programming paradigm with pure functions and immutable state
 - Event-sourced workflow management using Redux actions
 - Hash-referenced configuration system for workflow definitions
 - REPL-based development and testing workflow
 - Static site generation with Astro for optimal performance
 - React components for interactive UI elements
-- LangChain integration for AI-powered workflow assistance
+- LangChain integration for orchestrating multiple LLM operations
+- Error detection and automated fixing through AI agents
+- Content and functionality encoded in Markdown with front-matter configuration
 
-The system is designed as a self-contained data store, mirroring distributed operating system principles through event sourcing and state management. All components are implemented following functional programming best practices and Astro framework conventions, ensuring maintainability, testability, and scalability.
+The system implements a Cubical Logic Model with four dimensions:
 
-## I. Foundational Philosophy: Pure Functions and Declarative Programming
+1. **Knowledge Capture (Abstract Specification)**
+   - Natural language note-taking and refinement
+   - Workflow step definitions and dependencies
+   - Error and warning documentation
+   - AI-generated insights and suggestions
 
-Our architecture is deeply rooted in functional programming principles, viewing the application as a composition of pure functions that transform state in a predictable manner. This approach aligns naturally with both Redux's state management and Astro's component model.
+2. **Code Generation (Concrete Implementation)**
+   - LLM-powered source code generation
+   - Automated error fixing and code optimization
+   - Media content creation and manipulation
+   - Executable workflow step sequences
 
-### 1. Pure Function Architecture
+3. **State Management (Runtime Tracking)**
+   - Redux store with domain-specific slices
+   - AI operation status monitoring
+   - Error state tracking and resolution
+   - Real-time execution feedback
 
-The entire application is conceptualized as a pure function that takes the current state and an action as input, producing a new state as output:
+4. **Event History (Temporal Record)**
+   - ToDo event logging with MCard schema
+   - AI operation audit trails
+   - Error resolution history
+   - Knowledge evolution tracking
 
-```typescript
-type AppFunction = (state: State, action: Action) => State;
-```
+The system functions as a self-contained data store, implementing distributed operating system principles through event sourcing and state management. All components follow functional programming best practices and Astro framework conventions, ensuring maintainability, testability, and scalability. The integration of LLMs enables a new paradigm of human-AI collaboration, where natural language understanding bridges the gap between human intent and executable code.
 
-This fundamental concept manifests throughout our architecture:
-- **Redux Reducers**: Pure functions transforming state
-- **Component Rendering**: Pure functions mapping state to UI
-- **Side Effect Management**: Isolated effects through middleware
+## I. Foundational Philosophy: Pure Functions and Type-Safe State Management
 
-### 2. Astro Component Model Integration
+Our architecture implements functional programming through three core mechanisms:
 
-Astro's component model naturally aligns with functional programming principles through its slot-based composition:
+1. **Redux for Pure State Transformations**
+   - All state changes are performed through pure reducer functions
+   - Actions represent atomic state transformation intents
+   - State immutability is enforced through Redux's architecture
+   - Side effects are isolated in Redux Thunk and Saga middleware
 
-```astro
-// ResizablePanel.astro - Pure Component
----
-interface Props {
-  defaultSize: number;
-  minSize: number;
-  id: string;
-}
+2. **TypeScript for Type Safety and Function Contracts**
+   - All state shapes are strictly typed
+   - Function signatures enforce input/output contracts
+   - Generic types enable reusable type-safe components
+   - Type inference provides development-time validation
 
-const { defaultSize = 30, minSize = 20, id } = Astro.props;
----
-<aside 
-  id={id}
-  style={`flex: ${defaultSize}%; min-width: ${minSize}%`} 
-  class="h-full overflow-hidden"
-  x-data={`{ 
-    size: ${defaultSize},
-    resize(newSize) {
-      this.size = Math.max(${minSize}, Math.min(newSize, 100 - ${minSize}));
-    }
-  }`}
->
-  <slot />
-</aside>
-```
+3. **REPL for Function Verification**
+   - Each function can be tested independently in the REPL
+   - State transformations are immediately observable
+   - Function composition can be verified step-by-step
+   - Side effects can be monitored and debugged in isolation
 
-This approach provides:
-- **Pure Component Logic**: Components as pure functions of their props
-- **Declarative Composition**: Slot-based content injection
-- **Isolated Side Effects**: Clear boundaries for effects
+This three-pronged approach ensures that our functional programming principles are not just theoretical but are practically enforced through tooling and development workflow.
 
 ## II. State Management Architecture
 

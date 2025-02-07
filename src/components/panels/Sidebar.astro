@@ -45,7 +45,7 @@ const { class: className, ...props } = Astro.props;
 
 <script>
   import { store } from '../../store';
-  import { setMode } from '../../features/panellayoutSlice';
+  import { changeLayout } from '../../features/panellayoutSlice';
 
   // Get button elements
   const todoLayoutBtn = document.getElementById('todoLayoutBtn');
@@ -53,17 +53,17 @@ const { class: className, ...props } = Astro.props;
 
   // Add click handlers
   todoLayoutBtn?.addEventListener('click', () => {
-    store.dispatch(setMode('todo_layout'));
+    store.dispatch(changeLayout('todo_layout'));
     updateActiveButton('todo_layout');
   });
 
   generateLayoutBtn?.addEventListener('click', () => {
-    store.dispatch(setMode('generate_layout'));
+    store.dispatch(changeLayout('generate_layout'));
     updateActiveButton('generate_layout');
   });
 
   // Function to update active button styles
-  function updateActiveButton(mode: string) {
+  function updateActiveButton(layout: string) {
     // Remove active styles from all buttons
     todoLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     generateLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
@@ -71,20 +71,29 @@ const { class: className, ...props } = Astro.props;
     generateLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
-    if (mode === 'todo_layout') {
+    if (layout === 'todo_layout') {
       todoLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       todoLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
-    } else if (mode === 'generate_layout') {
+    } else if (layout === 'generate_layout') {
       generateLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       generateLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     }
   }
 
-  // Initialize button state based on current mode
-  updateActiveButton(store.getState().panellayout.mode);
+  // Get the current layout from panels in the state
+  const getCurrentLayout = () => {
+    const state = store.getState();
+    // Look at the panel configuration to determine which layout is active
+    const panels = state.panellayout.panels;
+    if (panels.right.type === 'GeneratePanel') return 'generate_layout';
+    return 'todo_layout';
+  };
+
+  // Initialize button state based on current layout
+  updateActiveButton(getCurrentLayout());
 
   // Subscribe to store changes to update button states
   store.subscribe(() => {
-    updateActiveButton(store.getState().panellayout.mode);
+    updateActiveButton(getCurrentLayout());
   });
 </script>

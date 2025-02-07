@@ -2,30 +2,50 @@
 
 ## Overview
 
-This project implements an AI-powered Progressive Knowledge Container (PKC) that transforms natural language inputs into actionable workflows and executable code. Built as a Progressive Web App (PWA), it serves as a distributed data-centric operating system with a browser-based interface, enabling users to seamlessly transition from note-taking to code generation and execution. The PKC paradigm ensures that knowledge evolves and accumulates through continuous AI-assisted refinement and execution cycles.
+This project implements a lightweight, extensible framework for an AI-powered Progressive Knowledge Container (PKC). Built as a Progressive Web App (PWA) using JavaScript and WASM for maximum portability, it serves as a thin orchestration layer between external data stores (LLMs, SQLite, IndexedDB) and a browser-based user interface. The system transforms natural language inputs into actionable workflows and executable code, with all substantial data residing in external storage systems.
 
-At its core, the system leverages Large Language Models (LLMs) to:
-- Refine and structure natural language descriptions
+Key Design Principles:
+- Minimal core codebase focused on orchestration and workflow management
+- External data storage for all substantial content (LLMs, SQLite, IndexedDB)
+- Dynamic loading of functionality through data module definitions
+- JavaScript/WASM implementation for cross-platform compatibility
+- Browser-based interface for universal accessibility
+
+At its core, the system coordinates with external services and data stores to:
+- Leverage Large Language Models (LLMs) for natural language processing
+- Store and retrieve data using SQLite or IndexedDB
 - Generate executable source code from specifications
-- Create and manipulate media content
-- Detect and fix errors in various computational systems
-- Infer new content and relationships from existing knowledge
+- Create and manipulate media content through external services
+- Detect and fix errors using AI agents
+- Infer new content relationships from existing knowledge
 
-The architecture follows a REPL-driven development model, where each cognitive operation (note-taking, code generation, error fixing) is represented as an atomic ToDo item that can be individually monitored, tested, and verified. The application uses Redux for predictable state management, with Redux Thunk handling complex AI operations and Redux Saga managing event-driven workflows.
+The architecture implements a REPL-driven development model where:
+- Each cognitive operation (note-taking, code generation, error fixing) is an atomic ToDo
+- Operations can be individually monitored, tested, and verified
+- State management is handled by Redux with external persistence
+- Complex AI operations are managed by Redux Thunk
+- Event-driven workflows are orchestrated by Redux Saga
 
-Key architectural decisions include:
-- AI-powered natural language processing and code generation
-- Functional programming paradigm with pure functions and immutable state
-- Event-sourced workflow management using Redux actions
-- Hash-referenced configuration system for workflow definitions
-- REPL-based development and testing workflow
-- Static site generation with Astro for optimal performance
-- React components for interactive UI elements
-- LangChain integration for orchestrating multiple LLM operations
-- Error detection and automated fixing through AI agents
-- Content and functionality encoded in Markdown with front-matter configuration
+Framework Components:
+1. **Core Orchestration Layer**
+   - Functional programming paradigm with pure functions
+   - Event-sourced workflow management using Redux
+   - Hash-referenced configuration system
+   - REPL-based development workflow
 
-The system implements a Cubical Logic Model with four dimensions:
+2. **External Data Integration**
+   - LangChain for LLM orchestration
+   - SQLite/IndexedDB for persistent storage
+   - Content encoded in Markdown with front-matter
+   - Dynamic module loading system
+
+3. **UI Components**
+   - Static site generation with Astro
+   - React components for interactivity
+   - Error detection and fixing through AI
+   - Responsive PWA interface
+
+The system implements a [[Cubical Logic Model]](./Cubical%20Logic%20Model.md) with the following four aspects, all persisted in external storage:
 
 1. **Knowledge Capture (Abstract Specification)**
    - Natural language note-taking and refinement
@@ -45,7 +65,7 @@ The system implements a Cubical Logic Model with four dimensions:
    - Error state tracking and resolution
    - Real-time execution feedback
 
-4. **Event History (Temporal Record)**
+4. **Event History (Realistic Expectations)**
    - ToDo event logging with MCard schema
    - AI operation audit trails
    - Error resolution history

@@ -1,66 +1,63 @@
 import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { IslandFactory } from './factories/IslandFactory';
-import { DemoLeftPanel } from './panels/DemoLeftPanel';
-import { DemoMainPanel } from './panels/DemoMainPanel';
-import { DemoRightPanel } from './panels/DemoRightPanel';
+import { DynamicPanel } from './DynamicPanel';
+
+const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel'];
 
 interface ResizablePanelProps {
+  panelCount?: number;
   useDefaultContent?: boolean;
-  leftPanel?: React.ComponentType<any>;
-  mainPanel?: React.ComponentType<any>;
-  rightPanel?: React.ComponentType<any>;
-  leftProps?: Record<string, any>;
-  mainProps?: Record<string, any>;
-  rightProps?: Record<string, any>;
 }
 
+
 export default function ResizablePanel({ 
+  panelCount = DEFAULT_COMPONENTS.length,
   useDefaultContent = true,
-  leftPanel,
-  mainPanel,
-  rightPanel,
-  leftProps = {},
-  mainProps = {},
-  rightProps = {}
 }: ResizablePanelProps) {
   const onLayout = (sizes: number[]) => {
     console.log('Layout changed:', sizes);
   };
 
+  const generatePanels = (count: number) => {
+    const defaultSize = Math.floor(100 / count);
+    
+    return Array(count).fill(0).map((_, index) => ({
+      id: `panel-${index + 1}`,
+      defaultSize: defaultSize,
+      minSize: 10,
+      maxSize: 90,
+      defaultComponent: DEFAULT_COMPONENTS[index] || `Panel${index + 1}`,
+      sliceName: `panel-${index + 1}`,
+    }));
+  };
+
   return (
     <div style={styles.panelContainer}>
       <PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
-        <Panel defaultSize={20} minSize={15} maxSize={40} style={styles.panel}>
-          <IslandFactory
-            component={useDefaultContent ? DemoLeftPanel : leftPanel}
-            sliceName="left-panel"
-            slot="left"
-            {...leftProps}
-          />
-        </Panel>
-        
-        <PanelResizeHandle style={styles.resizeHandle} />
-        
-        <Panel style={styles.panel}>
-          <IslandFactory
-            component={useDefaultContent ? DemoMainPanel : mainPanel}
-            sliceName="main-panel"
-            slot="main"
-            {...mainProps}
-          />
-        </Panel>
-
-        <PanelResizeHandle style={styles.resizeHandle} />
-
-        <Panel defaultSize={20} minSize={15} maxSize={40} style={styles.panel}>
-          <IslandFactory
-            component={useDefaultContent ? DemoRightPanel : rightPanel}
-            sliceName="right-panel"
-            slot="right"
-            {...rightProps}
-          />
-        </Panel>
+        {generatePanels(panelCount).map((config, index) => (
+          <React.Fragment key={config.id}>
+            <Panel
+              defaultSize={config.defaultSize}
+              minSize={config.minSize}
+              maxSize={config.maxSize}
+              style={styles.panel}
+            >
+              {useDefaultContent && DEFAULT_COMPONENTS.includes(config.defaultComponent) ? (
+                <DynamicPanel
+                  panelType={config.defaultComponent}
+                  slot={config.id}
+                  sliceName={config.sliceName}
+                  props={{}}
+                />
+              ) : (
+                <div style={styles.upcomingPanel}>
+                  <span>Upcoming Panel {index + 1}</span>
+                </div>
+              )}
+            </Panel>
+            {index < panelCount - 1 && <PanelResizeHandle style={styles.resizeHandle} />}
+          </React.Fragment>
+        ))}
       </PanelGroup>
     </div>
   );
@@ -68,51 +65,30 @@ export default function ResizablePanel({
 
 const styles = {
   panelContainer: {
+    display: 'flex',
     height: '100%',
     width: '100%',
-    backgroundColor: 'white',
   },
   panelGroup: {
-    height: '100%',
+    width: '100%',
   },
   panel: {
     height: '100%',
-    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
   },
   resizeHandle: {
-    backgroundColor: '#e5e7eb',
     width: '4px',
-    margin: '0 -2px',
+    backgroundColor: '#ddd',
     cursor: 'col-resize',
-    transition: 'background-color 0.2s',
-    ':hover': {
-      backgroundColor: '#60a5fa',
-    },
   },
-  panelBase: {
+  upcomingPanel: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
     height: '100%',
     padding: '1rem',
-  },
-  leftPanel: {
     backgroundColor: '#f5f5f5',
-    border: '1px solid #ddd',
-  },
-  mainPanel: {
-    backgroundColor: 'white',
-    border: '1px solid #ddd',
-  },
-  contentBox: {
-    marginTop: '1rem',
-    padding: '1rem',
-    backgroundColor: '#f5f5f5',
-    borderRadius: '4px',
-  },
-  heading: {
-    margin: '0 0 1rem 0',
-    color: '#333',
-  },
-  paragraph: {
-    margin: '0.5rem 0',
     color: '#666',
+    fontStyle: 'italic',
   },
 };

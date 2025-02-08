@@ -2,218 +2,265 @@
 
 ## Overview
 
-This implementation provides a flexible panel system using `react-resizable-panels` for robust resizing capabilities, combined with Astro's Islands architecture for component hydration. The system is built on three main components:
-1. A layout system using react-resizable-panels
-2. A fully dynamic component loader
-3. Panel configuration in the page
+This implementation provides a flexible three-panel system using `react-resizable-panels` for robust resizing capabilities, combined with Astro's Islands architecture for component hydration. The system is built on four main components:
+1. A React-based resizable panel component
+2. A dynamic panel loader for flexible component management
+3. An Astro layout for the overall page structure
+4. Island-based component hydration for optimal performance
 
 ## 1. Core Components
 
-### 1.1 Panel Layout System
+### 1.1 ResizablePanel Component (ResizablePanel.tsx)
 ```typescript
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-
-interface Props {
-  direction?: 'horizontal' | 'vertical';
-  children: React.ReactNode;
+interface ResizablePanelProps {
+  useDefaultContent?: boolean;
+  leftPanel?: string;
+  mainPanel?: string;
+  rightPanel?: string;
+  leftProps?: Record<string, any>;
+  mainProps?: Record<string, any>;
+  rightProps?: Record<string, any>;
 }
 
 // Panel configuration
-interface PanelConfig {
-  minSize?: number;
-  defaultSize?: number;
-  collapsible?: boolean;
-}
+const PANEL_CONFIG = [
+  {
+    id: 'left',
+    defaultSize: 20,
+    minSize: 15,
+    maxSize: 40,
+    defaultComponent: 'DemoLeftPanel',
+    sliceName: 'left-panel',
+  },
+  {
+    id: 'main',
+    defaultComponent: 'DemoMainPanel',
+    sliceName: 'main-panel',
+  },
+  {
+    id: 'right',
+    defaultSize: 20,
+    minSize: 15,
+    maxSize: 40,
+    defaultComponent: 'DemoRightPanel',
+    sliceName: 'right-panel',
+  },
+];
 ```
 
 Key features:
+- Configuration-driven panel system
 - Built on react-resizable-panels for reliable resizing
-- Support for both horizontal and vertical layouts
-- Collapsible panels with minimum sizes
-- Smooth resize animations
+- Dynamic component loading through DynamicPanel
+- Configurable panel sizes and constraints
+- Smooth resize animations with visual feedback
 
-### 1.2 Enhanced DynamicPanel.tsx
+### 1.2 DynamicPanel Component (DynamicPanel.tsx)
 ```typescript
 interface DynamicPanelProps {
   panelType: string;
   slot: string;
   sliceName: string;
   props?: Record<string, any>;
-  lazy?: boolean;
-  fallback?: React.ReactNode;
-}
-
-// Dynamic import interface
-interface DynamicImport {
-  default: React.ComponentType;
-  preload?: () => Promise<void>;
 }
 ```
 
-Key improvements:
-- Lazy loading with suspense boundaries
-- Preloading capability for critical panels
-- Fallback UI during loading
-- Error boundaries with retry mechanism
-- TypeScript path imports for better type safety
+Key features:
+- Dynamic component loading
+- Direct component mapping for debugging
+- Async component loading with error handling
+- Loading state management
+- Error boundary protection
 
-### 1.3 Panel Configuration
+### 1.3 Layout System (ResizablePanelLayout2.astro)
 ```typescript
-interface PanelLayout {
-  panels: {
-    type: string;
-    slot: string;
-    config: PanelConfig;
-    lazy?: boolean;
-  }[];
-  layout: {
-    direction: 'horizontal' | 'vertical';
-    sizes: number[];
-  };
+interface Props {
+  leftPanelType?: string;
+  mainPanelType?: string;
+  rightPanelType?: string;
+  leftProps?: Record<string, any>;
+  mainProps?: Record<string, any>;
+  rightProps?: Record<string, any>;
 }
 ```
+
+Key features:
+- Flexible header and footer slots
+- Responsive layout structure
+- CSS-based panel organization
+- Clean separation of layout and content
+
+### 1.4 Panel Registry System
+```typescript
+// panelRegistry.ts
+const panelLoaders: Record<string, () => Promise<any>> = {
+  DemoLeftPanel: () => import('./panels/DemoLeftPanel'),
+  DemoMainPanel: () => import('./panels/DemoMainPanel'),
+  DemoRightPanel: () => import('./panels/DemoRightPanel'),
+};
+
+export const getPanelLoader = (panelType: string) => panelLoaders[panelType];
+```
+
+Key features:
+- Centralized panel registration
+- Lazy loading support
+- Easy panel addition and removal
+- Type-safe panel loading
 
 ## 2. Implementation Details
 
-### 2.1 React-Resizable-Panels Integration
+### 2.1 Panel Layout Structure
+
+The panel system uses a configuration-driven approach:
+```typescript
+const PANEL_CONFIG = [
+  {
+    id: 'left',
+    defaultSize: 20,
+    minSize: 15,
+    maxSize: 40,
+    defaultComponent: 'DemoLeftPanel',
+    sliceName: 'left-panel',
+  },
+  // ... other panel configurations
+];
+```
+
+Dynamic panel rendering:
 ```tsx
-<PanelGroup direction="horizontal">
-  <Panel minSize={20} defaultSize={25}>
-    <slot name="left" />
-  </Panel>
-  <PanelResizeHandle />
-  <Panel minSize={30}>
-    <slot name="main" />
-  </Panel>
-  <PanelResizeHandle />
-  <Panel minSize={20} defaultSize={25}>
-    <slot name="right" />
-  </Panel>
+<PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
+  {PANEL_CONFIG.map((config, index) => (
+    <React.Fragment key={config.id}>
+      <Panel
+        defaultSize={config.defaultSize}
+        minSize={config.minSize}
+        maxSize={config.maxSize}
+        style={styles.panel}
+      >
+        <DynamicPanel
+          panelType={useDefaultContent ? config.defaultComponent : getCustomComponent(config.id) || config.defaultComponent}
+          slot={config.id}
+          sliceName={config.sliceName}
+          props={getProps(config.id)}
+        />
+      </Panel>
+      {index < PANEL_CONFIG.length - 1 && <PanelResizeHandle style={styles.resizeHandle} />}
+    </React.Fragment>
+  ))}
 </PanelGroup>
 ```
 
-### 2.2 Enhanced Dynamic Loading
-```typescript
-// Dynamic import with type safety
-async function importComponent(type: string): Promise<DynamicImport> {
-  const module = await import(`../components/panels/${type}.tsx`);
-  return module;
-}
+### 2.2 Page Layout Structure
+```astro
+<div class="app-layout">
+  <header class="app-header">
+    <slot name="header">
+      <h1>Three Panel Layout</h1>
+    </slot>
+  </header>
 
-// Usage in DynamicPanel
-const Component = React.lazy(() => importComponent(panelType));
+  <main class="app-content">
+    <ResizablePanel
+      client:load
+      leftPanelType={leftPanelType}
+      mainPanelType={mainPanelType}
+      rightPanelType={rightPanelType}
+      leftProps={leftProps}
+      mainProps={mainProps}
+      rightProps={rightProps}
+    />
+  </main>
 
-return (
-  <Suspense fallback={fallback || <LoadingPanel />}>
-    <ErrorBoundary fallback={<ErrorPanel onRetry={retry} />}>
-      <Component {...props} />
-    </ErrorBoundary>
-  </Suspense>
-);
-```
-
-### 2.3 Panel Persistence
-```typescript
-interface PanelState {
-  sizes: number[];
-  collapsed: boolean[];
-}
-
-// Save panel state
-const savePanelState = (state: PanelState) => {
-  localStorage.setItem('panel-state', JSON.stringify(state));
-};
-
-// Restore panel state
-const loadPanelState = (): PanelState | null => {
-  const saved = localStorage.getItem('panel-state');
-  return saved ? JSON.parse(saved) : null;
-};
+  <footer class="app-footer">
+    <slot name="footer">
+      <p>&copy; 2025 Panel Layout Demo</p>
+    </slot>
+  </footer>
+</div>
 ```
 
 ## 3. Usage Examples
 
-### 3.1 Basic Layout
+### 3.1 Basic Usage with Default Content
 ```astro
----
-import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
-import { DynamicPanel } from '../components/DynamicPanel';
----
-
-<PanelGroup direction="horizontal">
-  <Panel minSize={20}>
-    <DynamicPanel
-      client:load
-      panelType="Navigation"
-      slot="left"
-      lazy={true}
-    />
-  </Panel>
-  <PanelResizeHandle />
-  <Panel>
-    <DynamicPanel
-      client:load
-      panelType="MainContent"
-      slot="main"
-    />
-  </Panel>
-</PanelGroup>
+<ResizablePanelLayout>
+  <ResizablePanel client:only="react" useDefaultContent={true} />
+</ResizablePanelLayout>
 ```
 
-### 3.2 Nested Layouts
+### 3.2 Custom Panel Types Usage
 ```astro
-<PanelGroup direction="horizontal">
-  <Panel>
-    <DynamicPanel client:load panelType="Nav" />
-  </Panel>
-  <PanelResizeHandle />
-  <Panel>
-    <PanelGroup direction="vertical">
-      <Panel>
-        <DynamicPanel client:load panelType="Content" />
-      </Panel>
-      <PanelResizeHandle />
-      <Panel>
-        <DynamicPanel client:load panelType="Details" />
-      </Panel>
-    </PanelGroup>
-  </Panel>
-</PanelGroup>
+<ResizablePanelLayout>
+  <ResizablePanel 
+    client:only="react"
+    useDefaultContent={false}
+    leftPanel="CustomLeftPanel"
+    mainPanel="CustomMainPanel"
+    rightPanel="CustomRightPanel"
+  />
+</ResizablePanelLayout>
 ```
 
-## 4. Performance Optimizations
+## 4. Styling System
 
-### 4.1 Dynamic Loading Strategies
-- Path-based code splitting
-- Component preloading
-- Lazy hydration for non-critical panels
-- Caching of loaded components
+### 4.1 Layout Styles
+```css
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
 
-### 4.2 React-Resizable-Panels Features
-- Efficient resize calculations
-- DOM mutation minimization
-- Touch support for mobile
-- Keyboard accessibility
+.app-content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+```
+
+### 4.2 Panel Styles
+```css
+.panel {
+  height: 100%;
+  background-color: #f0f0f0;
+}
+
+.resize-handle {
+  width: 4px;
+  background-color: #ddd;
+  cursor: col-resize;
+}
+```
 
 ## 5. Future Enhancements
 
-1. **Advanced Panel Features**
+1. **Dynamic Loading Features**
+   - Preloading strategies
+   - Loading priority system
+   - Caching mechanisms
+   - Fallback component system
+
+2. **Panel Features**
+   - Panel collapse/expand
    - Panel state persistence
-   - Drag and drop reordering
-   - Panel maximization
-   - Context menu actions
+   - Dynamic panel addition/removal
+   - Panel configuration presets
 
-2. **Loading Optimizations**
-   - Route-based preloading
-   - Priority-based loading
-   - Progressive enhancement
+3. **Layout Features**
+   - Additional layout templates
+   - Nested panel support
+   - Responsive breakpoints
+   - Layout state persistence
 
-3. **Layout Management**
-   - Layout templates
-   - User-defined layouts
-   - Layout sharing
+4. **Performance**
+   - Optimized component loading
+   - Bundle size optimization
+   - Selective hydration
+   - Performance monitoring
 
-4. **Accessibility**
-   - ARIA attributes
-   - Keyboard shortcuts
+5. **Accessibility**
+   - Keyboard navigation
    - Screen reader support
+   - ARIA attributes
+   - Focus management

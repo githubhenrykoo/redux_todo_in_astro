@@ -1,0 +1,48 @@
+---
+// Astro components don't need React imports
+---
+
+<div class="main-panel">
+  <h2>Main Panel</h2>
+  <p class="description">
+    This panel takes up the remaining space
+  </p>
+  <div class="content">
+    {Array(20).fill(0).map((_, i) => (
+      <p class="content-line">
+        Main panel content line {i + 1}
+      </p>
+    ))}
+  </div>
+</div>
+
+<style>
+  .main-panel {
+    padding: 1rem;
+    background-color: #ffffff;
+    height: 100%;
+    border: 1px solid #ddd;
+  }
+
+  h2 {
+    margin: 0 0 1rem 0;
+    color: #333;
+  }
+
+  .description {
+    margin: 0.5rem 0;
+    color: #666;
+  }
+
+  .content {
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  }
+
+  .content-line {
+    margin: 0.5rem 0;
+    color: #666;
+  }
+</style>

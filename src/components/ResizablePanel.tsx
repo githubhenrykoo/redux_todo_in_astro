@@ -2,75 +2,39 @@ import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 
+const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel'];
+
 interface ResizablePanelProps {
+  panelCount?: number;
   useDefaultContent?: boolean;
-  leftPanel?: string;
-  mainPanel?: string;
-  rightPanel?: string;
-  leftProps?: Record<string, any>;
-  mainProps?: Record<string, any>;
-  rightProps?: Record<string, any>;
 }
 
-const PANEL_CONFIG = [
-  {
-    id: 'left',
-    defaultSize: 20,
-    minSize: 15,
-    maxSize: 40,
-    defaultComponent: 'DemoLeftPanel',
-    sliceName: 'left-panel',
-  },
-  {
-    id: 'main',
-    defaultComponent: 'DemoMainPanel',
-    sliceName: 'main-panel',
-  },
-  {
-    id: 'right',
-    defaultSize: 20,
-    minSize: 15,
-    maxSize: 40,
-    defaultComponent: 'DemoRightPanel',
-    sliceName: 'right-panel',
-  },
-];
 
 export default function ResizablePanel({ 
+  panelCount = DEFAULT_COMPONENTS.length,
   useDefaultContent = true,
-  leftPanel,
-  mainPanel,
-  rightPanel,
-  leftProps = {},
-  mainProps = {},
-  rightProps = {},
 }: ResizablePanelProps) {
   const onLayout = (sizes: number[]) => {
     console.log('Layout changed:', sizes);
   };
 
-  const getCustomComponent = (id: string) => {
-    switch(id) {
-      case 'left': return leftPanel;
-      case 'main': return mainPanel;
-      case 'right': return rightPanel;
-      default: return null;
-    }
-  };
-
-  const getProps = (id: string) => {
-    switch(id) {
-      case 'left': return leftProps;
-      case 'main': return mainProps;
-      case 'right': return rightProps;
-      default: return {};
-    }
+  const generatePanels = (count: number) => {
+    const defaultSize = Math.floor(100 / count);
+    
+    return Array(count).fill(0).map((_, index) => ({
+      id: `panel-${index + 1}`,
+      defaultSize: defaultSize,
+      minSize: 10,
+      maxSize: 90,
+      defaultComponent: DEFAULT_COMPONENTS[index] || `Panel${index + 1}`,
+      sliceName: `panel-${index + 1}`,
+    }));
   };
 
   return (
     <div style={styles.panelContainer}>
       <PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
-        {PANEL_CONFIG.map((config, index) => (
+        {generatePanels(panelCount).map((config, index) => (
           <React.Fragment key={config.id}>
             <Panel
               defaultSize={config.defaultSize}
@@ -78,14 +42,20 @@ export default function ResizablePanel({
               maxSize={config.maxSize}
               style={styles.panel}
             >
-              <DynamicPanel
-                panelType={useDefaultContent ? config.defaultComponent : getCustomComponent(config.id) || config.defaultComponent}
-                slot={config.id}
-                sliceName={config.sliceName}
-                props={getProps(config.id)}
-              />
+              {useDefaultContent && DEFAULT_COMPONENTS.includes(config.defaultComponent) ? (
+                <DynamicPanel
+                  panelType={config.defaultComponent}
+                  slot={config.id}
+                  sliceName={config.sliceName}
+                  props={{}}
+                />
+              ) : (
+                <div style={styles.upcomingPanel}>
+                  <span>Upcoming Panel {index + 1}</span>
+                </div>
+              )}
             </Panel>
-            {index < PANEL_CONFIG.length - 1 && <PanelResizeHandle style={styles.resizeHandle} />}
+            {index < panelCount - 1 && <PanelResizeHandle style={styles.resizeHandle} />}
           </React.Fragment>
         ))}
       </PanelGroup>
@@ -110,5 +80,15 @@ const styles = {
     width: '4px',
     backgroundColor: '#ddd',
     cursor: 'col-resize',
+  },
+  upcomingPanel: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    padding: '1rem',
+    backgroundColor: '#f5f5f5',
+    color: '#666',
+    fontStyle: 'italic',
   },
 };

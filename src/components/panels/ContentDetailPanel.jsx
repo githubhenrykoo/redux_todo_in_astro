@@ -2,14 +2,17 @@
 
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addTodo } from '../../features/todoSlice.js';
-import { addContent } from '../../features/contentSlice.js';
+import { 
+  addContent, 
+  selectContent, 
+  deleteContent 
+} from '../../features/contentSlice.js';
 import ContentEditor from '../ui/ContentEditor';
 
-export default function ItemDetailPanel() {
+export default function ContentDetailPanel() {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
-  const selectedTodoContent = useSelector(state => state.todo.selectedContent);
+  
   const selectedContentItem = useSelector(state => 
     state.content.selectedId ? state.content.items[state.content.selectedId] : null
   );
@@ -21,8 +24,8 @@ export default function ItemDetailPanel() {
 
   const handleSubmit = () => {
     if (editContent.trim()) {
-      // Dispatch actions to both todo and content slices
-      dispatch(addTodo(editContent));
+      // Dispatch action to content slice
+      const newContentId = Date.now(); // Simple ID generation
       dispatch(addContent(editContent));
       
       setEditContent('');
@@ -40,26 +43,42 @@ export default function ItemDetailPanel() {
     setEditContent('');
   };
 
+  const handleDelete = () => {
+    if (selectedContentItem) {
+      dispatch(deleteContent(selectedContentItem.id));
+    }
+  };
+
   // Determine the content to display
   const displayContent = isEditing 
     ? editContent 
-    : (selectedTodoContent || (selectedContentItem?.content) || '');
+    : (selectedContentItem?.content || '');
 
   return (
     <div className="flex flex-col h-full">
       {/* Fixed Header */}
       <div className="flex-shrink-0 flex justify-between items-center px-4 py-2 bg-gray-100 border-b">
         <h2 className="text-lg font-semibold text-gray-700">
-          {isEditing ? 'Push New Content' : 'Item Details'}
+          {isEditing ? 'Push New Content' : 'Content Details'}
         </h2>
         <div className="flex gap-2">
           {!isEditing && (
-            <button
-              onClick={handleNewClick}
-              className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-            >
-              Push New Item
-            </button>
+            <>
+              <button
+                onClick={handleNewClick}
+                className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Push New Content
+              </button>
+              {selectedContentItem && (
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                >
+                  Delete
+                </button>
+              )}
+            </>
           )}
           {isEditing && (
             <>

@@ -1,89 +1,119 @@
 import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import './ResizablePanel.css';
+import { DemoLeftPanel } from './panels/DemoLeftPanel';
+import { DemoMainPanel } from './panels/DemoMainPanel';
+import { DemoRightPanel } from './panels/DemoRightPanel';
 
 interface ResizablePanelProps {
   useDefaultContent?: boolean;
   leftPanel?: React.ReactNode;
   mainPanel?: React.ReactNode;
+  rightPanel?: React.ReactNode;
 }
 
 export default function ResizablePanel({ 
   useDefaultContent = true,
   leftPanel,
-  mainPanel 
+  mainPanel,
+  rightPanel 
 }: ResizablePanelProps) {
   const onLayout = (sizes: number[]) => {
     console.log('Layout changed:', sizes);
   };
 
-  // Default left panel content
-  const LeftPanel = () => (
-    <div className="panel left-panel">
-      <h2>Left Panel</h2>
-      <p>This panel has a fixed width of 200px</p>
-    </div>
-  );
-
-  // Default main panel content
-  const MainPanel = () => (
-    <div className="panel main-panel">
-      <h2>Main Panel</h2>
-      <p>This panel takes up the remaining space</p>
-      <div className="content-box">
-        {Array(20).fill(0).map((_, i) => (
-          <p key={i}>Main panel content line {i + 1}</p>
-        ))}
-      </div>
-    </div>
-  );
-
-  // Default right panel content
-  const RightPanel = () => (
-    <div style={{
-      padding: '1rem',
-      backgroundColor: '#f5f5f5',
-      height: '100%',
-      border: '1px solid #ddd'
-    }}>
-      <h2 style={{ margin: '0 0 1rem 0', color: '#333' }}>Right Panel</h2>
-      <p style={{ margin: '0.5rem 0', color: '#666' }}>
-        This panel has a fixed width of 200px
-      </p>
-    </div>
-  );
+  // Use imported components as default panels
+  const LeftPanel = () => <DemoLeftPanel />;
+  const MainPanel = () => <DemoMainPanel />;
+  const RightPanel = () => <DemoRightPanel />;
 
   return (
-    <div className="panel-container">
-      <PanelGroup direction="horizontal" onLayout={onLayout}>
-        <Panel defaultSize={20} minSize={15} maxSize={40}>
+    <div style={styles.panelContainer}>
+      <PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
+        <Panel defaultSize={20} minSize={15} maxSize={40} style={styles.panel}>
           {useDefaultContent ? (
             <LeftPanel />
           ) : leftPanel ? (
-            <div className="panel left-panel">{leftPanel}</div>
+            <div style={{ ...styles.panelBase, ...styles.leftPanel }}>{leftPanel}</div>
           ) : (
-            <div className="panel left-panel" />
+            <div style={{ ...styles.panelBase, ...styles.leftPanel }} />
           )}
         </Panel>
         
-        <PanelResizeHandle className="resize-handle" />
+        <PanelResizeHandle style={styles.resizeHandle} />
         
-        <Panel>
+        <Panel style={styles.panel}>
           {useDefaultContent ? (
             <MainPanel />
           ) : mainPanel ? (
-            <div className="panel main-panel">{mainPanel}</div>
+            <div style={{ ...styles.panelBase, ...styles.mainPanel }}>{mainPanel}</div>
           ) : (
-            <div className="panel main-panel" />
+            <div style={{ ...styles.panelBase, ...styles.mainPanel }} />
           )}
         </Panel>
 
-        <PanelResizeHandle className="resize-handle" />
+        <PanelResizeHandle style={styles.resizeHandle} />
 
-        <Panel defaultSize={20} minSize={15} maxSize={40}>
-          {useDefaultContent ? <RightPanel /> : <div className="panel right-panel" />}
+        <Panel defaultSize={20} minSize={15} maxSize={40} style={styles.panel}>
+          {useDefaultContent ? (
+            <RightPanel />
+          ) : rightPanel ? (
+            <div style={{ ...styles.panelBase, ...styles.leftPanel }}>{rightPanel}</div>
+          ) : (
+            <div style={{ ...styles.panelBase, ...styles.leftPanel }} />
+          )}
         </Panel>
       </PanelGroup>
     </div>
   );
 }
+
+const styles = {
+  panelContainer: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: 'white',
+  },
+  panelGroup: {
+    height: '100%',
+  },
+  panel: {
+    height: '100%',
+    overflow: 'hidden',
+  },
+  resizeHandle: {
+    backgroundColor: '#e5e7eb',
+    width: '4px',
+    margin: '0 -2px',
+    cursor: 'col-resize',
+    transition: 'background-color 0.2s',
+    ':hover': {
+      backgroundColor: '#60a5fa',
+    },
+  },
+  panelBase: {
+    height: '100%',
+    padding: '1rem',
+  },
+  leftPanel: {
+    backgroundColor: '#f5f5f5',
+    border: '1px solid #ddd',
+  },
+  mainPanel: {
+    backgroundColor: 'white',
+    border: '1px solid #ddd',
+  },
+  contentBox: {
+    marginTop: '1rem',
+    padding: '1rem',
+    backgroundColor: '#f5f5f5',
+    borderRadius: '4px',
+  },
+  heading: {
+    margin: '0 0 1rem 0',
+    color: '#333',
+  },
+  paragraph: {
+    margin: '0.5rem 0',
+    color: '#666',
+  },
+};

@@ -19,6 +19,8 @@
   },
   "SearchAndContent": {
     "component": "../components/panels/SearchAndContent.jsx"
+  },
+  "ContentDetailPanel": {
+    "component": "../components/panels/ContentDetailPanel.jsx"
   }
 }
-

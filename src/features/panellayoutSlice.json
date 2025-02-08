@@ -1,13 +1,13 @@
 {
     "generate_layout": {
         "left": {
-            "type": "SearchAndTodos",
+            "type": "SearchAndContent",
             "size": 30,
             "minSize": 20,
             "visible": true
         },
         "middle": {
-            "type": "GeneratePanel", 
+            "type": "ContentDetailPanel", 
             "size": 40,
             "minSize": 20,
             "visible": true
@@ -21,7 +21,7 @@
     },
     "todo_layout": {
         "left": {
-            "type": "SearchAndContent",
+            "type": "SearchAndTodos",
             "size": 30,
             "minSize": 20,
             "visible": true

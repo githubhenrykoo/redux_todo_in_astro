@@ -1,125 +1,147 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { createHash } from 'crypto';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 
-// Utility function to generate hash
-function generateContentHash(content) {
-  // Use SHA-256 for hash generation
-  return createHash('sha256')
-    .update(JSON.stringify(content))
-    .digest('hex');
-}
+// Simple ID generation function
+const generateId = () => `content_${Math.random().toString(36).substr(2, 9)}`;
 
-// Initial state
+// Utility function to create content with relationships
+const createContentItem = (content, relationships = {}) => ({
+  id: generateId(),
+  content,
+  createdAt: new Date().toISOString(),
+  metadata: {},
+  relationships: {
+    parentId: null,
+    childIds: [],
+    relatedIds: [],
+    ...relationships
+  }
+});
+
 const initialState = {
-  items: {
-    'sample1': {
-      hash: 'sample1',
-      content: 'This is a sample content item 1',
-      metadata: {},
-      relationships: {
-        parentHash: null,
-        childHashes: [],
-        relatedHashes: []
-      }
-    },
-    'sample2': {
-      hash: 'sample2',
-      content: 'This is a sample content item 2',
-      metadata: {},
-      relationships: {
-        parentHash: null,
-        childHashes: [],
-        relatedHashes: []
-      }
-    }
-  },
-  selected: null,
+  items: {},
+  selectedId: null,
   search: {
     query: '',
-    results: ['sample1', 'sample2'],
-    filters: {},
-    totalItems: 2
+    results: [],
+    filters: {}
   }
 };
 
-// Content Slice
 export const contentSlice = createSlice({
   name: 'content',
   initialState,
   reducers: {
-    // Add new content
-    addContent: (state, action) => {
-      const hash = generateContentHash(action.payload.content);
-      state.items[hash] = {
-        hash,
-        content: action.payload.content,
-        metadata: {},
-        relationships: {
-          parentHash: action.payload.relationships?.parentHash,
-          childHashes: action.payload.relationships?.childHashes || [],
-          relatedHashes: action.payload.relationships?.relatedHashes || []
+    // Add new content with flexible relationships
+    addContent: {
+      reducer: (state, action) => {
+        const { id, content, relationships } = action.payload;
+        state.items[id] = createContentItem(content, relationships);
+        
+        // Update parent and related content relationships
+        if (relationships?.parentId) {
+          const parentContent = state.items[relationships.parentId];
+          if (parentContent) {
+            parentContent.relationships.childIds.push(id);
+          }
         }
-      };
+      },
+      prepare: (content, relationships = {}) => ({
+        payload: {
+          id: generateId(),
+          content,
+          relationships
+        }
+      })
     },
 
-    // Delete content by hash
+    // Delete content and clean up relationships
     deleteContent: (state, action) => {
-      delete state.items[action.payload];
-      
-      // Remove references to deleted content in other items
-      Object.values(state.items).forEach(item => {
-        item.relationships.childHashes = 
-          item.relationships.childHashes.filter(h => h !== action.payload);
-        item.relationships.relatedHashes = 
-          item.relationships.relatedHashes.filter(h => h !== action.payload);
-      });
+      const contentId = action.payload;
+      const contentToDelete = state.items[contentId];
+
+      if (contentToDelete) {
+        // Remove child references
+        contentToDelete.relationships.childIds.forEach(childId => {
+          delete state.items[childId];
+        });
+
+        // Clean up parent relationships
+        if (contentToDelete.relationships.parentId) {
+          const parentContent = state.items[contentToDelete.relationships.parentId];
+          if (parentContent) {
+            parentContent.relationships.childIds = 
+              parentContent.relationships.childIds.filter(id => id !== contentId);
+          }
+        }
+
+        // Remove the content itself
+        delete state.items[contentId];
+      }
+
+      // Reset selection if deleted content was selected
+      if (state.selectedId === contentId) {
+        state.selectedId = null;
+      }
     },
 
-    // Select content
+    // Select a specific content item
     selectContent: (state, action) => {
-      state.selected = action.payload;
+      state.selectedId = action.payload;
     },
 
-    // Update search query
+    // Update search functionality
     setSearchQuery: (state, action) => {
-      state.search.query = action.payload;
-      
-      // Perform simple search 
-      state.search.results = Object.entries(state.items)
-        .filter(([_, item]) => item.content.includes(action.payload))
-        .map(([hash]) => hash);
-      
-      state.search.totalItems = state.search.results.length;
+      const query = action.payload.toLowerCase();
+      state.search.query = query;
+
+      // Advanced search across content
+      state.search.results = Object.values(state.items)
+        .filter(item => 
+          item.content.toLowerCase().includes(query) || 
+          JSON.stringify(item.metadata).toLowerCase().includes(query)
+        )
+        .map(item => item.id);
     },
 
     // Update content metadata
     updateContentMetadata: (state, action) => {
-      if (state.items[action.payload.hash]) {
-        state.items[action.payload.hash].metadata = {
-          ...state.items[action.payload.hash].metadata,
-          ...action.payload.metadata
+      const { id, metadata } = action.payload;
+      if (state.items[id]) {
+        state.items[id].metadata = {
+          ...state.items[id].metadata,
+          ...metadata
         };
       }
     },
 
     // Update content relationships
     updateContentRelationships: (state, action) => {
-      if (state.items[action.payload.hash]) {
-        state.items[action.payload.hash].relationships = {
-          ...state.items[action.payload.hash].relationships,
-          ...action.payload.relationships
+      const { id, relationships } = action.payload;
+      if (state.items[id]) {
+        state.items[id].relationships = {
+          ...state.items[id].relationships,
+          ...relationships
         };
       }
     }
   }
 });
 
-// Export actions
+// Memoized selectors for efficient state retrieval
+export const selectContentState = createSelector(
+  state => state.content,
+  content => ({
+    items: content.items,
+    selectedItem: content.selectedId ? content.items[content.selectedId] : null,
+    searchResults: content.search.results.map(id => content.items[id])
+  })
+);
+
 export const { 
   addContent, 
   deleteContent, 
   selectContent, 
-  setSearchQuery, 
+  setSearchQuery,
   updateContentMetadata,
   updateContentRelationships
 } = contentSlice.actions;

@@ -1,66 +1,65 @@
 import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { IslandFactory } from './factories/IslandFactory';
 import { DemoLeftPanel } from './panels/DemoLeftPanel';
 import { DemoMainPanel } from './panels/DemoMainPanel';
 import { DemoRightPanel } from './panels/DemoRightPanel';
 
 interface ResizablePanelProps {
   useDefaultContent?: boolean;
-  leftPanel?: React.ReactNode;
-  mainPanel?: React.ReactNode;
-  rightPanel?: React.ReactNode;
+  leftPanel?: React.ComponentType<any>;
+  mainPanel?: React.ComponentType<any>;
+  rightPanel?: React.ComponentType<any>;
+  leftProps?: Record<string, any>;
+  mainProps?: Record<string, any>;
+  rightProps?: Record<string, any>;
 }
 
 export default function ResizablePanel({ 
   useDefaultContent = true,
   leftPanel,
   mainPanel,
-  rightPanel 
+  rightPanel,
+  leftProps = {},
+  mainProps = {},
+  rightProps = {}
 }: ResizablePanelProps) {
   const onLayout = (sizes: number[]) => {
     console.log('Layout changed:', sizes);
   };
 
-  // Use imported components as default panels
-  const LeftPanel = () => <DemoLeftPanel />;
-  const MainPanel = () => <DemoMainPanel />;
-  const RightPanel = () => <DemoRightPanel />;
-
   return (
     <div style={styles.panelContainer}>
       <PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
         <Panel defaultSize={20} minSize={15} maxSize={40} style={styles.panel}>
-          {useDefaultContent ? (
-            <LeftPanel />
-          ) : leftPanel ? (
-            <div style={{ ...styles.panelBase, ...styles.leftPanel }}>{leftPanel}</div>
-          ) : (
-            <div style={{ ...styles.panelBase, ...styles.leftPanel }} />
-          )}
+          <IslandFactory
+            component={useDefaultContent ? DemoLeftPanel : leftPanel}
+            sliceName="left-panel"
+            slot="left"
+            {...leftProps}
+          />
         </Panel>
         
         <PanelResizeHandle style={styles.resizeHandle} />
         
         <Panel style={styles.panel}>
-          {useDefaultContent ? (
-            <MainPanel />
-          ) : mainPanel ? (
-            <div style={{ ...styles.panelBase, ...styles.mainPanel }}>{mainPanel}</div>
-          ) : (
-            <div style={{ ...styles.panelBase, ...styles.mainPanel }} />
-          )}
+          <IslandFactory
+            component={useDefaultContent ? DemoMainPanel : mainPanel}
+            sliceName="main-panel"
+            slot="main"
+            {...mainProps}
+          />
         </Panel>
 
         <PanelResizeHandle style={styles.resizeHandle} />
 
         <Panel defaultSize={20} minSize={15} maxSize={40} style={styles.panel}>
-          {useDefaultContent ? (
-            <RightPanel />
-          ) : rightPanel ? (
-            <div style={{ ...styles.panelBase, ...styles.leftPanel }}>{rightPanel}</div>
-          ) : (
-            <div style={{ ...styles.panelBase, ...styles.leftPanel }} />
-          )}
+          <IslandFactory
+            component={useDefaultContent ? DemoRightPanel : rightPanel}
+            sliceName="right-panel"
+            slot="right"
+            {...rightProps}
+          />
         </Panel>
       </PanelGroup>
     </div>

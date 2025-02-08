@@ -1,21 +1,86 @@
 ---
 import ResizablePanel from '../components/ResizablePanel';
+
+interface Props {
+  leftPanelType?: string;
+  mainPanelType?: string;
+  rightPanelType?: string;
+  leftProps?: Record<string, any>;
+  mainProps?: Record<string, any>;
+  rightProps?: Record<string, any>;
+}
+
+const {
+  leftPanelType = "DemoLeftPanel",
+  mainPanelType = "DemoMainPanel",
+  rightPanelType = "DemoRightPanel",
+  leftProps = {},
+  mainProps = {},
+  rightProps = {}
+} = Astro.props;
 ---
 
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <slot name="title">
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       html, body { height: 100vh; width: 100vw; overflow: hidden; }
       .container { height: 100vh; width: 100vw; }
+      .app-layout {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .app-header {
+        flex: 0 0 auto;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+      }
+      .app-content {
+        flex: 1;
+        min-height: 0;
+        position: relative;
+      }
+      .app-footer {
+        flex: 0 0 auto;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        text-align: center;
+        color: #666;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-        <slot />
+      <div class="app-layout">
+        <header class="app-header">
+          <slot name="header">
+            <h1>Three Panel Layout</h1>
+          </slot>
+        </header>
+
+        <main class="app-content">
+          <ResizablePanel
+            client:load
+            leftPanelType={leftPanelType}
+            mainPanelType={mainPanelType}
+            rightPanelType={rightPanelType}
+            leftProps={leftProps}
+            mainProps={mainProps}
+            rightProps={rightProps}
+          />
+        </main>
+
+        <footer class="app-footer">
+          <slot name="footer">
+            <p>&copy; 2025 Panel Layout Demo</p>
+          </slot>
+        </footer>
+      </div>
     </div>
   </body>
 </html>

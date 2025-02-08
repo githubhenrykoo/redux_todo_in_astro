@@ -36,16 +36,38 @@ interface RootState {
 ### 1.2 Domain-Specific States
 
 #### Theme Management
+
+The theme system is implemented in `src/features/themeSlice.js` with the following key aspects:
+
+1. **Core State**:
 ```typescript
 interface ThemeState {
-  mode: 'light' | 'dark' | 'system';
-  customizations: Record<string, string>;
-  systemPreference: boolean;
+  mode: 'light' | 'dark';  // Current theme mode
 }
-
-type ThemeActions = 
-  | { type: 'SET_THEME_MODE'; payload: 'light' | 'dark' }  // Explicitly set theme
 ```
+
+2. **Key Features**:
+- Automatic system preference detection
+- Local storage persistence
+- SSR compatibility with default light theme
+- CSS class-based theme switching
+
+3. **Implementation Notes**:
+- Uses Redux Toolkit's `createSlice` for reducer and action creation
+- Memoized theme selector using `createSelector`
+- Direct DOM manipulation for theme class toggling
+- Theme persistence in localStorage
+
+4. **Usage Example**:
+```typescript
+// Access theme
+const mode = useSelector(selectThemeMode);
+
+// Toggle theme
+dispatch(toggleTheme());
+```
+
+For the complete implementation, refer to `src/features/themeSlice.js`.
 
 #### Action History
 ```typescript
@@ -359,19 +381,37 @@ interface BatchAction {
 ## 7. Core Redux Slices
 
 ### 7.1 Theme Slice (themeSlice)
+The theme system is implemented in `src/features/themeSlice.js` with the following key aspects:
+
+1. **Core State**:
 ```typescript
 interface ThemeState {
-  mode: 'light' | 'dark' | 'system';
-  customizations: Record<string, string>;
-  systemPreference: boolean;
+  mode: 'light' | 'dark';  // Current theme mode
 }
-
-type ThemeActions = 
-  | { type: 'SET_THEME_MODE'; payload: 'light' | 'dark' }  // Explicitly set theme
-  | { type: 'theme/updateCustomizations'; payload: Partial<ThemeState['customizations']> }
-  | { type: 'theme/setAccessibility'; payload: { reducedMotion: boolean; highContrast: boolean } }
-  | { type: 'theme/syncWithSystem' };
 ```
+
+2. **Key Features**:
+- Automatic system preference detection
+- Local storage persistence
+- SSR compatibility with default light theme
+- CSS class-based theme switching
+
+3. **Implementation Notes**:
+- Uses Redux Toolkit's `createSlice` for reducer and action creation
+- Memoized theme selector using `createSelector`
+- Direct DOM manipulation for theme class toggling
+- Theme persistence in localStorage
+
+4. **Usage Example**:
+```typescript
+// Access theme
+const mode = useSelector(selectThemeMode);
+
+// Toggle theme
+dispatch(toggleTheme());
+```
+
+For the complete implementation, refer to `src/features/themeSlice.js`.
 
 ### 7.2 Action History Slice (historySlice)
 ```typescript

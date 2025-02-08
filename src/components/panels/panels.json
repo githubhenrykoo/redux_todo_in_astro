@@ -1,22 +1,17 @@
 {
   "SEARCH_TODOS": {
-    "type": "SEARCH_TODOS",
     "component": "../components/panels/SearchAndTodos.jsx"
   },
   "SEARCH_PROMPTS": {
-    "type": "SEARCH_PROMPTS",
     "component": "../components/panels/SearchANDPrompts.jsx"
   },
   "ITEM_DETAIL": {
-    "type": "ITEM_DETAIL",
     "component": "../components/panels/ItemDetailPanel.jsx"
   },
   "GENERATE_PANEL": {
-    "type": "GENERATE_PANEL",
     "component": "../components/panels/GeneratePanel.jsx"
   },
   "ACTION_LOG": {
-    "type": "ACTION_LOG",
     "component": "../components/panels/ActionLogPanelReact.jsx"
   }
 }

@@ -7,7 +7,7 @@
             "visible": true
         },
         "middle": {
-            "type": "GeneratePanel", 
+            "type": "ContentDetailPanel", 
             "size": 40,
             "minSize": 20,
             "visible": true

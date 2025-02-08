@@ -23,7 +23,7 @@ export function ContentDetail() {
         flexDirection: 'column',
         gap: '1rem'
       }}>
-        {Array(20).fill(0).map((_, i) => (
+        {Array(2).fill(0).map((_, i) => (
           <div key={i} style={{
             background: 'white',
             padding: '1rem',

@@ -31,7 +31,7 @@ const { leftPanelWidth = '200px', rightPanelWidth = '200px' } = Astro.props;
             <div class="left-panel" style={`width: ${leftPanelWidth};`}>
               <slot name="left" />
             </div>
-            <div class="main-panel">
+            <div class="main-panel" >
               <slot name="main" />
             </div>
             <div class="right-panel" style={`width: ${rightPanelWidth};`}>

@@ -16,6 +16,15 @@ const store = configureStore({
       serializableCheck: {
         // Ignore these action types
         ignoredActions: [
+           // Todo-related actions
+        'todo/addTodo', 
+        'todo/removeTodo', 
+        'todo/selectTodo',
+        
+        // Content-related actions
+        'content/addContent',
+        'content/deleteContent',
+        'content/selectContent',
         ],
       },
     }),

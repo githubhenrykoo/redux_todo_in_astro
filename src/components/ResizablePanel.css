@@ -1,18 +1,23 @@
+/* Panel container styles */
 .panel-container {
   height: 100%;
   width: 100%;
   background-color: white;
 }
 
+/* Panel group styles */
 [data-panel-group] {
   height: 100%;
 }
 
 [data-panel] {
   height: 100%;
+  overflow: hidden;
 }
 
-[data-panel-resizer] {
+/* Resize handle styles */
+[data-panel-resizer],
+.resize-handle {
   background-color: #e5e7eb;
   width: 4px;
   margin: 0 -2px;
@@ -21,10 +26,13 @@
 }
 
 [data-panel-resizer]:hover,
-[data-panel-resizer][data-resize-handle-active] {
+[data-panel-resizer][data-resize-handle-active],
+.resize-handle:hover,
+.resize-handle[data-resize-handle-active] {
   background-color: #60a5fa;
 }
 
+/* Panel styles */
 .panel {
   height: 100%;
   padding: 1rem;
@@ -47,6 +55,7 @@
   border-radius: 4px;
 }
 
+/* Typography */
 h2 {
   margin: 0 0 1rem 0;
   color: #333;

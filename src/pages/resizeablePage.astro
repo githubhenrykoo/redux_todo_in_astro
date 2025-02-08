@@ -1,5 +1,5 @@
 ---
-import ResizableLayout from '../components/ResizableLayout';
+import ResizablePanel from '../components/ResizablePanel';
 ---
 
 <html lang="en">
@@ -15,7 +15,7 @@ import ResizableLayout from '../components/ResizableLayout';
   </head>
   <body>
     <div class="container">
-      <ResizableLayout client:only="react" />
+      <ResizablePanel client:only="react" useDefaultContent={true} />
     </div>
   </body>
 </html>

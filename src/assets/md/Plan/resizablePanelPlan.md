@@ -13,39 +13,33 @@ This implementation provides a flexible three-panel system using `react-resizabl
 ### 1.1 ResizablePanel Component (ResizablePanel.tsx)
 ```typescript
 interface ResizablePanelProps {
+  panelCount?: number;
   useDefaultContent?: boolean;
-  leftPanel?: string;
-  mainPanel?: string;
-  rightPanel?: string;
-  leftProps?: Record<string, any>;
-  mainProps?: Record<string, any>;
-  rightProps?: Record<string, any>;
 }
 
-// Panel configuration
-const PANEL_CONFIG = [
-  {
-    id: 'left',
-    defaultSize: 20,
-    minSize: 15,
-    maxSize: 40,
-    defaultComponent: 'DemoLeftPanel',
-    sliceName: 'left-panel',
-  },
-  {
-    id: 'main',
-    defaultComponent: 'DemoMainPanel',
-    sliceName: 'main-panel',
-  },
-  {
-    id: 'right',
-    defaultSize: 20,
-    minSize: 15,
-    maxSize: 40,
-    defaultComponent: 'DemoRightPanel',
-    sliceName: 'right-panel',
-  },
-];
+const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel'];
+
+export default function ResizablePanel({ 
+  panelCount = DEFAULT_COMPONENTS.length,
+  useDefaultContent = true,
+}: ResizablePanelProps) {
+  const onLayout = (sizes: number[]) => {
+    console.log('Layout changed:', sizes);
+  };
+
+  const generatePanels = (count: number) => {
+    const defaultSize = Math.floor(100 / count);
+    
+    return Array(count).fill(0).map((_, index) => ({
+      id: `panel-${index + 1}`,
+      defaultSize: defaultSize,
+      minSize: 10,
+      maxSize: 90,
+      defaultComponent: DEFAULT_COMPONENTS[index] || `Panel${index + 1}`,
+      sliceName: `panel-${index + 1}`,
+    }));
+  };
+}
 ```
 
 Key features:
@@ -54,6 +48,7 @@ Key features:
 - Dynamic component loading through DynamicPanel
 - Configurable panel sizes and constraints
 - Smooth resize animations with visual feedback
+- **Dynamic panel count based on `panelCount` and `DEFAULT_COMPONENTS`**
 
 ### 1.2 DynamicPanel Component (DynamicPanel.tsx)
 ```typescript
@@ -72,7 +67,7 @@ Key features:
 - Loading state management
 - Error boundary protection
 
-### 1.3 Layout System (flexableResizable.astro)
+### 1.3 Layout System (ResizablePanelLayout2.astro)
 ```typescript
 interface Props {
   leftPanelType?: string;
@@ -114,17 +109,7 @@ Key features:
 
 The panel system uses a configuration-driven approach:
 ```typescript
-const PANEL_CONFIG = [
-  {
-    id: 'left',
-    defaultSize: 20,
-    minSize: 15,
-    maxSize: 40,
-    defaultComponent: 'DemoLeftPanel',
-    sliceName: 'left-panel',
-  },
-  // ... other panel configurations
-];
+const PANEL_CONFIG = generatePanels(panelCount);
 ```
 
 Dynamic panel rendering:
@@ -163,12 +148,8 @@ Dynamic panel rendering:
   <main class="app-content">
     <ResizablePanel
       client:load
-      leftPanelType={leftPanelType}
-      mainPanelType={mainPanelType}
-      rightPanelType={rightPanelType}
-      leftProps={leftProps}
-      mainProps={mainProps}
-      rightProps={rightProps}
+      panelCount={panelCount}
+      useDefaultContent={useDefaultContent}
     />
   </main>
 
@@ -195,9 +176,7 @@ Dynamic panel rendering:
   <ResizablePanel 
     client:only="react"
     useDefaultContent={false}
-    leftPanel="CustomLeftPanel"
-    mainPanel="CustomMainPanel"
-    rightPanel="CustomRightPanel"
+    panelCount={3}
   />
 </ResizablePanelLayout>
 ```

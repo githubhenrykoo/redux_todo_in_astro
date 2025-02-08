@@ -78,7 +78,7 @@ type ActionHistoryActions =
 #### Content Management
 ```typescript
 interface ContentState {
-  items: Record<string, {
+  cards: Record<string, {
     hash: string;
     content: string;
     metadata: Record<string, unknown>;
@@ -110,7 +110,7 @@ type ContentActions =
   | { type: 'SELECT_CONTENT'; payload: string }  // Set selected content
   | { type: 'SET_SEARCH_QUERY'; payload: string }// Update search query
   | { type: 'content/updateMetadata'; payload: { hash: string; metadata: Record<string, unknown> } }
-  | { type: 'content/updateRelationships'; payload: { hash: string; relationships: Partial<ContentState['items'][string]['relationships']> } };
+  | { type: 'content/updateRelationships'; payload: { hash: string; relationships: Partial<ContentState['cards'][string]['relationships']> } };
 ```
 
 #### LLM Integration
@@ -323,8 +323,8 @@ interface CustomMiddleware {
 ### 5.2 Memoization
 ```typescript
 const memoizedSelector = createSelector(
-  [selectItems, selectFilter],
-  (items, filter) => items.filter(filter)
+  [selectCards, selectFilter],
+  (cards, filter) => cards.filter(filter)
 );
 ```
 
@@ -406,7 +406,7 @@ type ActionHistoryActions =
 ### 7.3 Content Management Slice (contentSlice)
 ```typescript
 interface ContentState {
-  items: Record<string, {
+  cards: Record<string, {
     hash: string;
     content: string;
     metadata: Record<string, unknown>;
@@ -438,7 +438,7 @@ type ContentActions =
   | { type: 'SELECT_CONTENT'; payload: string }  // Set selected content
   | { type: 'SET_SEARCH_QUERY'; payload: string }// Update search query
   | { type: 'content/updateMetadata'; payload: { hash: string; metadata: Record<string, unknown> } }
-  | { type: 'content/updateRelationships'; payload: { hash: string; relationships: Partial<ContentState['items'][string]['relationships']> } };
+  | { type: 'content/updateRelationships'; payload: { hash: string; relationships: Partial<ContentState['cards'][string]['relationships']> } };
 ```
 
 ### 7.4 LLM Integration Slice (llmSlice)

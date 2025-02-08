@@ -12,24 +12,24 @@ import ContentEditor from '../ui/ContentEditor';
 export default function ContentDetailPanel() {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
-  const [originalContent, setOriginalContent] = useState('');
   
   const dispatch = useDispatch();
-  const { selectedId, selectedItem } = useSelector(state => ({
+  const { selectedId, selectedCard } = useSelector(state => ({
     selectedId: state.content.selectedId,
-    selectedItem: state.content.selectedId 
-      ? state.content.items[state.content.selectedId] 
-      : null
+    selectedCard: state.content.selectedId 
+      ? state.content.cards[state.content.selectedId]?.content 
+      : ''
   }));
 
-  // Effect to update content when a new item is selected
+  // Effect to update content when a new card is selected
   useEffect(() => {
-    if (selectedItem) {
-      setOriginalContent(selectedItem.content);
-      setEditContent('');
+    if (selectedCard) {
+      setEditContent(selectedCard);
       setIsEditing(false);
+    } else {
+      setEditContent('');
     }
-  }, [selectedItem]);
+  }, [selectedCard]);
 
   const handleContentChange = (newContent) => {
     setEditContent(newContent);
@@ -37,7 +37,7 @@ export default function ContentDetailPanel() {
 
   const handleSubmit = () => {
     if (editContent.trim()) {
-      // Always create a new content item
+      // Always create a new content card
       dispatch(addContent(editContent));
       
       setEditContent('');
@@ -51,27 +51,25 @@ export default function ContentDetailPanel() {
   };
 
   const handleCancel = () => {
+    // Revert to original content if editing
+    if (selectedCard) {
+      setEditContent(selectedCard);
+    }
     setIsEditing(false);
-    setEditContent('');
   };
 
   const handleDelete = () => {
-    if (selectedItem) {
-      dispatch(deleteContent(selectedItem.id));
+    if (selectedId) {
+      dispatch(deleteContent(selectedId));
     }
   };
-
-  // Determine the content to display
-  const displayContent = isEditing 
-    ? editContent 
-    : (originalContent || '');
 
   return (
     <div className="flex flex-col h-full">
       {/* Fixed Header */}
       <div className="flex-shrink-0 flex justify-between items-center px-4 py-2 bg-gray-100 border-b">
         <h2 className="text-lg font-semibold text-gray-700">
-          {isEditing ? 'Push New Content' : 'Content Details'}
+          {isEditing ? 'Edit Content' : 'Content Details'}
         </h2>
         <div className="flex items-center gap-4">
           {/* Display Selected Content ID */}
@@ -88,15 +86,23 @@ export default function ContentDetailPanel() {
                   onClick={handleNewClick}
                   className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
-                  Push New Content
+                  New Content
                 </button>
-                {selectedItem && (
-                  <button
-                    onClick={handleDelete}
-                    className="px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                  >
-                    Delete
-                  </button>
+                {selectedId && (
+                  <>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="px-4 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </>
             )}
@@ -112,7 +118,7 @@ export default function ContentDetailPanel() {
                   onClick={handleSubmit}
                   className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
-                  Save as New
+                  {selectedId ? 'Save as New' : 'Save'}
                 </button>
               </>
             )}
@@ -123,7 +129,7 @@ export default function ContentDetailPanel() {
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-auto">
         <ContentEditor
-          content={displayContent}
+          content={editContent}
           onChange={handleContentChange}
           onSave={isEditing ? handleSubmit : undefined}
           title={isEditing ? 'Edit Content' : 'Content Viewer'}

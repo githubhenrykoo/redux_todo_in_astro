@@ -6,18 +6,18 @@ import { selectContent, deleteContent } from '../features/contentSlice';
 
 const Content = () => {
   const dispatch = useDispatch();
-  const { items, search } = useSelector(state => state.content);
+  const { cards, search } = useSelector(state => state.content);
   
-  // Get all content items, not just search results
-  const contentItems = Object.values(items);
+  // Get all content cards, not just search results
+  const contentCards = Object.values(cards);
   const searchQuery = search.query.toLowerCase();
 
   // Filter content based on search query if it exists
   const filteredContent = searchQuery
-    ? contentItems.filter(content => 
-        content.content.toLowerCase().includes(searchQuery)
+    ? contentCards.filter(card => 
+        card.content.toLowerCase().includes(searchQuery)
       )
-    : contentItems;
+    : contentCards;
 
   const handleContentSelect = (id) => {
     dispatch(selectContent(id));
@@ -38,12 +38,12 @@ const Content = () => {
               : 'No content available'}
           </p>
         ) : (
-          filteredContent.map(content => {
-            if (!content) return null;
+          filteredContent.map(card => {
+            if (!card) return null;
             
             return (
               <div 
-                key={content.id} 
+                key={card.id} 
                 className={`
                   flex flex-col p-2 border rounded 
                   hover:bg-gray-100 dark:hover:bg-neutral-800
@@ -51,20 +51,20 @@ const Content = () => {
               >
                 {/* Content Preview */}
                 <div 
-                  onClick={() => handleContentSelect(content.id)}
+                  onClick={() => handleContentSelect(card.id)}
                   className="cursor-pointer mb-2 dark:text-neutral-100"
                 >
-                  {content.content.substring(0, 200)}...
+                  {card.content.substring(0, 200)}...
                 </div>
 
                 {/* Metadata and Actions */}
                 <div className="flex justify-between items-center">
                   <div className="text-sm text-gray-500 dark:text-neutral-500">
-                    Created: {new Date(content.createdAt).toLocaleString()}
+                    Created: {new Date(card.createdAt).toLocaleString()}
                   </div>
                   <div className="space-x-2">
                     <button 
-                      onClick={() => handleContentDelete(content.id)}
+                      onClick={() => handleContentDelete(card.id)}
                       className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                     >
                       Delete

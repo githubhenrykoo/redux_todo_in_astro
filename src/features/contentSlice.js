@@ -4,7 +4,7 @@ import { createSlice, createSelector } from '@reduxjs/toolkit';
 const generateId = () => `content_${Math.random().toString(36).substr(2, 9)}`;
 
 // Utility function to create content with relationships
-const createContentItem = (content, relationships = {}) => ({
+const createContentCard = (content, relationships = {}) => ({
   id: generateId(),
   content,
   createdAt: new Date().toISOString(),
@@ -18,7 +18,7 @@ const createContentItem = (content, relationships = {}) => ({
 });
 
 const initialState = {
-  items: {},
+  cards: {},
   selectedId: null,
   search: {
     query: '',
@@ -35,11 +35,11 @@ export const contentSlice = createSlice({
     addContent: {
       reducer: (state, action) => {
         const { id, content, relationships } = action.payload;
-        state.items[id] = createContentItem(content, relationships);
+        state.cards[id] = createContentCard(content, relationships);
         
         // Update parent and related content relationships
         if (relationships?.parentId) {
-          const parentContent = state.items[relationships.parentId];
+          const parentContent = state.cards[relationships.parentId];
           if (parentContent) {
             parentContent.relationships.childIds.push(id);
           }
@@ -57,17 +57,17 @@ export const contentSlice = createSlice({
     // Delete content and clean up relationships
     deleteContent: (state, action) => {
       const contentId = action.payload;
-      const contentToDelete = state.items[contentId];
+      const contentToDelete = state.cards[contentId];
 
       if (contentToDelete) {
         // Remove child references
         contentToDelete.relationships.childIds.forEach(childId => {
-          delete state.items[childId];
+          delete state.cards[childId];
         });
 
         // Clean up parent relationships
         if (contentToDelete.relationships.parentId) {
-          const parentContent = state.items[contentToDelete.relationships.parentId];
+          const parentContent = state.cards[contentToDelete.relationships.parentId];
           if (parentContent) {
             parentContent.relationships.childIds = 
               parentContent.relationships.childIds.filter(id => id !== contentId);
@@ -75,7 +75,7 @@ export const contentSlice = createSlice({
         }
 
         // Remove the content itself
-        delete state.items[contentId];
+        delete state.cards[contentId];
       }
 
       // Reset selection if deleted content was selected
@@ -95,20 +95,20 @@ export const contentSlice = createSlice({
       state.search.query = query;
 
       // Advanced search across content
-      state.search.results = Object.values(state.items)
-        .filter(item => 
-          item.content.toLowerCase().includes(query) || 
-          JSON.stringify(item.metadata).toLowerCase().includes(query)
+      state.search.results = Object.values(state.cards)
+        .filter(card => 
+          card.content.toLowerCase().includes(query) || 
+          JSON.stringify(card.metadata).toLowerCase().includes(query)
         )
-        .map(item => item.id);
+        .map(card => card.id);
     },
 
     // Update content metadata
     updateContentMetadata: (state, action) => {
       const { id, metadata } = action.payload;
-      if (state.items[id]) {
-        state.items[id].metadata = {
-          ...state.items[id].metadata,
+      if (state.cards[id]) {
+        state.cards[id].metadata = {
+          ...state.cards[id].metadata,
           ...metadata
         };
       }
@@ -117,9 +117,9 @@ export const contentSlice = createSlice({
     // Update content relationships
     updateContentRelationships: (state, action) => {
       const { id, relationships } = action.payload;
-      if (state.items[id]) {
-        state.items[id].relationships = {
-          ...state.items[id].relationships,
+      if (state.cards[id]) {
+        state.cards[id].relationships = {
+          ...state.cards[id].relationships,
           ...relationships
         };
       }
@@ -131,9 +131,9 @@ export const contentSlice = createSlice({
 export const selectContentState = createSelector(
   state => state.content,
   content => ({
-    items: content.items,
-    selectedItem: content.selectedId ? content.items[content.selectedId] : null,
-    searchResults: content.search.results.map(id => content.items[id])
+    cards: content.cards,
+    selectedCard: content.selectedId ? content.cards[content.selectedId] : null,
+    searchResults: content.search.results.map(id => content.cards[id])
   })
 );
 

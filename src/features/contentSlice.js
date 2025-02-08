@@ -1,25 +1,25 @@
 import { createSlice, createSelector } from '@reduxjs/toolkit';
 
-// Simple ID generation function
-const generateId = () => `content_${Math.random().toString(36).substr(2, 9)}`;
+// Simple hash generation function
+const generateHash = () => `content_${Math.random().toString(36).substr(2, 9)}`;
 
 // Utility function to create content with relationships
-const createContentItem = (content, relationships = {}) => ({
-  id: generateId(),
+const createContentCard = (content, relationships = {}) => ({
+  hash: generateHash(),
   content,
   createdAt: new Date().toISOString(),
   metadata: {},
   relationships: {
-    parentId: null,
-    childIds: [],
-    relatedIds: [],
+    parentHash: null,
+    childHashes: [],
+    relatedHashes: [],
     ...relationships
   }
 });
 
 const initialState = {
-  items: {},
-  selectedId: null,
+  cards: {},
+  selectedHash: null,
   search: {
     query: '',
     results: [],
@@ -34,20 +34,20 @@ export const contentSlice = createSlice({
     // Add new content with flexible relationships
     addContent: {
       reducer: (state, action) => {
-        const { id, content, relationships } = action.payload;
-        state.items[id] = createContentItem(content, relationships);
+        const { hash, content, relationships } = action.payload;
+        state.cards[hash] = createContentCard(content, relationships);
         
         // Update parent and related content relationships
-        if (relationships?.parentId) {
-          const parentContent = state.items[relationships.parentId];
+        if (relationships?.parentHash) {
+          const parentContent = state.cards[relationships.parentHash];
           if (parentContent) {
-            parentContent.relationships.childIds.push(id);
+            parentContent.relationships.childHashes.push(hash);
           }
         }
       },
       prepare: (content, relationships = {}) => ({
         payload: {
-          id: generateId(),
+          hash: generateHash(),
           content,
           relationships
         }
@@ -56,37 +56,37 @@ export const contentSlice = createSlice({
 
     // Delete content and clean up relationships
     deleteContent: (state, action) => {
-      const contentId = action.payload;
-      const contentToDelete = state.items[contentId];
+      const contentHash = action.payload;
+      const contentToDelete = state.cards[contentHash];
 
       if (contentToDelete) {
         // Remove child references
-        contentToDelete.relationships.childIds.forEach(childId => {
-          delete state.items[childId];
+        contentToDelete.relationships.childHashes.forEach(childHash => {
+          delete state.cards[childHash];
         });
 
         // Clean up parent relationships
-        if (contentToDelete.relationships.parentId) {
-          const parentContent = state.items[contentToDelete.relationships.parentId];
+        if (contentToDelete.relationships.parentHash) {
+          const parentContent = state.cards[contentToDelete.relationships.parentHash];
           if (parentContent) {
-            parentContent.relationships.childIds = 
-              parentContent.relationships.childIds.filter(id => id !== contentId);
+            parentContent.relationships.childHashes = 
+              parentContent.relationships.childHashes.filter(hash => hash !== contentHash);
           }
         }
 
         // Remove the content itself
-        delete state.items[contentId];
+        delete state.cards[contentHash];
       }
 
       // Reset selection if deleted content was selected
-      if (state.selectedId === contentId) {
-        state.selectedId = null;
+      if (state.selectedHash === contentHash) {
+        state.selectedHash = null;
       }
     },
 
     // Select a specific content item
     selectContent: (state, action) => {
-      state.selectedId = action.payload;
+      state.selectedHash = action.payload;
     },
 
     // Update search functionality
@@ -95,20 +95,20 @@ export const contentSlice = createSlice({
       state.search.query = query;
 
       // Advanced search across content
-      state.search.results = Object.values(state.items)
-        .filter(item => 
-          item.content.toLowerCase().includes(query) || 
-          JSON.stringify(item.metadata).toLowerCase().includes(query)
+      state.search.results = Object.values(state.cards)
+        .filter(card => 
+          card.content.toLowerCase().includes(query) || 
+          JSON.stringify(card.metadata).toLowerCase().includes(query)
         )
-        .map(item => item.id);
+        .map(card => card.hash);
     },
 
     // Update content metadata
     updateContentMetadata: (state, action) => {
-      const { id, metadata } = action.payload;
-      if (state.items[id]) {
-        state.items[id].metadata = {
-          ...state.items[id].metadata,
+      const { hash, metadata } = action.payload;
+      if (state.cards[hash]) {
+        state.cards[hash].metadata = {
+          ...state.cards[hash].metadata,
           ...metadata
         };
       }
@@ -116,10 +116,10 @@ export const contentSlice = createSlice({
 
     // Update content relationships
     updateContentRelationships: (state, action) => {
-      const { id, relationships } = action.payload;
-      if (state.items[id]) {
-        state.items[id].relationships = {
-          ...state.items[id].relationships,
+      const { hash, relationships } = action.payload;
+      if (state.cards[hash]) {
+        state.cards[hash].relationships = {
+          ...state.cards[hash].relationships,
           ...relationships
         };
       }
@@ -131,9 +131,9 @@ export const contentSlice = createSlice({
 export const selectContentState = createSelector(
   state => state.content,
   content => ({
-    items: content.items,
-    selectedItem: content.selectedId ? content.items[content.selectedId] : null,
-    searchResults: content.search.results.map(id => content.items[id])
+    cards: content.cards,
+    selectedCard: content.selectedHash ? content.cards[content.selectedHash] : null,
+    searchResults: content.search.results.map(hash => content.cards[hash])
   })
 );
 

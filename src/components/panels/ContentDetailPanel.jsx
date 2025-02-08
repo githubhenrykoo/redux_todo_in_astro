@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   addContent, 
-  selectContent, 
   deleteContent 
 } from '../../features/contentSlice.js';
 import ContentEditor from '../ui/ContentEditor';
@@ -13,10 +12,29 @@ export default function ContentDetailPanel() {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   
-  const selectedContentItem = useSelector(state => 
-    state.content.selectedId ? state.content.items[state.content.selectedId] : null
-  );
   const dispatch = useDispatch();
+  const { selectedHash, selectedContentItem } = useSelector(state => {
+    const hash = state.content.selectedHash;
+    const cards = state.content.cards;
+    
+    // Find the card by iterating through cards
+    const card = Object.values(cards).find(c => c.hash === hash);
+    
+    return {
+      selectedHash: hash,
+      selectedContentItem: card
+    };
+  });
+
+  // Effect to update content when a new card is selected
+  useEffect(() => {
+    if (selectedContentItem) {
+      setEditContent(selectedContentItem.content);
+      setIsEditing(false);
+    } else {
+      setEditContent('');
+    }
+  }, [selectedContentItem]);
 
   const handleContentChange = (newContent) => {
     setEditContent(newContent);
@@ -24,8 +42,6 @@ export default function ContentDetailPanel() {
 
   const handleSubmit = () => {
     if (editContent.trim()) {
-      // Dispatch action to content slice
-      const newContentId = Date.now(); // Simple ID generation
       dispatch(addContent(editContent));
       
       setEditContent('');
@@ -39,13 +55,16 @@ export default function ContentDetailPanel() {
   };
 
   const handleCancel = () => {
+    // Revert to original content if editing
+    if (selectedContentItem) {
+      setEditContent(selectedContentItem.content);
+    }
     setIsEditing(false);
-    setEditContent('');
   };
 
   const handleDelete = () => {
-    if (selectedContentItem) {
-      dispatch(deleteContent(selectedContentItem.id));
+    if (selectedContentItem?.hash) {
+      dispatch(deleteContent(selectedContentItem.hash));
     }
   };
 
@@ -63,21 +82,27 @@ export default function ContentDetailPanel() {
         </h2>
         <div className="flex gap-2">
           {!isEditing && (
+            <button
+              onClick={handleNewClick}
+              className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
+              Push New Content
+            </button>
+          )}
+          {selectedContentItem && !isEditing && (
             <>
               <button
-                onClick={handleNewClick}
-                className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                onClick={() => setIsEditing(true)}
+                className="px-4 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
               >
-                Push New Content
+                Edit
               </button>
-              {selectedContentItem && (
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                >
-                  Delete
-                </button>
-              )}
+              <button
+                onClick={handleDelete}
+                className="px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
             </>
           )}
           {isEditing && (

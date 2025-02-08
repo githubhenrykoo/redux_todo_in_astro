@@ -32,6 +32,21 @@ export default function ResizablePanel({ useDefaultContent = true }: ResizablePa
     </div>
   );
 
+  // Default right panel content
+  const RightPanel = () => (
+    <div style={{
+      padding: '1rem',
+      backgroundColor: '#f5f5f5',
+      height: '100%',
+      border: '1px solid #ddd'
+    }}>
+      <h2 style={{ margin: '0 0 1rem 0', color: '#333' }}>Right Panel</h2>
+      <p style={{ margin: '0.5rem 0', color: '#666' }}>
+        This panel has a fixed width of 200px
+      </p>
+    </div>
+  );
+
   return (
     <div className="panel-container">
       <PanelGroup direction="horizontal" onLayout={onLayout}>
@@ -43,6 +58,12 @@ export default function ResizablePanel({ useDefaultContent = true }: ResizablePa
         
         <Panel>
           {useDefaultContent ? <MainPanel /> : <div className="panel main-panel" />}
+        </Panel>
+
+        <PanelResizeHandle className="resize-handle" />
+
+        <Panel defaultSize={20} minSize={15} maxSize={40}>
+          {useDefaultContent ? <RightPanel /> : <div className="panel right-panel" />}
         </Panel>
       </PanelGroup>
     </div>

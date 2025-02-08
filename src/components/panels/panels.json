@@ -13,5 +13,8 @@
   },
   "ACTION_LOG": {
     "component": "../components/panels/ActionLogPanelReact.jsx"
+  },
+  "DemoMainPanel": {
+    "component": "../components/panels/DemoMainPanel.ts"
   }
 }

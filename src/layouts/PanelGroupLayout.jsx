@@ -8,7 +8,10 @@ const PanelContent = () => {
   if (!panels) return <div>Loading panels...</div>;
 
   const renderPanel = (config) => {
-    const Component = React.lazy(() => import(`../components/panels/${config.type}.jsx`));
+    const Component = React.lazy(() => 
+      import(`../components/panels/${config.type}.jsx`)
+        .catch(() => import(`../components/panels/${config.type}.tsx`))
+    );
     return (
       <Suspense fallback={<div>Loading panel...</div>}>
         <Component />

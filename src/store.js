@@ -7,8 +7,6 @@ import userReducer from './features/userSlice';
 
 // Feature Reducers
 import contentReducer from './features/contentSlice';
-import llmReducer from './features/llmSlice';
-import actionHistoryReducer from './features/ActionHistorySlice';
 import panellayoutReducer from './features/panellayoutSlice';
 import activePanelReducer from './features/activePanelSlice';
 
@@ -25,8 +23,6 @@ const store = configureStore({
     
     // Feature States
     content: contentReducer,
-    llm: llmReducer,
-    history: actionHistoryReducer,
     
     // UI States
     panellayout: panellayoutReducer,
@@ -47,7 +43,6 @@ const store = configureStore({
           'content/selectContent',
           
           // New actions to ignore
-          'llm/generateContent',
           'network/checkTRPCConnection',
           'storage/calculateStorageUsage'
         ],

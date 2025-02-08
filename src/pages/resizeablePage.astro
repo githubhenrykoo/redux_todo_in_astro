@@ -1,21 +1,23 @@
 ---
 import ResizablePanel from '../components/ResizablePanel';
+import ResizablePanelLayout from '../layouts/ResizablePanelLayout.astro';
+
+
 ---
 
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Resizable Panels Demo</title>
-    <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body { height: 100vh; width: 100vw; overflow: hidden; }
-      .container { height: 100vh; width: 100vw; }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <ResizablePanel client:only="react" useDefaultContent={true} />
-    </div>
-  </body>
-</html>
+<ResizablePanelLayout>
+  <Fragment slot="title">Custom Panel Demo</Fragment>
+  
+  <!-- Example 1: Using default content -->
+  <ResizablePanel client:only="react" useDefaultContent={true} />
+
+  <!-- Example 2: Using custom content -->
+  <!--
+  <ResizablePanel 
+    client:only="react"
+    useDefaultContent={false}
+    leftPanel={leftPanelContent}
+    mainPanel={mainPanelContent}
+  />
+  -->
+</ResizablePanelLayout>

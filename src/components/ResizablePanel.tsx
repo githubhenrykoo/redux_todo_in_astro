@@ -4,9 +4,15 @@ import './ResizablePanel.css';
 
 interface ResizablePanelProps {
   useDefaultContent?: boolean;
+  leftPanel?: React.ReactNode;
+  mainPanel?: React.ReactNode;
 }
 
-export default function ResizablePanel({ useDefaultContent = true }: ResizablePanelProps) {
+export default function ResizablePanel({ 
+  useDefaultContent = true,
+  leftPanel,
+  mainPanel 
+}: ResizablePanelProps) {
   const onLayout = (sizes: number[]) => {
     console.log('Layout changed:', sizes);
   };
@@ -51,13 +57,25 @@ export default function ResizablePanel({ useDefaultContent = true }: ResizablePa
     <div className="panel-container">
       <PanelGroup direction="horizontal" onLayout={onLayout}>
         <Panel defaultSize={20} minSize={15} maxSize={40}>
-          {useDefaultContent ? <LeftPanel /> : <div className="panel left-panel" />}
+          {useDefaultContent ? (
+            <LeftPanel />
+          ) : leftPanel ? (
+            <div className="panel left-panel">{leftPanel}</div>
+          ) : (
+            <div className="panel left-panel" />
+          )}
         </Panel>
         
         <PanelResizeHandle className="resize-handle" />
         
         <Panel>
-          {useDefaultContent ? <MainPanel /> : <div className="panel main-panel" />}
+          {useDefaultContent ? (
+            <MainPanel />
+          ) : mainPanel ? (
+            <div className="panel main-panel">{mainPanel}</div>
+          ) : (
+            <div className="panel main-panel" />
+          )}
         </Panel>
 
         <PanelResizeHandle className="resize-handle" />

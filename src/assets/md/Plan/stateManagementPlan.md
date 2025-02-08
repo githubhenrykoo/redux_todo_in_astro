@@ -26,8 +26,8 @@ interface RootState {
   };
   pwa: PWAState;
   network: {
-    libp2p: LibP2PState;
-    web3: Web3State; // Optional additional protocols
+    trpc: TRPCState;
+    libp2p: LibP2PState; // Optional additional protocols
   };
   storage: StorageState; // New storage section
 }
@@ -560,8 +560,8 @@ interface RootState {
   user: UserState;
   storage: StorageState;
   network: {
-    pwa: PWAState;
-    libp2p: LibP2PState;
+    trpc: TRPCState;
+    libp2p: LibP2PState; // Optional additional protocols
   };
 }
 
@@ -590,7 +590,112 @@ const store = configureStore({
 
 ## 10. Network State Management
 
-### 10.1 PWA State (pwaSlice)
+### 10.1 tRPC Integration
+```typescript
+// tRPC Router Types
+interface RouterTypes {
+  mutation: {
+    createCard: {
+      input: { content: string; metadata?: Record<string, unknown> };
+      output: { hash: string; g_time: string };
+    };
+    updateCard: {
+      input: { hash: string; content: string };
+      output: { success: boolean };
+    };
+    deleteCard: {
+      input: { hash: string };
+      output: { success: boolean };
+    };
+  };
+  query: {
+    getCard: {
+      input: { hash: string };
+      output: MCardState;
+    };
+    searchCards: {
+      input: { query: string; limit?: number };
+      output: Array<{ hash: string; preview: string }>;
+    };
+    syncState: {
+      input: { lastSync: string };
+      output: Array<{ hash: string; operation: 'create' | 'update' | 'delete' }>;
+    };
+  };
+  subscription: {
+    cardUpdates: {
+      input: void;
+      output: { hash: string; type: 'create' | 'update' | 'delete' };
+    };
+  };
+}
+
+// Network State
+interface NetworkState {
+  connection: {
+    status: 'connected' | 'disconnected' | 'connecting';
+    lastSync: string;
+    error?: string;
+  };
+  requests: {
+    pending: Array<{
+      id: string;
+      type: keyof RouterTypes['mutation' | 'query'];
+      payload: unknown;
+      timestamp: number;
+    }>;
+    retryCount: Record<string, number>;
+  };
+  sync: {
+    queue: Array<{
+      hash: string;
+      operation: 'create' | 'update' | 'delete';
+      data: MCardState;
+      timestamp: number;
+    }>;
+    lastSuccessful: string;
+  };
+}
+
+// Network Actions
+type NetworkActions = 
+  | { 
+      type: 'network/connect';
+      payload?: { endpoint?: string };
+    }
+  | { 
+      type: 'network/disconnect' 
+    }
+  | { 
+      type: 'network/syncStart';
+      payload: { lastSync: string };
+    }
+  | { 
+      type: 'network/syncComplete';
+      payload: { timestamp: string };
+    }
+  | { 
+      type: 'network/queueOperation';
+      payload: {
+        operation: 'create' | 'update' | 'delete';
+        data: MCardState;
+      };
+    };
+
+// tRPC Client Configuration
+interface TRPCConfig {
+  endpoint: string;
+  headers?: Record<string, string>;
+  timeout: number;
+  retryConfig: {
+    maxAttempts: number;
+    initialDelay: number;
+    maxDelay: number;
+  };
+}
+```
+
+### 10.2 PWA State
 ```typescript
 interface PWAState {
   installation: {
@@ -606,167 +711,137 @@ interface PWAState {
     registration?: ServiceWorkerRegistration;
     version?: string;
   };
+  sync: {
+    pending: Array<{
+      id: string;
+      operation: string;
+      data: unknown;
+      timestamp: number;
+    }>;
+    lastSync: number;
+  };
 }
 
 type PWAActions = 
   | { type: 'pwa/checkInstallStatus' }
   | { type: 'pwa/triggerInstall' }
   | { type: 'pwa/updateConnectivity'; payload: 'online' | 'offline' }
-  | { type: 'pwa/registerServiceWorker'; payload?: ServiceWorkerRegistration };
+  | { type: 'pwa/registerServiceWorker'; payload?: ServiceWorkerRegistration }
+  | { type: 'pwa/queueSync'; payload: { operation: string; data: unknown } };
 ```
 
-### 10.2 libP2P Network State (networkSlice)
+### 10.3 Optional P2P Support
 ```typescript
-interface LibP2PState {
-  peer: {
-    id?: string;
+// Optional libP2P integration for direct peer communication
+interface P2PState {
+  enabled: boolean;
+  peer?: {
+    id: string;
     addresses: string[];
     protocols: string[];
   };
-  connection: {
-    status: 'disconnected' | 'connecting' | 'connected';
-    quality: number;
-  };
-  pubsub: {
-    activeTopics: string[];
-    messageCount: number;
+  peers: Array<{
+    id: string;
+    status: 'available' | 'connected';
+    lastSeen: number;
+  }>;
+  discovery: {
+    status: 'inactive' | 'searching' | 'found';
+    foundPeers: number;
   };
 }
 
-type NetworkActions = 
-  | { type: 'network/connect' }
-  | { type: 'network/disconnect' }
-  | { type: 'network/joinTopic'; payload: string }
-  | { type: 'network/publishMessage'; payload: { topic: string; message: any } };
+type P2PActions = 
+  | { type: 'p2p/enable' }
+  | { type: 'p2p/disable' }
+  | { type: 'p2p/connect'; payload: { peerId: string } }
+  | { type: 'p2p/disconnect'; payload: { peerId: string } };
 ```
 
-### 10.3 Network Middleware Integration
+### 10.4 Network Middleware Integration
 ```typescript
-// PWA Middleware
-const pwaMiddleware: Middleware = store => next => async action => {
-  if (action.type === 'network/pwaInstall') {
-    const { deferredPrompt } = store.getState().pwa.installation;
-    deferredPrompt?.prompt();
-  }
-  
-  if (action.type === 'network/offlineCache') {
-    caches.open('v1').then(cache => cache.addAll(action.payload));
-  }
-  
-  return next(action);
-};
+// tRPC Client Middleware
+const trpcMiddleware: Middleware = store => {
+  const client = createTRPCClient<RouterTypes>({
+    url: store.getState().config.trpc.endpoint,
+  });
 
-// libP2P Middleware
-const libp2pMiddleware: Middleware = store => {
-  let node: LibP2P | null = null;
-  
   return next => async action => {
-    switch (action.type) {
-      case 'network/startLibp2p':
-        node = await createLibP2PNode(store.getState().config.integration.libp2p);
-        node.addEventListener('peer:connect', (evt) => {
-          store.dispatch({ type: 'network/peerConnected', payload: evt.detail });
+    if (action.type === 'network/syncStart') {
+      try {
+        const updates = await client.query('syncState', {
+          lastSync: action.payload.lastSync,
         });
-        break;
-        
-      case 'network/publishMessage':
-        await node?.pubsub.publish(action.topic, action.message);
-        break;
+        store.dispatch({ 
+          type: 'network/syncComplete',
+          payload: { timestamp: new Date().toISOString() }
+        });
+      } catch (error) {
+        store.dispatch({ 
+          type: 'network/error',
+          payload: error.message
+        });
+      }
     }
     return next(action);
   };
 };
-```
 
-### 10.4 State Integration
-```typescript
-// Updated Root State
-interface RootState {
-  // ... existing slices
-  pwa: PWAState;
-  network: {
-    libp2p: LibP2PState;
-    web3: Web3State; // Optional additional protocols
-  };
-}
-
-// Network Actions Example
-type NetworkActions = 
-  | { type: 'network/pwaInstall' }
-  | { type: 'network/offlineCache'; payload: string[] }
-  | { type: 'network/startLibp2p'; config: LibP2PConfig }
-  | { type: 'network/publishMessage'; topic: string; message: any }
-  | { type: 'network/peerConnected'; payload: PeerInfo };
-
-// Enhanced Store Configuration
-const store = configureStore({
-  reducer: {
-    // ... other reducers
-    storage: storageReducer,
-  },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware()
-      .concat(pwaMiddleware)
-      .concat(libp2pMiddleware)
-      .concat(offlineQueueMiddleware),
-});
-
-// PWA Service Worker Registration
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').then(reg => {
-    // Cache essential MCards
-    registration.active?.postMessage({
-      type: 'CACHE_CARDS',
-      payload: store.getState().storage.cache.recentCards
-    });
-  });
-}
-
-// IndexedDB Schema (based on MCard)
-const DB_SCHEMA = {
-  cards: 'hash,content,g_time,content_type',
-  pendingChanges: 'hash,type,card,timestamp'
-};
-
-// Background Sync
-async function syncPendingChanges() {
-  const changes = await indexedDBAdapter.getPendingChanges();
-  for (const change of changes) {
-    try {
-      await tursoAdapter.save(change.card.hash, change.card);
-      await indexedDBAdapter.remove(change.card.hash);
-    } catch (error) {
-      console.error('Sync failed for card:', change.card.hash);
-    }
-  }
-}
-```
-
-### 10.5 Decentralized State Synchronization
-```typescript
-interface CRDTState {
-  documents: Record<string, {
-    type: 'counter' | 'register' | 'map';
-    value: any;
-    peers: string[];
-    mergeStrategy: 'last-write-wins' | 'multi-value';
-  }>;
-  conflictResolution: {
-    autoMerge: boolean;
-    manualOverrides: Record<string, any>;
-  };
-}
-
-// libP2P CRDT Middleware
-const crdtMiddleware = store => next => async action => {
-  if (action.type === 'network/crdtUpdate') {
-    const { docId, update } = action.payload;
-    const current = store.getState().crdt.documents[docId];
-    const merged = mergeCRDT(current.value, update);
-    store.dispatch({ type: 'crdt/update', payload: { docId, value: merged } });
+// Background Sync Middleware
+const syncMiddleware: Middleware = store => next => action => {
+  if (action.type === 'network/online') {
+    store.dispatch(syncPendingChanges());
   }
   return next(action);
 };
+```
+
+### 10.5 Network Integration Example
+```typescript
+// Store Configuration
+const store = configureStore({
+  reducer: {
+    network: networkReducer,
+    pwa: pwaReducer,
+    p2p: p2pReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware()
+      .concat(trpcMiddleware)
+      .concat(syncMiddleware)
+      .concat(p2pMiddleware),
+});
+
+// Usage Example
+async function syncWithServer() {
+  const lastSync = store.getState().network.sync.lastSuccessful;
+  
+  await store.dispatch({
+    type: 'network/syncStart',
+    payload: { lastSync }
+  });
+
+  // Handle offline case
+  if (!navigator.onLine) {
+    store.dispatch({
+      type: 'pwa/queueSync',
+      payload: {
+        operation: 'sync',
+        data: { lastSync }
+      }
+    });
+  }
+}
+
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(registration => {
+    store.dispatch({
+      type: 'pwa/registerServiceWorker',
+      payload: registration
+    });
+  });
+}
 ```
 
 ## 11. Persistent Storage Integration
@@ -1010,3 +1085,213 @@ const crdtMiddleware = store => next => async action => {
   return next(action);
 };
 ```
+
+## 12. Architectural Rationale
+
+### 12.1 Progressive Knowledge Container Architecture
+
+The state management architecture is designed to support Progressive Knowledge Container (PKC) development with the following key principles:
+
+#### 12.1.1 Type-Safe Knowledge Representation
+```typescript
+// Core Knowledge Unit Type
+interface KnowledgeUnit {
+  hash: string;           // Unique identifier
+  content: Buffer;        // Raw content
+  metadata: {
+    type: 'text' | 'code' | 'image' | 'reference';
+    tags: string[];
+    relations: Array<{
+      type: 'references' | 'extends' | 'implements' | 'contradicts';
+      targetHash: string;
+    }>;
+    version: string;
+    timestamp: string;
+  };
+  verification: {
+    signature?: string;
+    proof?: string;
+    trust: number;
+  };
+}
+
+// Knowledge Graph Type
+interface KnowledgeGraph {
+  nodes: Record<string, KnowledgeUnit>;
+  edges: Array<{
+    source: string;
+    target: string;
+    type: string;
+    weight: number;
+  }>;
+  clusters: Array<{
+    id: string;
+    nodes: string[];
+    centroid: string;
+  }>;
+}
+```
+
+#### 12.1.2 Progressive Enhancement Strategy
+1. **Base Layer**: Core MCard functionality
+   - Hash-based content addressing
+   - CRDT-based conflict resolution
+   - Offline-first capabilities
+   - Type-safe data structures
+
+2. **Network Layer**: tRPC-based API
+   - Type-safe remote procedure calls
+   - Real-time subscriptions
+   - Automatic code generation
+   - Protocol-agnostic transport
+
+3. **Knowledge Layer**: Semantic operations
+   - Content type inference
+   - Relationship mapping
+   - Verification mechanisms
+   - Trust computation
+
+4. **Extension Layer**: Plugin system
+   - Custom content types
+   - Protocol adapters (e.g., libP2P)
+   - Storage backends
+   - UI components
+
+### 12.2 Reusability Benefits
+
+#### 12.2.1 Modular State Design
+```typescript
+// Pluggable State Module Type
+interface StateModule<T> {
+  name: string;
+  reducer: Reducer<T>;
+  middleware: Middleware[];
+  selectors: Record<string, Selector>;
+  actions: Record<string, ActionCreator>;
+}
+
+// Module Registration
+interface ModuleRegistry {
+  register: <T>(module: StateModule<T>) => void;
+  unregister: (name: string) => void;
+  getModule: (name: string) => StateModule<any>;
+}
+```
+
+#### 12.2.2 Protocol Independence
+- tRPC provides type-safe API layer
+- Transport agnostic (HTTP, WebSocket, etc.)
+- Optional P2P support via libP2P
+- Custom protocol adapters possible
+
+#### 12.2.3 Storage Flexibility
+```typescript
+// Storage Adapter Interface
+interface StorageAdapter<T> {
+  save: (key: string, value: T) => Promise<void>;
+  load: (key: string) => Promise<T | null>;
+  query: (filter: QueryFilter) => Promise<T[]>;
+  watch: (pattern: string) => Observable<StorageEvent<T>>;
+}
+
+// Query Interface
+interface QueryFilter {
+  type?: string[];
+  tags?: string[];
+  dateRange?: [Date, Date];
+  fullText?: string;
+  relations?: {
+    type: string;
+    target: string;
+  }[];
+}
+```
+
+### 12.3 Long-term Benefits
+
+#### 12.3.1 Knowledge Evolution
+1. **Progressive Refinement**
+   - Start with simple content types
+   - Add semantic relationships
+   - Evolve to complex knowledge structures
+   - Maintain backward compatibility
+
+2. **Extensible Verification**
+   - Content verification
+   - Authorship proof
+   - Trust networks
+   - Reputation systems
+
+#### 12.3.2 Scale Considerations
+```typescript
+// Scaling Strategy
+interface ScalingConfig {
+  sharding: {
+    strategy: 'content' | 'geographic' | 'temporal';
+    maxNodesPerShard: number;
+  };
+  caching: {
+    strategy: 'lru' | 'frequency' | 'semantic';
+    maxSize: number;
+    ttl: number;
+  };
+  sync: {
+    strategy: 'eager' | 'lazy' | 'selective';
+    priority: 'speed' | 'consistency' | 'bandwidth';
+  };
+}
+```
+
+#### 12.3.3 Future Adaptability
+1. **Protocol Evolution**
+   - Start with tRPC for type safety
+   - Add P2P capabilities as needed
+   - Support for new protocols
+   - Migration paths
+
+2. **Knowledge Representation**
+   - Basic content types
+   - Rich semantic relationships
+   - AI-ready structures
+   - Interoperability standards
+
+### 12.4 Implementation Strategy
+
+#### 12.4.1 Phased Development
+1. **Phase 1: Core Infrastructure**
+   - MCard implementation
+   - tRPC API layer
+   - Basic storage
+   - PWA capabilities
+
+2. **Phase 2: Knowledge Enhancement**
+   - Semantic relationships
+   - Content type system
+   - Search capabilities
+   - Verification system
+
+3. **Phase 3: Advanced Features**
+   - P2P networking
+   - AI integration
+   - Plugin system
+   - Federation support
+
+#### 12.4.2 Migration Path
+```typescript
+// Version Migration
+interface MigrationStep {
+  version: string;
+  up: (state: any) => Promise<any>;
+  down: (state: any) => Promise<any>;
+  validation: (state: any) => boolean;
+}
+
+// Migration Manager
+interface MigrationManager {
+  addMigration: (step: MigrationStep) => void;
+  migrate: (targetVersion: string) => Promise<void>;
+  validateState: () => Promise<boolean>;
+}
+```
+
+This architecture provides a solid foundation for building a Progressive Knowledge Container system that can evolve over time while maintaining type safety, extensibility, and performance. The modular design allows for gradual enhancement of capabilities while the type-safe nature of tRPC ensures reliable API interactions.

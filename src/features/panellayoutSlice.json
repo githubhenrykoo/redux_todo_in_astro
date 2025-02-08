@@ -21,7 +21,7 @@
     },
     "todo_layout": {
         "left": {
-            "type": "SearchAndContent",
+            "type": "SearchAndTodos",
             "size": 30,
             "minSize": 20,
             "visible": true

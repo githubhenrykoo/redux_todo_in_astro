@@ -55,7 +55,7 @@
    - Set up content mapping
    - Add panel configuration options
 
-2. Create DynamicPanel.tsx
+2. DynamicPanel.tsx
    - Make reusable panel component
    - Add resize functionality
    - Handle content rendering
@@ -90,20 +90,10 @@ const leftWidth = useSelector((state) => state.panels.leftWidth);
 ```
 
 ### Panel Resizing
-- Use CSS Grid for layout
-- Implement smooth transitions
 - Add resize handles between panels
 - Use Redux for state management
 
 ## 4. Component Communication
 1. Redux Store: Central state management
 2. Astro Slots: Content injection
-3. React Components: Interactive elements
-4. TypeScript: Type safety
 
-## 5. Next Steps
-1. Implement Redux store 
-2. Update PanelSystem with Redux
-3. Modify ResizablePanelLayout
-4. Create panel registry
-5. Add dynamic panels

@@ -1,19 +1,19 @@
 {
     "generate_layout": {
         "left": {
-            "type": "SearchANDPrompts",
+            "type": "SearchAndTodos",
             "size": 30,
             "minSize": 20,
             "visible": true
         },
         "middle": {
-            "type": "ItemDetailPanel", 
+            "type": "GeneratePanel", 
             "size": 40,
             "minSize": 20,
             "visible": true
         },
         "right": {
-            "type": "GeneratePanel",
+            "type": "DemoMainPanel",
             "size": 30,
             "minSize": 20,
             "visible": true

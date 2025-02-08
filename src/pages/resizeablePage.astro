@@ -1,0 +1,23 @@
+---
+import ResizablePanel from '../components/ResizablePanel';
+import ResizablePanelLayout from '../layouts/ResizablePanelLayout.astro';
+
+
+---
+
+<ResizablePanelLayout>
+  <Fragment slot="title">Custom Panel Demo</Fragment>
+  
+  <!-- Example 1: Using default content -->
+  <ResizablePanel client:only="react" useDefaultContent={true} />
+
+  <!-- Example 2: Using custom content -->
+  <!--
+  <ResizablePanel 
+    client:only="react"
+    useDefaultContent={false}
+    leftPanel={leftPanelContent}
+    mainPanel={mainPanelContent}
+  />
+  -->
+</ResizablePanelLayout>

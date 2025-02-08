@@ -1,0 +1,58 @@
+.panel-container {
+  height: 100%;
+  width: 100%;
+  background-color: white;
+}
+
+[data-panel-group] {
+  height: 100%;
+}
+
+[data-panel] {
+  height: 100%;
+}
+
+[data-panel-resizer] {
+  background-color: #e5e7eb;
+  width: 4px;
+  margin: 0 -2px;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+[data-panel-resizer]:hover,
+[data-panel-resizer][data-resize-handle-active] {
+  background-color: #60a5fa;
+}
+
+.panel {
+  height: 100%;
+  padding: 1rem;
+}
+
+.left-panel {
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+}
+
+.main-panel {
+  background-color: white;
+  border: 1px solid #ddd;
+}
+
+.content-box {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+}
+
+h2 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+p {
+  margin: 0.5rem 0;
+  color: #666;
+}

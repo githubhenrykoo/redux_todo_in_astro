@@ -1,0 +1,26 @@
+.panel-container {
+  height: 100%;
+  width: 100%;
+}
+
+[data-panel-group] {
+  height: 100%;
+}
+
+[data-panel] {
+  height: 100%;
+  overflow: hidden;
+}
+
+.resize-handle {
+  background-color: #e5e7eb;
+  width: 4px;
+  margin: 0 -2px;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+}
+
+.resize-handle:hover,
+.resize-handle[data-resize-handle-active] {
+  background-color: #60a5fa;
+}

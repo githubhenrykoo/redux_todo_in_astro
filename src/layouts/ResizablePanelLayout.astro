@@ -138,17 +138,22 @@ const { leftPanelWidth = '200px', rightPanelWidth = '200px' } = Astro.props;
       position: relative;
     }
 
-    .panel-layout {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: var(--panel-gap, 0.5rem);
-      height: 100%;
-      padding: var(--panel-padding, 1rem);
-      box-sizing: border-box;
-    }
+    <PanelController client:load>
+      <div class="panel-layout">
+        <slot />
+      </div>
+    </PanelController>
+
+    <style>
+      .panel-layout {
+        display: flex;
+        height: 100vh;
+        gap: var(--panel-gap);
+      }
+    </style>
 
     .left-panel {
-      min-width: 0;
+      min-width: 200px;
       overflow: auto;
       background: #f8f9fa;
       border: 1px solid #dee2e6;

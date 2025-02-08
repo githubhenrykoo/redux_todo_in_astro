@@ -1,0 +1,18 @@
+--- 
+// src/layouts/BaseLayout.astro 
+const { title } = Astro.props; 
+---  
+<html>   
+	<head>     
+		<title>{title}</title>   
+	</head>   
+	<body>     
+		<header>       
+			<h1>{title}</h1>     
+		</header>     
+		<main>       
+			<slot />     
+		</main>     
+		<footer>&copy; 2025 My Website</footer>   
+	</body> 
+</html>

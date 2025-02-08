@@ -1,5 +1,7 @@
 # Advanced Redux Integration with Astro Slots
 
+[Slots](./slot.md) are foundational to Astro's Islands Architecture, serving as the bridge between static HTML and interactive JavaScript components. In Astro, a slot is a template feature that enables component composition by defining specific insertion points where content can be dynamically injected. This is particularly crucial in the Islands Architecture, where we need to carefully manage the boundary between static and interactive content. Slots allow us to create isolated "islands" of interactivity (React components with Redux state) within a sea of static content, ensuring that JavaScript is only loaded for components that truly need it. By leveraging slots, we can maintain a clear separation between the static layout structure and dynamic React components, enabling efficient partial hydration and optimal performance.
+
 ## Architectural Principles
 
 1. **Isolated State Containers**: Each React Island manages its own Redux slice

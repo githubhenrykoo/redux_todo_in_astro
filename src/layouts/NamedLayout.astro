@@ -1,0 +1,16 @@
+--- 
+// src/layouts/NamedLayout.astro 
+---  
+<html>   
+	<body>     
+		<header>       
+			<slot name="header" />     
+		</header>     
+		<main>       
+			<slot />     
+		</main>     
+			<footer>       
+				<slot name="footer">Default Footer Content</slot>   
+			</footer>   
+	</body> 
+</html>

@@ -72,7 +72,7 @@ Key features:
 - Loading state management
 - Error boundary protection
 
-### 1.3 Layout System (ResizablePanelLayout2.astro)
+### 1.3 Layout System (flexableResizable.astro)
 ```typescript
 interface Props {
   leftPanelType?: string;

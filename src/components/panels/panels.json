@@ -16,5 +16,9 @@
   },
   "DemoMainPanel": {
     "component": "../components/panels/DemoMainPanel.ts"
+  },
+  "SearchAndContent": {
+    "component": "../components/panels/SearchAndContent.jsx"
   }
 }
+

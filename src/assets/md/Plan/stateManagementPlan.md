@@ -44,11 +44,7 @@ interface ThemeState {
 }
 
 type ThemeActions = 
-  | { type: 'TOGGLE_THEME' }                     // Switch between light and dark
   | { type: 'SET_THEME_MODE'; payload: 'light' | 'dark' }  // Explicitly set theme
-  | { type: 'theme/updateCustomizations'; payload: Partial<ThemeState['customizations']> }
-  | { type: 'theme/setAccessibility'; payload: { reducedMotion: boolean; highContrast: boolean } }
-  | { type: 'theme/syncWithSystem' };
 ```
 
 #### Action History
@@ -61,7 +57,6 @@ interface ActionHistoryState {
     metadata: {
       source: string;
       category: string;
-      priority: number;
     };
     timestamp: string;
   }>;
@@ -76,12 +71,8 @@ type ActionHistoryActions =
       metadata: {
         source: string;
         category: string;
-        priority: number;
       }
     }}                                           // Log a new action
-  | { type: 'history/undo' }
-  | { type: 'history/redo' }
-  | { type: 'history/clear' };
 ```
 
 #### Content Management
@@ -129,51 +120,73 @@ interface LLMState {
     messages: Array<{
       role: 'user' | 'system' | 'assistant';
       content: string;
-      metadata?: Record<string, unknown>;
+      timestamp: number;
     }>;
-    context: string[];
+    context: {
+      activeTopics: string[];
+      systemPrompt?: string;
+    };
   };
   generation: {
     status: 'idle' | 'generating' | 'error';
-    currentTask: string | null;
-    error: string | null;
+    currentTask?: string;
+    error?: string;
   };
-  models: {
-    available: string[];
-    selected: string;
-    parameters: Record<string, unknown>;
-    relevantDocs: string[];
+  modelConfig: {
+    selectedModel: string;
+    availableModels: string[];
+    defaultParameters: {
+      temperature: number;
+      maxTokens: number;
+      topP: number;
+    };
   };
 }
 
 type LLMActions = 
-  | { type: 'SEND_MESSAGE'; payload: {
-      content: string;
-      role: 'user' | 'system';
-      metadata?: {
+  | { 
+      type: 'llm/sendMessage'; 
+      payload: { 
+        content: string; 
+        role: 'user' | 'system';
+      }
+    }
+  | { 
+      type: 'llm/receiveMessage'; 
+      payload: { 
+        content: string; 
+        role: 'assistant';
+      }
+    }
+  | { 
+      type: 'llm/startGeneration'; 
+      payload: { 
+        task: string; 
         model?: string;
-        temperature?: number;
-        maxTokens?: number;
       }
-    }}                                           // Send a new message
-  | { type: 'RECEIVE_ASSISTANT_MESSAGE'; payload: {
-      content: string;
-      metadata?: {
-        model: string;
+    }
+  | { 
+      type: 'llm/generationComplete'; 
+      payload: { 
+        result: any; 
+        tokens?: number;
       }
-    }}                                           // Receive AI response
-  | { type: 'START_GENERATION'; payload: {
-      currentTask: string;
-      metadata?: Record<string, unknown>
-    }}                                           // Initiate generation process
-  | { type: 'GENERATION_SUCCESS'; payload: any } // Successful generation
-  | { type: 'GENERATION_FAILURE'; payload: {
-      error: string;
-    }}                                           // Generation error
-  | { type: 'RESET_CONVERSATION' }               // Clear current conversation
-  | { type: 'UPDATE_CONTEXT_WINDOW'; payload: string[] }  // Update AI context
-  | { type: 'llm/setModel'; payload: string }
-  | { type: 'llm/updateParameters'; payload: Record<string, unknown> };
+    }
+  | { 
+      type: 'llm/setModel'; 
+      payload: string 
+    }
+  | { 
+      type: 'llm/updateModelParameters'; 
+      payload: Partial<LLMState['modelConfig']['defaultParameters']> 
+    }
+  | { 
+      type: 'llm/resetConversation' 
+    }
+  | { 
+      type: 'llm/handleError'; 
+      payload: string 
+    };
 ```
 
 #### User Management
@@ -354,7 +367,6 @@ interface ThemeState {
 }
 
 type ThemeActions = 
-  | { type: 'TOGGLE_THEME' }                     // Switch between light and dark
   | { type: 'SET_THEME_MODE'; payload: 'light' | 'dark' }  // Explicitly set theme
   | { type: 'theme/updateCustomizations'; payload: Partial<ThemeState['customizations']> }
   | { type: 'theme/setAccessibility'; payload: { reducedMotion: boolean; highContrast: boolean } }
@@ -371,7 +383,6 @@ interface ActionHistoryState {
     metadata: {
       source: string;
       category: string;
-      priority: number;
     };
     timestamp: string;
   }>;
@@ -386,12 +397,10 @@ type ActionHistoryActions =
       metadata: {
         source: string;
         category: string;
-        priority: number;
       }
     }}                                           // Log a new action
   | { type: 'history/undo' }
-  | { type: 'history/redo' }
-  | { type: 'history/clear' };
+  | { type: 'history/redo' };
 ```
 
 ### 7.3 Content Management Slice (contentSlice)
@@ -439,51 +448,73 @@ interface LLMState {
     messages: Array<{
       role: 'user' | 'system' | 'assistant';
       content: string;
-      metadata?: Record<string, unknown>;
+      timestamp: number;
     }>;
-    context: string[];
+    context: {
+      activeTopics: string[];
+      systemPrompt?: string;
+    };
   };
   generation: {
     status: 'idle' | 'generating' | 'error';
-    currentTask: string | null;
-    error: string | null;
+    currentTask?: string;
+    error?: string;
   };
-  models: {
-    available: string[];
-    selected: string;
-    parameters: Record<string, unknown>;
-    relevantDocs: string[];
+  modelConfig: {
+    selectedModel: string;
+    availableModels: string[];
+    defaultParameters: {
+      temperature: number;
+      maxTokens: number;
+      topP: number;
+    };
   };
 }
 
 type LLMActions = 
-  | { type: 'SEND_MESSAGE'; payload: {
-      content: string;
-      role: 'user' | 'system';
-      metadata?: {
+  | { 
+      type: 'llm/sendMessage'; 
+      payload: { 
+        content: string; 
+        role: 'user' | 'system';
+      }
+    }
+  | { 
+      type: 'llm/receiveMessage'; 
+      payload: { 
+        content: string; 
+        role: 'assistant';
+      }
+    }
+  | { 
+      type: 'llm/startGeneration'; 
+      payload: { 
+        task: string; 
         model?: string;
-        temperature?: number;
-        maxTokens?: number;
       }
-    }}                                           // Send a new message
-  | { type: 'RECEIVE_ASSISTANT_MESSAGE'; payload: {
-      content: string;
-      metadata?: {
-        model: string;
+    }
+  | { 
+      type: 'llm/generationComplete'; 
+      payload: { 
+        result: any; 
+        tokens?: number;
       }
-    }}                                           // Receive AI response
-  | { type: 'START_GENERATION'; payload: {
-      currentTask: string;
-      metadata?: Record<string, unknown>
-    }}                                           // Initiate generation process
-  | { type: 'GENERATION_SUCCESS'; payload: any } // Successful generation
-  | { type: 'GENERATION_FAILURE'; payload: {
-      error: string;
-    }}                                           // Generation error
-  | { type: 'RESET_CONVERSATION' }               // Clear current conversation
-  | { type: 'UPDATE_CONTEXT_WINDOW'; payload: string[] }  // Update AI context
-  | { type: 'llm/setModel'; payload: string }
-  | { type: 'llm/updateParameters'; payload: Record<string, unknown> };
+    }
+  | { 
+      type: 'llm/setModel'; 
+      payload: string 
+    }
+  | { 
+      type: 'llm/updateModelParameters'; 
+      payload: Partial<LLMState['modelConfig']['defaultParameters']> 
+    }
+  | { 
+      type: 'llm/resetConversation' 
+    }
+  | { 
+      type: 'llm/handleError'; 
+      payload: string 
+    };
 ```
 
 ### 7.5 User Management Slice (userSlice)
@@ -563,69 +594,50 @@ const store = configureStore({
 ```typescript
 interface PWAState {
   installation: {
-    deferredPrompt: BeforeInstallPromptEvent | null;
-    installed: boolean;
+    status: 'not_installed' | 'installing' | 'installed';
+    deferredPrompt?: BeforeInstallPromptEvent;
   };
-  offline: {
+  connectivity: {
     status: 'online' | 'offline';
-    cachedResources: string[];
-    cacheVersion: string;
-  };
-  backgroundSync: {
-    queuedRequests: Array<{
-      id: string;
-      request: Request;
-      timestamp: number;
-    }>;
-    lastSync: number | null;
+    lastChecked: number;
   };
   serviceWorker: {
-    registration: ServiceWorkerRegistration | null;
-    updateAvailable: boolean;
-    version: string;
+    status: 'inactive' | 'active' | 'updating';
+    registration?: ServiceWorkerRegistration;
+    version?: string;
   };
 }
+
+type PWAActions = 
+  | { type: 'pwa/checkInstallStatus' }
+  | { type: 'pwa/triggerInstall' }
+  | { type: 'pwa/updateConnectivity'; payload: 'online' | 'offline' }
+  | { type: 'pwa/registerServiceWorker'; payload?: ServiceWorkerRegistration };
 ```
 
 ### 10.2 libP2P Network State (networkSlice)
 ```typescript
 interface LibP2PState {
   peer: {
-    id: string | null;
-    addresses: Multiaddr[];
+    id?: string;
+    addresses: string[];
     protocols: string[];
-    metadata: Record<string, any>;
   };
   connection: {
     status: 'disconnected' | 'connecting' | 'connected';
-    lastSeen: number;
-    quality: number; // 0-100 connection quality score
-  };
-  network: {
-    peers: Record<string, {
-      latency: number;
-      protocols: string[];
-      connectionType: 'webrtc' | 'websocket' | 'quic';
-      encrypted: boolean;
-    }>;
-    bootstrapNodes: string[];
-    dht: {
-      routingTableSize: number;
-      contentRoutingEnabled: boolean;
-    };
+    quality: number;
   };
   pubsub: {
-    topics: Record<string, {
-      subscribers: number;
-      messageRate: number; // messages/sec
-      lastMessage: any | null;
-    }>;
-  };
-  encryption: {
-    keyPair: CryptoKeyPair | null;
-    trustedKeys: Record<string, CryptoKey>;
+    activeTopics: string[];
+    messageCount: number;
   };
 }
+
+type NetworkActions = 
+  | { type: 'network/connect' }
+  | { type: 'network/disconnect' }
+  | { type: 'network/joinTopic'; payload: string }
+  | { type: 'network/publishMessage'; payload: { topic: string; message: any } };
 ```
 
 ### 10.3 Network Middleware Integration
@@ -688,7 +700,10 @@ type NetworkActions =
 
 // Enhanced Store Configuration
 const store = configureStore({
-  reducer: rootReducer,
+  reducer: {
+    // ... other reducers
+    storage: storageReducer,
+  },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
       .concat(pwaMiddleware)
@@ -705,6 +720,25 @@ if ('serviceWorker' in navigator) {
       payload: store.getState().storage.cache.recentCards
     });
   });
+}
+
+// IndexedDB Schema (based on MCard)
+const DB_SCHEMA = {
+  cards: 'hash,content,g_time,content_type',
+  pendingChanges: 'hash,type,card,timestamp'
+};
+
+// Background Sync
+async function syncPendingChanges() {
+  const changes = await indexedDBAdapter.getPendingChanges();
+  for (const change of changes) {
+    try {
+      await tursoAdapter.save(change.card.hash, change.card);
+      await indexedDBAdapter.remove(change.card.hash);
+    } catch (error) {
+      console.error('Sync failed for card:', change.card.hash);
+    }
+  }
 }
 ```
 

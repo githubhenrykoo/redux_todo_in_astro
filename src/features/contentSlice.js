@@ -11,13 +11,34 @@ function generateContentHash(content) {
 
 // Initial state
 const initialState = {
-  items: {},
+  items: {
+    'sample1': {
+      hash: 'sample1',
+      content: 'This is a sample content item 1',
+      metadata: {},
+      relationships: {
+        parentHash: null,
+        childHashes: [],
+        relatedHashes: []
+      }
+    },
+    'sample2': {
+      hash: 'sample2',
+      content: 'This is a sample content item 2',
+      metadata: {},
+      relationships: {
+        parentHash: null,
+        childHashes: [],
+        relatedHashes: []
+      }
+    }
+  },
   selected: null,
   search: {
     query: '',
-    results: [],
+    results: ['sample1', 'sample2'],
     filters: {},
-    totalItems: 0
+    totalItems: 2
   }
 };
 

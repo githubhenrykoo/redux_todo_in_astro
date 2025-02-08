@@ -1,17 +1,25 @@
-import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useMemo } from 'react';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit';
 import { 
-  addContent, 
   deleteContent, 
-  selectContent,
-  updateContentMetadata,
-  updateContentRelationships
+  selectContent
 } from '../features/contentSlice';
+
+// Memoized selector for content state
+const selectContentState = createSelector(
+  (state) => state.content,
+  (content) => ({
+    items: content?.items || {},
+    search: content?.search || { results: [] },
+    selected: content?.selected || null
+  })
+);
 
 const Content = () => {
   const dispatch = useDispatch();
-  const { items, search, selected } = useSelector(state => state.content);
-  const searchResults = search.results;
+  const { items, search, selected } = useSelector(selectContentState, shallowEqual);
+  const searchResults = useMemo(() => search.results || [], [search.results]);
 
   const handleContentSelect = (hash) => {
     dispatch(selectContent(hash));
@@ -21,103 +29,12 @@ const Content = () => {
     dispatch(deleteContent(hash));
   };
 
-  const handleUpdateMetadata = (hash, metadata) => {
-    dispatch(updateContentMetadata({ 
-      hash, 
-      metadata 
-    }));
-  };
-
-  const handleUpdateRelationships = (hash, relationships) => {
-    dispatch(updateContentRelationships({ 
-      hash, 
-      relationships 
-    }));
-  };
-
-  const [newContent, setNewContent] = useState('');
-  const [newContentRelationships, setNewContentRelationships] = useState({
-    parentHash: '',
-    childHashes: [],
-    relatedHashes: []
-  });
-
-  const handleCreateContent = (e) => {
-    e.preventDefault();
-    if (newContent.trim()) {
-      dispatch(addContent({ 
-        content: newContent,
-        relationships: newContentRelationships
-      }));
-      
-      // Reset form
-      setNewContent('');
-      setNewContentRelationships({
-        parentHash: '',
-        childHashes: [],
-        relatedHashes: []
-      });
-    }
-  };
-
   return (
-    <div className="space-y-4">
-      {/* Content Creation Form */}
-      <form onSubmit={handleCreateContent} className="space-y-2 p-4 border rounded">
-        <textarea 
-          value={newContent}
-          onChange={(e) => setNewContent(e.target.value)}
-          placeholder="Enter new content..."
-          className="w-full p-2 border rounded"
-          rows="4"
-        />
-        
-        {/* Optional Relationships */}
-        <div className="grid grid-cols-3 gap-2">
-          <input 
-            type="text"
-            value={newContentRelationships.parentHash}
-            onChange={(e) => setNewContentRelationships(prev => ({
-              ...prev, 
-              parentHash: e.target.value
-            }))}
-            placeholder="Parent Hash (optional)"
-            className="p-2 border rounded"
-          />
-          <input 
-            type="text"
-            value={newContentRelationships.childHashes.join(',')}
-            onChange={(e) => setNewContentRelationships(prev => ({
-              ...prev, 
-              childHashes: e.target.value.split(',').filter(Boolean)
-            }))}
-            placeholder="Child Hashes (comma-separated)"
-            className="p-2 border rounded"
-          />
-          <input 
-            type="text"
-            value={newContentRelationships.relatedHashes.join(',')}
-            onChange={(e) => setNewContentRelationships(prev => ({
-              ...prev, 
-              relatedHashes: e.target.value.split(',').filter(Boolean)
-            }))}
-            placeholder="Related Hashes (comma-separated)"
-            className="p-2 border rounded"
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          className="px-4 py-2 bg-green-500 text-white rounded"
-        >
-          Create Content
-        </button>
-      </form>
-
+    <div className="space-y-4 dark:bg-neutral-900 dark:text-neutral-100">
       {/* Content List */}
       <div className="space-y-2">
         {searchResults.length === 0 ? (
-          <p className="text-gray-500 text-center">No content found</p>
+          <p className="text-gray-500 dark:text-neutral-500 text-center">No content found</p>
         ) : (
           searchResults.map(hash => {
             const content = items[hash];
@@ -128,26 +45,28 @@ const Content = () => {
                 key={hash} 
                 className={`
                   flex flex-col p-2 border rounded 
-                  ${isSelected ? 'bg-blue-50 border-blue-300' : 'hover:bg-gray-100'}
+                  ${isSelected 
+                    ? 'bg-blue-50 border-blue-300 dark:bg-blue-900 dark:border-blue-700' 
+                    : 'hover:bg-gray-100 dark:hover:bg-neutral-800'}
                 `}
               >
                 {/* Content Preview */}
                 <div 
                   onClick={() => handleContentSelect(hash)}
-                  className="cursor-pointer mb-2"
+                  className="cursor-pointer mb-2 dark:text-neutral-100"
                 >
-                  {content.content.substring(0, 200)}...
+                  {content?.content.substring(0, 200)}...
                 </div>
 
                 {/* Metadata and Actions */}
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-neutral-500">
                     Hash: {hash.substring(0, 10)}...
                   </div>
                   <div className="space-x-2">
                     <button 
                       onClick={() => handleContentDelete(hash)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                     >
                       Delete
                     </button>

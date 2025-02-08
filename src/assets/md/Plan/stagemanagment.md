@@ -7,20 +7,20 @@ interface ThemeState {
 
 // 2. Action History Management
 interface ActionHistoryState {
-  actions: [
-    hash: string,
-    type: 'ADD',
-    content: string,
-    timestamp: string,
-  ]
+  actions: Array<{
+    hash: string;
+    type: string;
+    content: string;
+    timestamp: string;
+  }>;
 }
 
 // 3. Content Management State
 interface ContentState {
   contents: Array<{
-    Hash: string;
-    Content: string;
-    Timestamp: string;
+    hash: string;
+    content: string;
+    timestamp: string;
   }>;
   searchQuery: string;
   selectedContent: string | null;
@@ -33,9 +33,9 @@ interface ContentState {
   };
 }
 
-// 4. llm interaction State
+// 4. LLM Interaction State
 interface ChatState {
-  Chat messages: Array<{
+  messages: Array<{
     content: string;
     sender: 'user' | 'ai';
     timestamp: string;
@@ -78,5 +78,3 @@ interface UserState {
 // - Implement persistent state storage
 // - Add real-time synchronization mechanisms
 // - Develop comprehensive test coverage for state transitions
-
-// plan turing todos to content list

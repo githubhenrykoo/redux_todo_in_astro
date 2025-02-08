@@ -1,5 +1,153 @@
 # State Management Plan
 
+## 📋 Implementation Checklist
+
+### 🏗️ Core Architecture
+
+#### 1. Implement Root State Structure
+- [ ] Define comprehensive `RootState` interface
+  - [ ] Create `core` subsection with system-wide states
+    - [x] Theme management state
+    - [x] Layout configuration
+    - [ ] User context
+  - [ ] Design `features` subsection for domain-specific states
+    - [x] Content management
+    - [ ] LLM integration
+    - [] Action history tracking
+  - [ ] Implement `ui` state for dynamic interface management
+    - [ ] Panel configurations
+    - [ ] Active panel tracking
+    - [ ] Layout persistence
+  - [ ] Add network and storage state sections
+    - [ ] tRPC connection state
+    - [ ] Optional P2P protocol states
+    - [ ] Persistent storage configuration
+
+#### 2. Define Domain-Specific States
+- [ ] Develop state interfaces for each domain
+  - [ ] Content State
+    - [ ] Define card structure
+    - [ ] Implement relationship tracking
+    - [ ] Create search and filter mechanisms
+  - [ ] Theme State
+    - [ ] Mode management (light/dark)
+    - [ ] Accessibility preferences
+  - [ ] LLM State
+    - [ ] Conversation tracking
+    - [ ] Model configuration
+    - [ ] Generation status
+  - [ ] User State
+    - [ ] Authentication management
+    - [ ] Profile information
+    - [ ] Preference storage
+
+#### 3. Create Type-Safe Interfaces
+- [ ] Implement TypeScript interfaces for all state shapes
+  - [ ] Use strict type definitions
+  - [ ] Create union types for actions
+  - [ ] Define clear payload structures
+- [ ] Develop type guards and type inference utilities
+  - [ ] Create helper functions for type checking
+  - [ ] Implement runtime type validation
+- [ ] Ensure exhaustive type coverage
+  - [ ] Use `never` type for complete action handling
+  - [ ] Create comprehensive type tests
+
+#### 4. Set Up Redux Store Configuration
+- [ ] Configure Redux Toolkit store
+  - [ ] Integrate root reducer
+  - [ ] Set up middleware chain
+    - [ ] Redux Thunk
+    - [ ] Optional Redux Saga
+    - [ ] Custom middleware
+  - [ ] Implement dev tools configuration
+- [ ] Create slice reducers
+  - [ ] Use `createSlice` for each domain
+  - [ ] Implement pure reducer logic
+  - [ ] Add action creators
+- [ ] Set up selector functions
+  - [ ] Create memoized selectors with `createSelector`
+  - [ ] Implement efficient state querying
+- [ ] Configure persistence layer
+  - [ ] Set up local storage middleware
+  - [ ] Implement state rehydration
+  - [ ] Create backup and migration strategies
+
+### 🧩 State Management Principles
+- [ ] Implement Functional Purity
+- [ ] Ensure Type Safety
+- [ ] Configure External Storage Integration
+- [ ] Implement REPL Pattern
+- [ ] Set Up Event Sourcing Mechanism
+
+### 🔌 Middleware Configuration
+- [ ] Implement Redux Thunk
+- [ ] Set Up Redux Saga
+- [ ] Create Custom Middleware
+  - [ ] Logging Middleware
+  - [ ] Persistence Middleware
+  - [ ] Error Handling Middleware
+
+### 🚀 Performance Optimizations
+- [ ] Normalize State Structures
+- [ ] Implement Memoization
+- [ ] Configure Batch Update Mechanism
+
+### 🧪 Testing Strategy
+- [ ] Create Unit Tests
+  - [ ] Reducer Tests
+  - [ ] Action Creator Tests
+  - [ ] Selector Tests
+- [ ] Develop Integration Tests
+- [ ] Implement E2E State Tests
+
+### 🔍 Core Redux Slices
+- [ ] Theme Slice
+  - [ ] Implement Theme State
+  - [ ] Add Theme Toggling
+  - [ ] Configure Local Storage Persistence
+- [ ] Action History Slice
+  - [ ] Track Action History
+  - [ ] Implement Undo/Redo Functionality
+- [ ] Content Management Slice
+  - [ ] Create Content CRUD Operations
+  - [ ] Implement Content Relationships
+  - [ ] Add Search Functionality
+- [ ] LLM Integration Slice
+  - [ ] Set Up Conversation Management
+  - [ ] Implement Generation Controls
+  - [ ] Configure Model Parameters
+
+### 🌐 Network and Storage Integration
+- [ ] Implement tRPC Client
+- [ ] Set Up PWA State Management
+- [ ] Configure Storage Adapters
+- [ ] Develop Offline Support Mechanisms
+
+### 🔒 Security and Scalability
+- [ ] Implement Type-Safe API Interactions
+- [ ] Create Robust Error Handling
+- [ ] Design Scalable State Management
+- [ ] Ensure Data Persistence
+- [ ] Develop Migration Strategies
+
+### 🚧 Future Enhancements
+- [ ] Plan for Protocol Evolution
+- [ ] Design Knowledge Representation System
+- [ ] Create Plugin Architecture
+- [ ] Implement Decentralized Storage Support
+
+**Legend:**
+- 🏗️ Architecture
+- 🧩 Principles
+- 🔌 Middleware
+- 🚀 Performance
+- 🧪 Testing
+- 🔍 Slices
+- 🌐 Integration
+- 🔒 Security
+- 🚧 Future Work
+
 ## Overview
 
 This state management system implements a data-driven, functionally pure approach based on the Flux architectural pattern and Single Source of Truth (SSoT) principle. The system uses Redux as its core state container, with a focus on version-controlled data structures and predictable state mutations.
@@ -103,36 +251,60 @@ interface ContentState {
   cards: Record<string, {
     hash: string;
     content: string;
+    createdAt: string;
     metadata: Record<string, unknown>;
     relationships: {
-      parentHash?: string;
+      parentHash: string | null;
       childHashes: string[];
       relatedHashes: string[];
     };
   }>;
-  selected: string | null;
+  selectedHash: string | null;
   search: {
     query: string;
     results: string[];
     filters: Record<string, unknown>;
-    totalItems: number;
   };
 }
 
 type ContentActions = 
-  | { type: 'ADD_CONTENT'; payload: {
-      content: string;
-      relationships?: {
-        parentHash?: string;
-        childHashes?: string[];
-        relatedHashes?: string[];
+  | { 
+      type: 'content/addContent'; 
+      payload: { 
+        content: string; 
+        relationships?: {
+          parentHash?: string;
+          childHashes?: string[];
+          relatedHashes?: string[];
+        }
       }
-    }}                                           // Create new content
-  | { type: 'DELETE_CONTENT'; payload: string }  // Remove content by hash
-  | { type: 'SELECT_CONTENT'; payload: string }  // Set selected content
-  | { type: 'SET_SEARCH_QUERY'; payload: string }// Update search query
-  | { type: 'content/updateMetadata'; payload: { hash: string; metadata: Record<string, unknown> } }
-  | { type: 'content/updateRelationships'; payload: { hash: string; relationships: Partial<ContentState['cards'][string]['relationships']> } };
+    }
+  | { 
+      type: 'content/deleteContent'; 
+      payload: string 
+    }
+  | { 
+      type: 'content/selectContent'; 
+      payload: string 
+    }
+  | { 
+      type: 'content/setSearchQuery'; 
+      payload: string 
+    }
+  | { 
+      type: 'content/updateContentMetadata'; 
+      payload: { 
+        hash: string; 
+        metadata: Record<string, unknown> 
+      }
+    }
+  | { 
+      type: 'content/updateContentRelationships'; 
+      payload: { 
+        hash: string; 
+        relationships: Partial<ContentState['cards'][string]['relationships']> 
+      }
+    };
 ```
 
 #### LLM Integration
@@ -449,36 +621,60 @@ interface ContentState {
   cards: Record<string, {
     hash: string;
     content: string;
+    createdAt: string;
     metadata: Record<string, unknown>;
     relationships: {
-      parentHash?: string;
+      parentHash: string | null;
       childHashes: string[];
       relatedHashes: string[];
     };
   }>;
-  selected: string | null;
+  selectedHash: string | null;
   search: {
     query: string;
     results: string[];
     filters: Record<string, unknown>;
-    totalItems: number;
   };
 }
 
 type ContentActions = 
-  | { type: 'ADD_CONTENT'; payload: {
-      content: string;
-      relationships?: {
-        parentHash?: string;
-        childHashes?: string[];
-        relatedHashes?: string[];
+  | { 
+      type: 'content/addContent'; 
+      payload: { 
+        content: string; 
+        relationships?: {
+          parentHash?: string;
+          childHashes?: string[];
+          relatedHashes?: string[];
+        }
       }
-    }}                                           // Create new content
-  | { type: 'DELETE_CONTENT'; payload: string }  // Remove content by hash
-  | { type: 'SELECT_CONTENT'; payload: string }  // Set selected content
-  | { type: 'SET_SEARCH_QUERY'; payload: string }// Update search query
-  | { type: 'content/updateMetadata'; payload: { hash: string; metadata: Record<string, unknown> } }
-  | { type: 'content/updateRelationships'; payload: { hash: string; relationships: Partial<ContentState['cards'][string]['relationships']> } };
+    }
+  | { 
+      type: 'content/deleteContent'; 
+      payload: string 
+    }
+  | { 
+      type: 'content/selectContent'; 
+      payload: string 
+    }
+  | { 
+      type: 'content/setSearchQuery'; 
+      payload: string 
+    }
+  | { 
+      type: 'content/updateContentMetadata'; 
+      payload: { 
+        hash: string; 
+        metadata: Record<string, unknown> 
+      }
+    }
+  | { 
+      type: 'content/updateContentRelationships'; 
+      payload: { 
+        hash: string; 
+        relationships: Partial<ContentState['cards'][string]['relationships']> 
+      }
+    };
 ```
 
 ### 7.4 LLM Integration Slice (llmSlice)

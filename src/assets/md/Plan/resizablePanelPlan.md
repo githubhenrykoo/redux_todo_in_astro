@@ -2,10 +2,11 @@
 
 ## Overview
 
-This implementation provides a flexible three-panel system using `react-resizable-panels` for robust resizing capabilities, combined with Astro's Islands architecture for component hydration. The system is built on three main components:
+This implementation provides a flexible three-panel system using `react-resizable-panels` for robust resizing capabilities, combined with Astro's Islands architecture for component hydration. The system is built on four main components:
 1. A React-based resizable panel component
-2. An Astro layout for the overall page structure
-3. Island-based component hydration for optimal performance
+2. A dynamic panel loader for flexible component management
+3. An Astro layout for the overall page structure
+4. Island-based component hydration for optimal performance
 
 ## 1. Core Components
 
@@ -13,36 +14,65 @@ This implementation provides a flexible three-panel system using `react-resizabl
 ```typescript
 interface ResizablePanelProps {
   useDefaultContent?: boolean;
-  leftPanel?: React.ComponentType<any>;
-  mainPanel?: React.ComponentType<any>;
-  rightPanel?: React.ComponentType<any>;
+  leftPanel?: string;
+  mainPanel?: string;
+  rightPanel?: string;
   leftProps?: Record<string, any>;
   mainProps?: Record<string, any>;
   rightProps?: Record<string, any>;
 }
 
-// Panel styling configuration
-const styles = {
-  panelContainer: { height: '100%', width: '100%' },
-  panelGroup: { height: '100%' },
-  panel: { height: '100%', overflow: 'hidden' },
-  resizeHandle: {
-    width: '4px',
-    margin: '0 -2px',
-    cursor: 'col-resize',
-    transition: 'background-color 0.2s'
-  }
-};
+// Panel configuration
+const PANEL_CONFIG = [
+  {
+    id: 'left',
+    defaultSize: 20,
+    minSize: 15,
+    maxSize: 40,
+    defaultComponent: 'DemoLeftPanel',
+    sliceName: 'left-panel',
+  },
+  {
+    id: 'main',
+    defaultComponent: 'DemoMainPanel',
+    sliceName: 'main-panel',
+  },
+  {
+    id: 'right',
+    defaultSize: 20,
+    minSize: 15,
+    maxSize: 40,
+    defaultComponent: 'DemoRightPanel',
+    sliceName: 'right-panel',
+  },
+];
 ```
 
 Key features:
+- Configuration-driven panel system
 - Built on react-resizable-panels for reliable resizing
-- Support for both default and custom panel content
+- Dynamic component loading through DynamicPanel
 - Configurable panel sizes and constraints
 - Smooth resize animations with visual feedback
-- Integration with IslandFactory for component hydration
 
-### 1.2 Layout System (ResizablePanelLayout2.astro)
+### 1.2 DynamicPanel Component (DynamicPanel.tsx)
+```typescript
+interface DynamicPanelProps {
+  panelType: string;
+  slot: string;
+  sliceName: string;
+  props?: Record<string, any>;
+}
+```
+
+Key features:
+- Dynamic component loading
+- Direct component mapping for debugging
+- Async component loading with error handling
+- Loading state management
+- Error boundary protection
+
+### 1.3 Layout System (ResizablePanelLayout2.astro)
 ```typescript
 interface Props {
   leftPanelType?: string;
@@ -60,53 +90,64 @@ Key features:
 - CSS-based panel organization
 - Clean separation of layout and content
 
-### 1.3 Island Factory Integration
+### 1.4 Panel Registry System
 ```typescript
-interface IslandFactoryProps {
-  component: React.ComponentType<any>;
-  sliceName: string;
-  slot: string;
-  [key: string]: any;
-}
+// panelRegistry.ts
+const panelLoaders: Record<string, () => Promise<any>> = {
+  DemoLeftPanel: () => import('./panels/DemoLeftPanel'),
+  DemoMainPanel: () => import('./panels/DemoMainPanel'),
+  DemoRightPanel: () => import('./panels/DemoRightPanel'),
+};
+
+export const getPanelLoader = (panelType: string) => panelLoaders[panelType];
 ```
 
 Key features:
-- Component hydration management
-- Redux store integration per island
-- Slot-based content placement
-- Error boundary protection
+- Centralized panel registration
+- Lazy loading support
+- Easy panel addition and removal
+- Type-safe panel loading
 
 ## 2. Implementation Details
 
 ### 2.1 Panel Layout Structure
+
+The panel system uses a configuration-driven approach:
+```typescript
+const PANEL_CONFIG = [
+  {
+    id: 'left',
+    defaultSize: 20,
+    minSize: 15,
+    maxSize: 40,
+    defaultComponent: 'DemoLeftPanel',
+    sliceName: 'left-panel',
+  },
+  // ... other panel configurations
+];
+```
+
+Dynamic panel rendering:
 ```tsx
-<PanelGroup direction="horizontal" onLayout={onLayout}>
-  <Panel defaultSize={20} minSize={15} maxSize={40}>
-    <IslandFactory
-      component={useDefaultContent ? DemoLeftPanel : leftPanel}
-      sliceName="left-panel"
-      slot="left"
-      {...leftProps}
-    />
-  </Panel>
-  <PanelResizeHandle />
-  <Panel>
-    <IslandFactory
-      component={useDefaultContent ? DemoMainPanel : mainPanel}
-      sliceName="main-panel"
-      slot="main"
-      {...mainProps}
-    />
-  </Panel>
-  <PanelResizeHandle />
-  <Panel defaultSize={20} minSize={15} maxSize={40}>
-    <IslandFactory
-      component={useDefaultContent ? DemoRightPanel : rightPanel}
-      sliceName="right-panel"
-      slot="right"
-      {...rightProps}
-    />
-  </Panel>
+<PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
+  {PANEL_CONFIG.map((config, index) => (
+    <React.Fragment key={config.id}>
+      <Panel
+        defaultSize={config.defaultSize}
+        minSize={config.minSize}
+        maxSize={config.maxSize}
+        style={styles.panel}
+      >
+        <DynamicPanel
+          panelType={useDefaultContent ? config.defaultComponent : getCustomComponent(config.id) || config.defaultComponent}
+          slot={config.id}
+          sliceName={config.sliceName}
+          props={getProps(config.id)}
+        />
+      </Panel>
+      {index < PANEL_CONFIG.length - 1 && <PanelResizeHandle style={styles.resizeHandle} />}
+    </React.Fragment>
+  ))}
 </PanelGroup>
 ```
 
@@ -141,22 +182,22 @@ Key features:
 
 ## 3. Usage Examples
 
-### 3.1 Basic Usage
+### 3.1 Basic Usage with Default Content
 ```astro
 <ResizablePanelLayout>
   <ResizablePanel client:only="react" useDefaultContent={true} />
 </ResizablePanelLayout>
 ```
 
-### 3.2 Custom Content Usage
+### 3.2 Custom Panel Types Usage
 ```astro
 <ResizablePanelLayout>
   <ResizablePanel 
     client:only="react"
     useDefaultContent={false}
-    leftPanel={CustomLeftPanel}
-    mainPanel={CustomMainPanel}
-    rightPanel={CustomRightPanel}
+    leftPanel="CustomLeftPanel"
+    mainPanel="CustomMainPanel"
+    rightPanel="CustomRightPanel"
   />
 </ResizablePanelLayout>
 ```
@@ -182,36 +223,44 @@ Key features:
 ```css
 .panel {
   height: 100%;
-  overflow: hidden;
+  background-color: #f0f0f0;
 }
 
 .resize-handle {
-  background-color: #e5e7eb;
   width: 4px;
-  margin: 0 -2px;
+  background-color: #ddd;
   cursor: col-resize;
-  transition: background-color 0.2s;
 }
 ```
 
 ## 5. Future Enhancements
 
-1. **Panel Features**
+1. **Dynamic Loading Features**
+   - Preloading strategies
+   - Loading priority system
+   - Caching mechanisms
+   - Fallback component system
+
+2. **Panel Features**
    - Panel collapse/expand
    - Panel state persistence
    - Dynamic panel addition/removal
+   - Panel configuration presets
 
-2. **Layout Features**
+3. **Layout Features**
    - Additional layout templates
    - Nested panel support
    - Responsive breakpoints
+   - Layout state persistence
 
-3. **Performance**
-   - Optimized panel rendering
-   - Lazy loading improvements
-   - Caching strategies
+4. **Performance**
+   - Optimized component loading
+   - Bundle size optimization
+   - Selective hydration
+   - Performance monitoring
 
-4. **Accessibility**
+5. **Accessibility**
    - Keyboard navigation
    - Screen reader support
    - ARIA attributes
+   - Focus management

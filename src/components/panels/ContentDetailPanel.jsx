@@ -14,10 +14,10 @@ export default function ContentDetailPanel() {
   const [editContent, setEditContent] = useState('');
   
   const dispatch = useDispatch();
-  const { selectedId, selectedCard } = useSelector(state => ({
-    selectedId: state.content.selectedId,
-    selectedCard: state.content.selectedId 
-      ? state.content.cards[state.content.selectedId]?.content 
+  const { selectedHash, selectedCard } = useSelector(state => ({
+    selectedHash: state.content.selectedHash,
+    selectedCard: state.content.selectedHash 
+      ? state.content.cards[state.content.selectedHash]?.content 
       : ''
   }));
 
@@ -59,8 +59,8 @@ export default function ContentDetailPanel() {
   };
 
   const handleDelete = () => {
-    if (selectedId) {
-      dispatch(deleteContent(selectedId));
+    if (selectedHash) {
+      dispatch(deleteContent(selectedHash));
     }
   };
 
@@ -72,10 +72,10 @@ export default function ContentDetailPanel() {
           {isEditing ? 'Edit Content' : 'Content Details'}
         </h2>
         <div className="flex items-center gap-4">
-          {/* Display Selected Content ID */}
-          {selectedId && (
+          {/* Display Selected Content Hash */}
+          {selectedHash && (
             <div className="text-sm text-gray-500">
-              Selected ID: {selectedId}
+              Selected Hash: {selectedHash}
             </div>
           )}
           
@@ -88,7 +88,7 @@ export default function ContentDetailPanel() {
                 >
                   New Content
                 </button>
-                {selectedId && (
+                {selectedHash && (
                   <>
                     <button
                       onClick={() => setIsEditing(true)}
@@ -118,7 +118,7 @@ export default function ContentDetailPanel() {
                   onClick={handleSubmit}
                   className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
-                  {selectedId ? 'Save as New' : 'Save'}
+                  {selectedHash ? 'Save as New' : 'Save'}
                 </button>
               </>
             )}

@@ -19,12 +19,12 @@ const Content = () => {
       )
     : contentCards;
 
-  const handleContentSelect = (id) => {
-    dispatch(selectContent(id));
+  const handleContentSelect = (hash) => {
+    dispatch(selectContent(hash));
   };
 
-  const handleContentDelete = (id) => {
-    dispatch(deleteContent(id));
+  const handleContentDelete = (hash) => {
+    dispatch(deleteContent(hash));
   };
 
   return (
@@ -43,7 +43,7 @@ const Content = () => {
             
             return (
               <div 
-                key={card.id} 
+                key={card.hash} 
                 className={`
                   flex flex-col p-2 border rounded 
                   hover:bg-gray-100 dark:hover:bg-neutral-800
@@ -51,7 +51,7 @@ const Content = () => {
               >
                 {/* Content Preview */}
                 <div 
-                  onClick={() => handleContentSelect(card.id)}
+                  onClick={() => handleContentSelect(card.hash)}
                   className="cursor-pointer mb-2 dark:text-neutral-100"
                 >
                   {card.content.substring(0, 200)}...
@@ -64,7 +64,7 @@ const Content = () => {
                   </div>
                   <div className="space-x-2">
                     <button 
-                      onClick={() => handleContentDelete(card.id)}
+                      onClick={() => handleContentDelete(card.hash)}
                       className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                     >
                       Delete

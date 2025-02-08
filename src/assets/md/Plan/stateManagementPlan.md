@@ -36,6 +36,10 @@ interface ThemeState {
   customizations: Record<string, string>;
   systemPreference: boolean;
 }
+
+type ThemeActions = 
+  | { type: 'TOGGLE_THEME' }                     // Switch between light and dark
+  | { type: 'SET_THEME_MODE'; payload: 'light' | 'dark' }  // Explicitly set theme
 ```
 
 #### Action History
@@ -55,6 +59,17 @@ interface ActionHistoryState {
   undoStack: string[];   // Action hashes for undo
   redoStack: string[];   // Action hashes for redo
 }
+
+type ActionHistoryActions = 
+  | { type: 'RECORD_ACTION'; payload: {
+      type: string;
+      content: string;
+      metadata: {
+        source: string;
+        category: string;
+        priority: number;
+      }
+    }}                                           // Log a new action
 ```
 
 #### Content Management
@@ -81,6 +96,19 @@ interface ContentState {
     totalItems: number;
   };
 }
+
+type ContentActions = 
+  | { type: 'ADD_CONTENT'; payload: {
+      content: string;
+      relationships?: {
+        parentHash?: string;
+        childHashes?: string[];
+        relatedHashes?: string[];
+      }
+    }}                                           // Create new content
+  | { type: 'DELETE_CONTENT'; payload: string }  // Remove content by hash
+  | { type: 'SELECT_CONTENT'; payload: string }  // Set selected content
+  | { type: 'SET_SEARCH_QUERY'; payload: string }// Update search query
 ```
 
 #### LLM Integration
@@ -108,6 +136,53 @@ interface LLMState {
     relevantDocs: string[];
   };
 }
+
+type LLMActions = 
+  | { type: 'SEND_MESSAGE'; payload: {
+      content: string;
+      role: 'user' | 'system';
+      metadata?: {
+        model?: string;
+        temperature?: number;
+        maxTokens?: number;
+      }
+    }}                                           // Send a new message
+  | { type: 'RECEIVE_ASSISTANT_MESSAGE'; payload: {
+      content: string;
+      metadata?: {
+        model: string;
+      }
+    }}                                           // Receive AI response
+  | { type: 'START_GENERATION'; payload: {
+      currentTask: string;
+      metadata?: Record<string, unknown>
+    }}                                           // Initiate generation process
+  | { type: 'GENERATION_SUCCESS'; payload: any } // Successful generation
+  | { type: 'GENERATION_FAILURE'; payload: {
+      error: string;
+    }}                                           // Generation error
+  | { type: 'RESET_CONVERSATION' }               // Clear current conversation
+  | { type: 'UPDATE_CONTEXT_WINDOW'; payload: string[] }  // Update AI context
+```
+
+#### User Management
+```typescript
+interface UserState {
+  // Add user state properties here
+}
+
+type UserActions = 
+  | { type: 'LOGIN'; payload: {
+      username: string;
+      token: string;
+    }}                                           // User login
+  | { type: 'LOGOUT' }                           // User logout
+  | { type: 'UPDATE_PROFILE'; payload: {
+      username?: string;
+      email?: string;
+      preferences?: Record<string, unknown>
+    }}                                           // Update user profile
+  | { type: 'SET_AUTH_STATUS'; payload: 'authenticated' | 'unauthenticated' }  // Auth status
 ```
 
 ## 2. State Management Principles
@@ -244,3 +319,87 @@ interface BatchAction {
 - Full state cycle tests
 - Persistence tests
 - Event sourcing tests
+
+## 7. State-Specific Actions
+
+### 7.1 Theme Management Actions
+```typescript
+type ThemeActions = 
+  | { type: 'TOGGLE_THEME' }                     // Switch between light and dark
+  | { type: 'SET_THEME_MODE'; payload: 'light' | 'dark' }  // Explicitly set theme
+```
+
+### 7.2 Action History Actions
+```typescript
+type ActionHistoryActions = 
+  | { type: 'RECORD_ACTION'; payload: {
+      type: string;
+      content: string;
+      metadata: {
+        source: string;
+        category: string;
+        priority: number;
+      }
+    }}                                           // Log a new action
+```
+
+### 7.3 Content Management Actions
+```typescript
+type ContentActions = 
+  | { type: 'ADD_CONTENT'; payload: {
+      content: string;
+      relationships?: {
+        parentHash?: string;
+        childHashes?: string[];
+        relatedHashes?: string[];
+      }
+    }}                                           // Create new content
+  | { type: 'DELETE_CONTENT'; payload: string }  // Remove content by hash
+  | { type: 'SELECT_CONTENT'; payload: string }  // Set selected content
+  | { type: 'SET_SEARCH_QUERY'; payload: string }// Update search query
+```
+
+### 7.4 LLM Integration Actions
+```typescript
+type LLMActions = 
+  | { type: 'SEND_MESSAGE'; payload: {
+      content: string;
+      role: 'user' | 'system';
+      metadata?: {
+        model?: string;
+        temperature?: number;
+        maxTokens?: number;
+      }
+    }}                                           // Send a new message
+  | { type: 'RECEIVE_ASSISTANT_MESSAGE'; payload: {
+      content: string;
+      metadata?: {
+        model: string;
+      }
+    }}                                           // Receive AI response
+  | { type: 'START_GENERATION'; payload: {
+      currentTask: string;
+      metadata?: Record<string, unknown>
+    }}                                           // Initiate generation process
+  | { type: 'GENERATION_SUCCESS'; payload: any } // Successful generation
+  | { type: 'GENERATION_FAILURE'; payload: {
+      error: string;
+    }}                                           // Generation error
+  | { type: 'RESET_CONVERSATION' }               // Clear current conversation
+  | { type: 'UPDATE_CONTEXT_WINDOW'; payload: string[] }  // Update AI context
+```
+
+### 7.5 User Management Actions
+```typescript
+type UserActions = 
+  | { type: 'LOGIN'; payload: {
+      username: string;
+      token: string;
+    }}                                           // User login
+  | { type: 'LOGOUT' }                           // User logout
+  | { type: 'UPDATE_PROFILE'; payload: {
+      username?: string;
+      email?: string;
+      preferences?: Record<string, unknown>
+    }}                                           // Update user profile
+  | { type: 'SET_AUTH_STATUS'; payload: 'authenticated' | 'unauthenticated' }  // Auth status

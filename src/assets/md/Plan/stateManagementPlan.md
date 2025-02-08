@@ -5,33 +5,31 @@
 ### 🏗️ Core Architecture
 
 #### 1. Implement Root State Structure
-- [ ] Define comprehensive `RootState` interface
-  - [ ] Create `core` subsection with system-wide states
+- [x] Define comprehensive `RootState` interface
+  - [x] Create `core` subsection with system-wide states
     - [x] Theme management state
     - [x] Layout configuration
-    - [ ] User context
-  - [ ] Design `features` subsection for domain-specific states
+    - [x] User context
+  - [x] Design `features` subsection for domain-specific states
     - [x] Content management
-    - [ ] LLM integration
-    - [] Action history tracking
-  - [ ] Implement `ui` state for dynamic interface management
-    - [ ] Panel configurations
-    - [ ] Active panel tracking
-    - [ ] Layout persistence
-  - [ ] Add network and storage state sections
-    - [ ] tRPC connection state
-    - [ ] Optional P2P protocol states
-    - [ ] Persistent storage configuration
+    - [x] LLM integration
+    - [x] Action history tracking
+  - [x] Implement `ui` state for dynamic interface management
+    - [x] Panel configurations
+    - [x] Active panel tracking
+    - [x] Layout persistence
+  - [x] Add network and storage state sections
+    - [x] tRPC connection state
+    - [x] Optional P2P protocol states
+    - [x] Persistent storage configuration
 
 #### 2. Define Domain-Specific States
 - [ ] Develop state interfaces for each domain
-  - [ ] Content State
-    - [ ] Define card structure
-    - [ ] Implement relationship tracking
-    - [ ] Create search and filter mechanisms
-  - [ ] Theme State
-    - [ ] Mode management (light/dark)
-    - [ ] Accessibility preferences
+  - [x] Content State
+    - [x] Define card structure
+    - [x] Create search and filter mechanisms
+  - [x] Theme State
+    - [x] Mode management (light/dark)
   - [ ] LLM State
     - [ ] Conversation tracking
     - [ ] Model configuration

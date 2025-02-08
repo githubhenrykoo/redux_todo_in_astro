@@ -1,1 +1,53 @@
-here
+---
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+
+interface Props {
+  leftSize?: number;
+  leftMinSize?: number;
+  middleSize?: number;
+  middleMinSize?: number;
+  rightSize?: number;
+  rightMinSize?: number;
+}
+
+const {
+  leftSize = 30,
+  leftMinSize = 20,
+  middleSize = 40,
+  middleMinSize = 20,
+  rightSize = 30,
+  rightMinSize = 20,
+} = Astro.props;
+---
+
+<div class="h-screen w-full bg-gray-900 text-white">
+  <PanelGroup direction="horizontal" className="h-full">
+    <Panel defaultSize={leftSize} minSize={leftMinSize}>
+      <slot name="left" />
+    </Panel>
+
+    <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
+
+    <Panel defaultSize={middleSize} minSize={middleMinSize}>
+      <slot name="middle" />
+    </Panel>
+
+    <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-gray-600 transition-colors" />
+
+    <Panel defaultSize={rightSize} minSize={rightMinSize}>
+      <slot name="right" />
+    </Panel>
+  </PanelGroup>
+</div>
+
+<style>
+  :global(body) {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    background-color: rgb(17, 24, 39); /* bg-gray-900 */
+    color: white;
+  }
+</style>

@@ -1,312 +1,139 @@
-# State Management Plan for Astro Todo Application
+# State Management Plan for Astro Content Application
 
 ## Comprehensive State Management Strategy
 
 ### Overview
 This document outlines a content-driven state management approach for our Astro application, focusing on Astro's core principles of static-first, partial hydration, and content collections.
 
-## Architectural Overview
-
-### Core Design Principles
-1. **Unidirectional Data Flow**
-   - Redux as centralized state management
-   - Predictable state transitions
-   - Immutable state updates
-
-2. **Content-Driven Architecture**
-   - Content cards as primary state units
-   - Flexible relationship management
-   - Temporal and hierarchical content modeling
-
-3. **Reactive UI Adaptation**
-   - Theme-based dynamic rendering
-   - Responsive state management
-   - Client-side preference persistence
-
-## State Structure Specification
-
-### Content Management Model
-```typescript
-interface ContentCard {
-  hash: string;           // Unique content identifier
-  content: string;        // Actual content payload
-  createdAt: string;      // ISO timestamp
-  metadata: Record<string, any>;
-  relationships: {
-    parentHash: string | null;
-    childHashes: string[];
-    relatedHashes: string[];
-  };
-}
-```
-
-### Theme State Interface
-```typescript
-interface ThemeState {
-  mode: 'light' | 'dark';
-  preferences: {
-    systemDetection: boolean;
-    persistenceEnabled: boolean;
-  };
-}
-```
-
-## State Transformation Patterns
-
-### Content Mutation Workflow
-```mermaid
-graph TD
-    A[Action Dispatch] --> B{Validate Action}
-    B -->|Valid| C[Generate Content Hash]
-    C --> D[Update Content Relationships]
-    D --> E[Persist to Redux Store]
-    B -->|Invalid| F[Reject Mutation]
-```
-
-### Theme Switching Logic
-```javascript
-const themeReducer = (state, action) => {
-  switch(action.type) {
-    case 'TOGGLE_THEME':
-      const newMode = state.mode === 'light' ? 'dark' : 'light';
-      localStorage.setItem('theme', newMode);
-      return { ...state, mode: newMode };
-    
-    case 'SET_SYSTEM_PREFERENCE':
-      return { 
-        ...state, 
-        preferences: {
-          ...state.preferences,
-          systemDetection: action.payload
-        }
-      };
-  }
-};
-```
-
-## Advanced Features
-
-### Relationship Management
-- **Hierarchical Content**
-  - Support for nested content structures
-  - Bidirectional relationship tracking
-  - Recursive content resolution
-
-### Search and Filtering
-- **Advanced Query Capabilities**
-  - Full-text search across content and metadata
-  - Dynamic filter application
-  - Memoized search result caching
-
-## Performance Optimization Strategies
-
-### State Update Efficiency
-- Minimal re-renders
-- Selective state hydration
-- Memoized selector computations
-
-### Caching Mechanisms
-```typescript
-interface SearchCache {
-  query: string;
-  results: string[];
-  timestamp: number;
-  ttl: number;
-}
-```
-
-## Security Considerations
-
-### State Protection
-- Immutable state updates
-- Action validation middleware
-- Sanitization of user inputs
-
-### Persistence Strategies
-- Encrypted local storage
-- Secure theme preference management
-- Configurable storage mechanisms
-
-## Testing and Validation
-
-### Validation Approaches
-1. **Unit Testing**
-   - Reducer pure function verification
-   - Selector memoization tests
-   - Action creator validation
-
-2. **Integration Testing**
-   - State transition scenarios
-   - Complex relationship mutations
-   - Search and filter workflows
-
-3. **Property-Based Testing**
-   - Generative test cases
-   - State invariant checks
-   - Mutation testing
-
-## Future Roadmap
-
-### Planned Enhancements
-- [ ] Implement advanced caching strategies
-- [ ] Develop comprehensive test suites
-- [ ] Explore server-side state synchronization
-- [ ] Implement more granular permission models
-
-## Metrics and Success Indicators
-
-### Performance Benchmarks
-- State update latency: < 10ms
-- Search response time: < 50ms
-- Bundle size optimization: Continuous reduction
-
-### Architectural Goals
-- 100% immutability
-- Predictable state transitions
-- Minimal cognitive complexity
-- Maximal type safety
-
-## TODO List
+## Implementation Progress
 
 ### Content Collections Management
-- [ ] Implement content collections
-  - [ ] Define collection schemas
-    - Create todo collection schema
-    - Define metadata structure
-    - Implement frontmatter validation
-  - [ ] Content type definitions
-    - Create TypeScript interfaces
-    - Implement Zod schemas
-    - Set up collection config
-  - [ ] Content organization
-    - Establish collection hierarchy
-    - Define content relationships
-    - Set up content routing
+- [x] Implement content collections 
+  - [x] Define collection schemas 
+    - [x] Create content collection schema 
+    - [x] Define metadata structure 
+    - [x] Implement frontmatter validation 
+  - [x] Content type definitions 
+    - [x] Create TypeScript interfaces 
+    - [x] Implement Zod schemas 
+    - [x] Set up collection config 
+  - [x] Content organization 
+    - [x] Establish collection hierarchy 
+    - [x] Define content relationships 
+    - [x] Set up content routing 
 
 ### UI Islands Management
 - [ ] Implement component islands
   - [ ] Hydration strategy
-    - Define client:* directives usage
-    - Implement partial hydration
-    - Optimize component loading
+    - [ ] Define client:* directives usage
+    - [ ] Implement partial hydration
+    - [ ] Optimize component loading
   - [ ] State isolation
-    - Create island-specific stores
-    - Implement state boundaries
-    - Handle cross-island communication
+    - [ ] Create island-specific stores
+    - [ ] Implement state boundaries
+    - [ ] Handle cross-island communication
   - [ ] Performance optimization
-    - Minimize JavaScript payload
-    - Implement progressive enhancement
-    - Optimize hydration strategy
+    - [ ] Minimize JavaScript payload
+    - [ ] Implement progressive enhancement
+    - [ ] Optimize hydration strategy
 
 ### Search System
 - [ ] Implement dedicated search slice
   - [ ] Search state management
     - [ ] Query handling
-      - Create flexible query parsing
-      - Support advanced search syntax
-      - Implement query sanitization
+      - [ ] Create flexible query parsing
+      - [ ] Support advanced search syntax
+      - [ ] Implement query sanitization
     - [ ] Filter management
-      - Develop dynamic filter system
-      - Support multiple filter combinations
-      - Create filter persistence mechanism
+      - [ ] Develop dynamic filter system
+      - [ ] Support multiple filter combinations
+      - [ ] Create filter persistence mechanism
     - [ ] Results caching
-      - Implement intelligent result caching
-      - Create cache invalidation strategies
-      - Optimize memory usage
+      - [ ] Implement intelligent result caching
+      - [ ] Create cache invalidation strategies
+      - [ ] Optimize memory usage
 
   - [ ] Search optimization
     - [ ] Debounced queries
-      - Implement query throttling
-      - Minimize unnecessary API calls
-      - Handle rapid user input
+      - [ ] Implement query throttling
+      - [ ] Minimize unnecessary API calls
+      - [ ] Handle rapid user input
     - [ ] Results pagination
-      - Create efficient pagination mechanism
-      - Support infinite scroll and page-based navigation
-      - Optimize large dataset handling
+      - [ ] Create efficient pagination mechanism
+      - [ ] Support infinite scroll and page-based navigation
+      - [ ] Optimize large dataset handling
     - [ ] Search history
-      - Track and manage user search history
-      - Implement privacy controls
-      - Create personalized search suggestions
+      - [ ] Track and manage user search history
+      - [ ] Implement privacy controls
+      - [ ] Create personalized search suggestions
 
 ### System State
 - [ ] Implement system slice
   - [ ] Action history
     - [ ] Action recording
-      - Create comprehensive action logging
-      - Support undo/redo functionality
-      - Implement action serialization
   - [ ] System status
     - [ ] Error handling
-      - Develop centralized error management
-      - Create user-friendly error reporting
-      - Implement error categorization and severity levels
     - [ ] Loading states
-      - Create global and component-specific loading indicators
-      - Manage asynchronous operation states
-      - Provide clear user feedback
     - [ ] Operation status
-      - Track long-running operations
-      - Implement operation cancellation
-      - Create progress tracking mechanisms
 
 ### Security Implementation
 - [ ] Nano Store Setup
   - [ ] API key management
     - [ ] Secure storage
-      - Implement encryption for sensitive data
-      - Create secure key storage mechanism
-      - Support key rotation and expiration
+      - [ ] Implement encryption for sensitive data
+      - [ ] Create secure key storage mechanism
+      - [ ] Support key rotation and expiration
     - [ ] Key rotation
-      - Develop automated key rotation process
-      - Create key lifecycle management
-      - Implement secure key generation
+      - [ ] Develop automated key rotation process
+      - [ ] Create key lifecycle management
+      - [ ] Implement secure key generation
     - [ ] Access logging
-      - Create comprehensive audit trail
-      - Log key access and modification events
-      - Implement tamper-evident logging
+      - [ ] Create comprehensive audit trail
+      - [ ] Log key access and modification events
+      - [ ] Implement tamper-evident logging
 
   - [ ] Environment configuration
     - [ ] Environment detection
-      - Automatically detect runtime environment
-      - Support multiple environment configurations
-      - Create environment-specific feature flags
+      - [ ] Automatically detect runtime environment
+      - [ ] Support multiple environment configurations
+      - [ ] Create environment-specific feature flags
     - [ ] Config validation
-      - Implement strict configuration validation
-      - Create configuration schema enforcement
-      - Support configuration inheritance
+      - [ ] Implement strict configuration validation
+      - [ ] Create configuration schema enforcement
+      - [ ] Support configuration inheritance
     - [ ] Feature flags
-      - Develop dynamic feature flag system
-      - Create granular feature control
-      - Implement feature flag analytics
+      - [ ] Develop dynamic feature flag system
+      - [ ] Create granular feature control
+      - [ ] Implement feature flag analytics
 
 - [ ] Service Layer Integration
   - [ ] Extract LLM functionality
     - [ ] Service implementation
       - [ ] API client
-        - Create type-safe API communication
-        - Implement robust error handling
-        - Support multiple LLM providers
+        - [ ] Create type-safe API communication
+        - [ ] Implement robust error handling
+        - [ ] Support multiple LLM providers
       - [ ] Request handling
-        - Develop request queuing mechanism
-        - Implement request prioritization
-        - Create request timeout and retry strategies
+        - [ ] Develop request queuing mechanism
+        - [ ] Implement request prioritization
+        - [ ] Create request timeout and retry strategies
       - [ ] Response processing
-        - Implement response parsing and validation
-        - Create response caching
-        - Develop fallback and degradation strategies
+        - [ ] Implement response parsing and validation
+        - [ ] Create response caching
+        - [ ] Develop fallback and degradation strategies
     - [ ] State integration
       - [ ] Event-based updates
-        - Create reactive state update mechanism
-        - Implement event sourcing principles
-        - Support real-time state synchronization
+        - [ ] Create reactive state update mechanism
+        - [ ] Implement event sourcing principles
+        - [ ] Support real-time state synchronization
       - [ ] Status tracking
-        - Develop comprehensive operation tracking
-        - Create granular status reporting
-        - Implement predictive loading indicators
+        - [ ] Develop comprehensive operation tracking
+        - [ ] Create granular status reporting
+        - [ ] Implement predictive loading indicators
       - [ ] Error handling
-        - Create detailed error classification
-        - Implement user-friendly error messages
-        - Develop error recovery mechanisms
+        - [ ] Create detailed error classification
+        - [ ] Implement user-friendly error messages
+        - [ ] Develop error recovery mechanisms
 
 ### Enhanced State Management Strategy
 
@@ -335,8 +162,8 @@ interface SearchCache {
 
 ### Redux Implementation
 ```typescript
-interface TodoState {
-  entities: Record<MCardID, Todo>;
+interface ContentState {
+  entities: Record<MCardID, Content>;
   temporalChain: MCardTimestamp[];
   versionTree: StateVersion[];
   cryptograph: {
@@ -356,18 +183,18 @@ interface StateVersion {
 ### Pure Function Workflow
 1. Action Creators:
    ```javascript
-   const createTodo = (content) => (dispatch) => {
-     const mcard = createMCard({ type: 'TODO', content });
-     dispatch({ type: 'todos/add', payload: mcard });
+   const createContent = (content) => (dispatch) => {
+     const mcard = createMCard({ type: 'CONTENT', content });
+     dispatch({ type: 'content/add', payload: mcard });
      return mcard.id;
    };
    ```
 
 2. Reducer Composition:
    ```javascript
-   const todosReducer = (state = initialState, action) => {
+   const contentReducer = (state = initialState, action) => {
      switch(action.type) {
-       case 'todos/add':
+       case 'content/add':
          return produce(state, draft => {
            draft.entities[action.payload.id] = action.payload;
            draft.temporalChain.push(action.payload.metadata.timestamp);
@@ -391,7 +218,7 @@ interface StateVersion {
 ### Testing Strategy
 1. **Property-Based Testing**
    ```javascript
-   test.prop([genTodoActions()])('state invariants', (action) => {
+   test.prop([genContentActions()])('state invariants', (action) => {
      const state = reducer(initialState, action);
      expect(validateStateShape(state)).toBeTruthy();
      expect(checkTemporalOrder(state)).toBeTruthy();
@@ -408,7 +235,7 @@ interface StateVersion {
    - Lazy state loading
    - Partial hydration directives
    ```astro
-   <TodoList client:visible={threshold: '256kb'} />
+   <ContentList client:visible={threshold: '256kb'} />
    ```
 
 2. **Memoization Strategies**
@@ -499,9 +326,9 @@ interface StateVersion {
 ```typescript
 interface ContentSchema {
   collections: {
-    todos: {
+    content: {
       type: 'content';
-      schema: z.infer<typeof todoSchema>;
+      schema: z.infer<typeof contentSchema>;
     };
     categories: {
       type: 'data';

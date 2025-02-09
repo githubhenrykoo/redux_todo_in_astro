@@ -2,7 +2,8 @@ import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 
-const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel'];
+const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel','DemoLeftPanel','SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel','DemoLeftPanel','SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel','DemoLeftPanel'];
+const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoMainPanel', 'DemoRightPanel','DemoLeftPanel','SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel','DemoLeftPanel'];
 
 interface ResizablePanelProps {
   panelCount?: number;
@@ -68,17 +69,18 @@ const styles = {
     display: 'flex',
     height: '100%',
     width: '100%',
+    backgroundColor: '#1a1a1a',
   },
   panelGroup: {
     width: '100%',
   },
   panel: {
     height: '100%',
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#2d2d2d',
   },
   resizeHandle: {
     width: '4px',
-    backgroundColor: '#ddd',
+    backgroundColor: '#404040',
     cursor: 'col-resize',
   },
   upcomingPanel: {
@@ -87,8 +89,8 @@ const styles = {
     justifyContent: 'center',
     height: '100%',
     padding: '1rem',
-    backgroundColor: '#f5f5f5',
-    color: '#666',
+    backgroundColor: '#2d2d2d',
+    color: '#a0a0a0',
     fontStyle: 'italic',
   },
 };

@@ -124,12 +124,7 @@ export default function ResizablePanel({
               {Array.isArray(config.defaultComponent) ? (
                 renderNestedPanel(config.defaultComponent, config)
               ) : (
-                <DynamicPanel
-                  panelType={config.defaultComponent}
-                  slot={config.id}
-                  sliceName={config.sliceName}
-                  props={{}}
-                />
+                <slot name={config.id} />
               )}
             </Panel>
             {index < panelCount - 1 && (

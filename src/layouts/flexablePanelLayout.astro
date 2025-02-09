@@ -40,19 +40,17 @@ import ResizablePanel from '../components/ResizablePanel';
     <div class="container">
       <div class="app-layout">
         <header class="app-header">
-          <slot name="header">
-            <h1>Three Panel Layout</h1>
-          </slot>
+          <slot name="header" />
         </header>
 
         <main class="app-content">
-          <ResizablePanel client:load />
+          <slot name="content">
+            <ResizablePanel client:load />
+          </slot>
         </main>
 
         <footer class="app-footer">
-          <slot name="footer">
-            <p>&copy; 2025 Panel Layout Demo</p>
-          </slot>
+          <slot name="footer" />
         </footer>
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 
-const DEFAULT_COMPONENTS = ['DemoMainPanel',['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoRightPanel'], 'DemoMainPanel'];
+const DEFAULT_COMPONENTS = ['DemoMainPanel',['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoMainPanel'], 'DemoMainPanel'];
 
 interface ResizablePanelProps {
   panelCount?: number;

@@ -28,43 +28,47 @@ const renderNestedPanel = (
     const defaultSize = 100 / component.length;
     
     return (
-      <PanelGroup 
-        direction={direction} 
-        style={{
-          height: '100%',
-          width: '100%',
-        }}
-      >
-        {component.map((subComponent, subIndex) => (
-          <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
-            <Panel 
-              defaultSize={defaultSize}
-              minSize={10}
-              maxSize={90}
-              style={{
-                ...styles.panel,
-                height: direction === 'horizontal' ? undefined : '100%',
-                width: direction === 'horizontal' ? undefined : '100%',
-              }}
-            >
-              {renderNestedPanel(
-                subComponent,
-                {
-                  ...config,
-                  id: `${config.id}-d${depth}-${subIndex}`,
-                  sliceName: `${config.sliceName}-d${depth}-${subIndex}`,
-                },
-                depth + 1
+      <div style={{ height: '100%', width: '100%', display: 'flex' }}>
+        <PanelGroup 
+          direction={direction} 
+          style={{
+            height: '100%',
+            width: '100%',
+            display: 'flex',
+            flexDirection: direction === 'horizontal' ? 'row' : 'column',
+          }}
+        >
+          {component.map((subComponent, subIndex) => (
+            <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
+              <Panel 
+                defaultSize={defaultSize}
+                minSize={10}
+                maxSize={90}
+                style={{
+                  ...styles.panel,
+                  display: '1',
+                  flexDirection: direction === 'vertical' ? 'column' : 'row',
+                }}
+              >
+                {renderNestedPanel(
+                  subComponent,
+                  {
+                    ...config,
+                    id: `${config.id}-d${depth}-${subIndex}`,
+                    sliceName: `${config.sliceName}-d${depth}-${subIndex}`,
+                  },
+                  depth + 1
+                )}
+              </Panel>
+              {subIndex < component.length - 1 && (
+                <PanelResizeHandle 
+                  style={direction === "horizontal" ? styles.resizeHandle : styles.verticalResizeHandle} 
+                />
               )}
-            </Panel>
-            {subIndex < component.length - 1 && (
-              <PanelResizeHandle 
-                style={direction === "vertical" ? styles.resizeHandle : styles.verticalResizeHandle} 
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </PanelGroup>
+            </React.Fragment>
+          ))}
+        </PanelGroup>
+      </div>
     );
   }
 

@@ -37,6 +37,9 @@ const { leftPanelWidth = '200px', rightPanelWidth = '200px' } = Astro.props;
             <div class="right-panel" style={`width: ${rightPanelWidth};`}>
               <slot name="right" />
             </div>
+            <div class="detail-panel">
+              <slot name="detail" />
+            </div>
           </div>
         </PanelController>
       </div>
@@ -171,6 +174,13 @@ const { leftPanelWidth = '200px', rightPanelWidth = '200px' } = Astro.props;
       border-radius: 4px;
     }
 
+    .detail-panel {
+      flex: 0 0 300px;
+      overflow: auto;
+      border-left: 1px solid #dee2e6;
+      background-color: #ffffff;
+    }
+
     .app-footer {
       flex: 0 0 auto;
       padding: 1rem;
@@ -185,4 +195,4 @@ const { leftPanelWidth = '200px', rightPanelWidth = '200px' } = Astro.props;
     }
   </style>
 </body>
-</html>x
+</html>

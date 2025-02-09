@@ -11,8 +11,10 @@ interface DynamicPanelProps {
 export function DynamicPanel({ panelType, slot, sliceName, props = {} }: DynamicPanelProps) {
   const renderPanel = () => {
     const Component = React.lazy(() => 
-      import(`./panels/${panelType}.jsx`)
-        .catch(() => import(`./panels/${panelType}.tsx`))
+      import(`./panels/${panelType}`)
+        .then(module => ({
+          default: module.default || module[panelType]
+        }))
         .catch(() => {
           throw new Error(`No component found for panel type: ${panelType}`);
         })
@@ -34,7 +36,6 @@ export function DynamicPanel({ panelType, slot, sliceName, props = {} }: Dynamic
         </div>
       }>
         <IslandFactory
-          client:load
           slot={slot}
           component={Component}
           sliceName={sliceName}
@@ -57,7 +58,7 @@ export function DynamicPanel({ panelType, slot, sliceName, props = {} }: Dynamic
         borderRadius: '4px',
         margin: '0.5rem'
       }}>
-        Error loading {panelType}: {error instanceof Error ? error.message : 'Unknown error'}
+        Error rendering panel: {error instanceof Error ? error.message : 'Unknown error'}
       </div>
     );
   }

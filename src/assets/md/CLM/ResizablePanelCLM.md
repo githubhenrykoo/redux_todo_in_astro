@@ -1,6 +1,5 @@
 # ResizablePanel Cubical Logic Model
 
-
 <table width="600">
   <tr>
     <th colspan=6><a href="#abstract-specification">Abstract Specification</a></th>

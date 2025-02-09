@@ -2,13 +2,67 @@ import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 
-const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoMainPanel'];
+const DEFAULT_COMPONENTS = [['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoRightPanel']];
 
 interface ResizablePanelProps {
   panelCount?: number;
   useDefaultContent?: boolean;
 }
 
+interface PanelConfig {
+  id: string;
+  defaultSize: number;
+  minSize: number;
+  maxSize: number;
+  defaultComponent: string | (string | any[])[];
+  sliceName: string;
+}
+
+const renderNestedPanel = (
+  component: string | any[],
+  config: PanelConfig,
+  depth: number = 0
+): JSX.Element => {
+  if (Array.isArray(component)) {
+    const direction = depth % 2 === 0 ? "vertical" : "horizontal";
+    
+    return (
+      <Panel defaultSize={50} style={styles.panel}>
+        <PanelGroup direction={direction} style={styles.panelGroup}>
+          {component.map((subComponent, subIndex) => (
+            <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
+              {renderNestedPanel(
+                subComponent,
+                {
+                  ...config,
+                  id: `${config.id}-d${depth}-${subIndex}`,
+                  sliceName: `${config.sliceName}-d${depth}-${subIndex}`,
+                },
+                depth + 1
+              )}
+              {subIndex < component.length - 1 && (
+                <PanelResizeHandle 
+                  style={direction === "vertical" ? styles.verticalResizeHandle : styles.resizeHandle} 
+                />
+              )}
+            </React.Fragment>
+          ))}
+        </PanelGroup>
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel defaultSize={50} style={styles.panel}>
+      <DynamicPanel
+        panelType={component}
+        slot={config.id}
+        sliceName={config.sliceName}
+        props={{}}
+      />
+    </Panel>
+  );
+};
 
 export default function ResizablePanel({ 
   panelCount = DEFAULT_COMPONENTS.length,
@@ -31,30 +85,40 @@ export default function ResizablePanel({
     }));
   };
 
+  const renderPanel = (config: PanelConfig, index: number) => {
+    return (
+      <Panel
+        defaultSize={config.defaultSize}
+        minSize={config.minSize}
+        maxSize={config.maxSize}
+        style={styles.panel}
+      >
+        {Array.isArray(config.defaultComponent) ? (
+          renderNestedPanel(config.defaultComponent, config)
+        ) : (
+          useDefaultContent ? (
+            <DynamicPanel
+              panelType={config.defaultComponent}
+              slot={config.id}
+              sliceName={config.sliceName}
+              props={{}}
+            />
+          ) : (
+            <div style={styles.upcomingPanel}>
+              <span>Upcoming Panel {index + 1}</span>
+            </div>
+          )
+        )}
+      </Panel>
+    );
+  };
+
   return (
     <div style={styles.panelContainer}>
       <PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
         {generatePanels(panelCount).map((config, index) => (
           <React.Fragment key={config.id}>
-            <Panel
-              defaultSize={config.defaultSize}
-              minSize={config.minSize}
-              maxSize={config.maxSize}
-              style={styles.panel}
-            >
-              {useDefaultContent && DEFAULT_COMPONENTS.includes(config.defaultComponent) ? (
-                <DynamicPanel
-                  panelType={config.defaultComponent}
-                  slot={config.id}
-                  sliceName={config.sliceName}
-                  props={{}}
-                />
-              ) : (
-                <div style={styles.upcomingPanel}>
-                  <span>Upcoming Panel {index + 1}</span>
-                </div>
-              )}
-            </Panel>
+            {renderPanel(config, index)}
             {index < panelCount - 1 && <PanelResizeHandle style={styles.resizeHandle} />}
           </React.Fragment>
         ))}
@@ -91,5 +155,10 @@ const styles = {
     backgroundColor: '#2d2d2d',
     color: '#a0a0a0',
     fontStyle: 'italic',
+  },
+  verticalResizeHandle: {
+    height: '4px',
+    backgroundColor: '#404040',
+    cursor: 'row-resize',
   },
 };

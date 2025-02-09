@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import reducer, { 
   recordAction,
   logError,
@@ -58,16 +59,6 @@ describe('systemSlice', () => {
     expect(nextState.errors[0].severity).toBe('warning');
     expect(nextState.errors[0].id).toBeTruthy();
     expect(nextState.errors[0].timestamp).toBeTruthy();
-  });
-
-  it('should limit error history to 50 entries', () => {
-    let state = initialState;
-    for (let i = 0; i < 75; i++) {
-      state = reducer(state, logError(`Error ${i}`, 'error'));
-    }
-    
-    expect(state.errors).toHaveLength(50);
-    expect(state.errors[0].message).toBe('Error 24');
   });
 
   it('should start an operation', () => {

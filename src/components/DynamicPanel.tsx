@@ -10,14 +10,20 @@ interface DynamicPanelProps {
 
 export function DynamicPanel({ panelType, slot, sliceName, props = {} }: DynamicPanelProps) {
   const renderPanel = () => {
+    // Try both .tsx and .jsx extensions
     const Component = React.lazy(() => 
-      import(`./panels/${panelType}`)
-        .then(module => ({
+      // @ts-ignore
+      /* @vite-ignore */
+      Promise.any([
+        import(`./panels/${panelType}.tsx`).then(module => ({
+          default: module.default || module[panelType]
+        })),
+        import(`./panels/${panelType}.jsx`).then(module => ({
           default: module.default || module[panelType]
         }))
-        .catch(() => {
-          throw new Error(`No component found for panel type: ${panelType}`);
-        })
+      ]).catch(() => {
+        throw new Error(`No component found for panel type: ${panelType}`);
+      })
     );
 
     return (
@@ -49,6 +55,7 @@ export function DynamicPanel({ panelType, slot, sliceName, props = {} }: Dynamic
   try {
     return renderPanel();
   } catch (error) {
+    console.error(`Error rendering panel ${panelType}:`, error);
     return (
       <div style={{ 
         padding: '1rem', 

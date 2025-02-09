@@ -22,7 +22,7 @@ const renderNestedPanel = (
   component: string | any[],
   config: PanelConfig,
   depth: number = 0
-): JSX.Element => {
+): React.ReactElement => {
   if (Array.isArray(component)) {
     const direction = depth % 2 === 0 ? "vertical" : "horizontal";
     

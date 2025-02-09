@@ -1,0 +1,15 @@
+---
+import ReactResiableSlot from '../components/ReactResiableSlot.jsx';
+---
+
+<ReactResiableSlot client:load>
+    <div slot="left">
+        <slot name="left" />
+    </div>
+    <div slot="middle">
+        <slot name="middle" />
+    </div>
+    <div slot="right">
+        <slot name="right" />
+    </div>
+</ReactResiableSlot>

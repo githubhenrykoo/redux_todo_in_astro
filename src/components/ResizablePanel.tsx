@@ -1,8 +1,8 @@
-import React, { Suspense } from 'react';
+import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 
-const DEFAULT_COMPONENTS = ['DemoMainPanel',['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoMainPanel'], 'DemoMainPanel'];
+const DEFAULT_COMPONENTS = ['DemoMainPanel',['SearchAndTodos',['DemoLeftPanel', 'DemoRightPanel'], ['DemoRightPanel', 'DemoRightPanel'],'DemoRightPanel'], 'DemoRightPanel'];
 
 interface ResizablePanelProps {
   panelCount?: number;
@@ -25,62 +25,56 @@ const renderNestedPanel = (
 ): React.ReactElement => {
   if (Array.isArray(component)) {
     const direction = depth % 2 === 0 ? "vertical" : "horizontal";
+    const defaultSize = 100 / component.length;
     
     return (
-      <Suspense fallback={
-        <div style={{ 
-          padding: '1rem',
-          backgroundColor: '#2d2d2d',
+      <PanelGroup 
+        direction={direction} 
+        style={{
           height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          Loading nested panels...
-        </div>
-      }>
-        <Panel defaultSize={50} style={styles.panel}>
-          <PanelGroup 
-            direction={direction} 
-            style={styles.panelGroup}
-            autoSaveId={`nested-group-${config.id}-${depth}`}
-          >
-            {component.map((subComponent, subIndex) => (
-              <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
-                {renderNestedPanel(
-                  subComponent,
-                  {
-                    ...config,
-                    id: `${config.id}-d${depth}-${subIndex}`,
-                    sliceName: `${config.sliceName}-d${depth}-${subIndex}`,
-                  },
-                  depth + 1
-                )}
-                {subIndex < component.length - 1 && (
-                  <PanelResizeHandle 
-                    style={direction === "vertical" ? styles.verticalResizeHandle : styles.resizeHandle} 
-                  />
-                )}
-              </React.Fragment>
-            ))}
-          </PanelGroup>
-        </Panel>
-      </Suspense>
+          width: '100%',
+        }}
+      >
+        {component.map((subComponent, subIndex) => (
+          <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
+            <Panel 
+              defaultSize={defaultSize}
+              minSize={10}
+              maxSize={90}
+              style={{
+                ...styles.panel,
+                height: direction === 'horizontal' ? undefined : '100%',
+                width: direction === 'horizontal' ? undefined : '100%',
+              }}
+            >
+              {renderNestedPanel(
+                subComponent,
+                {
+                  ...config,
+                  id: `${config.id}-d${depth}-${subIndex}`,
+                  sliceName: `${config.sliceName}-d${depth}-${subIndex}`,
+                },
+                depth + 1
+              )}
+            </Panel>
+            {subIndex < component.length - 1 && (
+              <PanelResizeHandle 
+                style={direction === "vertical" ? styles.resizeHandle : styles.verticalResizeHandle} 
+              />
+            )}
+          </React.Fragment>
+        ))}
+      </PanelGroup>
     );
   }
 
   return (
-    <Panel defaultSize={50} style={styles.panel}>
-      <DynamicPanel
-        panelType={component}
-        slot={config.id}
-        sliceName={`${config.sliceName}-panel`}
-        props={{
-          panelId: config.id,
-          depth: depth
-        }}
-      />
-    </Panel>
+    <DynamicPanel
+      panelType={component}
+      slot={config.id}
+      sliceName={config.sliceName}
+      props={{}}
+    />
   );
 };
 
@@ -105,41 +99,38 @@ export default function ResizablePanel({
     }));
   };
 
-  const renderPanel = (config: PanelConfig, index: number) => {
-    return (
-      <Panel
-        defaultSize={config.defaultSize}
-        minSize={config.minSize}
-        maxSize={config.maxSize}
-        style={styles.panel}
-      >
-        {Array.isArray(config.defaultComponent) ? (
-          renderNestedPanel(config.defaultComponent, config)
-        ) : (
-          useDefaultContent ? (
-            <DynamicPanel
-              panelType={config.defaultComponent}
-              slot={config.id}
-              sliceName={config.sliceName}
-              props={{}}
-            />
-          ) : (
-            <div style={styles.upcomingPanel}>
-              <span>Upcoming Panel {index + 1}</span>
-            </div>
-          )
-        )}
-      </Panel>
-    );
-  };
-
   return (
     <div style={styles.panelContainer}>
-      <PanelGroup direction="horizontal" onLayout={onLayout} style={styles.panelGroup}>
+      <PanelGroup 
+        direction="horizontal" 
+        onLayout={onLayout}
+        style={{
+          height: '100%',
+          width: '100%',
+        }}
+      >
         {generatePanels(panelCount).map((config, index) => (
           <React.Fragment key={config.id}>
-            {renderPanel(config, index)}
-            {index < panelCount - 1 && <PanelResizeHandle style={styles.resizeHandle} />}
+            <Panel 
+              defaultSize={config.defaultSize}
+              minSize={config.minSize}
+              maxSize={config.maxSize}
+              style={styles.panel}
+            >
+              {Array.isArray(config.defaultComponent) ? (
+                renderNestedPanel(config.defaultComponent, config)
+              ) : (
+                <DynamicPanel
+                  panelType={config.defaultComponent}
+                  slot={config.id}
+                  sliceName={config.sliceName}
+                  props={{}}
+                />
+              )}
+            </Panel>
+            {index < panelCount - 1 && (
+              <PanelResizeHandle style={styles.resizeHandle} />
+            )}
           </React.Fragment>
         ))}
       </PanelGroup>
@@ -156,15 +147,22 @@ const styles = {
   },
   panelGroup: {
     width: '100%',
+    height: '100%',
+    display: 'flex',
   },
   panel: {
-    height: '100%',
     backgroundColor: '#2d2d2d',
+    overflow: 'hidden',
+    height: '100%',
+    width: '100%',
   },
   resizeHandle: {
     width: '4px',
     backgroundColor: '#404040',
     cursor: 'col-resize',
+    '&:hover': {
+      backgroundColor: '#666',
+    },
   },
   upcomingPanel: {
     display: 'flex',
@@ -180,5 +178,8 @@ const styles = {
     height: '4px',
     backgroundColor: '#404040',
     cursor: 'row-resize',
+    '&:hover': {
+      backgroundColor: '#666',
+    },
   },
 };

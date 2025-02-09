@@ -5,15 +5,36 @@
 This project implements a data-driven, functionally pure framework for an AI-powered [Progressive Knowledge Container](./Personal%20Knowledge%20Container.md) (PKC), built on the foundational principle of Single Source of Truth (SSoT). By adopting the Flux architectural pattern, the system ensures that all state changes flow unidirectionally through version-controlled data structures, creating a reliable foundation for machine learning workflows. Built as a Progressive Web App (PWA) using JavaScript and WASM, it minimizes hand-written code in favor of version-controlled data structures that define not only system behavior, but also the functionality and configurations of user interfaces. The framework serves as a thin orchestration layer that composes pure functions based on declarative configurations, connecting external data stores (LLMs, SQLite, IndexedDB) with a browser-based interface. At its core, the system creates a self-improving workflow that iteratively refines both its knowledge base and operational patterns through structured data management, with each iteration maintaining SSoT through Flux's predictable state mutations. By encoding complex behaviors, user interface configurations, and functionality in data rather than code, the system can learn and evolve its own workflows while maintaining functional simplicity and predictability, all while ensuring data consistency through version-controlled state management.
 
 Key Design Principles:
-- Functional purity and data-driven development to minimize code complexity
-  - Business logic and behaviors defined through version-controlled data structures
-  - Minimize hand-written functions in favor of data-configured operations
-  - Complex operations composed from simple, pure functions
-- Minimal core codebase focused on data orchestration and [Agentic Workflow](./AgenticWorkflowDesign.md) management
-- External data storage for all substantial content (LLMs, SQLite, IndexedDB)
-- Dynamic loading of functionality through declarative data module definitions
-- JavaScript/WASM implementation for cross-platform compatibility (see [Deno](https://deno.com/))
-- Browser-based interface for universal accessibility
+
+Progressive Knowledge Container (PKC) is designed as a distributed data origination system, built on three foundational pillars mapped to modern software frameworks and hardware platforms:
+
+1. **Task Scheduling and Execution (State Management)**
+   - Redux/RTK for predictable state transitions
+   - Functional purity in data transformations
+   - Agentic workflow orchestration via [Agentic Workflow](./AgenticWorkflowDesign.md)
+   - Dynamic module loading through declarative definitions
+   - Cross-platform JavaScript/WASM runtime ([Deno](https://deno.com/))
+
+2. **Data Storage and Retrieval**
+   - Distributed content storage (SQLite, IndexedDB, IPFS)
+   - Content-addressable data structures
+   - CRDT-based conflict resolution
+   - Version-controlled data schemas
+   - Pluggable storage backends
+
+3. **Networking and Communication**
+   - tRPC for type-safe API communication
+   - libP2P for peer-to-peer data exchange
+   - Progressive Web App capabilities
+   - Browser-based universal access
+   - Federation protocol support
+
+Implementation Strategy:
+- Minimize core codebase, focus on data orchestration
+- Configure complex operations through data structures
+- Compose functionality from pure, simple functions
+- Enable cross-platform deployment
+- Support distributed data ownership
 
 At its core, the system coordinates with external services and data stores to:
 - Leverage Large Language Models (LLMs) for natural language processing

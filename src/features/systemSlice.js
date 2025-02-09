@@ -39,7 +39,7 @@ const initialState = {
   errors: [],
   operations: {},
   systemStatus: {
-    isOnline: navigator?.onLine ?? true,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
     lastChecked: Date.now()
   }
 };

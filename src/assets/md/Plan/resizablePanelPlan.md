@@ -2,8 +2,8 @@
 
 ## Overview
 
-This implementation provides a flexible three-panel system using `react-resizable-panels` for robust resizing capabilities, combined with Astro's Islands architecture for component hydration. The system is built on four main components:
-1. A React-based resizable panel component
+This implementation provides a flexible nested panel system using `react-resizable-panels` for robust resizing capabilities, combined with Astro's Islands architecture for component hydration. The system is built on four main components:
+1. A React-based resizable panel component with nested panel support
 2. A dynamic panel loader for flexible component management
 3. An Astro layout for the overall page structure
 4. Island-based component hydration for optimal performance
@@ -17,32 +17,25 @@ interface ResizablePanelProps {
   useDefaultContent?: boolean;
 }
 
-const DEFAULT_COMPONENTS = ['SearchAndTodos', 'DemoMainPanel', 'DemoRightPanel'];
+const DEFAULT_COMPONENTS = [
+  'DemoMainPanel',
+  ['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel']],
+  'DemoMainPanel'
+];
 
-export default function ResizablePanel({ 
-  panelCount = DEFAULT_COMPONENTS.length,
-  useDefaultContent = true,
-}: ResizablePanelProps) {
-  const onLayout = (sizes: number[]) => {
-    console.log('Layout changed:', sizes);
-  };
-
-  const generatePanels = (count: number) => {
-    const defaultSize = Math.floor(100 / count);
-    
-    return Array(count).fill(0).map((_, index) => ({
-      id: `panel-${index + 1}`,
-      defaultSize: defaultSize,
-      minSize: 10,
-      maxSize: 90,
-      defaultComponent: DEFAULT_COMPONENTS[index] || `Panel${index + 1}`,
-      sliceName: `panel-${index + 1}`,
-    }));
-  };
+interface PanelConfig {
+  id: string;
+  defaultSize: number;
+  minSize: number;
+  maxSize: number;
+  defaultComponent: string | (string | any[])[];
+  sliceName: string;
 }
 ```
 
 Key features:
+- Nested panel configuration system
+- Alternating vertical/horizontal layout based on depth
 - Configuration-driven panel system
 - Built on react-resizable-panels for reliable resizing
 - Dynamic component loading through DynamicPanel

@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 
-const DEFAULT_COMPONENTS = [['DemoMainPanel', 'DemoLeftPanel'],['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoRightPanel']];
+const DEFAULT_COMPONENTS = ['DemoMainPanel',['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoMainPanel'], 'DemoMainPanel'];
 
 interface ResizablePanelProps {
   panelCount?: number;
@@ -27,28 +27,45 @@ const renderNestedPanel = (
     const direction = depth % 2 === 0 ? "vertical" : "horizontal";
     
     return (
-      <Panel defaultSize={50} style={styles.panel}>
-        <PanelGroup direction={direction} style={styles.panelGroup}>
-          {component.map((subComponent, subIndex) => (
-            <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
-              {renderNestedPanel(
-                subComponent,
-                {
-                  ...config,
-                  id: `${config.id}-d${depth}-${subIndex}`,
-                  sliceName: `${config.sliceName}-d${depth}-${subIndex}`,
-                },
-                depth + 1
-              )}
-              {subIndex < component.length - 1 && (
-                <PanelResizeHandle 
-                  style={direction === "vertical" ? styles.verticalResizeHandle : styles.resizeHandle} 
-                />
-              )}
-            </React.Fragment>
-          ))}
-        </PanelGroup>
-      </Panel>
+      <Suspense fallback={
+        <div style={{ 
+          padding: '1rem',
+          backgroundColor: '#2d2d2d',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          Loading nested panels...
+        </div>
+      }>
+        <Panel defaultSize={50} style={styles.panel}>
+          <PanelGroup 
+            direction={direction} 
+            style={styles.panelGroup}
+            autoSaveId={`nested-group-${config.id}-${depth}`}
+          >
+            {component.map((subComponent, subIndex) => (
+              <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
+                {renderNestedPanel(
+                  subComponent,
+                  {
+                    ...config,
+                    id: `${config.id}-d${depth}-${subIndex}`,
+                    sliceName: `${config.sliceName}-d${depth}-${subIndex}`,
+                  },
+                  depth + 1
+                )}
+                {subIndex < component.length - 1 && (
+                  <PanelResizeHandle 
+                    style={direction === "vertical" ? styles.verticalResizeHandle : styles.resizeHandle} 
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </PanelGroup>
+        </Panel>
+      </Suspense>
     );
   }
 
@@ -57,8 +74,11 @@ const renderNestedPanel = (
       <DynamicPanel
         panelType={component}
         slot={config.id}
-        sliceName={config.sliceName}
-        props={{}}
+        sliceName={`${config.sliceName}-panel`}
+        props={{
+          panelId: config.id,
+          depth: depth
+        }}
       />
     </Panel>
   );

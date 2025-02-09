@@ -10,18 +10,19 @@ interface DynamicPanelProps {
 
 export function DynamicPanel({ panelType, slot, sliceName, props = {} }: DynamicPanelProps) {
   const renderPanel = () => {
-    // Try both .tsx and .jsx extensions
     const Component = React.lazy(() => 
-      // @ts-ignore
-      /* @vite-ignore */
+      // Try both .tsx and .jsx extensions
       Promise.any([
-        import(`./panels/${panelType}.tsx`).then(module => ({
-          default: module.default || module[panelType]
-        })),
-        import(`./panels/${panelType}.jsx`).then(module => ({
-          default: module.default || module[panelType]
-        }))
-      ]).catch(() => {
+        import(`./panels/${panelType}.tsx`).then(module => {
+          console.log(`Successfully loaded .tsx component for: ${panelType}`);
+          return { default: module.default || module[panelType] };
+        }),
+        import(`./panels/${panelType}.jsx`).then(module => {
+          console.log(`Successfully loaded .jsx component for: ${panelType}`);
+          return { default: module.default || module[panelType] };
+        })
+      ]).catch((error) => {
+        console.error(`Failed to load component for panel type: ${panelType}`, error);
         throw new Error(`No component found for panel type: ${panelType}`);
       })
     );

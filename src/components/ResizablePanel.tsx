@@ -2,7 +2,7 @@ import React from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 
-const DEFAULT_COMPONENTS = [['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoRightPanel']];
+const DEFAULT_COMPONENTS = [['DemoMainPanel', 'DemoLeftPanel'],['SearchAndTodos',['DemoMainPanel', 'DemoLeftPanel'], 'DemoRightPanel']];
 
 interface ResizablePanelProps {
   panelCount?: number;

@@ -19,7 +19,7 @@
   <tr>
     <th colspan=1><a href="#success-criteria">Success Criteria</a></th>
     <td colspan=5 style="word-wrap: break-word;">
-      Smooth panel resizing at 60 FPS. Correct nested layout rendering. Efficient component mounting. Proper size constraints (10-90%). Reliable slot management. Responsive user interactions.
+      Smooth panel resizing. Correct nested layout rendering. Efficient component mounting. Proper size constraints (10-90%). Reliable slot management. Responsive user interactions.
     </td>
   </tr>
   

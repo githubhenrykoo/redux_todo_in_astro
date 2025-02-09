@@ -1,23 +1,5 @@
 ---
 import ResizablePanel from '../components/ResizablePanel';
-
-interface Props {
-  leftPanelType?: string;
-  mainPanelType?: string;
-  rightPanelType?: string;
-  leftProps?: Record<string, any>;
-  mainProps?: Record<string, any>;
-  rightProps?: Record<string, any>;
-}
-
-const {
-  leftPanelType = "DemoLeftPanel",
-  mainPanelType = "DemoMainPanel",
-  rightPanelType = "DemoRightPanel",
-  leftProps = {},
-  mainProps = {},
-  rightProps = {}
-} = Astro.props;
 ---
 
 <html lang="en">
@@ -64,15 +46,7 @@ const {
         </header>
 
         <main class="app-content">
-          <ResizablePanel
-            client:load
-            leftPanelType={leftPanelType}
-            mainPanelType={mainPanelType}
-            rightPanelType={rightPanelType}
-            leftProps={leftProps}
-            mainProps={mainProps}
-            rightProps={rightProps}
-          />
+          <ResizablePanel client:load />
         </main>
 
         <footer class="app-footer">

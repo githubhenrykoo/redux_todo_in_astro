@@ -2,7 +2,6 @@
 import ResizablePanel from '../components/ResizablePanel';
 import ResizablePanelLayout from '../layouts/flexablePanelLayout.astro';
 
-
 ---
 
 <ResizablePanelLayout>  
@@ -10,12 +9,15 @@ import ResizablePanelLayout from '../layouts/flexablePanelLayout.astro';
   <ResizablePanel client:only="react" useDefaultContent={true} />
 
   <!-- Example 2: Using custom content -->
-  <!--
   <ResizablePanel 
     client:only="react"
     useDefaultContent={false}
-    leftPanel={leftPanelContent}
-    mainPanel={mainPanelContent}
-  />
-  -->
+  >
+    <div slot="leftPanel">
+      <!-- left panel content -->
+    </div>
+    <div slot="mainPanel">
+      <!-- main panel content -->
+    </div>
+  </ResizablePanel>
 </ResizablePanelLayout>

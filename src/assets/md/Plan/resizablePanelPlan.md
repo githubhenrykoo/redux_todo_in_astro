@@ -2,12 +2,13 @@
 
 ## Overview
 
-Current implementation provides a nested panel system using `react-resizable-panels` with alternating vertical/horizontal layouts. The system consists of:
+Current implementation provides a nested panel system using `react-resizable-panels` with alternating vertical/horizontal layouts, integrated with Astro's Island Architecture. The system consists of:
 1. A React-based resizable panel component with recursive nested panel support
-2. Dynamic panel loading through DynamicPanel component
+2. Dynamic panel loading through DynamicPanel and Island Factory
 3. Configurable panel sizes and constraints
 4. Alternating panel orientations based on depth
 5. Independent resize handles for nested panels
+6. Slot-based component rendering
 
 ## 1. Core Components
 
@@ -45,8 +46,50 @@ Key features:
 - Configurable resize constraints
 - Flexible component loading
 - **Dynamic panel count based on `panelCount` and `DEFAULT_COMPONENTS`**
+- Integration with Island Factory
+- Slot-based component rendering
 
-### 1.2 DynamicPanel Component (DynamicPanel.tsx)
+### 1.2 Island Factory Integration
+```typescript
+export const islands = {
+  'DemoMainPanel': () => import('./panels/DemoMainPanel'),
+  'SearchAndTodos': () => import('./panels/SearchAndTodos'),
+  'DemoLeftPanel': () => import('./panels/DemoLeftPanel'),
+  'DemoRightPanel': () => import('./panels/DemoRightPanel'),
+};
+
+// Usage in DynamicPanel
+const Component = await islands[panelType]();
+```
+key features:
+- Lazy loading of panel components
+- Isolated component hydration
+- Optimized client-side JavaScript
+- Component-level partial hydration
+
+interface SlotConfig {
+  id: string;
+  sliceName: string;
+  props: Record<string, any>;
+}
+
+### 1.3 Slot System
+```typescript
+// Usage in DynamicPanel
+<Component 
+  slot={config.id}
+  sliceName={config.sliceName}
+  {...props}
+/>
+```
+Key features:
+- Named slot support
+- Dynamic slot assignment
+- Prop passing through slots
+- Slot-based state management
+
+### 1.4 DynamicPanel Component 
+DynamicPanel Component
 ```typescript
 interface DynamicPanelProps {
   panelType: string;
@@ -63,7 +106,7 @@ Key features:
 - Loading state management
 - Error boundary protection
 
-### .3 Styling System
+### 1.5 Styling System
 ```typescript
 const styles = {
   panelContainer: {

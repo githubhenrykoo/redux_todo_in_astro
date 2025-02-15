@@ -1,0 +1,10 @@
+---
+import urlResizablePanel from '../components/urlResizablePanel';
+import ResizablePanelLayout from '../layouts/flexablePanelLayout.astro';
+
+---
+
+<ResizablePanelLayout>  
+  <!-- Example 1: Using default content -->
+  <urlResizablePanel client:only="react" useDefaultContent={true} />
+</ResizablePanelLayout>

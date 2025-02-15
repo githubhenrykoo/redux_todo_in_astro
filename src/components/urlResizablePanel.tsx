@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 interface UrlResizablePanelProps {
-  url: string;
+  urls: string[];
 }
 
-export default function UrlResizablePanel({ url }: UrlResizablePanelProps) {
-  const [iframeError, setIframeError] = useState(false);
-
+export default function UrlResizablePanel({ urls }: UrlResizablePanelProps) {
   // Function to handle different URL types
   const processUrl = (inputUrl: string) => {
     // YouTube watch URL to embed URL
@@ -21,43 +19,47 @@ export default function UrlResizablePanel({ url }: UrlResizablePanelProps) {
     return inputUrl;
   };
 
-  const processedUrl = processUrl(url);
+  // Render a single iframe with error handling
+  const renderIframe = (url: string, isLast: boolean) => {
+    const [iframeError, setIframeError] = useState(false);
+    const processedUrl = processUrl(url);
 
-  const handleIframeError = () => {
-    setIframeError(true);
-  };
+    const handleIframeError = () => {
+      setIframeError(true);
+    };
 
-  if (iframeError) {
-    return (
-      <div style={styles.errorContainer}>
-        <p>Unable to embed the website directly.</p>
-        <div style={styles.buttonContainer}>
-          <a 
-            href={url} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            style={styles.link}
-          >
-            Open in New Tab
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={styles.panelContainer}>
-      <PanelGroup 
-        direction="horizontal"
-        style={{
-          height: '100%',
-          width: '100%',
-        }}
-      >
+    if (iframeError) {
+      return (
         <Panel 
-          defaultSize={100}
+          key={url}
+          defaultSize={100 / urls.length}
           minSize={10}
-          maxSize={100}
+          maxSize={90}
+          style={styles.panel}
+        >
+          <div style={styles.errorContainer}>
+            <p>Unable to embed the website directly.</p>
+            <div style={styles.buttonContainer}>
+              <a 
+                href={url} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={styles.link}
+              >
+                Open in New Tab
+              </a>
+            </div>
+          </div>
+        </Panel>
+      );
+    }
+
+    return (
+      <React.Fragment key={url}>
+        <Panel 
+          defaultSize={100 / urls.length}
+          minSize={10}
+          maxSize={90}
           style={styles.panel}
         >
           <iframe 
@@ -71,6 +73,27 @@ export default function UrlResizablePanel({ url }: UrlResizablePanelProps) {
             onError={handleIframeError}
           />
         </Panel>
+        {!isLast && (
+          <PanelResizeHandle 
+            style={styles.resizeHandle} 
+          />
+        )}
+      </React.Fragment>
+    );
+  };
+
+  return (
+    <div style={styles.panelContainer}>
+      <PanelGroup 
+        direction="horizontal"
+        style={{
+          height: '100%',
+          width: '100%',
+        }}
+      >
+        {urls.map((url, index) => 
+          renderIframe(url, index === urls.length - 1)
+        )}
       </PanelGroup>
     </div>
   );
@@ -112,5 +135,10 @@ const styles = {
     padding: '10px',
     backgroundColor: '#3a3a3a',
     borderRadius: '5px',
+  },
+  resizeHandle: {
+    width: '4px',
+    backgroundColor: '#404040',
+    cursor: 'col-resize',
   },
 };

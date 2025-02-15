@@ -5,11 +5,20 @@ import UrlResizablePanel from '../components/urlResizablePanel';
 <div style="height: 100vh; width: 100vw;">
   <UrlResizablePanel 
     urls={[
-      "https://www.youtube.com/watch?v=1WWweyBaWZk&ab_channel=GoingHeadlesswithJohn",
-      "https://openlibrary.org/",
-      "https://www.britannica.com/",
-      "https://www.britannica.com/",
-    ]} 
+      "https://www.youtube.com/watch?v=1WWweyBaWZk",
+      [
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "https://www.youtube.com/watch?v=oHg5SJYRHA0"
+      ],
+      [
+        "https://en.wikipedia.org/wiki/Library",
+        [
+          "https://en.wikipedia.org/wiki/Open_Library",
+          "https://en.wikipedia.org/wiki/Digital_library"
+        ]
+      ]
+    ]}
+    direction="horizontal"
     client:load 
   />
 </div>

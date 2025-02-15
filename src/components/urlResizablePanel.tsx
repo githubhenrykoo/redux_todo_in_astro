@@ -1,7 +1,11 @@
-import React, { useState, CSSProperties } from 'react';
+import React, { useState } from 'react';
+import type { CSSProperties } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-type UrlConfig = string | string[] | (string | string[])[];
+type UrlConfig = 
+  | string 
+  | string[] 
+  | (string | string[] | (string | string[])[])[];
 
 interface UrlResizablePanelProps {
   urls?: UrlConfig;

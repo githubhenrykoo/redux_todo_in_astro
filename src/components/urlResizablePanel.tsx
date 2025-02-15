@@ -17,11 +17,6 @@ export default function UrlResizablePanel({ url }: UrlResizablePanelProps) {
     if (youtubeWatchMatch && youtubeWatchMatch[1]) {
       return `https://www.youtube.com/embed/${youtubeWatchMatch[1]}`;
     }
-
-    // Special handling for MDN
-    if (inputUrl.includes('developer.mozilla.org')) {
-      return 'https://developer.mozilla.org/en-US/docs/Web';
-    }
     
     return inputUrl;
   };
@@ -45,16 +40,6 @@ export default function UrlResizablePanel({ url }: UrlResizablePanelProps) {
           >
             Open in New Tab
           </a>
-          {url.includes('developer.mozilla.org') && (
-            <a 
-              href="https://developer.mozilla.org/en-US/docs/Web" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              style={styles.link}
-            >
-              MDN Web Docs Home
-            </a>
-          )}
         </div>
       </div>
     );

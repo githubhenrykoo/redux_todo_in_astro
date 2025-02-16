@@ -1,5 +1,4 @@
 import { createSlice } from "@reduxjs/toolkit";
-import resizeableConfig from "./resizeable.json";
 
 const initialState = {
   currentLayout: 'default'
@@ -12,8 +11,8 @@ const resizeableSlice = createSlice({
     changeLayout: (state, action) => {
       const layoutName = action.payload;
       
-      // Validate layout exists
-      state.currentLayout = state.layouts[layoutName] ? layoutName : 'default';
+      // Always set to the provided layout or default
+      state.currentLayout = layoutName || 'default';
     }
   },
 });

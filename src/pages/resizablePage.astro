@@ -7,8 +7,9 @@ import ResizablePanelLayout from '../layouts/flexablePanelLayout.astro';
 <ResizablePanelLayout>  
   <!-- Example 1: Using default content -->
   <ResizablePanel 
-  client:only="react" 
-  useDefaultContent={true} 
-  layout="minimal"
-/>
+    slot="panel"
+    client:only="react" 
+    useDefaultContent={true} 
+    layout="expanded"
+  />
 </ResizablePanelLayout>

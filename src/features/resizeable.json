@@ -1,28 +1,30 @@
 {
-  "default": {
-    "components": [
-      "DemoMainPanel",
-      ["SearchAndTodos", ["DemoRightPanel", "DemoRightPanel"], "DemoRightPanel"], 
-      "DemoRightPanel"
-    ]
-  },
-  "compact": {
-    "components": [
-      "DemoLeftPanel",
-      "SearchAndTodos",
-      "DemoRightPanel"
-    ]
-  },
-  "expanded": {
-    "components": [
-      "DemoMainPanel",
-      ["SearchAndTodos", ["DemoLeftPanel", "DemoRightPanel"], "DemoRightPanel"],
-      "ContentDetailPanel"
-    ]
-  },
-  "minimal": {
-    "components": [
-      "SearchAndTodos"
-    ]
+  "layouts": {
+    "default": {
+      "components": [
+        "DemoMainPanel",
+        ["SearchAndTodos", ["DemoRightPanel", "DemoRightPanel"], "DemoRightPanel"], 
+        "DemoRightPanel"
+      ]
+    },
+    "compact": {
+      "components": [
+        "DemoLeftPanel",
+        "SearchAndTodos",
+        "DemoRightPanel"
+      ]
+    },
+    "expanded": {
+      "components": [
+        "DemoMainPanel",
+        ["SearchAndTodos", ["DemoLeftPanel", "DemoRightPanel"], "DemoRightPanel"],
+        "SearchAndTodos"
+      ]
+    },
+    "minimal": {
+      "components": [
+        "SearchAndTodos"
+      ]
+    }
   }
 }

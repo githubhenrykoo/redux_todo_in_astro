@@ -1,8 +1,10 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { Provider } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 import resizeableConfig from '../features/resizeable.json';
+import { store } from '../store';
 
 interface PanelConfig {
   id: string;
@@ -185,6 +187,14 @@ export default function ResizablePanel({
         ))}
       </PanelGroup>
     </div>
+  );
+}
+
+export function ProviderWrappedResizablePanel(props: ResizablePanelProps) {
+  return (
+    <Provider store={store}>
+      <ResizablePanel {...props} />
+    </Provider>
   );
 }
 

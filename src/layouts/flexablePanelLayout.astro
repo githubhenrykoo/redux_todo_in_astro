@@ -1,10 +1,10 @@
 ---
 import '../styles/globals.css';
-import JsonSidebar from '../components/jsonSidebar.astro';
+import JsonSidebar from '../components/JsonSidebar';
 import ResizablePanel from '../components/ResizablePanel';
 import { store } from '../store';
 
-const initialLayout = store.getState().resizeable?.currentLayout || 'default';
+const initialLayout = store.getState().resizeable.currentLayout || 'default';
 ---
 
 <html lang="en">
@@ -42,11 +42,11 @@ const initialLayout = store.getState().resizeable?.currentLayout || 'default';
   <body>
     <div class="app-container">
       <div class="sidebar-container">
-        <JsonSidebar />
+        <JsonSidebar client:load />
       </div>
       <div class="main-content" id="panel-container">
         <ResizablePanel 
-          client:only="react"
+          client:load
           useDefaultContent={true}
         />
       </div>

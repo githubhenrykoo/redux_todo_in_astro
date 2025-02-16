@@ -4,7 +4,7 @@
       "components": [
         "DemoMainPanel",
         ["SearchAndTodos", ["DemoRightPanel", "DemoRightPanel"], "DemoRightPanel"], 
-        "DemoRightPanel"
+        "GeneratePanel"
       ]
     },
     "compact": {
@@ -17,8 +17,8 @@
     "expanded": {
       "components": [
         "DemoMainPanel",
-        ["SearchAndTodos", ["DemoLeftPanel", "DemoRightPanel"], "DemoRightPanel"],
-        "ItemDetailPanel"
+        ["SearchAndTodos", "DemoRightPanel"],
+        "SearchAndTodos"
       ]
     },
     "minimal": {

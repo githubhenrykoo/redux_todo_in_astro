@@ -1,14 +1,21 @@
 ---
+import { cn } from '../lib/utils';
 import JsonSidebar from '../components/jsonSidebar.astro';
-import UrlResizablePanel from '../components/urlResizablePanel';
 import ResizablePanel from '../components/ResizablePanel';
+import resizeableConfig from '../features/resizeable.json';
 
 interface Props {
-  panelType?: 'url' | 'default';
+  layout?: keyof typeof resizeableConfig.layouts;
   class?: string;
 }
 
-const { panelType = 'default', class: className } = Astro.props;
+const { 
+  layout = 'default', 
+  class: className 
+} = Astro.props;
+
+// Get the components for the current layout
+const layoutComponents = resizeableConfig.layouts[layout]?.components || [];
 ---
 
 <html lang="en">
@@ -49,22 +56,11 @@ const { panelType = 'default', class: className } = Astro.props;
         <JsonSidebar />
       </div>
       <div class="main-content">
-        <div class="app-layout">
-          <header class="app-header">
-            <slot name="header" />
-          </header>
-
-          <main class="app-content">
-            <slot name="content">
-              <slot name="panel">
-              </slot>
-            </slot>
-          </main>
-
-          <footer class="app-footer">
-            <slot name="footer" />
-          </footer>
-        </div>
+        <ResizablePanel 
+          client:only="react"
+          layout={layout}
+          useDefaultContent={true}
+        />
       </div>
     </div>
   </body>

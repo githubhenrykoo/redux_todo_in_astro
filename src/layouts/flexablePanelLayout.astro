@@ -1,69 +1,70 @@
 ---
+import JsonSidebar from '../components/jsonSidebar.astro';
 import UrlResizablePanel from '../components/urlResizablePanel';
 import ResizablePanel from '../components/ResizablePanel';
 
 interface Props {
   panelType?: 'url' | 'default';
+  class?: string;
 }
 
-const { panelType = 'default' } = Astro.props;
+const { panelType = 'default', class: className } = Astro.props;
 ---
 
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Resizable Panel Layout</title>
     <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body { height: 100vh; width: 100vw; overflow: hidden; }
-      .container { height: 100vh; width: 100vw; }
-      .app-layout {
-        display: flex;
-        flex-direction: column;
+      html, body {
+        margin: 0;
+        padding: 0;
         height: 100%;
+        overflow: hidden;
       }
-      .app-header {
-        flex: 0 0 auto;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
+      .app-container {
+        display: flex;
+        height: 100vh;
+        width: 100vw;
       }
-      .app-content {
-        flex: 1;
-        min-height: 0;
-        position: relative;
+      .sidebar-container {
+        width: 250px;
+        flex-shrink: 0;
+      }
+      .main-content {
+        flex-grow: 1;
+        overflow: hidden;
       }
       .app-footer {
-        flex: 0 0 auto;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-top: 1px solid #dee2e6;
+        padding: 10px;
         text-align: center;
         color: #666;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="app-layout">
-        <header class="app-header">
-          <slot name="header" />
-        </header>
+    <div class="app-container">
+      <div class="sidebar-container">
+        <JsonSidebar />
+      </div>
+      <div class="main-content">
+        <div class="app-layout">
+          <header class="app-header">
+            <slot name="header" />
+          </header>
 
-        <main class="app-content">
-          <slot name="content">
-            {panelType === 'url' ? (
-              <UrlResizablePanel client:load />
-            ) : (
+          <main class="app-content">
+            <slot name="content">
               <slot name="panel">
               </slot>
-            )}
-          </slot>
-        </main>
+            </slot>
+          </main>
 
-        <footer class="app-footer">
-          <slot name="footer" />
-        </footer>
+          <footer class="app-footer">
+            <slot name="footer" />
+          </footer>
+        </div>
       </div>
     </div>
   </body>

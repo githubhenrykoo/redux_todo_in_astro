@@ -3,10 +3,12 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 import resizeableConfig from '../features/resizeable.json';
 
-const LAYOUT_NAME = "expanded"; // You can change this variable dynamically
+const LAYOUT_NAME = "default"; 
+
 interface ResizablePanelProps {
   panelCount?: number;
   useDefaultContent?: boolean;
+  layout?: keyof typeof resizeableConfig.layouts;
 }
 
 interface PanelConfig {
@@ -83,9 +85,22 @@ const renderNestedPanel = (
 };
 
 export default function ResizablePanel({ 
-  panelCount = resizeableConfig.layouts[LAYOUT_NAME].components.length,
+  panelCount,
   useDefaultContent = true,
+  layout = 'default'
 }: ResizablePanelProps) {
+  // Validate layout
+  const validLayouts = Object.keys(resizeableConfig.layouts);
+  if (!validLayouts.includes(layout)) {
+    console.warn(`Invalid layout: ${layout}. Defaulting to 'default'.`);
+    layout = 'default';
+  }
+
+  const components = resizeableConfig.layouts[layout].components;
+
+  // Update panelCount to match the selected layout's components
+  panelCount = components.length;
+
   const onLayout = (sizes: number[]) => {
     console.log('Layout changed:', sizes);
   };
@@ -93,12 +108,12 @@ export default function ResizablePanel({
   const generatePanels = (count: number) => {
     const defaultSize = Math.floor(100 / count);
     
-    return Array(count).fill(0).map((_, index) => ({
+    return components.map((component, index) => ({
       id: `panel-${index + 1}`,
       defaultSize: defaultSize,
       minSize: 10,
       maxSize: 90,
-      defaultComponent: resizeableConfig.layouts[LAYOUT_NAME].components[index] || `Panel${index + 1}`,
+      defaultComponent: component,
       sliceName: `panel-${index + 1}`,
     }));
   };

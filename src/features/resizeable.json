@@ -25,6 +25,11 @@
       "components": [
         "SearchAndTodos"
       ]
+    },
+    "minimaltest": {
+      "components": [
+        "SearchAndTodos"
+      ]
     }
   }
 }

@@ -2,8 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import resizeableConfig from "./resizeable.json";
 
 const initialState = {
-  currentLayout: 'default',
-  layouts: resizeableConfig.layouts,
+  currentLayout: 'default'
 };
 
 const resizeableSlice = createSlice({

@@ -1,6 +1,10 @@
 ---
+import '../styles/globals.css';
 import JsonSidebar from '../components/jsonSidebar.astro';
 import ResizablePanel from '../components/ResizablePanel';
+import { store } from '../store';
+
+const initialLayout = store.getState().resizeable?.currentLayout || 'default';
 ---
 
 <html lang="en">
@@ -48,11 +52,11 @@ import ResizablePanel from '../components/ResizablePanel';
       </div>
     </div>
 
-    <script>
-      // Remove layout-related event type
-      interface CustomEvent {
-        // Other event details if needed
-      }
+    <script define:vars={{ initialLayout }}>
+      import { store } from '../store';
+
+      // Apply initial layout
+      console.log('Initial Layout:', initialLayout);
     </script>
   </body>
 </html>

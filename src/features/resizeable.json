@@ -18,7 +18,7 @@
       "components": [
         "DemoMainPanel",
         ["SearchAndTodos", ["DemoLeftPanel", "DemoRightPanel"], "DemoRightPanel"],
-        "SearchAndTodos"
+        "ContentDetailPanel"
       ]
     },
     "minimal": {

@@ -55,7 +55,11 @@ const { panelType = 'default' } = Astro.props;
             {panelType === 'url' ? (
               <UrlResizablePanel client:load />
             ) : (
-              <ResizablePanel client:load useDefaultContent={true} />
+              <ResizablePanel 
+                client:load={true} 
+                useDefaultContent={true} 
+                layout="default"
+              />
             )}
           </slot>
         </main>

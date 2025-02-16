@@ -3,14 +3,6 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 import resizeableConfig from '../features/resizeable.json';
 
-const LAYOUT_NAME = "default"; 
-
-interface ResizablePanelProps {
-  panelCount?: number;
-  useDefaultContent?: boolean;
-  layout?: keyof typeof resizeableConfig.layouts;
-}
-
 interface PanelConfig {
   id: string;
   defaultSize: number;
@@ -40,7 +32,7 @@ const renderNestedPanel = (
             flexDirection: direction === 'horizontal' ? 'row' : 'column',
           }}
         >
-          {component.map((subComponent, subIndex) => (
+          {component.map((subComponent: string | any[], subIndex: number) => (
             <React.Fragment key={`${config.id}-d${depth}-${subIndex}`}>
               <Panel 
                 defaultSize={defaultSize}
@@ -76,7 +68,7 @@ const renderNestedPanel = (
 
   return (
     <DynamicPanel
-      panelType={component}
+      panelType={component as string}
       slot={config.id}
       sliceName={config.sliceName}
       props={{}}
@@ -84,22 +76,60 @@ const renderNestedPanel = (
   );
 };
 
+interface ResizablePanelProps {
+  panelCount?: number;
+  useDefaultContent?: boolean;
+  layout: keyof typeof resizeableConfig.layouts;
+}
+
 export default function ResizablePanel({ 
   panelCount,
   useDefaultContent = true,
-  layout = 'default'
+  layout = 'default' as keyof typeof resizeableConfig.layouts,
 }: ResizablePanelProps) {
-  // Validate layout
-  const validLayouts = Object.keys(resizeableConfig.layouts);
-  if (!validLayouts.includes(layout)) {
-    console.warn(`Invalid layout: ${layout}. Defaulting to 'default'.`);
-    layout = 'default';
+  // FORCE layout selection with aggressive logging
+  console.error('===== RESIZABLE PANEL DIAGNOSTIC START =====');
+  console.error(`FORCED Prop Passed Layout: ${layout}`);
+  console.error(`FORCED Prop Layout Type: ${typeof layout}`);
+  console.error(`Available Layouts: ${JSON.stringify(Object.keys(resizeableConfig.layouts))}`);
+  
+  // FORCE layout to be a string and matches exactly
+  const normalizedLayout = String(layout).toLowerCase().trim();
+  console.error(`FORCED Normalized Layout: ${normalizedLayout}`);
+
+  // FORCE validate layout with case-insensitive check
+  const validLayouts = Object.keys(resizeableConfig.layouts).map(l => l.toLowerCase());
+  console.error(`FORCED Normalized Available Layouts: ${JSON.stringify(validLayouts)}`);
+
+  // FORCE layout selection, throwing an error if not found
+  if (!validLayouts.includes(normalizedLayout)) {
+    console.error(`CRITICAL: Invalid layout detected!`);
+    console.error(`FORCED Attempted Layout: ${normalizedLayout}`);
+    console.error(`FORCED Available Layouts: ${validLayouts.join(', ')}`);
+    throw new Error(`Invalid layout: ${normalizedLayout}. Available layouts are: ${validLayouts.join(', ')}`);
   }
 
-  const components = resizeableConfig.layouts[layout].components;
+  // FORCE find the exact case-sensitive layout key
+  const exactLayoutKey = Object.keys(resizeableConfig.layouts)
+    .find(l => l.toLowerCase() === normalizedLayout);
+  
+  console.error(`FORCED Exact Layout Key: ${exactLayoutKey}`);
 
-  // Update panelCount to match the selected layout's components
-  panelCount = components.length;
+  // FORCE use of the selected layout
+  const layoutConfig = resizeableConfig.layouts[exactLayoutKey as keyof typeof resizeableConfig.layouts];
+  console.error(`FORCED Layout Config: ${JSON.stringify(layoutConfig)}`);
+
+  // FORCE ensure components exist and is an array
+  if (!layoutConfig || !layoutConfig.components) {
+    console.error('CRITICAL: No components found for the selected layout!');
+    throw new Error(`No components defined for layout: ${exactLayoutKey}`);
+  }
+
+  // FORCE panelCount to match the selected layout's components
+  const finalPanelCount = layoutConfig.components.length;
+  console.error(`FORCED Panel Count: ${finalPanelCount}`);
+  console.error(`FORCED Specific Components: ${JSON.stringify(layoutConfig.components)}`);
+  console.error('===== RESIZABLE PANEL DIAGNOSTIC END =====');
 
   const onLayout = (sizes: number[]) => {
     console.log('Layout changed:', sizes);
@@ -108,7 +138,7 @@ export default function ResizablePanel({
   const generatePanels = (count: number) => {
     const defaultSize = Math.floor(100 / count);
     
-    return components.map((component, index) => ({
+    return layoutConfig.components.map((component, index) => ({
       id: `panel-${index + 1}`,
       defaultSize: defaultSize,
       minSize: 10,
@@ -128,7 +158,7 @@ export default function ResizablePanel({
           width: '100%',
         }}
       >
-        {generatePanels(panelCount).map((config, index) => (
+        {generatePanels(finalPanelCount).map((config, index) => (
           <React.Fragment key={config.id}>
             <Panel 
               defaultSize={config.defaultSize}
@@ -140,14 +170,14 @@ export default function ResizablePanel({
                 renderNestedPanel(config.defaultComponent, config)
               ) : (
                 <DynamicPanel
-                  panelType={config.defaultComponent}
+                  panelType={config.defaultComponent as string}
                   slot={config.id}
                   sliceName={config.sliceName}
                   props={{}}
                 />
               )}
             </Panel>
-            {index < panelCount - 1 && (
+            {index < finalPanelCount - 1 && (
               <PanelResizeHandle style={styles.resizeHandle} />
             )}
           </React.Fragment>

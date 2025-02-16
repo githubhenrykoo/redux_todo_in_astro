@@ -1,0 +1,86 @@
+---
+import { cn } from '../lib/utils';
+import resizeableConfig from '../features/resizeable.json';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className, ...props } = Astro.props;
+
+// Extract layout names from the configuration
+const layoutNames = Object.keys(resizeableConfig.layouts);
+
+// Fallback icon for any layouts not explicitly mapped
+const fallbackIcon = null;
+---
+
+<div class={cn(
+  "flex flex-col h-screen bg-muted border-r border-neutral-200 dark:border-neutral-800 p-4",
+  className
+)} {...props}>
+  <h2 class="text-lg font-bold mb-6 text-center">Layouts</h2>
+  <div class="flex-1 flex flex-col space-y-4">
+    {layoutNames.map((layout, index) => (
+      <button
+        id={`${layout}LayoutBtn`}
+        class={cn(
+          "text-left px-4 py-2 rounded transition-colors duration-200",
+          index === 0 
+            ? "bg-primary text-primary-foreground" 
+            : "hover:bg-muted-foreground/10 text-muted-foreground"
+        )}
+      >
+        {layout.charAt(0).toUpperCase() + layout.slice(1)}
+      </button>
+    ))}
+  </div>
+</div>
+
+<script define:vars={{ layoutNames }}>
+  import { store } from '../store';
+  import { changeLayout } from '../features/panellayoutSlice';
+
+  // Dynamically add click handlers for each layout button
+  layoutNames.forEach(layout => {
+    const btn = document.getElementById(`${layout}LayoutBtn`);
+    
+    btn?.addEventListener('click', () => {
+      // Dispatch layout change
+      store.dispatch(changeLayout(layout));
+      
+      // Update button styles
+      updateActiveButton(layout);
+    });
+  });
+
+  // Function to update active button styles
+  function updateActiveButton(activeLayout) {
+    // Remove active styles from all buttons
+    layoutNames.forEach(layout => {
+      const btn = document.getElementById(`${layout}LayoutBtn`);
+      btn?.classList.remove('bg-primary', 'text-primary-foreground');
+      btn?.classList.add('hover:bg-muted-foreground/10', 'text-muted-foreground');
+    });
+
+    // Add active styles to the selected button
+    const activeBtn = document.getElementById(`${activeLayout}LayoutBtn`);
+    activeBtn?.classList.remove('hover:bg-muted-foreground/10', 'text-muted-foreground');
+    activeBtn?.classList.add('bg-primary', 'text-primary-foreground');
+  }
+
+  // Initialize button state based on current layout
+  const getCurrentLayout = () => {
+    const state = store.getState();
+    // Default to first layout if no specific logic is needed
+    return layoutNames[0];
+  };
+
+  // Initialize button state
+  updateActiveButton(getCurrentLayout());
+
+  // Subscribe to store changes to update button states
+  store.subscribe(() => {
+    updateActiveButton(getCurrentLayout());
+  });
+</script>

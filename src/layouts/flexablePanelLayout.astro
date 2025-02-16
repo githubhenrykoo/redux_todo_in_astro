@@ -2,20 +2,7 @@
 import { cn } from '../lib/utils';
 import JsonSidebar from '../components/jsonSidebar.astro';
 import ResizablePanel from '../components/ResizablePanel';
-import resizeableConfig from '../features/resizeable.json';
 
-interface Props {
-  layout?: keyof typeof resizeableConfig.layouts;
-  class?: string;
-}
-
-const { 
-  layout = 'default', 
-  class: className 
-} = Astro.props;
-
-// Get the components for the current layout
-const layoutComponents = resizeableConfig.layouts[layout]?.components || [];
 ---
 
 <html lang="en">
@@ -58,61 +45,16 @@ const layoutComponents = resizeableConfig.layouts[layout]?.components || [];
       <div class="main-content" id="panel-container">
         <ResizablePanel 
           client:only="react"
-          layout={layout}
           useDefaultContent={true}
         />
       </div>
     </div>
 
     <script>
-      // Custom event type with detail property
-      interface LayoutChangeEvent extends Event {
-        detail: {
-          layout: string;
-        }
+      // Remove layout-related event type
+      interface CustomEvent {
+        // Other event details if needed
       }
-
-      document.addEventListener('layout-change', ((event: LayoutChangeEvent) => {
-        const { layout } = event.detail;
-        
-        // Null-safe panel container retrieval
-        const panelContainer = document.getElementById('panel-container');
-        if (!panelContainer) {
-          console.error('Panel container not found');
-          return;
-        }
-        
-        // Remove existing panel
-        const existingPanel = document.getElementById('main-resizable-panel');
-        if (existingPanel) {
-          existingPanel.remove();
-        }
-        
-        // Create new panel element
-        const newPanel = document.createElement('div');
-        newPanel.id = 'main-resizable-panel';
-        newPanel.setAttribute('data-layout', layout);
-        panelContainer.appendChild(newPanel);
-        
-        // Re-render the ResizablePanel with new layout
-        const script = document.createElement('script');
-        script.setAttribute('type', 'module');
-        script.textContent = `
-          import ResizablePanel from '/src/components/ResizablePanel.tsx';
-          import React from 'react';
-          import { createRoot } from 'react-dom/client';
-
-          const root = createRoot(document.getElementById('main-resizable-panel'));
-          root.render(
-            React.createElement(ResizablePanel, {
-              layout: '${layout}',
-              useDefaultContent: true
-            })
-          );
-        `;
-        
-        document.body.appendChild(script);
-      }) as EventListener);
     </script>
   </body>
 </html>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 import resizeableConfig from '../features/resizeable.json';
@@ -79,22 +80,22 @@ const renderNestedPanel = (
 interface ResizablePanelProps {
   panelCount?: number;
   useDefaultContent?: boolean;
-  layout: keyof typeof resizeableConfig.layouts;
 }
 
 export default function ResizablePanel({ 
   panelCount,
   useDefaultContent = true,
-  layout = 'default' as keyof typeof resizeableConfig.layouts,
 }: ResizablePanelProps) {
+  // Get current layout from Redux state
+  const currentLayout = useSelector((state: any) => state.resizeable.currentLayout);
+
   // FORCE layout selection with aggressive logging
   console.error('===== RESIZABLE PANEL DIAGNOSTIC START =====');
-  console.error(`FORCED Prop Passed Layout: ${layout}`);
-  console.error(`FORCED Prop Layout Type: ${typeof layout}`);
+  console.error(`FORCED Redux Layout: ${currentLayout}`);
   console.error(`Available Layouts: ${JSON.stringify(Object.keys(resizeableConfig.layouts))}`);
   
   // FORCE layout to be a string and matches exactly
-  const normalizedLayout = String(layout).toLowerCase().trim();
+  const normalizedLayout = String(currentLayout).toLowerCase().trim();
   console.error(`FORCED Normalized Layout: ${normalizedLayout}`);
 
   // FORCE validate layout with case-insensitive check

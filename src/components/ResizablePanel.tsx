@@ -3,7 +3,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 import resizeableConfig from '../features/resizeable.json';
 
-const DEFAULT_COMPONENTS = resizeableConfig.layouts.expanded.components;
+const LAYOUT_NAME = 'minimal'; // You can change this variable dynamically
+const DEFAULT_COMPONENTS = resizeableConfig.layouts[LAYOUT_NAME].components;
 
 interface ResizablePanelProps {
   panelCount?: number;

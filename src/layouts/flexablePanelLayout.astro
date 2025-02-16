@@ -1,7 +1,7 @@
 ---
 import { cn } from '../lib/utils';
 import JsonSidebar from '../components/jsonSidebar.astro';
-import { ProviderWrappedResizablePanel } from '../components/ResizablePanel';
+import ResizablePanel from '../components/ResizablePanel';
 
 ---
 
@@ -43,7 +43,7 @@ import { ProviderWrappedResizablePanel } from '../components/ResizablePanel';
         <JsonSidebar />
       </div>
       <div class="main-content" id="panel-container">
-        <ProviderWrappedResizablePanel 
+        <ResizablePanel 
           client:only="react"
           useDefaultContent={true}
         />

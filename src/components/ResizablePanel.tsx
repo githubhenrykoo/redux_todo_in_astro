@@ -1,6 +1,5 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { Provider } from 'react-redux';
+import { useSelector, Provider } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 import resizeableConfig from '../features/resizeable.json';
@@ -84,14 +83,13 @@ interface ResizablePanelProps {
   useDefaultContent?: boolean;
 }
 
-export default function ResizablePanel({ 
+function ResizablePanelComponent({ 
   panelCount,
   useDefaultContent = true,
 }: ResizablePanelProps) {
   // Get current layout from Redux state
-  const currentLayout = useSelector((state: any) => state.resizeable.currentLayout);
+  const currentLayout = useSelector((state: any) => state.resizeable?.currentLayout || 'default');
 
-  // FORCE layout selection with aggressive logging
   console.error('===== RESIZABLE PANEL DIAGNOSTIC START =====');
   console.error(`FORCED Redux Layout: ${currentLayout}`);
   console.error(`Available Layouts: ${JSON.stringify(Object.keys(resizeableConfig.layouts))}`);
@@ -190,10 +188,10 @@ export default function ResizablePanel({
   );
 }
 
-export function ProviderWrappedResizablePanel(props: ResizablePanelProps) {
+export default function ResizablePanel(props: ResizablePanelProps) {
   return (
     <Provider store={store}>
-      <ResizablePanel {...props} />
+      <ResizablePanelComponent {...props} />
     </Provider>
   );
 }

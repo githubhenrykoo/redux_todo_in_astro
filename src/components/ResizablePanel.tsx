@@ -3,9 +3,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { DynamicPanel } from './DynamicPanel';
 import resizeableConfig from '../features/resizeable.json';
 
-const LAYOUT_NAME = "compact"; // You can change this variable dynamically
-const DEFAULT_COMPONENTS = resizeableConfig.layouts[LAYOUT_NAME].components;
-
+const LAYOUT_NAME = "expanded"; // You can change this variable dynamically
 interface ResizablePanelProps {
   panelCount?: number;
   useDefaultContent?: boolean;
@@ -85,7 +83,7 @@ const renderNestedPanel = (
 };
 
 export default function ResizablePanel({ 
-  panelCount = DEFAULT_COMPONENTS.length,
+  panelCount = resizeableConfig.layouts[LAYOUT_NAME].components.length,
   useDefaultContent = true,
 }: ResizablePanelProps) {
   const onLayout = (sizes: number[]) => {
@@ -100,7 +98,7 @@ export default function ResizablePanel({
       defaultSize: defaultSize,
       minSize: 10,
       maxSize: 90,
-      defaultComponent: DEFAULT_COMPONENTS[index] || `Panel${index + 1}`,
+      defaultComponent: resizeableConfig.layouts[LAYOUT_NAME].components[index] || `Panel${index + 1}`,
       sliceName: `panel-${index + 1}`,
     }));
   };

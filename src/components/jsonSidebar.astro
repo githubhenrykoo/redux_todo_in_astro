@@ -24,6 +24,7 @@ const fallbackIcon = null;
     {layoutNames.map((layout, index) => (
       <button
         id={`${layout}LayoutBtn`}
+        data-layout={layout}
         class={cn(
           "text-left px-4 py-2 rounded transition-colors duration-200",
           index === 0 
@@ -82,5 +83,29 @@ const fallbackIcon = null;
   // Subscribe to store changes to update button states
   store.subscribe(() => {
     updateActiveButton(getCurrentLayout());
+  });
+
+  // Add client-side layout change functionality
+  document.querySelectorAll('[data-layout]').forEach(button => {
+    button.addEventListener('click', () => {
+      const layout = button.getAttribute('data-layout');
+      
+      // Update button styles
+      document.querySelectorAll('[data-layout]').forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-primary-foreground');
+        btn.classList.add('hover:bg-muted-foreground/10', 'text-muted-foreground');
+      });
+      
+      button.classList.remove('hover:bg-muted-foreground/10', 'text-muted-foreground');
+      button.classList.add('bg-primary', 'text-primary-foreground');
+      
+      // Dispatch a custom event to communicate layout change
+      const event = new CustomEvent('layout-change', { 
+        detail: { layout },
+        bubbles: true,
+        composed: true 
+      });
+      button.dispatchEvent(event);
+    });
   });
 </script>

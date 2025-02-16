@@ -55,7 +55,7 @@ const layoutComponents = resizeableConfig.layouts[layout]?.components || [];
       <div class="sidebar-container">
         <JsonSidebar />
       </div>
-      <div class="main-content">
+      <div class="main-content" id="panel-container">
         <ResizablePanel 
           client:only="react"
           layout={layout}
@@ -63,5 +63,56 @@ const layoutComponents = resizeableConfig.layouts[layout]?.components || [];
         />
       </div>
     </div>
+
+    <script>
+      // Custom event type with detail property
+      interface LayoutChangeEvent extends Event {
+        detail: {
+          layout: string;
+        }
+      }
+
+      document.addEventListener('layout-change', ((event: LayoutChangeEvent) => {
+        const { layout } = event.detail;
+        
+        // Null-safe panel container retrieval
+        const panelContainer = document.getElementById('panel-container');
+        if (!panelContainer) {
+          console.error('Panel container not found');
+          return;
+        }
+        
+        // Remove existing panel
+        const existingPanel = document.getElementById('main-resizable-panel');
+        if (existingPanel) {
+          existingPanel.remove();
+        }
+        
+        // Create new panel element
+        const newPanel = document.createElement('div');
+        newPanel.id = 'main-resizable-panel';
+        newPanel.setAttribute('data-layout', layout);
+        panelContainer.appendChild(newPanel);
+        
+        // Re-render the ResizablePanel with new layout
+        const script = document.createElement('script');
+        script.setAttribute('type', 'module');
+        script.textContent = `
+          import ResizablePanel from '/src/components/ResizablePanel.tsx';
+          import React from 'react';
+          import { createRoot } from 'react-dom/client';
+
+          const root = createRoot(document.getElementById('main-resizable-panel'));
+          root.render(
+            React.createElement(ResizablePanel, {
+              layout: '${layout}',
+              useDefaultContent: true
+            })
+          );
+        `;
+        
+        document.body.appendChild(script);
+      }) as EventListener);
+    </script>
   </body>
 </html>

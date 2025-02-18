@@ -141,6 +141,25 @@ This project demonstrates a modern approach to web application architecture by:
 - Managing state with Redux
 - Following responsive design principles
 
+## Project Documentation
+
+### To-Do Plan Subproject
+
+This repository includes a subproject `to-do-plan` located in the `Docs/to-do-plan` directory. It provides additional documentation and resources related to the project.
+
+#### Accessing the Subproject
+
+To clone the repository with the subproject:
+```bash
+git clone --recursive git@github.com:benkoo/redux_todo_in_astro.git
+```
+
+Or after cloning, initialize the submodule:
+```bash
+git submodule init
+git submodule update
+```
+
 ## MCard Implementation
 
 ### Overview

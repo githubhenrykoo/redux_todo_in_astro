@@ -13,5 +13,9 @@ export default defineConfig({
         '@pages': path.resolve('./src/pages')
       }
     }
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 4321
   }
 });

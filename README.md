@@ -130,7 +130,14 @@ src/
    ```bash
    npm run dev
    ```
-4. Open [http://localhost:4321](http://localhost:4321) in your browser
+4. Open [http://0.0.0.0:4321](http://0.0.0.0:4321) in your browser or via ZeroTier network
+
+## ZeroTier Network Access
+
+To access this application via ZeroTier:
+1. Ensure you have ZeroTier installed and joined the correct network
+2. Use the ZeroTier-assigned IP address and port 4321
+3. The application is now accessible from any device on the ZeroTier network
 
 ## 🎨 Design Philosophy
 

@@ -5,7 +5,7 @@ from langchain.schema import HumanMessage
 from pathlib import Path
 import tiktoken
 
-os.environ["GOOGLE_API_KEY"] = "AIzaSyAPz0ODezXu39YHYaaSUAsKMBhjKwlYJFo"
+os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY"
 llm = ChatGoogleGenerativeAI(model="gemini-pro")
 
 def count_tokens(text, model_name="gpt-3.5-turbo"):

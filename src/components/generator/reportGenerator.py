@@ -5,7 +5,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage
 
 # Set your Gemini API key (Make sure to replace 'YOUR_GEMINI_API_KEY')
-os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY"
+os.environ["GOOGLE_API_KEY"] = "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
 llm = ChatGoogleGenerativeAI(model="gemini-pro")
 
 # Function to get user input for the report date
@@ -30,13 +30,58 @@ def read_markdown_file(file_path):
 def convert_md_to_tex(markdown_content):
     chat = ChatGoogleGenerativeAI(model="gemini-pro")
     prompt = f"""
-    You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. 
-    Ensure: 
-        - Proper document class, title, and sections. 
-        - Tables, bullet points, and code blocks are correctly formatted. 
-        - do not reduce the content
-        - convert mermaid graph to graph  
-        - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference.
+    You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure the following:
+
+    - Use the appropriate document class, title, and sections.
+    - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \textbf, * --> \textit)
+    - Correctly format tables, numbering, bullet points, and code blocks.
+    - Maintain the full content without reduction.
+    - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style:
+        \\tikzset{{
+            block/.style={{
+                rectangle,
+                draw=darkblue,
+                text width=7em,
+                text centered,
+                rounded corners,
+                minimum height=2em,
+                fill=lightgray!10,
+                font=\\small
+            }},
+            process/.style={{
+                rectangle,
+                draw=forestgreen,
+                text width=6em,
+                text centered,
+                rounded corners,
+                fill=lightgray!30,
+                minimum height=2em,
+                font=\\small
+            }},
+            line/.style={{
+                draw,
+                -latex',
+                font=\\footnotesize
+            }},
+            cloud/.style={{
+                draw,
+                ellipse,
+                minimum width=2cm,
+                minimum height=1cm,
+                fill=lightgray!20
+            }},
+            state/.style={{
+                rectangle,
+                draw=uiblue,
+                text width=8em,
+                text centered,
+                rounded corners,
+                fill=uiblue!10,
+                minimum height=2.5em,
+                font=\\small
+            }}
+        }} [!IMPORTANT] using "node distance=2cm", "below=1.2cm"
+    - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference for the TikZ picture structure.
 
     Markdown Content:
     {markdown_content}
@@ -52,10 +97,29 @@ def save_tex_file(tex_content, tex_path):
 # Function to compile LaTeX to PDF using pdflatex
 def compile_tex_to_pdf(tex_path, output_dir):
     try:
-        subprocess.run(["pdflatex", "-output-directory", output_dir, tex_path], check=True)
-        print(f"PDF successfully created in: {output_dir}")
-    except subprocess.CalledProcessError:
-        print("Error: Failed to compile the LaTeX file.")
+        # Get the directory of the tex file
+        tex_dir = os.path.dirname(tex_path)
+        
+        # Run pdflatex twice to ensure proper cross-references
+        for _ in range(2):
+            subprocess.run(
+                ["/Library/TeX/texbin/pdflatex", "-interaction=nonstopmode", "-output-directory", tex_dir, tex_path],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+        
+        pdf_path = tex_path.replace('.tex', '.pdf')
+        print(f"PDF successfully created: {pdf_path}")
+        
+        # Clean up auxiliary files
+        for ext in [".aux", ".log", ".out"]:
+            aux_file = tex_path.replace(".tex", ext)
+            if os.path.exists(aux_file):
+                os.remove(aux_file)
+                
+    except subprocess.CalledProcessError as e:
+        print(f"Error: Failed to convert the LaTeX file.\nError message: {e.stderr}")
 
 # Main function to execute the workflow
 def main():

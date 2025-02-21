@@ -30,7 +30,8 @@ def read_markdown_file(file_path):
 def convert_md_to_tex(markdown_content):
     chat = ChatGoogleGenerativeAI(model="gemini-pro")
     prompt = f"""
-    You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure: 
+    You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. 
+    Ensure: 
         - Proper document class, title, and sections. 
         - Tables, bullet points, and code blocks are correctly formatted. 
         - do not reduce the content

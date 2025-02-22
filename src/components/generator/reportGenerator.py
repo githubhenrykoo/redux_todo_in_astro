@@ -6,7 +6,7 @@ from langchain.schema import HumanMessage
 
 # Set your Gemini API key (Make sure to replace 'YOUR_GEMINI_API_KEY')
 os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY"
-llm = ChatGoogleGenerativeAI(model="gemini-pro")
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-pro-exp-02-05")
 
 # Function to get user input for the report date
 def get_report_date():
@@ -28,10 +28,11 @@ def read_markdown_file(file_path):
 
 # Function to convert markdown to LaTeX using Gemini API
 def convert_md_to_tex(markdown_content):
-    chat = ChatGoogleGenerativeAI(model="gemini-pro")
+    chat = ChatGoogleGenerativeAI(model="gemini-2.0-pro-exp-02-05")
     prompt = f"""
     You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure the following:
 
+    - Do not use ```latex ```
     - Use the appropriate document class, title, and sections.
     - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \textbf, * --> \textit)
     - Correctly format tables, numbering, bullet points, and code blocks.
@@ -80,7 +81,8 @@ def convert_md_to_tex(markdown_content):
                 minimum height=2.5em,
                 font=\\small
             }}
-        }} [!IMPORTANT] using "node distance=2cm", "below=1.2cm"
+        }}
+    - make the diagram in one page only
     - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference for the TikZ picture structure.
 
     Markdown Content:
@@ -124,7 +126,7 @@ def compile_tex_to_pdf(tex_path, output_dir):
 # Main function to execute the workflow
 def main():
     date_str = get_report_date()
-    base_path = "Docs/to-do-plan/docs/reports/daily/2025-02/"
+    base_path = "Docs/to-do-plan/docs/reports/daily/2025-02/markdown/"
     md_path = f"{base_path}[report]{date_str}.md"
     tex_path = f"{base_path}[report]{date_str}.tex"
     pdf_output_dir = base_path

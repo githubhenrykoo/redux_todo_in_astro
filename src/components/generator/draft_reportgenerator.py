@@ -13,8 +13,8 @@ def count_tokens(text, model_name="gpt-3.5-turbo"):
     return len(encoding.encode(text))
 
 def convert_md_to_latex(md_content, ref_latex):
-    max_chunk_tokens = 300  # Ukuran chunk sangat kecil
-    overlap_tokens = 50  # Overlap token dikurangi
+    max_chunk_tokens = 300
+    overlap_tokens = 50
     chunks = []
     
     paragraphs = md_content.split('\n\n')
@@ -47,7 +47,6 @@ def convert_md_to_latex(md_content, ref_latex):
     for i, chunk in enumerate(chunks[start_chunk:]):
         chunk_index = start_chunk + i
         
-        # Tambahkan overlap
         if i > 0:
             overlap = ' '.join(chunks[chunk_index -1].split(' ')[-overlap_tokens:])
             chunk = overlap + ' \n\n' + chunk

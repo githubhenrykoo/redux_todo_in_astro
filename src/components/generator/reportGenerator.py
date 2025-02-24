@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 from datetime import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -32,13 +33,15 @@ def convert_md_to_tex(markdown_content):
     prompt = f"""
     You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure the following:
 
-    - Do not use ```latex ```
+    - Do not use ```latex ``` or any similar code block delimiters.
     - Use the appropriate document class, title, and sections.
     - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \textbf, * --> \textit)
     - Correctly format tables, numbering, bullet points, and code blocks.
     - Maintain the full content without reduction.
     - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style:
-        \\tikzset{{
+
+    % Custom styles for all diagrams
+        \tikzset{{
             block/.style={{
                 rectangle,
                 draw=darkblue,
@@ -47,7 +50,7 @@ def convert_md_to_tex(markdown_content):
                 rounded corners,
                 minimum height=2em,
                 fill=lightgray!10,
-                font=\\small
+                font=\small
             }},
             process/.style={{
                 rectangle,
@@ -57,12 +60,12 @@ def convert_md_to_tex(markdown_content):
                 rounded corners,
                 fill=lightgray!30,
                 minimum height=2em,
-                font=\\small
+                font=\small
             }},
             line/.style={{
                 draw,
                 -latex',
-                font=\\footnotesize
+                font=\footnotesize
             }},
             cloud/.style={{
                 draw,
@@ -79,11 +82,15 @@ def convert_md_to_tex(markdown_content):
                 rounded corners,
                 fill=uiblue!10,
                 minimum height=2.5em,
-                font=\\small
+                font=\small
             }}
         }}
-    - make the diagram in one page only
-    - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference for the TikZ picture structure.
+        - note the color rgb format:
+            - lightgray, RGB(240,240,240)
+            - darkblue, RGB(0,0,139)
+            - forestgreen, RGB(34,139,34)
+            - uiblue, RGB(66,139,202)
+        - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference for the TikZ picture structure.
 
     Markdown Content:
     {markdown_content}
@@ -93,11 +100,14 @@ def convert_md_to_tex(markdown_content):
 
 # Function to write LaTeX content to file
 def save_tex_file(tex_content, tex_path):
+    # Remove ```latex and ``` tags if present
+    if tex_content.startswith('```latex') and tex_content.endswith('```'):
+        tex_content = tex_content[8:-3].strip()
     with open(tex_path, "w", encoding="utf-8") as file:
         file.write(tex_content)
 
 # Function to compile LaTeX to PDF using pdflatex
-def compile_tex_to_pdf(tex_path, output_dir):
+def compile_tex_to_pdf(tex_path, pdf_output_dir):
     try:
         # Get the directory of the tex file
         tex_dir = os.path.dirname(tex_path)
@@ -111,15 +121,27 @@ def compile_tex_to_pdf(tex_path, output_dir):
                 text=True
             )
         
-        pdf_path = tex_path.replace('.tex', '.pdf')
-        print(f"PDF successfully created: {pdf_path}")
-        
+        generated_pdf_path = tex_path.replace('.tex', '.pdf')
+
+        # Pastikan PDF berhasil dibuat sebelum memindahkan
+        if os.path.exists(generated_pdf_path):
+            final_pdf_path = os.path.join(pdf_output_dir, os.path.basename(generated_pdf_path))
+            
+            # Pastikan direktori PDF ada
+            os.makedirs(pdf_output_dir, exist_ok=True)
+
+            # Pindahkan PDF ke folder yang diinginkan
+            shutil.move(generated_pdf_path, final_pdf_path)
+            print(f"PDF successfully moved to: {final_pdf_path}")
+        else:
+            print("Error: PDF file not found after compilation.")
+
         # Clean up auxiliary files
         for ext in [".aux", ".log", ".out"]:
             aux_file = tex_path.replace(".tex", ext)
             if os.path.exists(aux_file):
                 os.remove(aux_file)
-                
+
     except subprocess.CalledProcessError as e:
         print(f"Error: Failed to convert the LaTeX file.\nError message: {e.stderr}")
 
@@ -128,8 +150,12 @@ def main():
     date_str = get_report_date()
     base_path = "Docs/to-do-plan/docs/reports/daily/2025-02/markdown/"
     md_path = f"{base_path}[report]{date_str}.md"
-    tex_path = f"{base_path}[report]{date_str}.tex"
-    pdf_output_dir = base_path
+    latex_output_dir = "Docs/to-do-plan/docs/reports/daily/2025-02/latex"
+    pdf_output_dir = "Docs/to-do-plan/docs/reports/daily/2025-02/pdf"
+    tex_path = os.path.join(latex_output_dir, f"[report]{date_str}.tex")
+
+    # Pastikan direktori LaTeX ada
+    os.makedirs(latex_output_dir, exist_ok=True)
 
     # Read markdown file
     md_content = read_markdown_file(md_path)
@@ -145,7 +171,7 @@ def main():
     # Save the LaTeX file
     save_tex_file(tex_content, tex_path)
 
-    # Convert LaTeX to PDF
+    # Compile LaTeX to PDF
     compile_tex_to_pdf(tex_path, pdf_output_dir)
 
 if __name__ == "__main__":

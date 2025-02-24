@@ -6,7 +6,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import HumanMessage
 
 # Set your Gemini API key (Make sure to replace 'YOUR_GEMINI_API_KEY')
-os.environ["GOOGLE_API_KEY"] = "YOUR_API_KEY"
+os.environ["GOOGLE_API_KEY"] = "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-pro-exp-02-05")
 
 # Function to get user input for the report date

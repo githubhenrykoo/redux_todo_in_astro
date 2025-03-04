@@ -49,7 +49,7 @@ jobs:
         genai.configure(api_key=api_key)
         
         # Initialize model with correct name
-        model = genai.GenerativeModel('gemini-1.0-pro')
+        model = genai.GenerativeModel('gemini-2.0-flash')  # Using latest stable version
         
         # Use absolute path for glob
         workspace = os.getenv('GITHUB_WORKSPACE', '.')
@@ -84,10 +84,8 @@ jobs:
 
         
 
-        # Run analysis directly to the final file
-        {
-          echo "# Gemini Analysis"
-          echo "Generated at: $(date)"
-          echo "## Analysis Results"
-          python3 analyze_logs.py
-        } | tee Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
+        # Write directly to the analysis file
+        echo "# Gemini Analysis" > Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
+        echo "Generated at: $(date)" >> Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
+        echo "## Analysis Results" >> Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
+        python3 analyze_logs.py >> Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md

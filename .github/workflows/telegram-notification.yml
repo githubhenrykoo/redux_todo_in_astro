@@ -10,8 +10,6 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    env:
-      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     
     steps:
     - name: Checkout code
@@ -21,7 +19,7 @@ jobs:
       uses: appleboy/telegram-action@master
       with:
         to: 6281237209043
-        token: ${{ env.TELEGRAM_TOKEN }}
+        token: 7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok
         format: html
         message: |
           🤖 <b>GitHub Action Notification</b>

@@ -116,12 +116,40 @@ jobs:
 
         def create_pdf(latex_content, output_name):
             # Write LaTeX content to file
-            with open(f"{output_name}.tex", "w") as f:
-                f.write(latex_content)
+            with open(f"{output_name}.tex", "w", encoding='utf-8') as f:
+                f.write("""\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{xcolor}
+\\usepackage{tikz}
+\\usepackage{listings}
+\\usepackage{graphicx}
+\\begin{document}
+""" + latex_content + """
+\\end{document}
+""")
 
-            # Run pdflatex twice to resolve references
-            subprocess.run(['pdflatex', f"{output_name}.tex"])
-            subprocess.run(['pdflatex', f"{output_name}.tex"])
+            # Run pdflatex with error handling
+            result = subprocess.run(
+                ['pdflatex', '-interaction=nonstopmode', '-halt-on-error', f"{output_name}.tex"],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode != 0:
+                print("LaTeX Error Output:", result.stderr)
+                with open(f"{output_name}.log", 'r') as log:
+                    print("LaTeX Log:", log.read())
+                raise Exception("PDF generation failed")
+
+            # Run second pass for references
+            subprocess.run(
+                ['pdflatex', '-interaction=nonstopmode', '-halt-on-error', f"{output_name}.tex"],
+                capture_output=True
+            )
+
+            # Verify PDF was created
+            if not os.path.exists(f"{output_name}.pdf"):
+                raise Exception(f"PDF file not created: {output_name}.pdf")
 
         # Read input markdown file
         md_file = "${{ github.event.inputs.markdown_file }}"
@@ -139,6 +167,14 @@ jobs:
 
         # Run the conversion script
         python convert_md_to_pdf.py
+
+    - name: Debug LaTeX Output
+      if: always()
+      run: |
+        echo "LaTeX Files:"
+        ls -la *.tex *.pdf *.log || true
+        echo "Log File Contents:"
+        cat *.log || true
 
     - name: Upload PDF artifact
       uses: actions/upload-artifact@v4  # Updated from v3 to v4

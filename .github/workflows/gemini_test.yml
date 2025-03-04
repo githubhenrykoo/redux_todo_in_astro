@@ -85,7 +85,13 @@ jobs:
         
 
         # Write directly to the analysis file
-        echo "# Gemini Analysis" > Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
-        echo "Generated at: $(date)" >> Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
-        echo "## Analysis Results" >> Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
-        python3 analyze_logs.py >> Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
+        # Save to a temporary file first
+        TEMP_OUTPUT=$(mktemp)
+        echo "# Gemini Analysis" > $TEMP_OUTPUT
+        echo "Generated at: $(date)" >> $TEMP_OUTPUT
+        echo "## Analysis Results" >> $TEMP_OUTPUT
+        python3 analyze_logs.py >> $TEMP_OUTPUT
+
+        # Then copy to final location
+        cp $TEMP_OUTPUT "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        rm $TEMP_OUTPUT

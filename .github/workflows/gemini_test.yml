@@ -48,8 +48,8 @@ jobs:
         api_key = "AIzaSyBBAly2UC4CJfxfvEHATR5W8RVbFFIvHkc"
         genai.configure(api_key=api_key)
         
-        # Initialize model before use
-        model = genai.GenerativeModel('gemini-pro')
+        # Initialize model with correct name
+        model = genai.GenerativeModel('gemini-1.0-pro')
         
         # Use absolute path for glob
         workspace = os.getenv('GITHUB_WORKSPACE', '.')

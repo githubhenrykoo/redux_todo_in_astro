@@ -116,12 +116,33 @@ jobs:
 
         def create_pdf(latex_content, output_name):
             # Write LaTeX content to file
-            with open(f"{output_name}.tex", "w") as f:
-                f.write(latex_content)
+            with open(f"{output_name}.tex", "w", encoding='utf-8') as f:
+                f.write("""
+\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{xcolor}
+\\usepackage{tikz}
+\\begin{document}
+""" + latex_content + """
+\\end{document}
+""")
 
-            # Run pdflatex twice to resolve references
-            subprocess.run(['pdflatex', f"{output_name}.tex"])
-            subprocess.run(['pdflatex', f"{output_name}.tex"])
+            # Run pdflatex with error handling and working directory
+            result = subprocess.run(
+                ['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"],
+                capture_output=True,
+                text=True
+            )
+            print(f"LaTeX Output: {result.stdout}")
+            if result.returncode != 0:
+                print(f"LaTeX Error: {result.stderr}")
+                raise Exception("PDF generation failed")
+
+            # Run second pass
+            subprocess.run(
+                ['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"],
+                capture_output=True
+            )
 
         # Read input markdown file
         md_file = "${{ github.event.inputs.markdown_file }}"
@@ -149,8 +170,8 @@ jobs:
     - name: Debug file location
       run: |
         pwd
-        ls -la
-        echo "Looking for PDF in current directory"
+        ls -la *.tex *.pdf *.log || true
+        echo "Looking for PDF and related files"
 
     - name: Commit PDF
       run: |
@@ -167,8 +188,8 @@ jobs:
           git push origin HEAD:main
         else
           echo "PDF file not found at: $pdf_file"
-          echo "Current directory contents:"
-          ls -la
+          echo "LaTeX log contents:"
+          cat *.log || true
           exit 1
         fi
 

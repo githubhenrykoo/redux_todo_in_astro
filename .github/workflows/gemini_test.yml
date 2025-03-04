@@ -38,7 +38,11 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-
+        # Create directory and set output file path
+        mkdir -p Docs/analysis
+        OUTPUT_FILE="Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        
+        # Create Python script
         cat << 'EOF' > analyze_logs.py
         import os
         import glob
@@ -89,15 +93,17 @@ jobs:
         EOF
 
         # Run analysis and save output
-        echo "# Gemini Analysis" > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
-        echo "Generated at: $(date)" >> "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
-        echo "## Analysis Results" >> "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
-        python analyze_logs.py >> "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        {
+          echo "# Gemini Analysis"
+          echo "Generated at: $(date)"
+          echo "## Analysis Results"
+          python analyze_logs.py
+        } > "${OUTPUT_FILE}"
 
     - name: Commit Analysis
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        git add "${OUTPUT_FILE}"
         git commit -m "docs: add Gemini analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
         git push origin HEAD:main

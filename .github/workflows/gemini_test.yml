@@ -30,7 +30,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install google-cloud-aiplatform
+        pip install --upgrade google-generativeai
         pip install python-dotenv
 
     - name: Analyze Logs with Gemini

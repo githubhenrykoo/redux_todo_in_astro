@@ -119,9 +119,21 @@ jobs:
             with open(f"{output_name}.tex", "w") as f:
                 f.write(latex_content)
 
-            # Run pdflatex twice to resolve references
-            subprocess.run(['pdflatex', f"{output_name}.tex"])
-            subprocess.run(['pdflatex', f"{output_name}.tex"])
+            # Run pdflatex with error handling
+            result = subprocess.run(['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"], capture_output=True, text=True)
+            if result.returncode != 0:
+                print("LaTeX Error:", result.stderr)
+                raise Exception("PDF generation failed")
+
+            # Run second pass for references
+            result = subprocess.run(['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"], capture_output=True, text=True)
+            if result.returncode != 0:
+                print("LaTeX Error:", result.stderr)
+                raise Exception("PDF generation failed")
+
+            # Verify PDF was created
+            if not os.path.exists(f"{output_name}.pdf"):
+                raise Exception("PDF file was not created")
 
         # Read input markdown file
         md_file = "${{ github.event.inputs.markdown_file }}"

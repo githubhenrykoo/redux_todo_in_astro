@@ -144,7 +144,7 @@ jobs:
         python convert_md_to_pdf.py
 
     - name: Upload PDF artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated from v3 to v4
       with:
         name: converted-pdf
         path: "*.pdf"

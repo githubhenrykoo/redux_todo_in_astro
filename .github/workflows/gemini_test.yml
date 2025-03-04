@@ -41,8 +41,6 @@ jobs:
         # Set output file path
         OUTPUT_FILE="Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
         
-      
-
         # Create Python script
         cat << 'EOF' > analyze_logs.py
         import os
@@ -106,7 +104,3 @@ jobs:
         git add "${OUTPUT_FILE}"
         git commit -m "docs: add Gemini analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
         git push origin HEAD:main
-- name: Save Analysis
-      run: |
-        # Directory already exists, so we can write directly to it
-        python analyze_logs.py > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md" || echo "Failed to save analysis"

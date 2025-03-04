@@ -31,24 +31,18 @@ jobs:
       run: |
         echo "# Git Activity Log" > "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "Generated at: $(date)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
-        echo "## First and Last Commits in Last ${{ github.event.inputs.days || 1 }} Day(s)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         
-        echo "### Latest Commit" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
-        echo "\`\`\`diff" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
-        git log --since="${{ github.event.inputs.days || 1 }} days ago" \
-            --pretty=format:'%h - %ad - %an%n%s%n' \
-            --date=format:'%Y-%m-%d %H:%M:%S' \
-            --stat \
-            --patch -n 1 >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
-        echo "\`\`\`" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        # Get first and last commit hashes
+        FIRST_COMMIT=$(git log --since="${{ github.event.inputs.days || 1 }} days ago" --reverse --format="%H" | head -n 1)
+        LAST_COMMIT=$(git log --since="${{ github.event.inputs.days || 1 }} days ago" --format="%H" | head -n 1)
         
-        echo -e "\n### First Commit" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "## Changes Between First and Last Commits" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "\`\`\`diff" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
-        git log --since="${{ github.event.inputs.days || 1 }} days ago" \
-            --pretty=format:'%h - %ad - %an%n%s%n' \
-            --date=format:'%Y-%m-%d %H:%M:%S' \
-            --stat \
-            --patch --reverse -n 1 >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        if [ ! -z "$FIRST_COMMIT" ] && [ ! -z "$LAST_COMMIT" ]; then
+          git diff $FIRST_COMMIT..$LAST_COMMIT >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        else
+          echo "No commits found in the specified timeframe" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        fi
         echo "\`\`\`" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         
         echo -e "\n## Summary" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"

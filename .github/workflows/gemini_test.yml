@@ -102,12 +102,12 @@ jobs:
         python analyze_logs.py
 
     - name: Save Analysis
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-        # Create a temporary file first
-        python analyze_logs.py > analysis_output.txt
-        # Create directory and move file
-        mkdir -p Docs/analysis
-        mv analysis_output.txt "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        # Execute Python script and save output directly
+        ANALYSIS_FILE="Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        python3 analyze_logs.py | tee "$ANALYSIS_FILE"
 
     - name: Commit Analysis
       run: |

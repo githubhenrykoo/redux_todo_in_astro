@@ -1,0 +1,17 @@
+name: Get Chat ID
+
+on:
+  workflow_dispatch:  # This allows manual triggering
+
+jobs:
+  get-id:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Get Updates
+      run: |
+        response=$(curl -s "https://api.telegram.org/bot7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok/getUpdates")
+        echo "Full response:"
+        echo "$response" | jq .
+        echo "Chat ID (if available):"
+        echo "$response" | jq '.result[].message.chat.id'

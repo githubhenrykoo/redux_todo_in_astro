@@ -30,25 +30,3 @@ jobs:
 
     - name: Build
       run: npm run build
-
-  generate-logs:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-
-    - name: Generate 24h Git Log
-      run: |
-        echo "# Git Activity Log (Last 24 Hours)" > git_log.md
-        echo "Generated at: $(date)" >> git_log.md
-        echo "## Commits" >> git_log.md
-        git log --since="24 hours ago" --pretty=format:"* %h - %s (%cr) by %an" >> git_log.md
-
-    - name: Upload Git Log
-      uses: actions/upload-artifact@v3
-      with:
-        name: git-activity-log
-        path: git_log.md

@@ -40,20 +40,22 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
+        # Create Python script
         cat << 'EOF' > analyze_logs.py
         import os
         import glob
-        from datetime import datetime
         import google.generativeai as genai
-
-        # Configure Gemini
-        genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
         
-        # Initialize model
-        model = genai.GenerativeModel('gemini-pro')
-
-        # Get the latest log file
-        log_files = glob.glob('Docs/log/git-log-*.md')
+        # Configure Gemini
+        api_key = "AIzaSyBBAly2UC4CJfxfvEHATR5W8RVbFFIvHkc"
+        genai.configure(api_key=api_key)
+        
+        # Initialize model with correct name
+        model = genai.GenerativeModel('gemini-1.5-pro')  # Updated to use 1.5 Pro version
+        
+        # Use absolute path for glob
+        workspace = os.getenv('GITHUB_WORKSPACE', '.')
+        log_files = glob.glob(os.path.join(workspace, 'Docs/log/git-log-*.md'))
         if not log_files:
             print("No log files found")
             exit(1)
@@ -95,7 +97,13 @@ Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             exit(1)
         EOF
 
-        python analyze_logs.py
+        # Run analysis directly to the final file
+        {
+          echo "# Gemini Analysis"
+          echo "Generated at: $(date)"
+          echo "## Analysis Results"
+          python3 analyze_logs.py
+        } | tee Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
 
     - name: Commit Analysis
       run: |

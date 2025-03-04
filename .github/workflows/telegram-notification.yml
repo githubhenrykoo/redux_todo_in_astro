@@ -10,6 +10,7 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+    environment: github-pages
     
     steps:
     - name: Checkout code
@@ -18,8 +19,8 @@ jobs:
     - name: Send Telegram Message
       uses: appleboy/telegram-action@master
       with:
-        to: 6281237209043
-        token: 7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok
+        to: 7721486571
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         format: html
         message: |
           🤖 <b>GitHub Action Notification</b>

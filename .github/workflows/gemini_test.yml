@@ -103,20 +103,14 @@ jobs:
 
     - name: Save Analysis
       run: |
-
-        # Save the analysis
-        python analyze_logs.py > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        OUTPUT_DIR="Docs/analysis"
+        OUTPUT_FILE="${OUTPUT_DIR}/gemini-analysis-$(date +%Y-%m-%d).md"
+        python analyze_logs.py > "${OUTPUT_FILE}"
 
     - name: Commit Analysis
       run: |
-        # Ensure directory exists and file was created
-        if [ -f "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md" ]; then
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
-          git commit -m "docs: add Gemini analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
-          git push origin HEAD:main
-        else
-          echo "Analysis file not found, skipping commit"
-          exit 1
-        fi
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        git commit -m "docs: add Gemini analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
+        git push origin HEAD:main

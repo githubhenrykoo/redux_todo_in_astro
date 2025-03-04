@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: telegram-bot
     env:
-      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      TELEGRAM_BOT_TOKEN: "7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok"
+      TELEGRAM_CHAT_ID: "7721486571"
     
     steps:
     - name: Debug Environment
@@ -32,9 +32,12 @@ jobs:
 
     - name: Send Notification
       uses: appleboy/telegram-action@master
+      env:
+        TELEGRAM_BOT_TOKEN: "7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok"
+        TELEGRAM_CHAT_ID: "7721486571"
       with:
-        to: 7721486571
-        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        to: ${{ env.TELEGRAM_CHAT_ID }}
+        token: ${{ env.TELEGRAM_BOT_TOKEN }}
         format: markdown
         message: |
           🔔 *GitHub Action Notification*

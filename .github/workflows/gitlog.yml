@@ -11,6 +11,9 @@ on:
         default: '1'
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   generate-log:
     runs-on: ubuntu-latest
@@ -19,6 +22,7 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Docs Directory
       run: mkdir -p Docs/log
@@ -40,8 +44,8 @@ jobs:
 
     - name: Commit and Push Log
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         git add Docs/log/
         git commit -m "docs: update git log for $(date +%Y-%m-%d)" || echo "No changes to commit"
-        git push
+        git push origin HEAD:main

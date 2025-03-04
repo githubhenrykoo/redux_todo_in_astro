@@ -38,7 +38,7 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-       
+        # Set output file path
         OUTPUT_FILE="Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
         
         # Create Python script
@@ -91,13 +91,11 @@ jobs:
             exit(1)
         EOF
 
-        # Run analysis and save output
-        {
-          echo "# Gemini Analysis"
-          echo "Generated at: $(date)"
-          echo "## Analysis Results"
-          python analyze_logs.py
-        } > "${OUTPUT_FILE}"
+        # Run analysis and write to file
+        echo "# Gemini Analysis" > "${OUTPUT_FILE}"
+        echo "Generated at: $(date)" >> "${OUTPUT_FILE}"
+        echo "## Analysis Results" >> "${OUTPUT_FILE}"
+        python analyze_logs.py >> "${OUTPUT_FILE}"
 
     - name: Commit Analysis
       run: |

@@ -103,8 +103,7 @@ jobs:
 
     - name: Save Analysis
       run: |
-        # Create directory if it doesn't exist
-        mkdir -p Docs/analysis
+
         # Save the analysis
         python analyze_logs.py > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
 

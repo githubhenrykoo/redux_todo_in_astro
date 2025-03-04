@@ -38,9 +38,6 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-        # Create temporary output file
-        TEMP_FILE="analysis_output.txt"
-        
         # Create Python script
         cat << 'EOF' > analyze_logs.py
         import os
@@ -82,13 +79,10 @@ jobs:
             exit(1)
         EOF
 
-        # Run analysis and save to temporary file first
-        python analyze_logs.py > $TEMP_FILE
-        
-        # Then create the final markdown file
+        # Run analysis directly to the final file
         {
           echo "# Gemini Analysis"
           echo "Generated at: $(date)"
           echo "## Analysis Results"
-          cat $TEMP_FILE
-        } > Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md
+          python3 analyze_logs.py
+        } | tee Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md

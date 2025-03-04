@@ -25,15 +25,14 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-latex-extra
-        pip install google-generativeai
+        sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-latex-extra texlive-pictures
+        pip install --upgrade google-generativeai
         pip install python-dotenv
 
     - name: Convert MD to PDF
       env:
         GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
       run: |
-        # Create Python script for conversion
         cat << 'EOF' > convert_md_to_pdf.py
         import os
         import google.generativeai as genai
@@ -45,22 +44,22 @@ jobs:
             raise ValueError("GOOGLE_API_KEY not set")
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05')  # Updated model name
 
         def md_to_latex(md_content):
-            prompt = f"""
+            prompt = """
               You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure the following:
 
               - Do not use ```latex ``` or any similar code block delimiters.
               - Use the appropriate document class, title, and sections.
-              - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \textbf, * --> \textit)
+              - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \\textbf, * --> \\textit)
               - Correctly format tables, numbering, bullet points, and code blocks.
               - Maintain the full content without reduction.
               - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style ("below of"):
 
               % Custom styles for all diagrams
-                  \tikzset{{
-                      block/.style={{
+                  \\tikzset{
+                      block/.style={
                           rectangle,
                           draw=darkblue,
                           text width=7em,
@@ -68,9 +67,9 @@ jobs:
                           rounded corners,
                           minimum height=2em,
                           fill=lightgray!10,
-                          font=\small
-                      }},
-                      process/.style={{
+                          font=\\small
+                      },
+                      process/.style={
                           rectangle,
                           draw=forestgreen,
                           text width=6em,
@@ -78,21 +77,21 @@ jobs:
                           rounded corners,
                           fill=lightgray!30,
                           minimum height=2em,
-                          font=\small
-                      }},
-                      line/.style={{
+                          font=\\small
+                      },
+                      line/.style={
                           draw,
                           -latex',
-                          font=\footnotesize
-                      }},
-                      cloud/.style={{
+                          font=\\footnotesize
+                      },
+                      cloud/.style={
                           draw,
                           ellipse,
                           minimum width=2cm,
                           minimum height=1cm,
                           fill=lightgray!20
-                      }},
-                      state/.style={{
+                      },
+                      state/.style={
                           rectangle,
                           draw=uiblue,
                           text width=8em,
@@ -100,19 +99,17 @@ jobs:
                           rounded corners,
                           fill=uiblue!10,
                           minimum height=2.5em,
-                          font=\small
-                      }}
-                  }}
+                          font=\\small
+                      }
+                  }
                   - note the color rgb format:
                       - lightgray, RGB(240,240,240)
                       - darkblue, RGB(0,0,139)
                       - forestgreen, RGB(34,139,34)
                       - uiblue, RGB(66,139,202)
-                  - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference for the TikZ picture structure.
 
               Markdown Content:
-              {markdown_content}
-            """
+              """ + md_content
 
             response = model.generate_content(prompt)
             return response.text
@@ -144,7 +141,7 @@ jobs:
         python convert_md_to_pdf.py
 
     - name: Upload PDF artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated from v3 to v4
       with:
         name: converted-pdf
         path: "*.pdf"

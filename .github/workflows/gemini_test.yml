@@ -103,8 +103,8 @@ jobs:
 
     - name: Save Analysis
       run: |
-        mkdir -p Docs/analysis
-        python analyze_logs.py > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        # Directory already exists, so we can write directly to it
+        python analyze_logs.py > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md" || echo "Failed to save analysis"
 
     - name: Commit Analysis
       run: |

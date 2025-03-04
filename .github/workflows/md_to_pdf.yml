@@ -31,7 +31,7 @@ jobs:
 
     - name: Convert MD to PDF
       env:
-        GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
+        GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
       run: |
         # Create Python script for conversion
         cat << 'EOF' > convert_md_to_pdf.py

@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:    # Adding manual trigger option
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # This ensures we fetch the full git history
+        fetch-depth: 0
 
     - name: Set up Node.js
       uses: actions/setup-node@v3

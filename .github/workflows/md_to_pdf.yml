@@ -25,15 +25,14 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-latex-extra
-        pip install google-generativeai
+        sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-latex-extra texlive-pictures
+        pip install --upgrade google-generativeai
         pip install python-dotenv
 
     - name: Convert MD to PDF
       env:
         GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
       run: |
-        # Create Python script for conversion
         cat << 'EOF' > convert_md_to_pdf.py
         import os
         import google.generativeai as genai
@@ -45,7 +44,7 @@ jobs:
             raise ValueError("GOOGLE_API_KEY not set")
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05')  # Updated model name
 
         def md_to_latex(md_content):
             prompt = """

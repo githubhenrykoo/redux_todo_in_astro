@@ -10,28 +10,11 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    environment:
-      name: telegram-bot
-      url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     
     steps:
     - uses: actions/checkout@v4
       
-    - name: Debug Environment
-      run: |
-        echo "Checking environment variables (sanitized)..."
-        if [ -n "${{ secrets.TELEGRAM_BOT_TOKEN }}" ]; then
-          echo "TELEGRAM_BOT_TOKEN is set"
-        else
-          echo "TELEGRAM_BOT_TOKEN is not set"
-        fi
-        if [ -n "${{ secrets.TELEGRAM_CHAT_ID }}" ]; then
-          echo "TELEGRAM_CHAT_ID is set"
-        else
-          echo "TELEGRAM_CHAT_ID is not set"
-        fi
-
-    - name: Send Notification
+    - name: Send Telegram Notification
       uses: appleboy/telegram-action@master
       with:
         to: ${{ secrets.TELEGRAM_CHAT_ID }}

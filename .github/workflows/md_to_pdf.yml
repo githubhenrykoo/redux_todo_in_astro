@@ -115,7 +115,7 @@ jobs:
             return response.text
 
         def create_pdf(latex_content, output_name):
-            # Write LaTeX content to file
+            # Write LaTeX content to file with document structure
             with open(f"{output_name}.tex", "w", encoding='utf-8') as f:
                 f.write("""\\documentclass{article}
                 \\usepackage[utf8]{inputenc}
@@ -123,33 +123,33 @@ jobs:
                 \\usepackage{tikz}
                 \\usepackage{listings}
                 \\usepackage{graphicx}
+
                 \\begin{document}
                 """ + latex_content + """
                 \\end{document}
                 """)
+            print(f"LaTeX file saved: {output_name}.tex")
 
             # Run pdflatex with error handling
+            print("Converting LaTeX to PDF...")
             result = subprocess.run(
-                ['pdflatex', '-interaction=nonstopmode', '-halt-on-error', f"{output_name}.tex"],
+                ['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"],
                 capture_output=True,
                 text=True
             )
-            
             if result.returncode != 0:
-                print("LaTeX Error Output:", result.stderr)
+                print("LaTeX Error:", result.stderr)
                 with open(f"{output_name}.log", 'r') as log:
                     print("LaTeX Log:", log.read())
                 raise Exception("PDF generation failed")
 
             # Run second pass for references
-            subprocess.run(
-                ['pdflatex', '-interaction=nonstopmode', '-halt-on-error', f"{output_name}.tex"],
-                capture_output=True
-            )
-
-            # Verify PDF was created
-            if not os.path.exists(f"{output_name}.pdf"):
-                raise Exception(f"PDF file not created: {output_name}.pdf")
+            subprocess.run(['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"])
+            
+            if os.path.exists(f"{output_name}.pdf"):
+                print(f"PDF generated successfully: {output_name}.pdf")
+            else:
+                raise Exception("PDF file was not created")
 
         # Read input markdown file
         md_file = "${{ github.event.inputs.markdown_file }}"
@@ -171,10 +171,8 @@ jobs:
     - name: Debug LaTeX Output
       if: always()
       run: |
-        echo "LaTeX Files:"
+        echo "Generated files:"
         ls -la *.tex *.pdf *.log || true
-        echo "Log File Contents:"
-        cat *.log || true
 
     - name: Upload PDF artifact
       uses: actions/upload-artifact@v4  # Updated from v3 to v4

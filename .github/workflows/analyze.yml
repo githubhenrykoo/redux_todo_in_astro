@@ -1,4 +1,4 @@
-name: Gemini Log Analysis
+name: Git Analysis
 
 on:
   workflow_dispatch:

@@ -18,7 +18,7 @@ jobs:
     - name: Send Telegram Message
       uses: appleboy/telegram-action@master
       with:
-        to: 6281237209043
+        to: 7721486571
         token: 7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok
         format: html
         message: |

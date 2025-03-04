@@ -38,14 +38,11 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-        # Check if log directory and files exist
-        if [ ! -d "Docs/log" ] || [ -z "$(ls -A Docs/log/git-log-*.md 2>/dev/null)" ]; then
-          echo "Error: No git log files found in Docs/log directory"
-          exit 1
-        fi
-        
+        # Set output file path
         OUTPUT_FILE="Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
         
+      
+
         # Create Python script
         cat << 'EOF' > analyze_logs.py
         import os

@@ -19,9 +19,10 @@ jobs:
       uses: appleboy/telegram-action@master
       with:
         to: 6281237209043
-        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        token: 7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok
+        format: html
         message: |
-          🤖 GitHub Action Notification
+          🤖 <b>GitHub Action Notification</b>
           
           ⏰ Triggered at: ${{ github.event.head_commit.timestamp }}
           📦 Repository: ${{ github.repository }}

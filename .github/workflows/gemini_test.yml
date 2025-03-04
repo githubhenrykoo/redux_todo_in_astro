@@ -38,8 +38,6 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-        # Create analysis directory first
-        mkdir -p Docs/analysis
 
         cat << 'EOF' > analyze_logs.py
         import os

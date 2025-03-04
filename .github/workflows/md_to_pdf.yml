@@ -1,0 +1,105 @@
+name: Markdown to PDF Converter
+
+on:
+  workflow_dispatch:
+    inputs:
+      markdown_file:
+        description: 'Path to markdown file to convert'
+        required: true
+        type: string
+        default: 'README.md'
+
+jobs:
+  convert-to-pdf:
+    runs-on: ubuntu-latest
+    environment: LLM_API_KEY
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-latex-extra
+        pip install google-generativeai
+        pip install python-dotenv
+
+    - name: Convert MD to PDF
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
+      run: |
+        # Create Python script for conversion
+        cat << 'EOF' > convert_md_to_pdf.py
+        import os
+        import google.generativeai as genai
+        import subprocess
+
+        # Configure Gemini
+        api_key = os.getenv('GOOGLE_API_KEY')
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY not set")
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-pro')
+
+        def md_to_latex(md_content):
+            prompt = f"""
+            Convert this markdown content to LaTeX format. Include proper LaTeX document structure and handle markdown features appropriately:
+
+            {md_content}
+
+            Rules:
+            - Include complete document structure (\\documentclass, \\begin{{document}}, etc.)
+            - Convert markdown headers to LaTeX sections
+            - Handle code blocks with listings package
+            - Process markdown tables to LaTeX tables
+            - Convert links and images appropriately
+            """
+
+            response = model.generate_content(prompt)
+            return response.text
+
+        def create_pdf(latex_content, output_name):
+            # Write LaTeX content to file
+            with open(f"{output_name}.tex", "w") as f:
+                f.write(latex_content)
+
+            # Run pdflatex twice to resolve references
+            subprocess.run(['pdflatex', f"{output_name}.tex"])
+            subprocess.run(['pdflatex', f"{output_name}.tex"])
+
+        # Read input markdown file
+        md_file = "${{ github.event.inputs.markdown_file }}"
+        output_name = os.path.splitext(md_file)[0]
+
+        with open(md_file, 'r') as f:
+            md_content = f.read()
+
+        # Convert to LaTeX
+        latex_content = md_to_latex(md_content)
+
+        # Create PDF
+        create_pdf(latex_content, output_name)
+        EOF
+
+        # Run the conversion script
+        python convert_md_to_pdf.py
+
+    - name: Upload PDF artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: converted-pdf
+        path: "*.pdf"
+
+    - name: Commit PDF
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add "*.pdf"
+        git commit -m "docs: convert markdown to PDF" || echo "No changes to commit"
+        git push origin HEAD:main

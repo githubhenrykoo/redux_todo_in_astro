@@ -35,64 +35,64 @@ jobs:
       run: |
        
         cat << 'EOF' > refine_analysis.py
-          import os
-          import glob
-          from datetime import datetime
-          import google.generativeai as genai
+import os
+import glob
+from datetime import datetime
+import google.generativeai as genai
 
-        # Configure Gemini
-        genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
-        model = genai.GenerativeModel('gemini-2.0-flash')
+# Configure Gemini
+genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
+model = genai.GenerativeModel('gemini-2.0-flash')
 
-          # Get the analysis file
-          analysis_date = '${{ github.event.inputs.analysis_date }}'
-          analysis_file = f'Docs/analysis/gemini-analysis-{analysis_date}.md'
-          
-          if not os.path.exists(analysis_file):
-              print(f"Analysis file not found: {analysis_file}")
-              exit(1)
+# Get the analysis file
+analysis_date = '${{ github.event.inputs.analysis_date }}'
+analysis_file = f'Docs/analysis/gemini-analysis-{analysis_date}.md'
 
-          with open(analysis_file, 'r') as f:
-              analysis_content = f.read()
+if not os.path.exists(analysis_file):
+    print(f"Analysis file not found: {analysis_file}")
+    exit(1)
 
-          critique_prompt = f"""
-          Review and critique the following analysis report:
+with open(analysis_file, 'r') as f:
+    analysis_content = f.read()
 
-          {analysis_content}
+critique_prompt = f"""
+Review and critique the following analysis report:
 
-          Provide a structured critique following these sections:
-          - Title
-          - Completeness
-          - Clarity
-          - Structure
-          - Technical Depth
-          - Actionable Insights
-          - Team Contribution Visibility
-          - Workflow Critique
-          - Key Takeaways (5-15 items)
-          - One-Sentence-Summary
-          - Quotes (10-20 relevant items)
-          - Improvement Suggestions (minimum 5)
-          """
+{analysis_content}
 
-          try:
-              response = model.generate_content(critique_prompt)
-              refined_output = f"""# Refined Analysis
-              Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Provide a structured critique following these sections:
+- Title
+- Completeness
+- Clarity
+- Structure
+- Technical Depth
+- Actionable Insights
+- Team Contribution Visibility
+- Workflow Critique
+- Key Takeaways (5-15 items)
+- One-Sentence-Summary
+- Quotes (10-20 relevant items)
+- Improvement Suggestions (minimum 5)
+"""
 
-              ## Original Analysis
-              {analysis_content}
+try:
+    response = model.generate_content(critique_prompt)
+    refined_output = f"""# Refined Analysis
+Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-              ## Refinement and Critique
-              {response.text}
-              """
-              refined_file = f'Docs/analysis/refined-{analysis_date}.md'
-              with open(refined_file, 'w') as f:
-                  f.write(refined_output)
-          except Exception as e:
-              print(f"Error: {str(e)}")
-              exit(1)
-        EOF
+## Original Analysis
+{analysis_content}
+
+## Refinement and Critique
+{response.text}
+"""
+    refined_file = f'Docs/analysis/refined-{analysis_date}.md'
+    with open(refined_file, 'w') as f:
+        f.write(refined_output)
+except Exception as e:
+    print(f"Error: {str(e)}")
+    exit(1)
+EOF
 
         python refine_analysis.py
 

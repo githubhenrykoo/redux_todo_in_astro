@@ -10,4 +10,8 @@ jobs:
     steps:
     - name: Get Updates
       run: |
-        curl -s "https://api.telegram.org/bot7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok/getUpdates" | jq .
+        response=$(curl -s "https://api.telegram.org/bot7791170991:AAGm4-_s2RWctpAHDg-3h2WmE50N19C95ok/getUpdates")
+        echo "Full response:"
+        echo "$response" | jq .
+        echo "Chat ID (if available):"
+        echo "$response" | jq '.result[].message.chat.id'

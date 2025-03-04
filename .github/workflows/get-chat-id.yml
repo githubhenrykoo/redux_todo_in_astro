@@ -7,8 +7,25 @@ jobs:
   get-chat-id:
     runs-on: ubuntu-latest
     environment: telegram-bot
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
     
     steps:
+    - name: Debug Token
+      run: |
+        echo "Checking if token is set..."
+        if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
+          echo "Token is set"
+        else
+          echo "Token is not set"
+          exit 1
+        fi
+
     - name: Get Chat ID
       run: |
-        curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/getUpdates" | jq '.result[] | .message.chat.id' | sort -u
+        echo "Fetching chat ID..."
+        RESPONSE=$(curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/getUpdates")
+        echo "Response (sanitized):"
+        echo "$RESPONSE" | jq 'del(.result[].message.from.id)'
+        echo "Chat IDs found:"
+        echo "$RESPONSE" | jq '.result[] | .message.chat.id' | sort -u

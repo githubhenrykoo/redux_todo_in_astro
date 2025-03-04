@@ -41,8 +41,30 @@ jobs:
         cat << 'EOF' > analyze_logs.py
         import os
         import glob
-        from datetime import datetime, timedelta
+        import sys
+        from datetime import datetime
         import google.generativeai as genai
+
+        # Configure output file
+        output_file = f"Docs/analysis/gemini-analysis-{datetime.now().strftime('%Y-%m-%d')}.md"
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+        # Redirect stdout to both console and file
+        class Logger:
+            def __init__(self, filename):
+                self.terminal = sys.stdout
+                self.log = open(filename, 'w')
+
+            def write(self, message):
+                self.terminal.write(message)
+                self.log.write(message)
+                self.flush()
+
+            def flush(self):
+                self.terminal.flush()
+                self.log.flush()
+
+        sys.stdout = Logger(output_file)
 
         # Configure Gemini with API key
         api_key = os.getenv('GOOGLE_API_KEY')
@@ -100,14 +122,6 @@ jobs:
         EOF
 
         python analyze_logs.py
-
-    - name: Save Analysis
-      env:
-        GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
-      run: |
-        # Execute Python script and save output directly
-        ANALYSIS_FILE="Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
-        python3 analyze_logs.py | tee "$ANALYSIS_FILE"
 
     - name: Commit Analysis
       run: |

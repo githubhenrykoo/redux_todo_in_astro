@@ -39,7 +39,7 @@ jobs:
         echo "## Changes Between First and Last Commits" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "\`\`\`diff" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         if [ ! -z "$FIRST_COMMIT" ] && [ ! -z "$LAST_COMMIT" ]; then
-          git diff $FIRST_COMMIT..$LAST_COMMIT >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+          git diff $FIRST_COMMIT..$LAST_COMMIT -- . ':!node_modules' ':!package-lock.json' >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         else
           echo "No commits found in the specified timeframe" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         fi

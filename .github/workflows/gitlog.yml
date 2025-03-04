@@ -31,15 +31,27 @@ jobs:
       run: |
         echo "# Git Activity Log" > "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "Generated at: $(date)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
-        echo "## Changes in Last ${{ github.event.inputs.days || 1 }} Day(s)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "## First and Last Commits in Last ${{ github.event.inputs.days || 1 }} Day(s)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        
+        echo "### Latest Commit" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "\`\`\`diff" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         git log --since="${{ github.event.inputs.days || 1 }} days ago" \
-            --pretty=format:'### %h - %ad - %an%n%s%n' \
+            --pretty=format:'%h - %ad - %an%n%s%n' \
             --date=format:'%Y-%m-%d %H:%M:%S' \
             --stat \
-            --patch >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+            --patch -n 1 >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "\`\`\`" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
-        echo "## Summary" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        
+        echo -e "\n### First Commit" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "\`\`\`diff" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        git log --since="${{ github.event.inputs.days || 1 }} days ago" \
+            --pretty=format:'%h - %ad - %an%n%s%n' \
+            --date=format:'%Y-%m-%d %H:%M:%S' \
+            --stat \
+            --patch --reverse -n 1 >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "\`\`\`" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        
+        echo -e "\n## Summary" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "Total commits: $(git log --since="${{ github.event.inputs.days || 1 }} days ago" --oneline | wc -l)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
 
     - name: Commit and Push Log

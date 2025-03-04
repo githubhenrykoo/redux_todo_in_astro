@@ -49,7 +49,7 @@ jobs:
         # Configure Gemini
         genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
         
-        # Initialize model (using correct model name)
+        # Initialize model
         model = genai.GenerativeModel('gemini-pro')
 
         # Get the latest log file
@@ -65,7 +65,7 @@ jobs:
         # Prepare the prompt
         query = '${{ github.event.inputs.query }}'
         prompt = f"""
-        You are an AI assistant specializing in analyzing Git commit logs. Your task is to process the following Git log data and transform it into a structured, human-readable summary. Focus on identifying key activities, trends, and patterns, such as major feature additions, bug fixes, refactoring, and notable contributors. Summarize commit messages concisely while maintaining their context. If possible, categorize the commits into meaningful sections (e.g., Features, Bug Fixes, Documentation Updates, Refactoring). Ensure that the final output is well-organized and easy to understand. Format the result in Markdown (.md) for clear readability. Below is the Git log data to analyze:
+        Analyze this git log and {query}:
 
         {log_content}
 
@@ -95,10 +95,6 @@ Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             exit(1)
         EOF
 
-        # Create output directory if it doesn't exist
-        mkdir -p Docs/analysis
-
-        # Run the analysis script
         python analyze_logs.py
 
     - name: Commit Analysis

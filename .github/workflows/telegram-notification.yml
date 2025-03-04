@@ -10,23 +10,24 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    environment: github-pages
+    environment: telegram-bot
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-      
-    - name: Send Telegram Message
+    - name: Send Notification
       uses: appleboy/telegram-action@master
       with:
-        to: 7721486571
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
         token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        format: html
+        format: markdown
         message: |
-          🤖 <b>GitHub Action Notification</b>
+          🔔 *GitHub Action Notification*
           
-          ⏰ Triggered at: ${{ github.event.head_commit.timestamp }}
-          📦 Repository: ${{ github.repository }}
-          🔔 Event: ${{ github.event_name }}
+          *Repository:* `${{ github.repository }}`
+          *Event:* `${{ github.event_name }}`
+          *Branch:* `${{ github.ref_name }}`
+          *Commit:* `${{ github.sha }}`
           
-          @githubtodobot
+          *Actor:* `${{ github.actor }}`
+          *Status:* ${{ job.status }}
+          
+          [View Action Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

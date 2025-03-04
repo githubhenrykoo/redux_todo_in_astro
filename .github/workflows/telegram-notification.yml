@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  # You can add other triggers as needed
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   notify:
@@ -14,21 +14,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       
-    - name: Send Telegram Notification
+    - name: Send Telegram Notification with Analysis
       uses: appleboy/telegram-action@master
       with:
         to: ${{ secrets.TELEGRAM_CHAT_ID }}
         token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         format: markdown
         message: |
-          *GitHub Action Notification*
+          *GitHub Analysis Report*
           
           *Repository:* `${{ github.repository }}`
           *Event:* `${{ github.event_name }}`
           *Branch:* `${{ github.ref_name }}`
           *Commit:* `${{ github.sha }}`
           
-          *Actor:* `${{ github.actor }}`
-          *Status:* ${{ job.status }}
+          *Analysis File:* Gemini Analysis Report Attached
           
-          [View Action Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          [View Full Report](${{ github.server_url }}/${{ github.repository }}/blob/main/Docs/analysis/gemini-analysis-2025-03-04.md)
+        document: Docs/analysis/gemini-analysis-2025-03-04.md

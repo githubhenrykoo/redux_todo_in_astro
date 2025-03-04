@@ -33,6 +33,7 @@ jobs:
       env:
         GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
       run: |
+       
         cat << 'EOF' > refine_analysis.py
         import os
         import glob
@@ -96,7 +97,9 @@ Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             exit(1)
         EOF
 
-        python refine_analysis.py
+        # Ensure directory exists and run script
+      
+        python refine_analysis.py || exit 1
 
     - name: Commit Refined Analysis
       env:

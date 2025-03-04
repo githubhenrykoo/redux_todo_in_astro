@@ -14,21 +14,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       
-    - name: Send Telegram Notification with Analysis
+    - name: Send Telegram Notification
       uses: appleboy/telegram-action@master
       with:
         to: ${{ secrets.TELEGRAM_CHAT_ID }}
         token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         format: markdown
         message: |
-          *GitHub Analysis Report*
+          *GitHub Action Notification*
           
           *Repository:* `${{ github.repository }}`
           *Event:* `${{ github.event_name }}`
           *Branch:* `${{ github.ref_name }}`
           *Commit:* `${{ github.sha }}`
           
-          *Analysis File:* Gemini Analysis Report Attached
+          *Actor:* `${{ github.actor }}`
+          *Status:* ${{ job.status }}
           
-          [View Full Report](${{ github.server_url }}/${{ github.repository }}/blob/main/Docs/analysis/gemini-analysis-2025-03-04.md)
-        document: Docs/analysis/gemini-analysis-2025-03-04.md
+          [View Action Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

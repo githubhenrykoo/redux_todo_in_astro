@@ -48,19 +48,19 @@ jobs:
         model = genai.GenerativeModel('gemini-pro')
 
         def md_to_latex(md_content):
-            prompt = f"""
+            prompt = """
               You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure the following:
 
               - Do not use ```latex ``` or any similar code block delimiters.
               - Use the appropriate document class, title, and sections.
-              - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \textbf, * --> \textit)
+              - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \\textbf, * --> \\textit)
               - Correctly format tables, numbering, bullet points, and code blocks.
               - Maintain the full content without reduction.
               - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style ("below of"):
 
               % Custom styles for all diagrams
-                  \tikzset{{
-                      block/.style={{
+                  \\tikzset{
+                      block/.style={
                           rectangle,
                           draw=darkblue,
                           text width=7em,
@@ -68,9 +68,9 @@ jobs:
                           rounded corners,
                           minimum height=2em,
                           fill=lightgray!10,
-                          font=\small
-                      }},
-                      process/.style={{
+                          font=\\small
+                      },
+                      process/.style={
                           rectangle,
                           draw=forestgreen,
                           text width=6em,
@@ -78,21 +78,21 @@ jobs:
                           rounded corners,
                           fill=lightgray!30,
                           minimum height=2em,
-                          font=\small
-                      }},
-                      line/.style={{
+                          font=\\small
+                      },
+                      line/.style={
                           draw,
                           -latex',
-                          font=\footnotesize
-                      }},
-                      cloud/.style={{
+                          font=\\footnotesize
+                      },
+                      cloud/.style={
                           draw,
                           ellipse,
                           minimum width=2cm,
                           minimum height=1cm,
                           fill=lightgray!20
-                      }},
-                      state/.style={{
+                      },
+                      state/.style={
                           rectangle,
                           draw=uiblue,
                           text width=8em,
@@ -100,19 +100,17 @@ jobs:
                           rounded corners,
                           fill=uiblue!10,
                           minimum height=2.5em,
-                          font=\small
-                      }}
-                  }}
+                          font=\\small
+                      }
+                  }
                   - note the color rgb format:
                       - lightgray, RGB(240,240,240)
                       - darkblue, RGB(0,0,139)
                       - forestgreen, RGB(34,139,34)
                       - uiblue, RGB(66,139,202)
-                  - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference for the TikZ picture structure.
 
               Markdown Content:
-              {markdown_content}
-            """
+              """ + md_content
 
             response = model.generate_content(prompt)
             return response.text

@@ -54,7 +54,7 @@ jobs:
                 print(f"Found model: {m.name}")
                 
         # Try different model names
-        model_names = ['gemini-1.0-pro', 'gemini-pro', 'gemini-pro-latest']
+        model_names = ['gemini-2.0-flash', 'gemini-1.0-pro', 'gemini-pro']
         model = None
         
         for name in model_names:
@@ -100,6 +100,7 @@ jobs:
             print(response.text)
         except Exception as e:
             print(f"Error generating content: {str(e)}")
+            print("Response details:", str(dir(e)))
             exit(1)
         EOF
 

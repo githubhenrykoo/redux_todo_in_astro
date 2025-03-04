@@ -103,14 +103,11 @@ jobs:
 
     - name: Save Analysis
       run: |
-        # First, ensure we're in the right directory
-        cd $GITHUB_WORKSPACE
-        # Create analysis directory if it doesn't exist
-        mkdir -p Docs/analysis || true
-        # Set permissions
-        chmod -R 755 Docs
-        # Save the analysis
-        python analyze_logs.py > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        # Create a temporary file first
+        python analyze_logs.py > analysis_output.txt
+        # Create directory and move file
+        mkdir -p Docs/analysis
+        mv analysis_output.txt "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
 
     - name: Commit Analysis
       run: |

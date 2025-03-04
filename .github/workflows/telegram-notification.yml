@@ -1,0 +1,27 @@
+name: Telegram Notification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # You can add other triggers as needed
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Send Telegram Message
+      uses: appleboy/telegram-action@master
+      with:
+        to: "6281237209043"
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: |
+          🤖 GitHub Action Notification
+          
+          ⏰ Triggered at: ${{ github.event.head_commit.timestamp }}
+          📦 Repository: ${{ github.repository }}
+          🔔 Event: ${{ github.event_name }}
+          
+          @githubtodobot

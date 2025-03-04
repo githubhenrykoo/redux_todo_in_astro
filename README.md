@@ -18,11 +18,12 @@ For detailed architectural decisions and implementation patterns, see [Architect
 
 - Add and remove todos with real-time updates
 - Real-time search functionality
-- Action histor
+- Action history
 - Resizable panel layout
 - Modern, responsive UI with dark theme support
 - Client-side state management with Redux
 - Hybrid rendering using Astro and React components
+- GitHub Actions integration with Telegram notifications
 
 ## 🛠️ Technical Stack
 

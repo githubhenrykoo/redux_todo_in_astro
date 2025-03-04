@@ -18,8 +18,6 @@ jobs:
   analyze-logs:
     runs-on: ubuntu-latest
     environment: LLM_API_KEY
-    permissions:
-      contents: write
     
     steps:
     - uses: actions/checkout@v3
@@ -40,22 +38,25 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-        # Create Python script
         cat << 'EOF' > analyze_logs.py
         import os
         import glob
+        from datetime import datetime, timedelta
         import google.generativeai as genai
-        
+
         # Configure Gemini
-        api_key = "AIzaSyBBAly2UC4CJfxfvEHATR5W8RVbFFIvHkc"
-        genai.configure(api_key=api_key)
+        genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
         
-        # Initialize model with correct name
-        model = genai.GenerativeModel('gemini-1.5-pro')  # Updated to use 1.5 Pro version
-        
-        # Use absolute path for glob
-        workspace = os.getenv('GITHUB_WORKSPACE', '.')
-        log_files = glob.glob(os.path.join(workspace, 'Docs/log/git-log-*.md'))
+        # List available models
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                print(m.name)
+                
+        # Use the correct model
+        model = genai.GenerativeModel('models/gemini-1.0-pro')
+
+        # Get the latest log file
+        log_files = glob.glob('Docs/log/git-log-*.md')
         if not log_files:
             print("No log files found")
             exit(1)
@@ -78,35 +79,26 @@ jobs:
         """
 
         try:
+            # Get Gemini's analysis
             response = model.generate_content(prompt)
-            
-            # Format output as markdown
-            output = f"""# Gemini Analysis
-Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-## Analysis Results
-
-{response.text}
-"""
-            # Write to file
-            with open(f'Docs/analysis/gemini-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
-                f.write(output)
-                
+            print("\n=== Gemini Analysis ===\n")
+            print(response.text)
         except Exception as e:
             print(f"Error: {str(e)}")
-            exit(1)
+            print(f"Available models: {[m.name for m in genai.list_models()]}")
         EOF
 
-        # Create directory if it doesn't exist
-        mkdir -p Docs/analysis
+        python analyze_logs.py
         
-        # Run the analysis script (it will create the output file)
-        python3 analyze_logs.py
 
-    - name: Commit Analysis
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
-        git commit -m "docs: add Gemini analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
-        git push origin HEAD:main
+        # Write directly to the analysis file
+        # Save to a temporary file first
+        TEMP_OUTPUT=$(mktemp)
+        echo "# Gemini Analysis" > $TEMP_OUTPUT
+        echo "Generated at: $(date)" >> $TEMP_OUTPUT
+        echo "## Analysis Results" >> $TEMP_OUTPUT
+        python3 analyze_logs.py >> $TEMP_OUTPUT
+
+        # Then copy to final location
+        cp $TEMP_OUTPUT "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
+        rm $TEMP_OUTPUT

@@ -48,6 +48,9 @@ jobs:
         api_key = "AIzaSyBBAly2UC4CJfxfvEHATR5W8RVbFFIvHkc"
         genai.configure(api_key=api_key)
         
+        # Initialize model before use
+        model = genai.GenerativeModel('gemini-pro')
+        
         # Use absolute path for glob
         workspace = os.getenv('GITHUB_WORKSPACE', '.')
         log_files = glob.glob(os.path.join(workspace, 'Docs/log/git-log-*.md'))
@@ -78,6 +81,8 @@ jobs:
             print(f"Error generating content: {str(e)}")
             exit(1)
         EOF
+
+        
 
         # Run analysis directly to the final file
         {

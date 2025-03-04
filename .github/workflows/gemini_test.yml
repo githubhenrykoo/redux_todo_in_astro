@@ -18,6 +18,8 @@ jobs:
   analyze-logs:
     runs-on: ubuntu-latest
     environment: LLM_API_KEY
+    permissions:
+      contents: write
     
     steps:
     - uses: actions/checkout@v3

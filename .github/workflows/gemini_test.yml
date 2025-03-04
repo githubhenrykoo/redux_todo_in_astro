@@ -59,9 +59,9 @@ jobs:
         with open(latest_log, 'r') as f:
             log_content = f.read()
 
-        # Prepare the prompt
+        # First analysis
         query = '${{ github.event.inputs.query }}'
-        prompt = f"""
+        initial_prompt = f"""
         Analyze this git log and {query}:
 
         {log_content}
@@ -72,10 +72,46 @@ jobs:
         3. Recommendations if applicable
         """
 
-        # Get Gemini's analysis
-        response = model.generate_content(prompt)
-        print("\n=== Gemini Analysis ===\n")
-        print(response.text)
+        # Get initial analysis
+        initial_response = model.generate_content(initial_prompt)
+        
+        # Critique prompt
+        critique_prompt = f"""
+        Review and critique the following analysis:
+
+        {initial_response.text}
+
+        Title:
+        Daily Git Log Analysis Critique
+
+        Analyze this report following these sections:
+        - Completeness
+        - Clarity
+        - Structure
+        - Technical Depth
+        - Actionable Insights
+        - Team Contribution Visibility
+        - Workflow Critique
+        - Key Takeaways (5-15 items)
+        - One-Sentence-Summary
+        - Quotes (10-20 relevant items)
+        - Improvement Suggestions (minimum 5)
+        """
+
+        # Get critique
+        critique_response = model.generate_content(critique_prompt)
+        
+        # Combine outputs
+        final_output = f"""# Gemini Analysis
+Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Initial Analysis
+{initial_response.text}
+
+## Critique and Refinement
+{critique_response.text}
+"""
+        print(final_output)
         EOF
 
         python analyze_logs.py

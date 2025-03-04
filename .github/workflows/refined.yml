@@ -76,16 +76,27 @@ jobs:
         """
 
         try:
-            response = model.generate_content(critique_prompt)
-            refined_output = f"""# Refined Analysis
+            # Get initial critique
+            critique_response = model.generate_content(critique_prompt)
+            
+            # Use critique to generate enhanced analysis
+            enhancement_prompt = f"""
+            Using this critique as guidance:
+            {critique_response.text}
+            
+            Rewrite and enhance the following analysis in a clear, structured way:
+            {analysis_content}
+            """
+            
+            enhanced_response = model.generate_content(enhancement_prompt)
+            
+            # Output only the enhanced version
+            refined_output = f"""# Enhanced Analysis
             Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-            ## Original Analysis
-            {analysis_content}
-
-            ## Refinement and Critique
-            {response.text}
+            {enhanced_response.text}
             """
+            
             refined_file = f'Docs/analysis/refined-{analysis_date}.md'
             with open(refined_file, 'w') as f:
                 f.write(refined_output)

@@ -24,6 +24,8 @@ For detailed architectural decisions and implementation patterns, see [Architect
 - Client-side state management with Redux
 - Hybrid rendering using Astro and React components
 - GitHub Actions integration with Telegram notifications
+- Telegram notifications for repository events
+- Git log analysis with Gemini AI
 
 ## 🛠️ Technical Stack
 

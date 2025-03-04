@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       markdown_file:
-        description: 'Path to markdown file to convert'
+        description: 'Docs/analysis/[test][report]2025-02-22.md'
         required: true
         type: string
         default: 'README.md'

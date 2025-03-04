@@ -20,21 +20,28 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Display Git Log
+    - name: Create Docs Directory
+      run: mkdir -p Docs/log
+
+    - name: Generate Git Log
       run: |
-        echo "==================== GIT ACTIVITY LOG ===================="
-        echo "Generated at: $(date)"
-        echo "======================================================"
-        echo
-        echo "COMMITS FROM LAST ${{ github.event.inputs.days || 1 }} DAY(S):"
-        echo "======================================================"
+        echo "# Git Activity Log" > "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "Generated at: $(date)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "## Changes in Last ${{ github.event.inputs.days || 1 }} Day(s)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "\`\`\`diff" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         git log --since="${{ github.event.inputs.days || 1 }} days ago" \
-            --pretty=format:'%C(yellow)%h%Creset - %C(cyan)%ad%Creset - %C(bold blue)%an%Creset%n%s%n' \
+            --pretty=format:'### %h - %ad - %an%n%s%n' \
             --date=format:'%Y-%m-%d %H:%M:%S' \
             --stat \
-            --patch \
-            --color=always
-        echo
-        echo "======================================================"
-        echo "Total commits: $(git log --since="${{ github.event.inputs.days || 1 }} days ago" --oneline | wc -l)"
-        echo "======================================================"
+            --patch >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "\`\`\`" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "## Summary" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "Total commits: $(git log --since="${{ github.event.inputs.days || 1 }} days ago" --oneline | wc -l)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+
+    - name: Commit and Push Log
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add Docs/log/
+        git commit -m "docs: update git log for $(date +%Y-%m-%d)" || echo "No changes to commit"
+        git push

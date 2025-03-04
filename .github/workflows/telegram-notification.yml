@@ -10,9 +10,13 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
-    environment: telegram-bot
+    environment:
+      name: telegram-bot
+      url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
     
     steps:
+    - uses: actions/checkout@v4
+      
     - name: Debug Environment
       run: |
         echo "Checking environment variables (sanitized)..."
@@ -34,7 +38,7 @@ jobs:
         token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         format: markdown
         message: |
-          🔔 *GitHub Action Notification*
+          *GitHub Action Notification*
           
           *Repository:* `${{ github.repository }}`
           *Event:* `${{ github.event_name }}`

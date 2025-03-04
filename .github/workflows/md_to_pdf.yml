@@ -49,16 +49,69 @@ jobs:
 
         def md_to_latex(md_content):
             prompt = f"""
-            Convert this markdown content to LaTeX format. Include proper LaTeX document structure and handle markdown features appropriately:
+              You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure the following:
 
-            {md_content}
+              - Do not use ```latex ``` or any similar code block delimiters.
+              - Use the appropriate document class, title, and sections.
+              - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \textbf, * --> \textit)
+              - Correctly format tables, numbering, bullet points, and code blocks.
+              - Maintain the full content without reduction.
+              - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style ("below of"):
 
-            Rules:
-            - Include complete document structure (\\documentclass, \\begin{{document}}, etc.)
-            - Convert markdown headers to LaTeX sections
-            - Handle code blocks with listings package
-            - Process markdown tables to LaTeX tables
-            - Convert links and images appropriately
+              % Custom styles for all diagrams
+                  \tikzset{{
+                      block/.style={{
+                          rectangle,
+                          draw=darkblue,
+                          text width=7em,
+                          text centered,
+                          rounded corners,
+                          minimum height=2em,
+                          fill=lightgray!10,
+                          font=\small
+                      }},
+                      process/.style={{
+                          rectangle,
+                          draw=forestgreen,
+                          text width=6em,
+                          text centered,
+                          rounded corners,
+                          fill=lightgray!30,
+                          minimum height=2em,
+                          font=\small
+                      }},
+                      line/.style={{
+                          draw,
+                          -latex',
+                          font=\footnotesize
+                      }},
+                      cloud/.style={{
+                          draw,
+                          ellipse,
+                          minimum width=2cm,
+                          minimum height=1cm,
+                          fill=lightgray!20
+                      }},
+                      state/.style={{
+                          rectangle,
+                          draw=uiblue,
+                          text width=8em,
+                          text centered,
+                          rounded corners,
+                          fill=uiblue!10,
+                          minimum height=2.5em,
+                          font=\small
+                      }}
+                  }}
+                  - note the color rgb format:
+                      - lightgray, RGB(240,240,240)
+                      - darkblue, RGB(0,0,139)
+                      - forestgreen, RGB(34,139,34)
+                      - uiblue, RGB(66,139,202)
+                  - Use “Docs/to-do-plan/docs/reports/daily/2025-02/[report]2025-02-19.tex” as a reference for the TikZ picture structure.
+
+              Markdown Content:
+              {markdown_content}
             """
 
             response = model.generate_content(prompt)

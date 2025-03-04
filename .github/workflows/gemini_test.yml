@@ -103,9 +103,14 @@ jobs:
 
     - name: Save Analysis
       run: |
-        OUTPUT_DIR="Docs/analysis"
-        OUTPUT_FILE="${OUTPUT_DIR}/gemini-analysis-$(date +%Y-%m-%d).md"
-        python analyze_logs.py > "${OUTPUT_FILE}"
+        # First, ensure we're in the right directory
+        cd $GITHUB_WORKSPACE
+        # Create analysis directory if it doesn't exist
+        mkdir -p Docs/analysis || true
+        # Set permissions
+        chmod -R 755 Docs
+        # Save the analysis
+        python analyze_logs.py > "Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
 
     - name: Commit Analysis
       run: |

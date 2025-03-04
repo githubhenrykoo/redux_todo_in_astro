@@ -38,8 +38,7 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
       run: |
-        # Create directory and set output file path
-        mkdir -p Docs/analysis
+       
         OUTPUT_FILE="Docs/analysis/gemini-analysis-$(date +%Y-%m-%d).md"
         
         # Create Python script

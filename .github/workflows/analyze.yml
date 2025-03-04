@@ -38,7 +38,7 @@ jobs:
 
       - name: Analyze Logs with Gemini
         env:
-          GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
+          GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
         run: |
           # Create Python script
           cat << 'EOF' > analyze_logs.py
@@ -109,7 +109,7 @@ jobs:
 
       - name: Analyze and Save
         env:
-          GOOGLE_API_KEY: ${{ secrets.GITHUBGEMINIKEY }}
+          GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
         run: |
           cat << 'EOF' > analyze_logs.py
           import os

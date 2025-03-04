@@ -47,8 +47,8 @@ jobs:
         # Configure Gemini
         genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
         
-        # Initialize model
-        model = genai.GenerativeModel('models/gemini-1.0-pro')
+        # Initialize model (using correct model name)
+        model = genai.GenerativeModel('gemini-pro')
 
         # Get the latest log file
         log_files = glob.glob('Docs/log/git-log-*.md')
@@ -93,6 +93,10 @@ Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
             exit(1)
         EOF
 
+        # Create output directory if it doesn't exist
+        mkdir -p Docs/analysis
+
+        # Run the analysis script
         python analyze_logs.py
 
     - name: Commit Analysis

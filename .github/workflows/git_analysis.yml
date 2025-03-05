@@ -41,6 +41,14 @@ jobs:
 
     - name: Generate Git Log
       run: |
+        # Import name mapping
+        cat << 'EOF' > get_name.py
+        from Docs.config.name_mapping import NAME_MAPPING
+
+        def get_real_name(username):
+            return NAME_MAPPING.get(username, username)
+        EOF
+
         # Generate main log file
         echo "# Git Activity Log" > "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "Generated at: $(date)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
@@ -59,14 +67,15 @@ jobs:
         fi
         echo "\`\`\`" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         
-        # Generate per-user logs
+        # Generate per-user logs with real names
         for author in $(git log --since="${{ github.event.inputs.days || 1 }} days ago" --format="%ae" | sort -u); do
           username=$(echo "$author" | cut -d@ -f1)
+          real_name=$(python3 -c "from get_name import get_real_name; print(get_real_name('$username'))")
           mkdir -p "Docs/log/users/$username"
           
-          echo "# Git Activity Log - $author" > "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+          echo "# Git Activity Log - $real_name" > "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
           echo "Generated at: $(date)" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
-          echo "## Changes by $author" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+          echo "## Changes by $real_name" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
           echo "\`\`\`diff" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
           git log --since="${{ github.event.inputs.days || 1 }} days ago" --author="$author" --patch --no-merges -- . ':!node_modules' ':!package-lock.json' >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
           echo "\`\`\`" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"

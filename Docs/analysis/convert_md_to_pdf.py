@@ -5,8 +5,14 @@ from dotenv import load_dotenv
 import argparse
 
 def setup():
-    # Configure Gemini with direct API key
-    api_key = "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"  # Replace with your actual API key
+    # Load environment variables
+    load_dotenv()
+    
+    # Configure Gemini
+    api_key = os.getenv('GOOGLE_API_KEY')
+    if not api_key:
+        raise ValueError("GOOGLE_API_KEY not set in .env file")
+    
     genai.configure(api_key=api_key)
     return genai.GenerativeModel('gemini-2.0-pro-exp-02-05')
 
@@ -110,7 +116,7 @@ def create_pdf(latex_content, output_name):
 
 def main():
     # Remove argument parser and use direct path
-    md_file = "Docs/analysis/[test][report]2025-02-22.md"
+    md_file = "Docs/analysis/gemini-analysis-2025-03-04.md"
     output_name = os.path.splitext(md_file)[0]
     
     model = setup()

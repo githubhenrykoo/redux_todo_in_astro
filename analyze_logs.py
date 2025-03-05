@@ -3,6 +3,52 @@ import glob
 import time
 from datetime import datetime
 import google.generativeai as genai
+from google.api_core import exceptions
+from Docs.config.prompts.group_analysis import GROUP_ANALYSIS_PROMPT
+from Docs.config.prompts.user_analysis import USER_ANALYSIS_PROMPT
+from Docs.config.prompts.summary import SUMMARY_PROMPT
+
+def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                time.sleep(initial_delay * (2 ** attempt))  # Exponential backoff
+            response = model.generate_content(prompt)
+            return response.text
+        except exceptions.ResourceExhausted:
+            if attempt == max_retries - 1:
+                raise
+            print(f"Rate limit hit, retrying in {initial_delay * (2 ** (attempt + 1))} seconds...")
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            if attempt == max_retries - 1:
+                raise
+    return None
+
+def analyze_content(model, content, query, prompt_template):
+    chunks = chunk_content(content)
+    all_analyses = []
+    
+    for i, chunk in enumerate(chunks, 1):
+        if i > 1:
+            time.sleep(5)  # Increased delay between requests
+        
+        chunk_prompt = prompt_template.format(
+            query=query,
+            content=chunk,
+            chunk_info=f"(Part {i} of {len(chunks)})" if len(chunks) > 1 else ""
+        )
+        
+        analysis = generate_with_retry(model, chunk_prompt)
+        if analysis:
+            all_analyses.append(analysis)
+    
+    if len(all_analyses) > 1:
+        time.sleep(5)  # Increased delay before summary
+        summary_prompt = SUMMARY_PROMPT.format(content='\n\n'.join(all_analyses))
+        return generate_with_retry(model, summary_prompt)
+    
+    return all_analyses[0] if all_analyses else "Analysis failed due to API limitations"
 
 def chunk_content(content, max_chars=400000):  # Approximately 100k tokens
     lines = content.split('\n')
@@ -24,39 +70,6 @@ def chunk_content(content, max_chars=400000):  # Approximately 100k tokens
         chunks.append('\n'.join(current_chunk))
     return chunks
 
-def analyze_content(model, content, query, prompt_template):
-    chunks = chunk_content(content)
-    all_analyses = []
-    
-    for i, chunk in enumerate(chunks, 1):
-        # Add delay between API calls
-        if i > 1:
-            time.sleep(2)  # 2 second delay between requests
-        
-        chunk_prompt = prompt_template.format(
-            query=query,
-            content=chunk,
-            chunk_info=f"(Part {i} of {len(chunks)})" if len(chunks) > 1 else ""
-        )
-        
-        response = model.generate_content(chunk_prompt)
-        all_analyses.append(response.text)
-    
-    if len(all_analyses) > 1:
-        # Add delay before summary request
-        time.sleep(2)
-        summary_prompt = f"""
-        Synthesize these separate analyses into one coherent analysis:
-
-        {'\n\n'.join(all_analyses)}
-
-        Provide a unified analysis that covers all parts.
-        """
-        final_response = model.generate_content(summary_prompt)
-        return final_response.text
-    
-    return all_analyses[0]
-
 # Configure Gemini
 genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
 model = genai.GenerativeModel('gemini-2.0-flash')
@@ -69,19 +82,7 @@ if log_files:
         group_content = f.read()
 
     query = 'Summarize the main changes'
-    group_prompt_template = """
-    Analyze this team's git log {chunk_info} and {query}:
-
-    {content}
-
-    Please provide:
-    1. A summary of key changes
-    2. Team collaboration patterns
-    3. Project progress analysis
-    4. Recommendations for the team
-    """
-
-    analysis = analyze_content(model, group_content, query, group_prompt_template)
+    analysis = analyze_content(model, group_content, query, GROUP_ANALYSIS_PROMPT)
     os.makedirs('Docs/analysis/group', exist_ok=True)
     with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
         f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{analysis}")
@@ -99,19 +100,10 @@ for user_dir in user_dirs:
         with open(latest_user_log, 'r') as f:
             user_content = f.read()
 
-        user_prompt = f"""
-        Analyze this developer's git activity and {query}:
-
-        {user_content}
-
-        Please provide:
-        1. Individual contribution summary
-        2. Work patterns and focus areas
-        3. Technical expertise demonstrated
-        4. Specific recommendations
-        """
-
-        response = model.generate_content(user_prompt)
+        response = model.generate_content(USER_ANALYSIS_PROMPT.format(
+            query=query,
+            content=user_content
+        ))
         os.makedirs(f'Docs/analysis/users/{username}', exist_ok=True)
         with open(f'Docs/analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
             f.write(f"# Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")

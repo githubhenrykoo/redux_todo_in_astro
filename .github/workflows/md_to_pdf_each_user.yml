@@ -7,7 +7,9 @@ on:
         description: 'Specific user folder to process (leave empty for all users)'
         required: false
         type: string
-
+permissions:
+  contents: write
+  
 jobs:
   convert-to-pdf:
     runs-on: ubuntu-latest

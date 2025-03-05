@@ -113,6 +113,15 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add "analysis/group/*" "analysis/users/*" "analyze_logs.py"
+        # Add files if they exist
+        if [ -d "analysis/group" ]; then
+          git add "analysis/group"
+        fi
+        if [ -d "analysis/users" ]; then
+          git add "analysis/users"
+        fi
+        if [ -f "analyze_logs.py" ]; then
+          git add "analyze_logs.py"
+        fi
         git commit -m "docs: add team and individual analyses for $(date +%Y-%m-%d)" || echo "No changes to commit"
         git push origin HEAD:main

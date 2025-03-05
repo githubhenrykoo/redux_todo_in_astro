@@ -27,9 +27,10 @@ if log_files:
     4. Recommendations for the team
     """
 
+# Update paths in group analysis
     response = model.generate_content(group_prompt)
-    os.makedirs('analysis/group', exist_ok=True)
-    with open(f'analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+    os.makedirs('Docs/analysis/group', exist_ok=True)
+    with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
         f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
 
 # Analyze individual user logs
@@ -58,6 +59,6 @@ for user_dir in user_dirs:
         """
 
         response = model.generate_content(user_prompt)
-        os.makedirs(f'analysis/users/{username}', exist_ok=True)
-        with open(f'analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+        os.makedirs(f'Docs/analysis/users/{username}', exist_ok=True)
+        with open(f'Docs/analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
             f.write(f"# Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")

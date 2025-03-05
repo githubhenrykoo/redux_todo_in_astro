@@ -7,7 +7,7 @@ on:
         description: 'Path to markdown file'
         required: true
         type: string
-        default: 'Docs/analysis/gemini-analysis-2025-03-04.md'
+        default: 'Docs/analysis/template/meta_template.md'
 permissions:
   contents: write
 
@@ -36,8 +36,8 @@ jobs:
         GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
         MARKDOWN_FILE: ${{ github.event.inputs.markdown_file }}
       run: |
-        # Copy the existing convert_md_to_pdf.py from Docs/analysis
-        cp Docs/analysis/convert_md_to_pdf.py .
+        # Copy the existing convert_md_to_pdf.py from Docs/analysis/codeVault
+        cp Docs/config/codeVault/convert_md_to_pdf.py .
         
         # Run the conversion script with debug info
         echo "Current directory: $(pwd)"

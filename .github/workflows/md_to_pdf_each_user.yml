@@ -9,7 +9,7 @@ on:
         type: string
 permissions:
   contents: write
-  
+
 jobs:
   convert-to-pdf:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
         GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
         USER_FOLDER: ${{ github.event.inputs.user_folder }}
       run: |
-        cp Docs/analysis/convert_md_to_pdf_each_user.py .
+        cp Docs/config/codeVault/convert_md_to_pdf_each_user.py .
         python convert_md_to_pdf_each_user.py
 
     - name: Commit PDFs

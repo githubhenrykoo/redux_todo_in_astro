@@ -44,7 +44,7 @@ jobs:
             raise ValueError("GOOGLE_API_KEY not set")
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05')  # Updated model name
+        model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05')
 
         def md_to_latex(md_content):
             prompt = """
@@ -115,8 +115,9 @@ jobs:
             return response.text
 
         def create_pdf(latex_content, output_name):
-            # Write LaTeX content to file with document structure
-            with open(f"{output_name}.tex", "w", encoding='utf-8') as f:
+            # Write LaTeX content to file
+            tex_path = f"{output_name}.tex"
+            with open(tex_path, "w", encoding='utf-8') as f:
                 f.write("""\\documentclass{article}
                 \\usepackage[utf8]{inputenc}
                 \\usepackage{xcolor}
@@ -128,41 +129,49 @@ jobs:
                 """ + latex_content + """
                 \\end{document}
                 """)
-            print(f"LaTeX file saved: {output_name}.tex")
+            print(f"LaTeX file saved: {tex_path}")
 
-            # Run pdflatex with error handling
-            print("Converting LaTeX to PDF...")
-            result = subprocess.run(
-                ['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"],
-                capture_output=True,
-                text=True
-            )
-            if result.returncode != 0:
-                print("LaTeX Error:", result.stderr)
-                with open(f"{output_name}.log", 'r') as log:
-                    print("LaTeX Log:", log.read())
-                raise Exception("PDF generation failed")
-
-            # Run second pass for references
-            subprocess.run(['pdflatex', '-interaction=nonstopmode', f"{output_name}.tex"])
+            # Get the directory of the tex file
+            tex_dir = os.path.dirname(tex_path)
             
-            if os.path.exists(f"{output_name}.pdf"):
-                print(f"PDF generated successfully: {output_name}.pdf")
+            # Run pdflatex with error handling
+            for _ in range(2):
+                result = subprocess.run(
+                    ['pdflatex', '-interaction=nonstopmode', '-output-directory', tex_dir, tex_path],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode != 0:
+                    print("LaTeX Error:", result.stderr)
+                    with open(f"{output_name}.log", 'r') as log:
+                        print("LaTeX Log:", log.read())
+                    raise Exception("PDF generation failed")
+            
+            pdf_path = f"{output_name}.pdf"
+            if os.path.exists(pdf_path):
+                print(f"PDF generated successfully: {pdf_path}")
             else:
                 raise Exception("PDF file was not created")
 
-        # Read input markdown file
+        # Read input markdown file from Docs/analysis
         md_file = "${{ github.event.inputs.markdown_file }}"
         output_name = os.path.splitext(md_file)[0]
+        
+        # Ensure the output directory exists
+        os.makedirs(os.path.dirname(md_file), exist_ok=True)
 
-        with open(md_file, 'r') as f:
+        with open(md_file, 'r', encoding='utf-8') as f:
             md_content = f.read()
 
-        # Convert to LaTeX
+        # Convert to LaTeX and create PDF
         latex_content = md_to_latex(md_content)
-
-        # Create PDF
         create_pdf(latex_content, output_name)
+
+        # Clean up auxiliary files
+        for ext in [".aux", ".log", ".out"]:
+            aux_file = output_name + ext
+            if os.path.exists(aux_file):
+                os.remove(aux_file)
         EOF
 
         # Run the conversion script

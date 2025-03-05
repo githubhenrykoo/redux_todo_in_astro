@@ -69,9 +69,10 @@ jobs:
             4. Recommendations for the team
             """
 
+        # Update paths in group analysis
             response = model.generate_content(group_prompt)
-            os.makedirs('analysis/group', exist_ok=True)
-            with open(f'analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+            os.makedirs('Docs/analysis/group', exist_ok=True)
+            with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
                 f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
 
         # Analyze individual user logs
@@ -100,8 +101,8 @@ jobs:
                 """
 
                 response = model.generate_content(user_prompt)
-                os.makedirs(f'analysis/users/{username}', exist_ok=True)
-                with open(f'analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+                os.makedirs(f'Docs/analysis/users/{username}', exist_ok=True)
+                with open(f'Docs/analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
                     f.write(f"# Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")
         EOF
 
@@ -114,11 +115,11 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         # Add files if they exist
-        if [ -d "analysis/group" ]; then
-          git add "analysis/group"
+        if [ -d "Docs/analysis/group" ]; then
+          git add "Docs/analysis/group"
         fi
-        if [ -d "analysis/users" ]; then
-          git add "analysis/users"
+        if [ -d "Docs/analysis/users" ]; then
+          git add "Docs/analysis/users"
         fi
         if [ -f "analyze_logs.py" ]; then
           git add "analyze_logs.py"

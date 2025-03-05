@@ -299,8 +299,14 @@ jobs:
           exit 0
         fi
         
+        # Stash any uncommitted changes
+        git stash
+        
         # Pull latest changes with rebase strategy
         git pull --rebase origin main
+        
+        # Pop stashed changes
+        git stash pop
         
         # Commit changes
         git commit -m "docs: update git log and analysis for $(date +%Y-%m-%d)"

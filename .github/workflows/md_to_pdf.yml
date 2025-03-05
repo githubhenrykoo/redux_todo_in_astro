@@ -51,10 +51,12 @@ jobs:
       run: |
         echo "Generated files:"
         ls -la *.tex *.pdf *.log || true
-        if [ -f "*.log" ]; then
-          echo "Log file contents:"
-          cat *.log
-        fi
+        for logfile in *.log; do
+          if [ -f "$logfile" ]; then
+            echo "Contents of $logfile:"
+            cat "$logfile"
+          fi
+        done
 
     - name: Upload PDF artifact
       uses: actions/upload-artifact@v4  # Updated from v3 to v4

@@ -37,7 +37,7 @@ jobs:
           pip install -r requirements.txt
           
       - name: Run transcription
-        run: python Docs/analysis/audio_transcriber.py
+        run: python Docs/config/codeVault/audio_transcriber.py
         
       - name: Check for changes
         id: check_changes

@@ -295,4 +295,7 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git add "Docs/log/" "Docs/analysis/" "analyze_logs.py"
         git commit -m "docs: update git log and analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
+        # Pull changes first with rebase strategy
+        git pull --rebase origin main
+        # Now push the changes
         git push origin HEAD:main

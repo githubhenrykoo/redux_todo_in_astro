@@ -51,16 +51,16 @@ jobs:
             tex_path = f"{output_name}.tex"
             with open(tex_path, "w", encoding='utf-8') as f:
                 f.write("""\\documentclass{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage{xcolor}
-\\usepackage{tikz}
-\\usepackage{listings}
-\\usepackage{graphicx}
+                \\usepackage[utf8]{inputenc}
+                \\usepackage{xcolor}
+                \\usepackage{tikz}
+                \\usepackage{listings}
+                \\usepackage{graphicx}
 
-\\begin{document}
-""" + latex_content + """
-\\end{document}
-""")
+                \\begin{document}
+                """ + latex_content + """
+                \\end{document}
+                """)
             print(f"LaTeX file saved at: {os.path.abspath(tex_path)}")
 
             # Run pdflatex in the current directory

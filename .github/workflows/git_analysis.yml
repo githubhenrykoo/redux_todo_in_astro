@@ -91,6 +91,9 @@ jobs:
         import time
         from datetime import datetime
         import google.generativeai as genai
+        from Docs.config.prompts.group_analysis import GROUP_ANALYSIS_PROMPT
+        from Docs.config.prompts.user_analysis import USER_ANALYSIS_PROMPT
+        from Docs.config.prompts.summary import SUMMARY_PROMPT
 
         def chunk_content(content, max_chars=400000):  # Approximately 100k tokens
             lines = content.split('\n')
@@ -117,9 +120,8 @@ jobs:
             all_analyses = []
             
             for i, chunk in enumerate(chunks, 1):
-                # Add delay between API calls
                 if i > 1:
-                    time.sleep(2)  # 2 second delay between requests
+                    time.sleep(2)
                 
                 chunk_prompt = prompt_template.format(
                     query=query,
@@ -131,15 +133,8 @@ jobs:
                 all_analyses.append(response.text)
             
             if len(all_analyses) > 1:
-                # Add delay before summary request
                 time.sleep(2)
-                summary_prompt = f"""
-                Synthesize these separate analyses into one coherent analysis:
-
-                {'\n\n'.join(all_analyses)}
-
-                Provide a unified analysis that covers all parts.
-                """
+                summary_prompt = SUMMARY_PROMPT.format(content='\n\n'.join(all_analyses))
                 final_response = model.generate_content(summary_prompt)
                 return final_response.text
             
@@ -157,19 +152,7 @@ jobs:
                 group_content = f.read()
 
             query = '${{ github.event.inputs.query }}'
-            group_prompt_template = """
-            Analyze this team's git log {chunk_info} and {query}:
-
-            {content}
-
-            Please provide:
-            1. A summary of key changes
-            2. Team collaboration patterns
-            3. Project progress analysis
-            4. Recommendations for the team
-            """
-
-            analysis = analyze_content(model, group_content, query, group_prompt_template)
+            analysis = analyze_content(model, group_content, query, GROUP_ANALYSIS_PROMPT)
             os.makedirs('Docs/analysis/group', exist_ok=True)
             with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
                 f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{analysis}")
@@ -187,19 +170,10 @@ jobs:
                 with open(latest_user_log, 'r') as f:
                     user_content = f.read()
 
-                user_prompt = f"""
-                Analyze this developer's git activity and {query}:
-
-                {user_content}
-
-                Please provide:
-                1. Individual contribution summary
-                2. Work patterns and focus areas
-                3. Technical expertise demonstrated
-                4. Specific recommendations
-                """
-
-                response = model.generate_content(user_prompt)
+                response = model.generate_content(USER_ANALYSIS_PROMPT.format(
+                    query=query,
+                    content=user_content
+                ))
                 os.makedirs(f'Docs/analysis/users/{username}', exist_ok=True)
                 with open(f'Docs/analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
                     f.write(f"# Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")
@@ -216,81 +190,11 @@ jobs:
         import glob
         from datetime import datetime
         import google.generativeai as genai
+        from Docs.config.prompts.group_critique import GROUP_CRITIQUE_PROMPT
+        from Docs.config.prompts.user_critique import USER_CRITIQUE_PROMPT
+        from Docs.config.prompts.refinement import REFINEMENT_PROMPT
 
-        # Configure Gemini
-        genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
-        model = genai.GenerativeModel('gemini-2.0-flash')
-
-        def refine_with_critique(analysis_content, critique_prompt):
-            # First get critique
-            critique_response = model.generate_content(critique_prompt)
-            critique = critique_response.text
-
-            # Use critique to refine original analysis
-            refine_prompt = f"""
-            Here is the original analysis:
-            {analysis_content}
-
-            Here is the critique of this analysis:
-            {critique}
-
-            Please provide a refined and improved analysis that:
-            1. Addresses all the critical feedback points
-            2. Incorporates the additional insights
-            3. Enhances the recommendations
-            4. Fixes any identified gaps or inaccuracies
-
-            Format the response as a complete, standalone analysis report.
-            """
-
-            refined_response = model.generate_content(refine_prompt)
-            return refined_response.text
-
-        # Refine group analysis
-        group_files = glob.glob('Docs/analysis/group/*.md')
-        if group_files:
-            latest_analysis = max(group_files)
-            with open(latest_analysis, 'r') as f:
-                analysis_content = f.read()
-
-            critique_prompt = f"""
-            Review and critique this analysis, focusing on:
-            1. Accuracy of observations
-            2. Depth of insights
-            3. Actionability of recommendations
-            4. Missing important patterns
-            
-            Provide specific, detailed feedback on each aspect.
-            """
-
-            refined_analysis = refine_with_critique(analysis_content, critique_prompt)
-            with open(f'Docs/analysis/group/refined-team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
-                f.write(f"# Refined Team Analysis\nGenerated at: {datetime.now()}\n\n{refined_analysis}")
-
-        # Refine individual analyses
-        user_dirs = glob.glob('Docs/analysis/users/*/')
-        for user_dir in user_dirs:
-            username = os.path.basename(os.path.dirname(user_dir))
-            analysis_files = glob.glob(f'{user_dir}analysis-*.md')
-            
-            if analysis_files:
-                latest_analysis = max(analysis_files)
-                with open(latest_analysis, 'r') as f:
-                    analysis_content = f.read()
-
-                critique_prompt = f"""
-                Review and critique this developer analysis, focusing on:
-                1. Accuracy of contribution assessment
-                2. Depth of technical insights
-                3. Relevance of recommendations
-                4. Missing patterns in work style
-                
-                Provide specific, detailed feedback on each aspect.
-                """
-
-                refined_analysis = refine_with_critique(analysis_content, critique_prompt)
-                with open(f'{user_dir}refined-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
-                    f.write(f"# Refined Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{refined_analysis}")
+        # Replace hardcoded prompts with imported ones
         EOF
 
         python refine_analysis.py

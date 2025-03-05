@@ -1,0 +1,51 @@
+name: Markdown to PDF Converter for Each User
+
+on:
+  workflow_dispatch:
+    inputs:
+      user_folder:
+        description: 'Specific user folder to process (leave empty for all users)'
+        required: false
+        type: string
+
+jobs:
+  convert-to-pdf:
+    runs-on: ubuntu-latest
+    environment: LLM_API_KEY
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-latex-extra texlive-pictures
+        pip install --upgrade google-generativeai
+        pip install python-dotenv
+
+    - name: Convert MD to PDF
+      env:
+        GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
+        USER_FOLDER: ${{ github.event.inputs.user_folder }}
+      run: |
+        cp Docs/analysis/convert_md_to_pdf_each_user.py .
+        python convert_md_to_pdf_each_user.py
+
+    - name: Commit PDFs
+      run: |
+        # Move generated PDFs to the correct location
+        mkdir -p Docs/analysis/progress_reports
+        mv *.pdf Docs/analysis/progress_reports/ 2>/dev/null || true
+        
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        # Add and commit all PDFs in the progress_reports directory
+        git add Docs/analysis/progress_reports/*.pdf
+        git commit -m "docs: update progress report PDFs" || echo "No changes to commit"
+        git push origin HEAD:main

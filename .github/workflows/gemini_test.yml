@@ -70,7 +70,7 @@ jobs:
             """
 
             response = model.generate_content(group_prompt)
-            with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+            with open(f'analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
                 f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
 
         # Analyze individual user logs
@@ -99,8 +99,8 @@ jobs:
                 """
 
                 response = model.generate_content(user_prompt)
-                os.makedirs(f'Docs/analysis/users/{username}', exist_ok=True)
-                with open(f'Docs/analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+                os.makedirs(f'analysis/users/{username}', exist_ok=True)
+                with open(f'analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
                     f.write(f"# Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")
         EOF
 
@@ -112,6 +112,6 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add Docs/analysis/
+        git add analysis/
         git commit -m "docs: add team and individual analyses for $(date +%Y-%m-%d)" || echo "No changes to commit"
         git push origin HEAD:main

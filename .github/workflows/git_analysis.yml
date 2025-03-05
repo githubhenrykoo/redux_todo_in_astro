@@ -295,3 +295,96 @@ jobs:
         git pull --rebase origin main
         # Now push the changes
         git push origin HEAD:main
+
+  refine-meta-template:
+    needs: generate-and-analyze
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade google-generativeai
+        pip install python-dotenv
+
+    - name: Refine Meta Template
+      env:
+        GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
+      run: |
+        cat << 'EOF' > refine_template.py
+        import os
+        import time
+        from datetime import datetime
+        import google.generativeai as genai
+        from google.api_core import exceptions
+        from Docs.config.prompts.meta_template import META_TEMPLATE_PROMPT, VALIDATION_CRITERIA, SECTION_PROMPTS
+
+        def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
+            for attempt in range(max_retries):
+                try:
+                    if attempt > 0:
+                        time.sleep(initial_delay * (2 ** attempt))
+                    response = model.generate_content(prompt)
+                    return response.text
+                except Exception as e:
+                    print(f"Error: {str(e)}")
+                    if attempt == max_retries - 1:
+                        raise
+            return None
+
+        def refine_template(model, template_content):
+            # Use the existing template structure for refinement
+            refinement_content = META_TEMPLATE_PROMPT.format(content=template_content)
+            return generate_with_retry(model, refinement_content)
+
+        # Configure Gemini
+        genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        # Read current template
+        with open('Docs/config/prompts/meta_template.py', 'r') as f:
+            current_template = f.read()
+
+        # Generate refinements
+        refined_content = refine_template(model, current_template)
+        
+        if refined_content:
+            # Create backup of current template
+            backup_path = f'Docs/config/prompts/backups/meta_template_{datetime.now().strftime("%Y%m%d_%H%M%S")}.py'
+            os.makedirs(os.path.dirname(backup_path), exist_ok=True)
+            with open(backup_path, 'w') as f:
+                f.write(current_template)
+
+            # Write refined template
+            with open('Docs/config/prompts/meta_template.py', 'w') as f:
+                f.write(refined_content)
+
+            # Generate changelog using the template structure
+            changelog_path = 'Docs/config/prompts/changelog.md'
+            with open(changelog_path, 'a') as f:
+                f.write(f"\n\n## Template Refinement - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write("Changes made by Gemini AI:\n")
+                f.write(generate_with_retry(model, META_TEMPLATE_PROMPT.format(
+                    content=f"Compare these versions and list key changes:\n\nOriginal:\n{current_template}\n\nRefined:\n{refined_content}"
+                )))
+        EOF
+
+        python refine_template.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add "Docs/config/prompts/"
+        git commit -m "refactor: refine meta template structure $(date +%Y-%m-%d)" || echo "No changes to commit"
+        git pull --rebase origin main
+        git push origin HEAD:main

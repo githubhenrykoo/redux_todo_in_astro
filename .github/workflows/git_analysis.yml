@@ -158,6 +158,31 @@ jobs:
         genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
         model = genai.GenerativeModel('gemini-2.0-flash')
 
+        def refine_with_critique(analysis_content, critique_prompt):
+            # First get critique
+            critique_response = model.generate_content(critique_prompt)
+            critique = critique_response.text
+
+            # Use critique to refine original analysis
+            refine_prompt = f"""
+            Here is the original analysis:
+            {analysis_content}
+
+            Here is the critique of this analysis:
+            {critique}
+
+            Please provide a refined and improved analysis that:
+            1. Addresses all the critical feedback points
+            2. Incorporates the additional insights
+            3. Enhances the recommendations
+            4. Fixes any identified gaps or inaccuracies
+
+            Format the response as a complete, standalone analysis report.
+            """
+
+            refined_response = model.generate_content(refine_prompt)
+            return refined_response.text
+
         # Refine group analysis
         group_files = glob.glob('Docs/analysis/group/*.md')
         if group_files:
@@ -165,22 +190,19 @@ jobs:
             with open(latest_analysis, 'r') as f:
                 analysis_content = f.read()
 
-            refine_prompt = f"""
+            critique_prompt = f"""
             Review and critique this analysis, focusing on:
             1. Accuracy of observations
             2. Depth of insights
             3. Actionability of recommendations
             4. Missing important patterns
             
-            Then provide:
-            1. Critical feedback
-            2. Additional insights
-            3. Enhanced recommendations
+            Provide specific, detailed feedback on each aspect.
             """
 
-            response = model.generate_content(refine_prompt)
-            with open(f'Docs/analysis/group/refined-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
-                f.write(f"# Refined Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
+            refined_analysis = refine_with_critique(analysis_content, critique_prompt)
+            with open(f'Docs/analysis/group/refined-team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+                f.write(f"# Refined Team Analysis\nGenerated at: {datetime.now()}\n\n{refined_analysis}")
 
         # Refine individual analyses
         user_dirs = glob.glob('Docs/analysis/users/*/')
@@ -193,22 +215,19 @@ jobs:
                 with open(latest_analysis, 'r') as f:
                     analysis_content = f.read()
 
-                refine_prompt = f"""
+                critique_prompt = f"""
                 Review and critique this developer analysis, focusing on:
                 1. Accuracy of contribution assessment
                 2. Depth of technical insights
                 3. Relevance of recommendations
                 4. Missing patterns in work style
                 
-                Then provide:
-                1. Critical feedback
-                2. Additional technical insights
-                3. Enhanced personal recommendations
+                Provide specific, detailed feedback on each aspect.
                 """
 
-                response = model.generate_content(refine_prompt)
+                refined_analysis = refine_with_critique(analysis_content, critique_prompt)
                 with open(f'{user_dir}refined-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
-                    f.write(f"# Refined Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")
+                    f.write(f"# Refined Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{refined_analysis}")
         EOF
 
         python refine_analysis.py

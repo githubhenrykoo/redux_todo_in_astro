@@ -289,12 +289,24 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
+        
+        # Stage all changes
         git add "Docs/log/" "Docs/analysis/" "analyze_logs.py"
-        git commit -m "docs: update git log and analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
-        # Pull changes first with rebase strategy
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+          exit 0
+        fi
+        
+        # Pull latest changes with rebase strategy
         git pull --rebase origin main
-        # Now push the changes
-        git push origin HEAD:main
+        
+        # Commit changes
+        git commit -m "docs: update git log and analysis for $(date +%Y-%m-%d)"
+        
+        # Push changes with force-with-lease for safety
+        git push origin main --force-with-lease
 
   refine-meta-template:
     needs: generate-and-analyze

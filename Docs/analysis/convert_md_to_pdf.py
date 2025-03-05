@@ -115,8 +115,8 @@ def create_pdf(latex_content, output_name):
         raise Exception(f"PDF file not created at: {pdf_path}")
 
 def main():
-    # Remove argument parser and use direct path
-    md_file = "Docs/analysis/gemini-analysis-2025-03-04.md"
+    # Use environment variable if provided, otherwise use default path
+    md_file = os.getenv('MARKDOWN_FILE', "Docs/analysis/gemini-analysis-2025-03-04.md")
     output_name = os.path.splitext(md_file)[0]
     
     model = setup()

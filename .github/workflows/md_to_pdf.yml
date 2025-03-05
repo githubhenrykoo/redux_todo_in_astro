@@ -4,10 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       markdown_file:
-        description: 'Docs/analysis/[test][report]2025-02-22.md'
+        description: 'Path to markdown file'
         required: true
         type: string
-        default: 'README.md'
+        default: 'Docs/analysis/gemini-analysis-2025-03-04.md'
+permissions:
+  contents: write
 
 jobs:
   convert-to-pdf:
@@ -32,6 +34,7 @@ jobs:
     - name: Convert MD to PDF
       env:
         GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
+        MARKDOWN_FILE: ${{ github.event.inputs.markdown_file }}
       run: |
         # Copy the existing convert_md_to_pdf.py from Docs/analysis
         cp Docs/analysis/convert_md_to_pdf.py .
@@ -72,19 +75,24 @@ jobs:
 
     - name: Commit PDF
       run: |
-        pdf_file="${{ github.event.inputs.markdown_file }}"
-        pdf_file="${pdf_file%.md}.pdf"
-        echo "Looking for PDF file: $pdf_file"
+        input_file="${{ github.event.inputs.markdown_file }}"
+        pdf_name=$(basename "${input_file%.md}.pdf")
+        echo "Looking for PDF file: $pdf_name"
         
-        if [ -f "$pdf_file" ]; then
+        if [ -f "$pdf_name" ]; then
           echo "PDF file found"
+          # Create directory if it doesn't exist
+          mkdir -p $(dirname "$input_file")
+          # Move PDF to the correct location
+          mv "$pdf_name" "${input_file%.md}.pdf"
+          
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add "$pdf_file"
+          git add "${input_file%.md}.pdf"
           git commit -m "docs: convert markdown to PDF"
           git push origin HEAD:main
         else
-          echo "PDF file not found at: $pdf_file"
+          echo "PDF file not found at: $pdf_name"
           echo "Current directory contents:"
           ls -la
           exit 1

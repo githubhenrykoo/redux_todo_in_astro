@@ -1,7 +1,61 @@
 import os
 import glob
+import time
 from datetime import datetime
 import google.generativeai as genai
+
+def chunk_content(content, max_chars=400000):  # Approximately 100k tokens
+    lines = content.split('\n')
+    chunks = []
+    current_chunk = []
+    current_size = 0
+    
+    for line in lines:
+        line_size = len(line) + 1  # +1 for newline
+        if current_size + line_size > max_chars and current_chunk:
+            chunks.append('\n'.join(current_chunk))
+            current_chunk = [line]
+            current_size = line_size
+        else:
+            current_chunk.append(line)
+            current_size += line_size
+    
+    if current_chunk:
+        chunks.append('\n'.join(current_chunk))
+    return chunks
+
+def analyze_content(model, content, query, prompt_template):
+    chunks = chunk_content(content)
+    all_analyses = []
+    
+    for i, chunk in enumerate(chunks, 1):
+        # Add delay between API calls
+        if i > 1:
+            time.sleep(2)  # 2 second delay between requests
+        
+        chunk_prompt = prompt_template.format(
+            query=query,
+            content=chunk,
+            chunk_info=f"(Part {i} of {len(chunks)})" if len(chunks) > 1 else ""
+        )
+        
+        response = model.generate_content(chunk_prompt)
+        all_analyses.append(response.text)
+    
+    if len(all_analyses) > 1:
+        # Add delay before summary request
+        time.sleep(2)
+        summary_prompt = f"""
+        Synthesize these separate analyses into one coherent analysis:
+
+        {'\n\n'.join(all_analyses)}
+
+        Provide a unified analysis that covers all parts.
+        """
+        final_response = model.generate_content(summary_prompt)
+        return final_response.text
+    
+    return all_analyses[0]
 
 # Configure Gemini
 genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
@@ -15,10 +69,10 @@ if log_files:
         group_content = f.read()
 
     query = 'Summarize the main changes'
-    group_prompt = f"""
-    Analyze this team's git log and {query}:
+    group_prompt_template = """
+    Analyze this team's git log {chunk_info} and {query}:
 
-    {group_content}
+    {content}
 
     Please provide:
     1. A summary of key changes
@@ -27,10 +81,10 @@ if log_files:
     4. Recommendations for the team
     """
 
-    response = model.generate_content(group_prompt)
+    analysis = analyze_content(model, group_content, query, group_prompt_template)
     os.makedirs('Docs/analysis/group', exist_ok=True)
     with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
-        f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
+        f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{analysis}")
 
 # Analyze individual user logs
 user_dirs = glob.glob('Docs/log/users/*/')

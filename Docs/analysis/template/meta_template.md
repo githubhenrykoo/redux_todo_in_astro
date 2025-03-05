@@ -3,8 +3,7 @@
 **Authors:** [Team Members]
 **Date:** [YYYY-MM-DD]  
 **Version:** [X.Y]
-**SSoT Repository:** [Link to GitHub Repository]
-**MCard Hash:** [Content-addressable hash]
+**SSoT Repository:** [Link to GitHub Repository if needed]
 **Document Category:** [Planning/Report/Review/Implementation]
 
 ## Executive Summary

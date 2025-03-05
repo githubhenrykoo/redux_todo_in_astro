@@ -35,27 +35,29 @@ jobs:
         pip install --upgrade google-generativeai
         pip install python-dotenv
 
-    - name: Analyze Logs with Gemini
-      env:
-        GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
-      run: |
-        cat << 'EOF' > analyze_logs.py
-        import os
-        import glob
-        from datetime import datetime
-        import google.generativeai as genai
+    # Remove the Create Analysis Directories step since directories already exist
 
-        # Configure Gemini
-        genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
-        model = genai.GenerativeModel('gemini-2.0-flash')
-
-        # Analyze group log
-        log_files = glob.glob('users/git-log-*.md')
-        if log_files:
-            latest_log = max(log_files)
-            with open(latest_log, 'r') as f:
-                group_content = f.read()
-
+        - name: Analyze Logs with Gemini
+          env:
+            GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
+          run: |
+            cat << 'EOF' > analyze_logs.py
+            import os
+            import glob
+            from datetime import datetime
+            import google.generativeai as genai
+    
+            # Configure Gemini
+            genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
+            model = genai.GenerativeModel('gemini-2.0-flash')
+    
+            # Analyze group log
+            log_files = glob.glob('users/git-log-*.md')
+            if log_files:
+                latest_log = max(log_files)
+                with open(latest_log, 'r') as f:
+                    group_content = f.read()
+    
             query = '${{ github.event.inputs.query }}'
             group_prompt = f"""
             Analyze this team's git log and {query}:
@@ -113,6 +115,6 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add "analysis/group/*" "analysis/users/*"
+        git add "Docs/analysis/group/*" "Docs/analysis/users/*"
         git commit -m "docs: add team and individual analyses for $(date +%Y-%m-%d)" || echo "No changes to commit"
         git push origin HEAD:main

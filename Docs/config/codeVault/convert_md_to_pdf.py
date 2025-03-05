@@ -106,11 +106,11 @@ def create_pdf(latex_content, output_name):
     pdf_path = os.path.join(current_dir, f"{os.path.basename(output_name)}.pdf")
     if os.path.exists(pdf_path):
         print(f"PDF generated successfully at: {pdf_path}")
-        Comment out the cleanup code to keep auxiliary files for debugging
-        # for ext in [".aux", ".log", ".out"]:
-        #     aux_file = os.path.join(current_dir, f"{os.path.basename(output_name)}{ext}")
-        #     if os.path.exists(aux_file):
-        #          os.remove(aux_file)
+        # Comment out the cleanup code to keep auxiliary files for debugging
+        for ext in [".aux", ".log", ".out"]:
+            aux_file = os.path.join(current_dir, f"{os.path.basename(output_name)}{ext}")
+            if os.path.exists(aux_file):
+                 os.remove(aux_file)
     else:
         raise Exception(f"PDF file not created at: {pdf_path}")
 

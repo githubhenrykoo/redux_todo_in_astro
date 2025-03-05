@@ -1,0 +1,222 @@
+name: Git Log and Analysis
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Number of days to look back'
+        required: false
+        default: '1'
+        type: string
+      query:
+        description: 'What would you like to ask about the logs?'
+        required: false
+        default: 'Summarize the main changes'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-analyze:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade google-generativeai
+        pip install python-dotenv
+
+    - name: Generate Git Log
+      run: |
+        # Generate main log file
+        echo "# Git Activity Log" > "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "Generated at: $(date)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        
+        # Get first and last commit hashes
+        FIRST_COMMIT=$(git log --since="${{ github.event.inputs.days || 1 }} days ago" --reverse --format="%H" | head -n 1)
+        LAST_COMMIT=$(git log --since="${{ github.event.inputs.days || 1 }} days ago" --format="%H" | head -n 1)
+        
+        # Generate main diff log
+        echo "## Changes Between First and Last Commits" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        echo "\`\`\`diff" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        if [ ! -z "$FIRST_COMMIT" ] && [ ! -z "$LAST_COMMIT" ]; then
+          git diff $FIRST_COMMIT..$LAST_COMMIT -- . ':!node_modules' ':!package-lock.json' >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        else
+          echo "No commits found in the specified timeframe" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        fi
+        echo "\`\`\`" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
+        
+        # Generate per-user logs
+        for author in $(git log --since="${{ github.event.inputs.days || 1 }} days ago" --format="%ae" | sort -u); do
+          username=$(echo "$author" | cut -d@ -f1)
+          mkdir -p "Docs/log/users/$username"
+          
+          echo "# Git Activity Log - $author" > "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+          echo "Generated at: $(date)" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+          echo "## Changes by $author" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+          echo "\`\`\`diff" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+          git log --since="${{ github.event.inputs.days || 1 }} days ago" --author="$author" --patch --no-merges -- . ':!node_modules' ':!package-lock.json' >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+          echo "\`\`\`" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
+        done
+
+    - name: Analyze Logs with Gemini
+      env:
+        GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
+      run: |
+        cat << 'EOF' > analyze_logs.py
+        import os
+        import glob
+        from datetime import datetime
+        import google.generativeai as genai
+
+        # Configure Gemini
+        genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        # Analyze group log
+        log_files = glob.glob('Docs/log/git-log-*.md')
+        if log_files:
+            latest_log = max(log_files)
+            with open(latest_log, 'r') as f:
+                group_content = f.read()
+
+            query = '${{ github.event.inputs.query }}'
+            group_prompt = f"""
+            Analyze this team's git log and {query}:
+
+            {group_content}
+
+            Please provide:
+            1. A summary of key changes
+            2. Team collaboration patterns
+            3. Project progress analysis
+            4. Recommendations for the team
+            """
+
+            response = model.generate_content(group_prompt)
+            os.makedirs('Docs/analysis/group', exist_ok=True)
+            with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+                f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
+
+        # Analyze individual user logs
+        user_dirs = glob.glob('Docs/log/users/*/')
+        for user_dir in user_dirs:
+            username = os.path.basename(os.path.dirname(user_dir))
+            if username == '.gitkeep':
+                continue
+
+            user_logs = glob.glob(f'{user_dir}git-log-*.md')
+            if user_logs:
+                latest_user_log = max(user_logs)
+                with open(latest_user_log, 'r') as f:
+                    user_content = f.read()
+
+                user_prompt = f"""
+                Analyze this developer's git activity and {query}:
+
+                {user_content}
+
+                Please provide:
+                1. Individual contribution summary
+                2. Work patterns and focus areas
+                3. Technical expertise demonstrated
+                4. Specific recommendations
+                """
+
+                response = model.generate_content(user_prompt)
+                os.makedirs(f'Docs/analysis/users/{username}', exist_ok=True)
+                with open(f'Docs/analysis/users/{username}/analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+                    f.write(f"# Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")
+        EOF
+
+        python analyze_logs.py
+
+    - name: Refine Analysis
+      env:
+        GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
+      run: |
+        cat << 'EOF' > refine_analysis.py
+        import os
+        import glob
+        from datetime import datetime
+        import google.generativeai as genai
+
+        # Configure Gemini
+        genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
+        model = genai.GenerativeModel('gemini-2.0-flash')
+
+        # Refine group analysis
+        group_files = glob.glob('Docs/analysis/group/*.md')
+        if group_files:
+            latest_analysis = max(group_files)
+            with open(latest_analysis, 'r') as f:
+                analysis_content = f.read()
+
+            refine_prompt = f"""
+            Review and critique this analysis, focusing on:
+            1. Accuracy of observations
+            2. Depth of insights
+            3. Actionability of recommendations
+            4. Missing important patterns
+            
+            Then provide:
+            1. Critical feedback
+            2. Additional insights
+            3. Enhanced recommendations
+            """
+
+            response = model.generate_content(refine_prompt)
+            with open(f'Docs/analysis/group/refined-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+                f.write(f"# Refined Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
+
+        # Refine individual analyses
+        user_dirs = glob.glob('Docs/analysis/users/*/')
+        for user_dir in user_dirs:
+            username = os.path.basename(os.path.dirname(user_dir))
+            analysis_files = glob.glob(f'{user_dir}analysis-*.md')
+            
+            if analysis_files:
+                latest_analysis = max(analysis_files)
+                with open(latest_analysis, 'r') as f:
+                    analysis_content = f.read()
+
+                refine_prompt = f"""
+                Review and critique this developer analysis, focusing on:
+                1. Accuracy of contribution assessment
+                2. Depth of technical insights
+                3. Relevance of recommendations
+                4. Missing patterns in work style
+                
+                Then provide:
+                1. Critical feedback
+                2. Additional technical insights
+                3. Enhanced personal recommendations
+                """
+
+                response = model.generate_content(refine_prompt)
+                with open(f'{user_dir}refined-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
+                    f.write(f"# Refined Developer Analysis - {username}\nGenerated at: {datetime.now()}\n\n{response.text}")
+        EOF
+
+        python refine_analysis.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add "Docs/log/" "Docs/analysis/" "analyze_logs.py"
+        git commit -m "docs: update git log and analysis for $(date +%Y-%m-%d)" || echo "No changes to commit"
+        git push origin HEAD:main

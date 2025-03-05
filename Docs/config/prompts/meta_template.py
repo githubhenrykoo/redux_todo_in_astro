@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 ```markdown
 # Project Nightingale: Automated Diagnostic System - Design Document
+=======
+META_TEMPLATE_PROMPT = """
+You are a document specialist tasked with creating standardized technical documentation. Please transform the following input into a comprehensive document that strictly adheres to our structured format. Maintain professional tone and ensure all sections are properly developed.
+>>>>>>> e93b68f (update name report)
 
 ## 1. Document Header
 

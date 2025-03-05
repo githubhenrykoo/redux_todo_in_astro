@@ -8,7 +8,7 @@ on:
         required: false
         type: string
 
-jobs:t
+jobs:
   convert-to-pdf:
     runs-on: ubuntu-latest
     environment: LLM_API_KEY

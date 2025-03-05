@@ -3,7 +3,6 @@ import glob
 import time
 from datetime import datetime
 import google.generativeai as genai
-from google.api_core import exceptions
 from Docs.config.prompts.group_analysis import GROUP_ANALYSIS_PROMPT
 from Docs.config.prompts.user_analysis import USER_ANALYSIS_PROMPT
 from Docs.config.prompts.summary import SUMMARY_PROMPT

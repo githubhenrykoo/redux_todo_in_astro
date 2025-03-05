@@ -92,20 +92,40 @@ jobs:
         from datetime import datetime
         import google.generativeai as genai
 
+        def chunk_content(content, max_chars=400000):  # Approximately 100k tokens
+            lines = content.split('\n')
+            chunks = []
+            current_chunk = []
+            current_size = 0
+            
+            for line in lines:
+                line_size = len(line) + 1  # +1 for newline
+                if current_size + line_size > max_chars and current_chunk:
+                    chunks.append('\n'.join(current_chunk))
+                    current_chunk = [line]
+                    current_size = line_size
+                else:
+                    current_chunk.append(line)
+                    current_size += line_size
+            
+            if current_chunk:
+                chunks.append('\n'.join(current_chunk))
+            return chunks
+
         def analyze_content(model, content, query, prompt_template):
             chunks = chunk_content(content)
             all_analyses = []
             
             for i, chunk in enumerate(chunks, 1):
+                # Add delay between API calls
+                if i > 1:
+                    time.sleep(2)  # 2 second delay between requests
+                
                 chunk_prompt = prompt_template.format(
                     query=query,
                     content=chunk,
                     chunk_info=f"(Part {i} of {len(chunks)})" if len(chunks) > 1 else ""
                 )
-                
-                # Add delay between API calls
-                if i > 1:
-                    time.sleep(2)  # 2 second delay between requests
                 
                 response = model.generate_content(chunk_prompt)
                 all_analyses.append(response.text)

@@ -46,6 +46,45 @@ jobs:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.0-pro-exp-02-05')
 
+        def create_pdf(latex_content, output_name):
+            # Write LaTeX content to file
+            tex_path = f"{output_name}.tex"
+            with open(tex_path, "w", encoding='utf-8') as f:
+                f.write("""\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{xcolor}
+\\usepackage{tikz}
+\\usepackage{listings}
+\\usepackage{graphicx}
+
+\\begin{document}
+""" + latex_content + """
+\\end{document}
+""")
+            print(f"LaTeX file saved at: {os.path.abspath(tex_path)}")
+
+            # Run pdflatex in the current directory
+            for _ in range(2):
+                result = subprocess.run(
+                    ['pdflatex', '-interaction=nonstopmode', tex_path],
+                    capture_output=True,
+                    text=True,
+                    cwd=os.path.dirname(os.path.abspath(tex_path)) or '.'
+                )
+                print("LaTeX Output:", result.stdout)
+                if result.returncode != 0:
+                    print("LaTeX Error:", result.stderr)
+                    if os.path.exists(f"{output_name}.log"):
+                        with open(f"{output_name}.log", 'r') as log:
+                            print("LaTeX Log:", log.read())
+                    raise Exception("PDF generation failed")
+
+            pdf_path = f"{output_name}.pdf"
+            if os.path.exists(pdf_path):
+                print(f"PDF generated successfully at: {os.path.abspath(pdf_path)}")
+            else:
+                raise Exception(f"PDF file not created at: {os.path.abspath(pdf_path)}")
+
         def md_to_latex(md_content):
             prompt = """
               You are a LaTeX document formatter. Convert the following structured Markdown content into a properly formatted LaTeX document. Ensure the following:
@@ -174,8 +213,13 @@ jobs:
                 os.remove(aux_file)
         EOF
 
-        # Run the conversion script
+        # Run the conversion script with debug info
+        echo "Current directory: $(pwd)"
+        echo "Directory contents before conversion:"
+        ls -la
         python convert_md_to_pdf.py
+        echo "Directory contents after conversion:"
+        ls -la
 
     - name: Debug LaTeX Output
       if: always()

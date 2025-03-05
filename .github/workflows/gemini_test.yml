@@ -113,6 +113,6 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add "analysis/group/*" "analysis/users/*"
+        git add "Docs/analysis/group/*" "Docs/analysis/users/*"
         git commit -m "docs: add team and individual analyses for $(date +%Y-%m-%d)" || echo "No changes to commit"
         git push origin HEAD:main

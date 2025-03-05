@@ -8,6 +8,8 @@ on:
         required: true
         type: string
         default: 'Docs/analysis/gemini-analysis-2025-03-04.md'
+permissions:
+  contents: write
 
 jobs:
   convert-to-pdf:

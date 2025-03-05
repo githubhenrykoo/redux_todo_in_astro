@@ -290,8 +290,16 @@ jobs:
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         
-        # Stage all changes
-        git add "Docs/log/" "Docs/analysis/" "analyze_logs.py"
+        # Clean up Python cache files
+        find . -type d -name "__pycache__" -exec rm -r {} +
+        
+        # Stage specific files and directories
+        git add \
+          "Docs/log/" \
+          "Docs/analysis/" \
+          "analyze_logs.py" \
+          "get_name.py" \
+          "refine_analysis.py"
         
         # Check if there are changes to commit
         if git diff --staged --quiet; then
@@ -299,20 +307,14 @@ jobs:
           exit 0
         fi
         
-        # Stash any uncommitted changes
-        git stash
-        
-        # Pull latest changes with rebase strategy
-        git pull --rebase origin main
-        
-        # Pop stashed changes
-        git stash pop
+        # Pull latest changes
+        git pull origin main --no-rebase
         
         # Commit changes
         git commit -m "docs: update git log and analysis for $(date +%Y-%m-%d)"
         
-        # Push changes with force-with-lease for safety
-        git push origin main --force-with-lease
+        # Push changes
+        git push origin main
 
   refine-meta-template:
     needs: generate-and-analyze

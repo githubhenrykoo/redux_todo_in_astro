@@ -116,7 +116,7 @@ def create_pdf(latex_content, output_name):
 
 def main():
     # Use environment variable if provided, otherwise use default path
-    md_file = os.getenv('MARKDOWN_FILE', "Docs/analysis/users/ronyataptika/refined-analysis-2025-03-05.md")
+    md_file = os.getenv('MARKDOWN_FILE', "Docs/analysis/template/meta_template.md")
     output_name = os.path.splitext(md_file)[0]
     
     model = setup()

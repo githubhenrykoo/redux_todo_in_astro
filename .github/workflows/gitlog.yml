@@ -22,11 +22,13 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
+        submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Create Docs Directory
       run: |
-      
+        mkdir -p Docs/log/users
+        mkdir -p Docs/log/submodules
 
     - name: Generate Git Log
       run: |
@@ -62,6 +64,24 @@ jobs:
           echo "## Summary" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
           echo "Total commits by $author: $(git log --since="${{ github.event.inputs.days || 1 }} days ago" --author="$author" --oneline | wc -l)" >> "Docs/log/users/$username/git-log-$(date +%Y-%m-%d).md"
         done
+        
+        # Submodule Log Generation
+        echo "# Submodule Git Logs" > "Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+        echo "Generated at: $(date)" >> "Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+        
+        # Iterate through submodules
+        git submodule foreach '
+          echo "## Submodule: $name" >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          echo "### Recent Commits" >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          echo "\`\`\`" >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          git log --since="${{ github.event.inputs.days || 1 }} days ago" --oneline >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          echo "\`\`\`" >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          
+          echo "### Diff" >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          echo "\`\`\`diff" >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          git diff HEAD~$((1)) HEAD >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+          echo "\`\`\`" >> "../../../Docs/log/submodules/submodule-log-$(date +%Y-%m-%d).md"
+        '
         
         echo -e "\n## Summary" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"
         echo "Total commits: $(git log --since="${{ github.event.inputs.days || 1 }} days ago" --oneline | wc -l)" >> "Docs/log/git-log-$(date +%Y-%m-%d).md"

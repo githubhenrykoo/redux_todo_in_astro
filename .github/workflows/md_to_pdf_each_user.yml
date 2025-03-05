@@ -32,7 +32,7 @@ jobs:
 
     - name: Convert MD to PDF
       env:
-        GOOGLE_API_KEY: "AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ"
+        GOOGLE_API_KEY: "AIzaSyAPz0ODezXu39YHYaaSUAsKMBhjKwlYJFo"
         USER_FOLDER: ${{ github.event.inputs.user_folder }}
       run: |
         cp Docs/config/codeVault/convert_md_to_pdf_each_user.py .

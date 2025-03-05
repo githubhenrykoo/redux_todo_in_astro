@@ -8,7 +8,7 @@ genai.configure(api_key="AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ")
 model = genai.GenerativeModel('gemini-2.0-flash')
 
 # Analyze group log
-log_files = glob.glob('Docs/log/git-log-*.md')  # Updated input path
+log_files = glob.glob('Docs/log/git-log-*.md')
 if log_files:
     latest_log = max(log_files)
     with open(latest_log, 'r') as f:
@@ -27,20 +27,19 @@ if log_files:
     4. Recommendations for the team
     """
 
-# Update paths in group analysis
     response = model.generate_content(group_prompt)
     os.makedirs('Docs/analysis/group', exist_ok=True)
     with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:
         f.write(f"# Team Analysis\nGenerated at: {datetime.now()}\n\n{response.text}")
 
 # Analyze individual user logs
-user_dirs = glob.glob('Docs/log/users/*/')  # Updated input path
+user_dirs = glob.glob('Docs/log/users/*/')
 for user_dir in user_dirs:
     username = os.path.basename(os.path.dirname(user_dir))
     if username == '.gitkeep':
         continue
 
-    user_logs = glob.glob(f'{user_dir}git-log-*.md')  # Path is now relative to Docs/log/users/
+    user_logs = glob.glob(f'{user_dir}git-log-*.md')
     if user_logs:
         latest_user_log = max(user_logs)
         with open(latest_user_log, 'r') as f:

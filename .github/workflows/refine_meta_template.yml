@@ -1,31 +1,45 @@
 name: Refine Meta Template
 
 on:
+  workflow_dispatch:  # Allow manual trigger
   workflow_run:
     workflows: ["Git Log and Analysis (Alternative)"]
     types:
       - completed
+    branches: [main]  # Specify the branch
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   refine-meta-template:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     
     steps:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
+        ref: main
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
+        cache: 'pip'
 
     - name: Install dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install --upgrade google-generativeai
         pip install python-dotenv
+
+    - name: Create Directories
+      run: |
+        mkdir -p Docs/analysis/group
+        mkdir -p Docs/analysis/users
 
     - name: Format Analysis with Template
       env:
@@ -109,13 +123,18 @@ jobs:
                     f.write(formatted)
         EOF
 
-        python format_analysis.py
+        python format_analysis.py || exit 1
 
     - name: Commit and Push Changes
       run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add "Docs/analysis/"
-        git commit -m "docs: format analysis with template $(date +%Y-%m-%d)" || echo "No changes to commit"
-        git pull --rebase origin main
-        git push origin HEAD:main
+        
+        if [[ -n $(git status -s) ]]; then
+          git add "Docs/analysis/"
+          git commit -m "docs: format analysis with template $(date +%Y-%m-%d)"
+          git pull --rebase origin main
+          git push origin HEAD:main
+        else
+          echo "No changes to commit"
+        fi

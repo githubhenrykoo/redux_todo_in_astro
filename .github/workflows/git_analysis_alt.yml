@@ -336,28 +336,19 @@ jobs:
         pip install --upgrade google-generativeai
         pip install python-dotenv
 
-    - name: Refine Meta Template
+    - name: Create Documentation from Template
       env:
-        GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
       run: |
-        cat << 'EOF' > refine_template.py
+        cat << 'EOF' > create_docs.py
         import os
-        import time
+        import glob
         from datetime import datetime
         import google.generativeai as genai
-        from google.api_core import exceptions
-        from Docs.config.prompts.meta_template import (
-            META_TEMPLATE_PROMPT,
-            SECTION_PROMPTS,
-            VALIDATION_CRITERIA,
-            assemble_template
-        )
 
         def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
             for attempt in range(max_retries):
                 try:
-                    if attempt > 0:
-                        time.sleep(initial_delay * (2 ** attempt))
                     response = model.generate_content(prompt)
                     return response.text
                 except Exception as e:
@@ -366,83 +357,120 @@ jobs:
                         raise
             return None
 
-        def refine_section(model, section_name, content):
-            prompt = SECTION_PROMPTS[section_name].format(content=content)
-            return generate_with_retry(model, prompt)
+        def fill_template(model, content, username=None):
+            # Read template
+            with open('Docs/analysis/template/meta_template.md', 'r') as f:
+                template = f.read()
 
-        def refine_template(model, template_content):
-            # Default values for required fields
-            sections = {
-                'title': 'Git Analysis Report',
-                'document_type': 'Analysis Document',
-                'authors': 'AI Analysis System',
-                'date': datetime.now().strftime('%Y-%m-%d'),
-                'version': '1.0',
-                'repository': 'Current Repository',
-                'hash': 'Generated',
-                'category': 'Git Analysis',
-                'header_content': '',
-                'executive_summary': '',
-                'framework_name': 'Analysis',
-                'logic_content': '',
-                'implementation_content': '',
-                'evidence_content': '',
-                'budget_content': '',
-                'timeline_content': '',
-                'integration_content': '',
-                'references': '',
-                'change_history': ''
+            # Generate content for each section
+            replacements = {
+                '[Document Type]': 'Git Analysis Report',
+                '[Title]': f'Development Analysis - {username if username else "Team"}',
+                '[Team Members]': 'AI Analysis System',
+                '[YYYY-MM-DD]': datetime.now().strftime('%Y-%m-%d'),
+                '[X.Y]': '1.0',
+                '[Link to GitHub Repository if needed]': os.getenv('GITHUB_REPOSITORY', 'Current Repository'),
+                '[Planning/Report/Review/Implementation]': 'Analysis Report',
             }
-            
-            # Refine each section separately
-            for section in VALIDATION_CRITERIA.keys():
-                refined_content = refine_section(model, section, template_content)
-                if refined_content:
-                    sections[section] = refined_content
-                time.sleep(2)
-            
-            # Assemble final template
-            return assemble_template(sections)
+
+            # Generate Executive Summary
+            exec_summary = generate_with_retry(model, 
+                f"Generate an executive summary for git analysis using this format:\n"
+                f"Logic: Core purpose and objectives\n"
+                f"Implementation: Key processes and methods\n"
+                f"Outcomes: Results\n\nAnalyze:\n{content}")
+            replacements['[One-paragraph overview using Computational Trinitarianism framework:\n- Logic: Core purpose and formal objectives\n- Implementation: Key processes and methods\n- Outcomes: Expected or achieved results]'] = exec_summary
+
+            # Generate Context & Vision
+            context = generate_with_retry(model, f"Analyze git activity context:\n{content}")
+            replacements['[Boundaries and limitations]'] = context
+            replacements['[Environmental factors]'] = context
+            replacements['[Involved parties]'] = context
+
+            # Fill in other sections
+            sections = {
+                '[Data/Resources]': 'Git Repository Data',
+                '[Transformation]': 'Analysis and Processing',
+                '[Expected results]': 'Development Insights',
+                '[Quality checks]': 'Automated Analysis',
+                '[Learning loops]': 'Continuous Improvement',
+                '[Measurable outcomes]': generate_with_retry(model, f"List quantitative metrics from:\n{content}"),
+                '[Observable improvements]': generate_with_retry(model, f"List qualitative improvements from:\n{content}"),
+                '[Verification approaches]': 'Automated and Manual Verification',
+                '[Regional factors]': 'Development Team Context',
+                '[Communication needs]': 'Technical Documentation',
+                '[Social dynamics]': 'Team Collaboration Patterns',
+                '[AI assistance points]': 'Gemini AI Analysis',
+                '[Sensor/Actuator needs]': 'Git Event Monitoring',
+                '[Connectivity specs]': 'GitHub API Integration'
+            }
+            replacements.update(sections)
+
+            # Development Workflow sections
+            workflow_sections = generate_with_retry(model, 
+                f"Analyze the development workflow stages from git history:\n{content}")
+            replacements['[Functions deployed]'] = workflow_sections
+            replacements['[Success metrics]'] = workflow_sections
+            replacements['[Technical setup]'] = workflow_sections
+            replacements['[Capability building]'] = workflow_sections
+
+            # Evidence and Outcomes
+            evidence = generate_with_retry(model, 
+                f"Extract evidence and outcomes from git history:\n{content}")
+            replacements['[Key indicators]'] = evidence
+            replacements['[Standards]'] = evidence
+            replacements['[Results]'] = evidence
+
+            # Replace all placeholders in template
+            doc_content = template
+            for key, value in replacements.items():
+                if value:
+                    doc_content = doc_content.replace(key, value)
+
+            return doc_content
 
         # Configure Gemini
         genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
         model = genai.GenerativeModel('gemini-2.0-flash')
 
-        # Read current template
-        with open('Docs/config/prompts/meta_template.py', 'r') as f:
-            current_template = f.read()
+        # Process team analysis
+        team_files = glob.glob('Docs/analysis/group/team-analysis-*.md')
+        if team_files:
+            latest_team = max(team_files)
+            with open(latest_team, 'r') as f:
+                team_content = f.read()
+            
+            formatted_content = fill_template(model, team_content)
+            output_path = latest_team.replace('team-analysis-', 'formatted-team-analysis-')
+            with open(output_path, 'w') as f:
+                f.write(formatted_content)
 
-        # Generate refinements
-        refined_content = refine_template(model, current_template)
-        
-        if refined_content:
-            # Create backup of current template
-            backup_path = f'Docs/config/prompts/backups/meta_template_{datetime.now().strftime("%Y%m%d_%H%M%S")}.py'
-            os.makedirs(os.path.dirname(backup_path), exist_ok=True)
-            with open(backup_path, 'w') as f:
-                f.write(current_template)
+        # Process individual analyses
+        user_dirs = glob.glob('Docs/analysis/users/*/')
+        for user_dir in user_dirs:
+            username = os.path.basename(os.path.dirname(user_dir))
+            if username == '.gitkeep':
+                continue
 
-            # Write refined template
-            with open('Docs/config/prompts/meta_template.py', 'w') as f:
-                f.write(refined_content)
-
-            # Generate changelog using the template structure
-            changelog_path = 'Docs/config/prompts/changelog.md'
-            with open(changelog_path, 'a') as f:
-                f.write(f"\n\n## Template Refinement - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-                f.write("Changes made by Gemini AI:\n")
-                f.write(generate_with_retry(model, META_TEMPLATE_PROMPT.format(
-                    content=f"Compare these versions and list key changes:\n\nOriginal:\n{current_template}\n\nRefined:\n{refined_content}"
-                )))
+            analysis_files = glob.glob(f'{user_dir}analysis-*.md')
+            if analysis_files:
+                latest = max(analysis_files)
+                with open(latest, 'r') as f:
+                    content = f.read()
+                
+                formatted_content = fill_template(model, content, username)
+                output_path = latest.replace('analysis-', 'formatted-analysis-')
+                with open(output_path, 'w') as f:
+                    f.write(formatted_content)
         EOF
 
-        python refine_template.py
+        python create_docs.py
 
     - name: Commit and Push Changes
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        git add "Docs/config/prompts/"
-        git commit -m "refactor: refine meta template structure $(date +%Y-%m-%d)" || echo "No changes to commit"
+        git add "Docs/analysis/"
+        git commit -m "docs: create formatted analysis documents $(date +%Y-%m-%d)" || echo "No changes to commit"
         git pull --rebase origin main
         git push origin HEAD:main

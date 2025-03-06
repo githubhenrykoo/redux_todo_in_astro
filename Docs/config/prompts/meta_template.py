@@ -1,49 +1,102 @@
+# Base template structure
+BASE_TEMPLATE = """
+# {title}
 
-# Git Analysis Report
-
-**Type:** Analysis Document
+**Type:** {document_type}
 
 **1. Document Header**
-
+{header_content}
 
 **Executive Summary**
-Okay, I'm ready. To provide a concise executive summary, I need you to tell me what it should cover. Please provide me with the following:
+{executive_summary}
+"""
 
-*   **The subject of the executive summary:** (e.g., a project, a company, a report, a market analysis, etc.)
-*   **The main objective or purpose:** (e.g., to secure funding, to recommend a course of action, to present key findings, etc.)
-*   **The key information you want to convey:** (e.g., key findings, major accomplishments, critical challenges, strategic recommendations, financial highlights, target audience, etc.)
-*   **The intended audience:** (e.g., investors, senior management, board of directors, general public, etc.)
+# Section templates
+HEADER_TEMPLATE = """
+**1.1 Title and Type**
+* **Title:** {title}
+* **Type:** {document_type}
 
-The more information you provide, the better I can tailor the executive summary to your needs.
+**1.2 Metadata**
+* **Authors:** {authors}
+* **Date:** {date}
+* **Version:** {version}
+* **Repository:** {repository}
+* **Hash:** {hash}
+* **Category:** {category}
+"""
 
-
-
-**2. Analysis Framework**
+FRAMEWORK_TEMPLATE = """
+**2. {framework_name} Framework**
 
 **2.a. Logic Layer**
-
+{logic_content}
 
 **2.b. Implementation Layer**
-
+{implementation_content}
 
 **2.c. Evidence Layer**
+{evidence_content}
+"""
 
-
-
+MANAGEMENT_TEMPLATE = """
 **3. Management Framework**
 * **Budget Structure:**
-
+{budget_content}
 
 * **Timeline Management:**
-
+{timeline_content}
 
 * **Integration Matrix:**
+{integration_content}
+"""
 
-
-
+DOCUMENTATION_TEMPLATE = """
 **4. Supporting Documentation**
 * **References:**
-
+{references}
 
 * **Change History:**
+{change_history}
+"""
 
+# Validation criteria for each section
+VALIDATION_CRITERIA = {
+    'header': ['title', 'type', 'metadata'],
+    'executive_summary': ['context', 'goals', 'approach', 'expected_outcomes'],
+    'framework': ['logic', 'implementation', 'evidence'],
+    'management': ['budget', 'timeline', 'integration'],
+    'documentation': ['references', 'changes']
+}
+
+# Section-specific prompts
+SECTION_PROMPTS = {
+    'header': 'Generate a document header with title, type, and metadata...',
+    'executive_summary': 'Create a concise executive summary that covers...',
+    'framework': 'Develop a framework section that includes...',
+    'management': 'Structure the management section with...',
+    'documentation': 'Compile supporting documentation including...'
+}
+
+# Template assembly function
+def assemble_template(sections):
+    return '\n'.join([
+        BASE_TEMPLATE,
+        FRAMEWORK_TEMPLATE,
+        MANAGEMENT_TEMPLATE,
+        DOCUMENTATION_TEMPLATE
+    ]).format(**sections)
+
+# Meta template prompt
+META_TEMPLATE_PROMPT = """
+Analyze the git repository activity and generate a detailed report that includes:
+
+1. Team Overview: Analyze collaboration patterns and team dynamics
+2. Code Changes: Review significant code modifications and their impact
+3. Development Trends: Identify patterns in development activity
+4. Performance Metrics: Measure commit frequency, code quality, and review cycles
+5. Recommendations: Suggest improvements based on the analysis
+
+Git repository content to analyze:
+{content}
+"""

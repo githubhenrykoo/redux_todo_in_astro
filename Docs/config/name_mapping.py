@@ -1,9 +1,10 @@
 NAME_MAPPING = {
-    'githubhenrykoo': 'Henry Koo',
-    'daffapadantya12': 'Daffa Padantya',
-    'ronysinaga': 'Rony Sinaga',
+    'lckoo1230': 'Henry Koo',
+    'Henrykoo': 'Henry Koo',
+    'daffa.padantya12': 'Daffa Padantya',
+    'ronyataptika': 'Rony Sinaga',
     'benkoo': 'Ben Koo',
-    'angelitadp' : 'Angelita',
+    'panjaitangelita' : 'Angelita',
 
     # Add more mappings as needed:
     # 'github_username': 'Real Name',

@@ -61,7 +61,7 @@ jobs:
 
         # Find today's formatted analysis files and convert them
         python find_today_analysis.py | while read -r file; do
-          MARKDOWN_FILE="$file" python convert_md_to_pdf_each_user.py
+          MARKDOWN_FILE="$file" python Docs/config/codeVault/convert_md_to_pdf_each_user.py
         done
 
     - name: Commit PDFs

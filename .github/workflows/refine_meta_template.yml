@@ -107,7 +107,7 @@ jobs:
                 output_path = latest.replace('analysis-', 'formatted-analysis-')
                 with open(output_path, 'w') as f:
                     f.write(formatted)
-EOF
+        EOF
 
         python format_analysis.py
 

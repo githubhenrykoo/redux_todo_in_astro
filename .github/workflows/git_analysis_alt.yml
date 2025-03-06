@@ -1,4 +1,4 @@
-name: Git Log and Analysis
+name: Git Log and Analysis (Alternative)
 
 on:
   schedule:

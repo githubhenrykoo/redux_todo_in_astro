@@ -341,7 +341,7 @@ jobs:
 
     - name: Create Documentation from Template
       env:
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
       run: |
         cat << 'EOF' > create_docs.py
         import os

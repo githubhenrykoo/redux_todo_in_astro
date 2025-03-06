@@ -19,6 +19,9 @@ on:
 permissions:
   contents: write
 
+env:
+  GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
+
 jobs:
   generate-and-analyze:
     runs-on: ubuntu-latest

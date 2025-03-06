@@ -335,12 +335,12 @@ jobs:
       run: |
         pip install --upgrade google-generativeai
         pip install python-dotenv
-        
+
     - name: Format Analysis with Template
       env:
         GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
       run: |
-        cat << 'EOF' > format_analysis.py
+        cat << \EOF > format_analysis.py
         import os
         import glob
         from datetime import datetime
@@ -392,7 +392,6 @@ jobs:
             
             return assemble_template(sections)
 
-        # Rest of the script remains the same...
         EOF
 
         # Format team analysis

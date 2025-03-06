@@ -371,11 +371,35 @@ jobs:
             return generate_with_retry(model, prompt)
 
         def refine_template(model, template_content):
-            sections = {}
+            # Default values for required fields
+            sections = {
+                'title': 'Git Analysis Report',
+                'document_type': 'Analysis Document',
+                'authors': 'AI Analysis System',
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'version': '1.0',
+                'repository': 'Current Repository',
+                'hash': 'Generated',
+                'category': 'Git Analysis',
+                'header_content': '',
+                'executive_summary': '',
+                'framework_name': 'Analysis',
+                'logic_content': '',
+                'implementation_content': '',
+                'evidence_content': '',
+                'budget_content': '',
+                'timeline_content': '',
+                'integration_content': '',
+                'references': '',
+                'change_history': ''
+            }
+            
             # Refine each section separately
             for section in VALIDATION_CRITERIA.keys():
-                sections[section] = refine_section(model, section, template_content)
-                time.sleep(2)  # Rate limiting
+                refined_content = refine_section(model, section, template_content)
+                if refined_content:
+                    sections[section] = refined_content
+                time.sleep(2)
             
             # Assemble final template
             return assemble_template(sections)

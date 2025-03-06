@@ -335,7 +335,7 @@ jobs:
       run: |
         pip install --upgrade google-generativeai
         pip install python-dotenv
-
+        
     - name: Format Analysis with Template
       env:
         GOOGLE_API_KEY: AIzaSyBZ52gRnYBjfyyh4jiEWscKoRfTx-j4YEQ
@@ -346,15 +346,12 @@ jobs:
         from datetime import datetime
         import google.generativeai as genai
         from Docs.config.prompts.meta_template import (
-            BASE_TEMPLATE,
-            HEADER_TEMPLATE,
-            FRAMEWORK_TEMPLATE,
-            MANAGEMENT_TEMPLATE,
-            DOCUMENTATION_TEMPLATE,
+            META_TEMPLATE_PROMPT,
             assemble_template
         )
 
         def format_with_template(content, username=None):
+            # Split content into sections based on headers
             sections = {
                 'title': f'Git Analysis Report - {username if username else "Team"}',
                 'document_type': 'Development Analysis',
@@ -364,19 +361,39 @@ jobs:
                 'repository': os.getenv('GITHUB_REPOSITORY', 'Current Repository'),
                 'hash': os.getenv('GITHUB_SHA', 'Generated'),
                 'category': 'Git Analysis',
-                'header_content': HEADER_TEMPLATE,
+                'header_content': '',  # Will be formatted by template
                 'executive_summary': content.split('\n\n')[0] if '\n\n' in content else content,
-                'framework_name': 'Development',
-                'logic_content': content,
-                'implementation_content': content,
-                'evidence_content': content,
-                'budget_content': 'N/A',
-                'timeline_content': 'N/A',
-                'integration_content': 'N/A',
-                'references': 'Generated from Git logs',
-                'change_history': datetime.now().strftime('%Y-%m-%d: Initial analysis')
+                'framework_name': 'Development Analysis',
+                'logic_content': '## Context & Vision\n' + content,
+                'implementation_content': '## Development Process\n' + content,
+                'evidence_content': '## Analysis Results\n' + content,
+                'budget_content': 'Not Applicable for Git Analysis',
+                'timeline_content': datetime.now().strftime('Analysis Period: Up to %Y-%m-%d'),
+                'integration_content': 'Integration with Git Repository',
+                'references': 'Generated from Git Repository Logs',
+                'change_history': f'Initial Analysis: {datetime.now().strftime("%Y-%m-%d")}'
             }
+            
+            # Configure Gemini for content enhancement
+            genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            
+            # Use META_TEMPLATE_PROMPT to structure the content
+            enhanced_content = model.generate_content(
+                META_TEMPLATE_PROMPT.format(content=content)
+            ).text
+            
+            # Update sections with enhanced content
+            sections.update({
+                'logic_content': enhanced_content,
+                'implementation_content': enhanced_content,
+                'evidence_content': enhanced_content
+            })
+            
             return assemble_template(sections)
+
+        # Rest of the script remains the same...
+        EOF
 
         # Format team analysis
         team_files = glob.glob('Docs/analysis/group/team-analysis-*.md')

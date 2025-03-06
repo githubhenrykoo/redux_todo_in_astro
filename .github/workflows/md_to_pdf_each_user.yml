@@ -35,7 +35,49 @@ jobs:
         GOOGLE_API_KEY: "AIzaSyAPz0ODezXu39YHYaaSUAsKMBhjKwlYJFo"
         USER_FOLDER: ${{ github.event.inputs.user_folder }}
       run: |
+        cat << 'EOF' > find_latest_md.py
+        import os
+        import glob
+        from datetime import datetime
+
+        def get_latest_md_file(user_dir):
+            # Look for all analysis files in user directory
+            md_files = glob.glob(os.path.join(user_dir, 'analysis-*.md'))
+            md_files.extend(glob.glob(os.path.join(user_dir, 'refined-analysis-*.md')))
+            md_files.extend(glob.glob(os.path.join(user_dir, 'formatted-analysis-*.md')))
+            
+            if not md_files:
+                return None
+                
+            # Get the most recent file
+            return max(md_files, key=os.path.getctime)
+
+        # Create a mapping file for the converter
+        with open('latest_md_files.txt', 'w') as f:
+            user_folder = os.getenv('USER_FOLDER')
+            if user_folder:
+                # Process specific user
+                user_dir = f'Docs/analysis/users/{user_folder}'
+                if os.path.exists(user_dir):
+                    latest = get_latest_md_file(user_dir)
+                    if latest:
+                        f.write(f"{latest}\n")
+            else:
+                # Process all users
+                user_dirs = glob.glob('Docs/analysis/users/*/')
+                for user_dir in user_dirs:
+                    if '.gitkeep' in user_dir:
+                        continue
+                    latest = get_latest_md_file(user_dir)
+                    if latest:
+                        f.write(f"{latest}\n")
+        EOF
+
+        python find_latest_md.py
         cp Docs/config/codeVault/convert_md_to_pdf_each_user.py .
+        
+        # Update the converter to use the file list
+        sed -i 's/MARKDOWN_FILE = os.getenv(.*/MARKDOWN_FILES = "latest_md_files.txt"/' convert_md_to_pdf_each_user.py
         python convert_md_to_pdf_each_user.py
 
     - name: Commit PDFs

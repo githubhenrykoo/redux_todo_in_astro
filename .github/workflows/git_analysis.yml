@@ -346,7 +346,12 @@ jobs:
         from datetime import datetime
         import google.generativeai as genai
         from google.api_core import exceptions
-        from Docs.config.prompts.meta_template import META_TEMPLATE_PROMPT, VALIDATION_CRITERIA, SECTION_PROMPTS
+        from Docs.config.prompts.meta_template import (
+            META_TEMPLATE_PROMPT,
+            SECTION_PROMPTS,
+            VALIDATION_CRITERIA,
+            assemble_template
+        )
 
         def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
             for attempt in range(max_retries):
@@ -361,10 +366,19 @@ jobs:
                         raise
             return None
 
+        def refine_section(model, section_name, content):
+            prompt = SECTION_PROMPTS[section_name].format(content=content)
+            return generate_with_retry(model, prompt)
+
         def refine_template(model, template_content):
-            # Use the existing template structure for refinement
-            refinement_content = META_TEMPLATE_PROMPT.format(content=template_content)
-            return generate_with_retry(model, refinement_content)
+            sections = {}
+            # Refine each section separately
+            for section in VALIDATION_CRITERIA.keys():
+                sections[section] = refine_section(model, section, template_content)
+                time.sleep(2)  # Rate limiting
+            
+            # Assemble final template
+            return assemble_template(sections)
 
         # Configure Gemini
         genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))

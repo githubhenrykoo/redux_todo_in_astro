@@ -1,0 +1,121 @@
+name: Refine Meta Template
+
+on:
+  workflow_run:
+    workflows: ["Git Log and Analysis (Alternative)"]
+    types:
+      - completed
+
+jobs:
+  refine-meta-template:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade google-generativeai
+        pip install python-dotenv
+
+    - name: Format Analysis with Template
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      run: |
+        cat << \EOF > format_analysis.py
+        import os
+        import glob
+        from datetime import datetime
+        import google.generativeai as genai
+        from Docs.config.prompts.meta_template import META_TEMPLATE_PROMPT, assemble_template
+
+        def format_with_template(content, username=None):
+            # Split content into sections based on headers
+            sections = {
+                'title': f'Git Analysis Report - {username if username else "Team"}',
+                'document_type': 'Development Analysis',
+                'authors': 'AI Analysis System',
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'version': '1.0',
+                'repository': os.getenv('GITHUB_REPOSITORY', 'Current Repository'),
+                'hash': os.getenv('GITHUB_SHA', 'Generated'),
+                'category': 'Git Analysis',
+                'header_content': '',  # Will be formatted by template
+                'executive_summary': content.split('\n\n')[0] if '\n\n' in content else content,
+                'framework_name': 'Development Analysis',
+                'logic_content': '## Context & Vision\n' + content,
+                'implementation_content': '## Development Process\n' + content,
+                'evidence_content': '## Analysis Results\n' + content,
+                'budget_content': 'Not Applicable for Git Analysis',
+                'timeline_content': datetime.now().strftime('Analysis Period: Up to %Y-%m-%d'),
+                'integration_content': 'Integration with Git Repository',
+                'references': 'Generated from Git Repository Logs',
+                'change_history': f'Initial Analysis: {datetime.now().strftime("%Y-%m-%d")}'
+            }
+            
+            # Configure Gemini for content enhancement
+            genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
+            model = genai.GenerativeModel('gemini-2.0-flash')
+            
+            # Use META_TEMPLATE_PROMPT to structure the content
+            enhanced_content = model.generate_content(
+                META_TEMPLATE_PROMPT.format(content=content)
+            ).text
+            
+            # Update sections with enhanced content
+            sections.update({
+                'logic_content': enhanced_content,
+                'implementation_content': enhanced_content,
+                'evidence_content': enhanced_content
+            })
+            
+            return assemble_template(sections)
+
+        # Format team analysis
+        team_files = glob.glob('Docs/analysis/group/team-analysis-*.md')
+        if team_files:
+            latest_team = max(team_files)
+            with open(latest_team, 'r') as f:
+                content = f.read()
+            formatted = format_with_template(content)
+            output_path = latest_team.replace('team-analysis-', 'formatted-team-analysis-')
+            with open(output_path, 'w') as f:
+                f.write(formatted)
+
+        # Format individual analyses
+        user_dirs = glob.glob('Docs/analysis/users/*/')
+        for user_dir in user_dirs:
+            username = os.path.basename(os.path.dirname(user_dir))
+            if username == '.gitkeep':
+                continue
+
+            analysis_files = glob.glob(f'{user_dir}analysis-*.md')
+            if analysis_files:
+                latest = max(analysis_files)
+                with open(latest, 'r') as f:
+                    content = f.read()
+                formatted = format_with_template(content, username)
+                output_path = latest.replace('analysis-', 'formatted-analysis-')
+                with open(output_path, 'w') as f:
+                    f.write(formatted)
+EOF
+
+        python format_analysis.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add "Docs/analysis/"
+        git commit -m "docs: format analysis with template $(date +%Y-%m-%d)" || echo "No changes to commit"
+        git pull --rebase origin main
+        git push origin HEAD:main

@@ -3,6 +3,8 @@ from typing import List
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 def setup_gemini():
     """Setup Gemini model"""
@@ -31,44 +33,47 @@ def create_prompt_template() -> ChatPromptTemplate:
     
     return ChatPromptTemplate.from_template(template)
 
+@retry(
+    stop=stop_after_attempt(5),  # Try 5 times
+    wait=wait_exponential(multiplier=1, min=4, max=60)  # Wait between 4 and 60 seconds
+)
 def process_transcript(transcript_path: str, llm, prompt_template: ChatPromptTemplate) -> str:
-    """Process a single transcript and return JSONL content"""
+    """Process a single transcript with retry mechanism"""
     with open(transcript_path, 'r', encoding='utf-8') as f:
         transcript = f.read().strip()
     
-    # Generate JSONL content
-    chain = prompt_template | llm
-    result = chain.invoke({"transcript": transcript})
-    return result.content
+    try:
+        chain = prompt_template | llm
+        result = chain.invoke({"transcript": transcript})
+        content = result.content.replace('```jsonl', '').replace('```', '').replace('json', '').strip()
+        return content
+    except Exception as e:
+        print(f"Attempt failed for {transcript_path}: {str(e)}")
+        raise
 
 def process_all_transcripts(transcript_dir: str, output_file: str):
     """Process all transcript files and generate JSONL"""
     llm = setup_gemini()
     prompt_template = create_prompt_template()
     
-    # Create output directory if it doesn't exist
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
-    processed_files = []
     with open(output_file, 'w', encoding='utf-8') as out_f:
         for filename in os.listdir(transcript_dir):
             if filename.endswith('.txt'):
-                if processed_files:
-                    break
-                    
                 transcript_path = os.path.join(transcript_dir, filename)
                 try:
+                    print(f"Processing: {filename}")
                     jsonl_content = process_transcript(transcript_path, llm, prompt_template)
-                    # Clean up the content by removing markers and "json" text
-                    jsonl_content = jsonl_content.replace('```jsonl', '').replace('```', '').replace('json', '').strip()
-                    out_f.write(jsonl_content)
-                    processed_files.append(filename)
-                    print(f"Processed: {filename}")
+                    out_f.write(jsonl_content + '\n')
+                    print(f"Successfully processed: {filename}")
+                    time.sleep(5)  # Add 5-second delay between files
                 except Exception as e:
-                    print(f"Error processing {filename}: {str(e)}")
+                    print(f"Failed to process {filename} after all retries: {str(e)}")
+                    continue
 
 def main():
-    transcript_dir = "/Users/dewanekonominasional/Documents/GitHub/redux_todo_in_astro/Docs/to-do-plan/data/processed/transcript"
+    transcript_dir = "/Users/dewanekonominasional/Downloads/transcript"
     output_file = "/Users/dewanekonominasional/Documents/GitHub/redux_todo_in_astro/Docs/to-do-plan/data/processed/math_qa.jsonl"
     
     process_all_transcripts(transcript_dir, output_file)

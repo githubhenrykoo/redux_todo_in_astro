@@ -473,7 +473,28 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
+        
+        # Setup Git LFS
+        git lfs install
+        git lfs track "Docs/log/*.md"
+        git add .gitattributes
+        
+        # Add analysis files
         git add "Docs/analysis/"
+        
+        # Commit changes
         git commit -m "docs: create formatted analysis documents $(date +%Y-%m-%d)" || echo "No changes to commit"
-        git pull --rebase origin main
-        git push origin HEAD:main
+        
+        # Fetch latest changes
+        git fetch origin main
+        
+        # Try to rebase, if conflicts occur, use ours
+        git -c merge.renameLimit=999999 rebase origin/main || {
+          echo "Conflicts detected, using ours strategy"
+          git checkout --ours "Docs/analysis/"
+          git add "Docs/analysis/"
+          git rebase --continue
+        }
+        
+        # Push changes, force if necessary but with lease for safety
+        git push --force-with-lease origin HEAD:main

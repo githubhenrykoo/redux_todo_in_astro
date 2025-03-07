@@ -349,6 +349,9 @@ jobs:
         from datetime import datetime
         import google.generativeai as genai
 
+        # Define current date at the module level
+        current_date = datetime.now().strftime('%Y-%m-%d')
+
         def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
             for attempt in range(max_retries):
                 try:
@@ -361,16 +364,12 @@ jobs:
             return None
 
         def fill_template(model, content, username=None):
-            # Read template
-            with open('Docs/analysis/template/meta_template.md', 'r') as f:
-                template = f.read()
-
-            # Generate content for each section
+            # Update date in replacements
             replacements = {
                 '[Document Type]': 'Git Analysis Report',
                 '[Title]': f'Development Analysis - {username if username else "Team"}',
                 '[Team Members]': 'AI Analysis System',
-                '[YYYY-MM-DD]': datetime.now().strftime('%Y-%m-%d'),
+                '[YYYY-MM-DD]': current_date,  # Use current_date here
                 '[X.Y]': '1.0',
                 '[Link to GitHub Repository if needed]': os.getenv('GITHUB_REPOSITORY', 'Current Repository'),
                 '[Planning/Report/Review/Implementation]': 'Analysis Report',
@@ -436,7 +435,7 @@ jobs:
         genai.configure(api_key=os.getenv('GOOGLE_API_KEY'))
         model = genai.GenerativeModel('gemini-2.0-flash')
 
-        # Process team analysis
+        # Process team analysis using current_date
         team_files = glob.glob('Docs/analysis/group/team-analysis-*.md')
         if team_files:
             latest_team = max(team_files)
@@ -448,7 +447,7 @@ jobs:
             with open(output_path, 'w') as f:
                 f.write(formatted_content)
 
-        # Process individual analyses
+        # Process individual analyses using current_date
         user_dirs = glob.glob('Docs/analysis/users/*/')
         for user_dir in user_dirs:
             username = os.path.basename(os.path.dirname(user_dir))

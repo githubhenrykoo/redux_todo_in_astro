@@ -444,7 +444,7 @@ jobs:
                 team_content = f.read()
             
             formatted_content = fill_template(model, team_content)
-            output_path = latest_team.replace('team-analysis-', 'formatted-team-analysis-')
+            output_path = f'Docs/analysis/group/formatted-team-analysis-{current_date}.md'
             with open(output_path, 'w') as f:
                 f.write(formatted_content)
 
@@ -462,7 +462,7 @@ jobs:
                     content = f.read()
                 
                 formatted_content = fill_template(model, content, username)
-                output_path = latest.replace('analysis-', 'formatted-analysis-')
+                output_path = f'Docs/analysis/users/{username}/formatted-analysis-{current_date}.md'
                 with open(output_path, 'w') as f:
                     f.write(formatted_content)
         EOF
@@ -473,28 +473,7 @@ jobs:
       run: |
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
-        
-        # Setup Git LFS
-        git lfs install
-        git lfs track "Docs/log/*.md"
-        git add .gitattributes
-        
-        # Add analysis files
         git add "Docs/analysis/"
-        
-        # Commit changes
         git commit -m "docs: create formatted analysis documents $(date +%Y-%m-%d)" || echo "No changes to commit"
-        
-        # Fetch latest changes
-        git fetch origin main
-        
-        # Try to rebase, if conflicts occur, use ours
-        git -c merge.renameLimit=999999 rebase origin/main || {
-          echo "Conflicts detected, using ours strategy"
-          git checkout --ours "Docs/analysis/"
-          git add "Docs/analysis/"
-          git rebase --continue
-        }
-        
-        # Push changes, force if necessary but with lease for safety
-        git push --force-with-lease origin HEAD:main
+        git pull --rebase origin main
+        git push origin HEAD:main

@@ -188,24 +188,6 @@ graph TD
 
 *   While not explicitly stated, the workflows are likely designed to automatically generate reports on a regular schedule (e.g., daily, weekly) or triggered by specific events (e.g., new commits). The product of this workflow is the Git analysis report itself.
 
-**Workflow Diagram (Simplified):**
-
-```
-[Planning & Design]  -->  [Template Creation/Modification]
-                          |
-                          V
-                         [Script Development (Python)]
-                          |
-                          V
-                         [GitHub Actions Configuration (YAML)] --> [Automation & Integration (GitHub Actions, Gemini AI)]
-                                                                   |
-                                                                   V
-                                                                  [Report Generation] --> [Testing & Refinement] --> [Report Generation - Iterated]
-                                                                                                                             |
-                                                                                                                             V
-                                                                                                                            [Deployment (Regularly Generated Reports)]
-```
-
 **Key Takeaways:**
 
 *   **Highly Iterative:** The workflow is highly iterative, with constant refinement of templates, scripts, and workflows. This suggests an agile approach.
@@ -248,23 +230,6 @@ This more detailed breakdown and the workflow diagram provide a clear understand
 
 *   While not explicitly stated, the workflows are likely designed to automatically generate reports on a regular schedule (e.g., daily, weekly) or triggered by specific events (e.g., new commits). The product of this workflow is the Git analysis report itself.
 
-**Workflow Diagram (Simplified):**
-
-```
-[Planning & Design]  -->  [Template Creation/Modification]
-                          |
-                          V
-                         [Script Development (Python)]
-                          |
-                          V
-                         [GitHub Actions Configuration (YAML)] --> [Automation & Integration (GitHub Actions, Gemini AI)]
-                                                                   |
-                                                                   V
-                                                                  [Report Generation] --> [Testing & Refinement] --> [Report Generation - Iterated]
-                                                                                                                             |
-                                                                                                                             V
-                                                                                                                            [Deployment (Regularly Generated Reports)]
-```
 
 **Key Takeaways:**
 
@@ -309,24 +274,6 @@ This more detailed breakdown and the workflow diagram provide a clear understand
 
 *   While not explicitly stated, the workflows are likely designed to automatically generate reports on a regular schedule (e.g., daily, weekly) or triggered by specific events (e.g., new commits). The product of this workflow is the Git analysis report itself.
 
-**Workflow Diagram (Simplified):**
-
-```
-[Planning & Design]  -->  [Template Creation/Modification]
-                          |
-                          V
-                         [Script Development (Python)]
-                          |
-                          V
-                         [GitHub Actions Configuration (YAML)] --> [Automation & Integration (GitHub Actions, Gemini AI)]
-                                                                   |
-                                                                   V
-                                                                  [Report Generation] --> [Testing & Refinement] --> [Report Generation - Iterated]
-                                                                                                                             |
-                                                                                                                             V
-                                                                                                                            [Deployment (Regularly Generated Reports)]
-```
-
 **Key Takeaways:**
 
 *   **Highly Iterative:** The workflow is highly iterative, with constant refinement of templates, scripts, and workflows. This suggests an agile approach.
@@ -369,23 +316,6 @@ This more detailed breakdown and the workflow diagram provide a clear understand
 
 *   While not explicitly stated, the workflows are likely designed to automatically generate reports on a regular schedule (e.g., daily, weekly) or triggered by specific events (e.g., new commits). The product of this workflow is the Git analysis report itself.
 
-**Workflow Diagram (Simplified):**
-
-```
-[Planning & Design]  -->  [Template Creation/Modification]
-                          |
-                          V
-                         [Script Development (Python)]
-                          |
-                          V
-                         [GitHub Actions Configuration (YAML)] --> [Automation & Integration (GitHub Actions, Gemini AI)]
-                                                                   |
-                                                                   V
-                                                                  [Report Generation] --> [Testing & Refinement] --> [Report Generation - Iterated]
-                                                                                                                             |
-                                                                                                                             V
-                                                                                                                            [Deployment (Regularly Generated Reports)]
-```
 
 **Key Takeaways:**
 

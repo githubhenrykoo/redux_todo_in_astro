@@ -5,6 +5,7 @@ from langchain.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 import time
 from tenacity import retry, stop_after_attempt, wait_exponential
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 
 def setup_gemini():
     """Setup Gemini model"""
@@ -20,25 +21,35 @@ def setup_gemini():
 def create_prompt_template() -> ChatPromptTemplate:
     """Create the prompt template for generating JSONL content"""
     template = """You are an AI assistant that helps convert math teaching transcripts into JSONL format.
-    Given the following transcript of a math teaching video, create a JSONL entry with:
-    1. A natural question in Indonesian that could have prompted this explanation
-    2. The exact explanation from the transcript as the answer
+    Given the following transcript of a math teaching video:
+    1. Correct any typos and unclear explanations in Indonesian
+    2. Use proper Indonesian mathematical terms
+    3. Make sure the explanation is clear and step-by-step
+    4. Keep the mathematical method (Gasing) intact
+    5. Format numbers clearly (avoid using hyphens like 10-2, instead use "10 ditambah 2")
     
     Transcript:
     {transcript}
     
-    Generate the content in this exact format:
-    {{"text": "You are a math teacher using the Gasing method\\n\\nHuman: [generated question in Indonesian]\\n\\nAssistant: [explanation from transcript]"}}
+    First, correct the transcript to proper Indonesian, then generate the content in this exact format:
+    {{"text": "You are a math teacher using the Gasing method\\n\\nHuman: [generated question in Indonesian]\\n\\nAssistant: [corrected explanation with proper Indonesian]"}}
+    
+    The explanation should:
+    - Use proper Indonesian spelling (e.g., "delapan" not "dilapan")
+    - Have clear step-by-step instructions
+    - Use proper mathematical terms
+    - Maintain a clear flow of explanation
+    - End with a clear conclusion
     """
     
     return ChatPromptTemplate.from_template(template)
 
 @retry(
-    stop=stop_after_attempt(5),  # Try 5 times
-    wait=wait_exponential(multiplier=1, min=4, max=60)  # Wait between 4 and 60 seconds
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=60)
 )
 def process_transcript(transcript_path: str, llm, prompt_template: ChatPromptTemplate) -> str:
-    """Process a single transcript with retry mechanism"""
+    """Process a single transcript with retry mechanism and typo correction"""
     with open(transcript_path, 'r', encoding='utf-8') as f:
         transcript = f.read().strip()
     
@@ -46,6 +57,8 @@ def process_transcript(transcript_path: str, llm, prompt_template: ChatPromptTem
         chain = prompt_template | llm
         result = chain.invoke({"transcript": transcript})
         content = result.content.replace('```jsonl', '').replace('```', '').replace('json', '').strip()
+        
+        # Let the LLM handle the corrections through the prompt template
         return content
     except Exception as e:
         print(f"Attempt failed for {transcript_path}: {str(e)}")

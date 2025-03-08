@@ -86,8 +86,12 @@ def process_all_transcripts(transcript_dir: str, output_file: str):
                     continue
 
 def main():
-    transcript_dir = "/Users/dewanekonominasional/Downloads/transcript_2"
-    output_file = "/Users/dewanekonominasional/Documents/GitHub/redux_todo_in_astro/Docs/to-do-plan/data/processed/math_qa.jsonl"
+    # Get script directory for relative paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Navigate from script location to transcript directory using relative path
+    transcript_dir = os.path.normpath(os.path.join(script_dir, "../../../Docs/to-do-plan/data/processed/transcript"))
+    # Output relative to script location
+    output_file = os.path.join(script_dir, "math_qa.jsonl")
     
     process_all_transcripts(transcript_dir, output_file)
     print(f"JSONL file generated at: {output_file}")

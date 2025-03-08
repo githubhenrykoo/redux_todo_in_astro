@@ -86,7 +86,7 @@ def process_all_transcripts(transcript_dir: str, output_file: str):
                     continue
 
 def main():
-    transcript_dir = "/Users/dewanekonominasional/Downloads/transcript"
+    transcript_dir = "/Users/dewanekonominasional/Downloads/transcript_2"
     output_file = "/Users/dewanekonominasional/Documents/GitHub/redux_todo_in_astro/Docs/to-do-plan/data/processed/math_qa.jsonl"
     
     process_all_transcripts(transcript_dir, output_file)

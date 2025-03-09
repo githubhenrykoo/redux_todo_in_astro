@@ -3,6 +3,7 @@ import glob
 import time
 from datetime import datetime
 import google.generativeai as genai
+from google.api_core import exceptions
 from Docs.config.prompts.group_analysis import GROUP_ANALYSIS_PROMPT
 from Docs.config.prompts.user_analysis import USER_ANALYSIS_PROMPT
 from Docs.config.prompts.summary import SUMMARY_PROMPT
@@ -11,17 +12,18 @@ def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
     for attempt in range(max_retries):
         try:
             if attempt > 0:
-                time.sleep(initial_delay * (2 ** attempt))  # Exponential backoff
+                time.sleep(initial_delay * (2 ** attempt))
             response = model.generate_content(prompt)
             return response.text
         except exceptions.ResourceExhausted:
-            if attempt == max_retries - 1:
-                raise
             print(f"Rate limit hit, retrying in {initial_delay * (2 ** (attempt + 1))} seconds...")
+            if attempt == max_retries - 1:
+                return "Analysis temporarily limited due to rate limits. Please try again later."
+            time.sleep(initial_delay * (2 ** (attempt + 1)))
         except Exception as e:
             print(f"Error: {str(e)}")
             if attempt == max_retries - 1:
-                raise
+                return f"Analysis failed: {str(e)}"
     return None
 
 def analyze_content(model, content, query, prompt_template):
@@ -80,7 +82,7 @@ if log_files:
     with open(latest_log, 'r') as f:
         group_content = f.read()
 
-    query = 'Summarize the main changes'
+    query = ''
     analysis = analyze_content(model, group_content, query, GROUP_ANALYSIS_PROMPT)
     os.makedirs('Docs/analysis/group', exist_ok=True)
     with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:

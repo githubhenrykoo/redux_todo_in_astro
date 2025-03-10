@@ -352,6 +352,62 @@ jobs:
         # Define current date at the module level
         current_date = datetime.now().strftime('%Y-%m-%d')
 
+        # Define the template
+        template = """# {[Document Type]}
+        
+        ## Document Information
+        - Title: {[Title]}
+        - Team Members: {[Team Members]}
+        - Date: {[YYYY-MM-DD]}
+        - Version: {[X.Y]}
+        - Repository: {[Link to GitHub Repository if needed]}
+        - Type: {[Planning/Report/Review/Implementation]}
+        
+        ## Executive Summary
+        {[One-paragraph overview using Computational Trinitarianism framework:
+        - Logic: Core purpose and formal objectives
+        - Implementation: Key processes and methods
+        - Outcomes: Expected or achieved results]}
+        
+        ## Context & Vision
+        - Boundaries: {[Boundaries and limitations]}
+        - Environment: {[Environmental factors]}
+        - Stakeholders: {[Involved parties]}
+        
+        ## Development Process
+        - Data Sources: {[Data/Resources]}
+        - Processing: {[Transformation]}
+        - Outcomes: {[Expected results]}
+        - Quality: {[Quality checks]}
+        - Improvement: {[Learning loops]}
+        
+        ## Metrics & Results
+        - Quantitative: {[Measurable outcomes]}
+        - Qualitative: {[Observable improvements]}
+        - Validation: {[Verification approaches]}
+        
+        ## Implementation Context
+        - Regional: {[Regional factors]}
+        - Communication: {[Communication needs]}
+        - Team: {[Social dynamics]}
+        
+        ## Technical Integration
+        - AI Integration: {[AI assistance points]}
+        - Monitoring: {[Sensor/Actuator needs]}
+        - Integration: {[Connectivity specs]}
+        
+        ## Development Workflow
+        - Functions: {[Functions deployed]}
+        - Metrics: {[Success metrics]}
+        - Setup: {[Technical setup]}
+        - Training: {[Capability building]}
+        
+        ## Evidence & Outcomes
+        - KPIs: {[Key indicators]}
+        - Standards: {[Standards]}
+        - Results: {[Results]}
+        """
+        
         def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
             for attempt in range(max_retries):
                 try:

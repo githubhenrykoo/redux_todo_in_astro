@@ -197,9 +197,12 @@ class AudioToJSONL:
             print("Failed files:", ', '.join(failed_files))
 
 def main():
-    base_dir = Path(__file__).parent.parent
-    audio_dir = base_dir / "data" / "raw" / "audio"
-    output_dir = base_dir / "data" / "processed"
+    project_root = Path("/Users/dewanekonominasional/Documents/GitHub/redux_todo_in_astro")
+    audio_dir = Path("/Users/dewanekonominasional/Downloads/video_exp")
+    output_dir = project_root / "Docs/to-do-plan/data/processed"
+    
+    # Create output directory if it doesn't exist
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     processor = AudioToJSONL(audio_dir, output_dir)
     processor.process_files()

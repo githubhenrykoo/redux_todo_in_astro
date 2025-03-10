@@ -6,16 +6,23 @@ from pathlib import Path
 from tqdm import tqdm
 import whisper
 from pydub import AudioSegment
+import ffmpeg
 
 class AudioTranscriber:
     def __init__(self, audio_dir, transcript_dir):
         self.audio_dir = Path(audio_dir)
         self.transcript_dir = Path(transcript_dir)
         self.processed_files_json = self.transcript_dir / "processed_files.json"
+        print(f"Audio directory: {self.audio_dir}")
+        print(f"Transcript directory: {self.transcript_dir}")
         print("Loading Whisper model...")
-        self.model = whisper.load_model("small")
-        print("Model loaded!")
+        self.model = whisper.load_model("large")
+        print("Large Whisper model loaded!")
         self.processed_files = self._load_processed_files()
+
+        # Define file extensions
+        self.audio_extensions = {'.mp3', '.wav', '.flac', '.aac', '.ogg', '.m4a'}
+        self.video_extensions = {'.mp4', '.avi', '.mov', '.mkv', '.wmv'}
 
     def _load_processed_files(self):
         """Load the processed files record or create if doesn't exist."""
@@ -43,16 +50,73 @@ class AudioTranscriber:
             return True
         return self.processed_files[str(file_path)]["hash"] != file_hash
 
-    def transcribe_audio(self):
-        """Transcribe all audio files in the directory that need processing."""
-        audio_files = list(self.audio_dir.glob("*.[mM][pP][3234]")) + \
-                     list(self.audio_dir.glob("*.[wW][aA][vV]")) + \
-                     list(self.audio_dir.glob("*.[fF][lL][aA][cC]"))
+    def _extract_audio_from_video(self, video_path):
+        """Extract audio from video file using ffmpeg."""
+        # Create a temporary audio file in the same directory
+        audio_path = video_path.with_suffix('.mp3')
+        
+        try:
+            # Use ffmpeg-python to extract audio
+            print(f"Attempting to extract audio from: {video_path}")
+            (
+                ffmpeg
+                .input(str(video_path))
+                .output(str(audio_path), acodec='libmp3lame', q=4)
+                .overwrite_output()
+                .run(capture_stdout=True, capture_stderr=True)
+            )
+            print(f"Audio extracted successfully to: {audio_path}")
+            return audio_path
+        except ffmpeg.Error as e:
+            print(f"Error extracting audio from {video_path}: {e.stderr.decode()}")
+            raise
 
+    def _find_media_files(self):
+        """Find all audio and video files in the directory."""
+        # List all files in the audio directory
+        print("Listing all files in the audio directory:")
+        audio_files = []
+        video_files = []
+
+        for file in self.audio_dir.iterdir():
+            print(f"Found file: {file}")
+            # Skip .gitkeep and hidden files
+            if file.name.startswith('.') or file.name == '.gitkeep':
+                continue
+
+            # Check file extension
+            if file.suffix.lower() in self.audio_extensions:
+                audio_files.append(file)
+                print(f"Found audio file: {file}")
+            elif file.suffix.lower() in self.video_extensions:
+                video_files.append(file)
+                print(f"Found video file: {file}")
+
+        return audio_files, video_files
+
+    def transcribe_audio(self):
+        """Transcribe all audio and video files in the directory that need processing."""
+        # Find audio and video files
+        audio_files, video_files = self._find_media_files()
+        print(f"Found {len(audio_files)} audio files")
+        print(f"Found {len(video_files)} video files")
+
+        # Extract audio from video files
+        for video_file in video_files:
+            try:
+                audio_file = self._extract_audio_from_video(video_file)
+                audio_files.append(audio_file)
+            except Exception as e:
+                print(f"Error processing {video_file}: {str(e)}")
+
+        # Transcribe files
         for audio_file in tqdm(audio_files, desc="Processing audio files"):
+            # Make paths relative
+            rel_audio_file = audio_file.relative_to(Path(__file__).parent.parent)
+            
             file_hash = self._calculate_file_hash(audio_file)
             
-            if not self._needs_processing(audio_file, file_hash):
+            if not self._needs_processing(rel_audio_file, file_hash):
                 print(f"Skipping {audio_file.name} - already processed")
                 continue
 
@@ -63,16 +127,18 @@ class AudioTranscriber:
                     result = self.model.transcribe(str(audio_file))
                     transcript = result["text"].strip()
                 
-                # Save transcription
+                # Save transcription with relative paths
                 transcript_file = self.transcript_dir / f"{audio_file.stem}.txt"
+                rel_transcript_file = transcript_file.relative_to(Path(__file__).parent.parent)
+                
                 with open(transcript_file, "w", encoding="utf-8") as f:
                     f.write(transcript)
 
-                # Update processed files record
-                self.processed_files[str(audio_file)] = {
+                # Update processed files record with relative paths
+                self.processed_files[str(rel_audio_file)] = {
                     "hash": file_hash,
                     "timestamp": datetime.datetime.now().isoformat(),
-                    "transcript_file": str(transcript_file)
+                    "transcript_file": str(rel_transcript_file)
                 }
                 
                 # Save after each successful transcription

@@ -1,5 +1,6 @@
 import os
 from typing import List
+import json
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
@@ -44,6 +45,25 @@ def create_prompt_template() -> ChatPromptTemplate:
     
     return ChatPromptTemplate.from_template(template)
 
+def validate_jsonl_format(content: str) -> bool:
+    """Validate if the content follows correct JSONL format"""
+    try:
+        # Parse the content as JSON
+        parsed = json.loads(content)
+        
+        # Check required structure
+        if not isinstance(parsed, dict) or 'text' not in parsed:
+            return False
+            
+        # Check if text contains required components
+        text = parsed['text']
+        if not all(x in text for x in ['You are a math teacher using the Gasing method', 'Human:', 'Assistant:']):
+            return False
+            
+        return True
+    except json.JSONDecodeError:
+        return False
+
 @retry(
     stop=stop_after_attempt(5),
     wait=wait_exponential(multiplier=1, min=4, max=60)
@@ -58,7 +78,10 @@ def process_transcript(transcript_path: str, llm, prompt_template: ChatPromptTem
         result = chain.invoke({"transcript": transcript})
         content = result.content.replace('```jsonl', '').replace('```', '').replace('json', '').strip()
         
-        # Let the LLM handle the corrections through the prompt template
+        # Validate JSONL format
+        if not validate_jsonl_format(content):
+            raise ValueError(f"Invalid JSONL format for {transcript_path}")
+        
         return content
     except Exception as e:
         print(f"Attempt failed for {transcript_path}: {str(e)}")
@@ -71,19 +94,38 @@ def process_all_transcripts(transcript_dir: str, output_file: str):
     
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     
-    with open(output_file, 'w', encoding='utf-8') as out_f:
-        for filename in os.listdir(transcript_dir):
-            if filename.endswith('.txt'):
-                transcript_path = os.path.join(transcript_dir, filename)
-                try:
-                    print(f"Processing: {filename}")
-                    jsonl_content = process_transcript(transcript_path, llm, prompt_template)
-                    out_f.write(jsonl_content + '\n')
+    valid_entries = []
+    failed_files = []
+    
+    for filename in os.listdir(transcript_dir):
+        if filename.endswith('.txt'):
+            transcript_path = os.path.join(transcript_dir, filename)
+            try:
+                print(f"Processing: {filename}")
+                jsonl_content = process_transcript(transcript_path, llm, prompt_template)
+                if validate_jsonl_format(jsonl_content):
+                    valid_entries.append(jsonl_content)
                     print(f"Successfully processed: {filename}")
-                    time.sleep(5)  # Add 5-second delay between files
-                except Exception as e:
-                    print(f"Failed to process {filename} after all retries: {str(e)}")
-                    continue
+                else:
+                    failed_files.append(filename)
+                    print(f"Invalid JSONL format for: {filename}")
+                time.sleep(5)
+            except Exception as e:
+                failed_files.append(filename)
+                print(f"Failed to process {filename} after all retries: {str(e)}")
+                continue
+    
+    # Write valid entries to output file
+    with open(output_file, 'w', encoding='utf-8') as out_f:
+        for entry in valid_entries:
+            out_f.write(entry + '\n')
+    
+    # Report results
+    print(f"\nProcessing complete:")
+    print(f"Successfully processed: {len(valid_entries)} files")
+    if failed_files:
+        print(f"Failed to process: {len(failed_files)} files")
+        print("Failed files:", ', '.join(failed_files))
 
 def main():
     # Get script directory for relative paths

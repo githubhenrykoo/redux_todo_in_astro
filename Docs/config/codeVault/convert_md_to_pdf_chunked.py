@@ -68,7 +68,6 @@ def md_to_latex(model, md_content):
     \definecolor{forestgreen}{RGB}{34,139,34}
     \definecolor{uiblue}{RGB}{66,139,202}
 
-    \begin{document}
     """
 
     latex_end = r"\end{document}"
@@ -107,7 +106,13 @@ def md_to_latex(model, md_content):
                 
                 print(f"Processing section {i+1}/{len(sections)}")
                 response = model.generate_content(base_prompt + section)
-                latex_sections.append(response.text.strip())
+                section_content = response.text.strip()
+                
+                # Clean up any document environments in the section
+                section_content = section_content.replace(r'\begin{document}', '')
+                section_content = section_content.replace(r'\end{document}', '')
+                
+                latex_sections.append(section_content)
                 
                 # Successful processing, wait before next section
                 time.sleep(5)
@@ -119,10 +124,6 @@ def md_to_latex(model, md_content):
 
     # Combine all parts with single document environment
     full_latex = latex_preamble + "\n\\begin{document}\n" + '\n'.join(latex_sections) + "\n\\end{document}"
-    
-    # Clean up any stray document environments
-    full_latex = full_latex.replace(r'\begin{document}', '', full_latex.count(r'\begin{document}') - 1)
-    full_latex = full_latex.replace(r'\end{document}', '', full_latex.count(r'\end{document}') - 1)
     
     return full_latex
 

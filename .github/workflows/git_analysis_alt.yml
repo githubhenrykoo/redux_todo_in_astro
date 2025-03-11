@@ -450,7 +450,6 @@ jobs:
         model = genai.GenerativeModel('gemini-2.0-flash')
 
         # Process team analysis
-        # Process team analysis
         today = datetime.now().strftime("%Y-%m-%d")
         team_analysis_file = f'Docs/analysis/group/team-analysis-{today}.md'
         
@@ -479,7 +478,7 @@ jobs:
                     content = f.read()
                 
                 formatted_content = fill_template(model, content, username)
-                output_path = latest.replace('analysis-', 'formatted-analysis-')
+                output_path = analysis_file.replace('analysis-', 'formatted-analysis-')
                 with open(output_path, 'w') as f:
                     f.write(formatted_content)
         EOF

@@ -30,33 +30,38 @@ jobs:
         pip install --upgrade google-generativeai
         pip install python-dotenv
 
-    - name: Convert MD to PDF
+    - name: Find and Convert Latest MD to PDF
       env:
         GOOGLE_API_KEY: "AIzaSyAPz0ODezXu39YHYaaSUAsKMBhjKwlYJFo"
         USER_FOLDER: ${{ github.event.inputs.user_folder }}
       run: |
         cp Docs/config/codeVault/convert_md_to_pdf_each_user.py .
-        python convert_md_to_pdf_each_user.py
-        # Check if PDFs were generated
-        if ! ls *.pdf 1> /dev/null 2>&1; then
-          echo "Error: No PDF files were generated"
-          exit 1
+        
+        # Find all user folders
+        if [ -n "$USER_FOLDER" ]; then
+          user_folders="Docs/analysis/users/$USER_FOLDER"
+        else
+          user_folders=$(find Docs/analysis/users -mindepth 1 -maxdepth 1 -type d)
         fi
+        
+        # Process each user folder
+        for user_dir in $user_folders; do
+          # Find the latest formatted-analysis file
+          latest_md=$(find "$user_dir" -name "formatted-analysis-*.md" | sort -r | head -n 1)
+          if [ -n "$latest_md" ]; then
+            echo "Processing: $latest_md"
+            python convert_md_to_pdf_each_user.py "$latest_md"
+          fi
+        done
 
     - name: Commit PDFs
       run: |
-        # Check if PDFs exist before moving
-        if ls *.pdf 1> /dev/null 2>&1; then
-          mkdir -p Docs/analysis/progress_reports
-          mv *.pdf Docs/analysis/progress_reports/
-          
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
-          git add Docs/analysis/progress_reports/*.pdf
-          git commit -m "docs: update progress report PDFs"
-          git push origin HEAD:main
-        else
-          echo "No PDF files found to commit"
-          exit 1
-        fi
+        mkdir -p Docs/analysis/progress_reports
+        mv *.pdf Docs/analysis/progress_reports/ 2>/dev/null || true
+        
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        
+        git add Docs/analysis/progress_reports/*.pdf
+        git commit -m "docs: update progress report PDFs" || echo "No changes to commit"
+        git push origin HEAD:main

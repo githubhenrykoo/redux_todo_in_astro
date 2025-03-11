@@ -471,12 +471,12 @@ jobs:
                 continue
 
             # Get today's analysis file
-                        today = datetime.now().strftime("%Y-%m-%d")
-                        analysis_file = f'{user_dir}analysis-{today}.md'
-                        
-                        if os.path.exists(analysis_file):
-                            with open(analysis_file, 'r') as f:
-                                content = f.read()
+            today = datetime.now().strftime("%Y-%m-%d")
+            analysis_file = f'{user_dir}analysis-{today}.md'
+            
+            if os.path.exists(analysis_file):
+                with open(analysis_file, 'r') as f:
+                    content = f.read()
                 
                 formatted_content = fill_template(model, content, username)
                 output_path = latest.replace('analysis-', 'formatted-analysis-')

@@ -35,8 +35,34 @@ jobs:
         GOOGLE_API_KEY: "AIzaSyAPz0ODezXu39YHYaaSUAsKMBhjKwlYJFo"
         USER_FOLDER: ${{ github.event.inputs.user_folder }}
       run: |
-        cp Docs/config/codeVault/convert_md_to_pdf_each_user.py .
-        python convert_md_to_pdf_each_user.py
+        cat << 'EOF' > find_today_analysis.py
+        import os
+        import glob
+        from datetime import datetime
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        user_folder = os.getenv('USER_FOLDER')
+
+        if user_folder:
+            # Process specific user
+            pattern = f'Docs/analysis/users/{user_folder}/formatted-analysis-{today}.md'
+            if os.path.exists(pattern):
+                print(pattern)
+        else:
+            # Process all users
+            user_dirs = glob.glob('Docs/analysis/users/*/')
+            for user_dir in user_dirs:
+                if '.gitkeep' in user_dir:
+                    continue
+                pattern = os.path.join(user_dir, f'formatted-analysis-{today}.md')
+                if os.path.exists(pattern):
+                    print(pattern)
+        EOF
+
+        # Find today's formatted analysis files and convert them
+        python find_today_analysis.py | while read -r file; do
+          MARKDOWN_FILE="$file" python Docs/config/codeVault/convert_md_to_pdf_each_user.py
+        done
 
     - name: Commit PDFs
       run: |

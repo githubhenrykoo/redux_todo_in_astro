@@ -346,16 +346,29 @@ jobs:
         cat << 'EOF' > create_docs.py
         import os
         import glob
+        import time
         from datetime import datetime
         import google.generativeai as genai
+        from google.api_core import exceptions
 
-        def generate_with_retry(model, prompt, max_retries=3, initial_delay=5):
+        def generate_with_retry(model, prompt, max_retries=3, initial_delay=60):
             for attempt in range(max_retries):
                 try:
+                    if attempt > 0:
+                        # Exponential backoff with longer initial delay
+                        delay = initial_delay * (2 ** attempt)
+                        print(f"Waiting {delay} seconds before retry {attempt + 1}...")
+                        time.sleep(delay)
                     response = model.generate_content(prompt)
+                    # Add delay after successful request to respect rate limits
+                    time.sleep(10)
                     return response.text
+                except exceptions.ResourceExhausted as e:
+                    print(f"Rate limit hit on attempt {attempt + 1}: {str(e)}")
+                    if attempt == max_retries - 1:
+                        raise
                 except Exception as e:
-                    print(f"Error: {str(e)}")
+                    print(f"Error on attempt {attempt + 1}: {str(e)}")
                     if attempt == max_retries - 1:
                         raise
             return None

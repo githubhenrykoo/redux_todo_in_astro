@@ -450,14 +450,16 @@ jobs:
         model = genai.GenerativeModel('gemini-2.0-flash')
 
         # Process team analysis
-        team_files = glob.glob('Docs/analysis/group/team-analysis-*.md')
-        if team_files:
-            latest_team = max(team_files)
-            with open(latest_team, 'r') as f:
+        # Process team analysis
+        today = datetime.now().strftime("%Y-%m-%d")
+        team_analysis_file = f'Docs/analysis/group/team-analysis-{today}.md'
+        
+        if os.path.exists(team_analysis_file):
+            with open(team_analysis_file, 'r') as f:
                 team_content = f.read()
             
             formatted_content = fill_template(model, team_content)
-            output_path = latest_team.replace('team-analysis-', 'formatted-team-analysis-')
+            output_path = team_analysis_file.replace('team-analysis-', 'formatted-team-analysis-')
             with open(output_path, 'w') as f:
                 f.write(formatted_content)
 
@@ -468,11 +470,13 @@ jobs:
             if username == '.gitkeep':
                 continue
 
-            analysis_files = glob.glob(f'{user_dir}analysis-*.md')
-            if analysis_files:
-                latest = max(analysis_files)
-                with open(latest, 'r') as f:
-                    content = f.read()
+            # Get today's analysis file
+                        today = datetime.now().strftime("%Y-%m-%d")
+                        analysis_file = f'{user_dir}analysis-{today}.md'
+                        
+                        if os.path.exists(analysis_file):
+                            with open(analysis_file, 'r') as f:
+                                content = f.read()
                 
                 formatted_content = fill_template(model, content, username)
                 output_path = latest.replace('analysis-', 'formatted-analysis-')

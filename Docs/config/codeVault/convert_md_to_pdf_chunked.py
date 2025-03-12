@@ -1,3 +1,4 @@
+# only for large md files that conform to the meta_template
 import os
 import google.generativeai as genai
 import subprocess
@@ -36,6 +37,41 @@ def clean_latex_sections(content):
     
     # Replace all section commands
     return re.sub(section_pattern, replace_section, content)
+
+def format_latex_title(content):
+    import re
+    
+    # Find the title line and metadata
+    title_pattern = r'^# Git Analysis Report: Development Analysis - (.+)$'
+    metadata_pattern = r'\*\*(.+?):\*\* (.+)$'
+    date_pattern = r'\*\*Date:\*\* (\d{4}-\d{2}-\d{2})'
+    
+    lines = content.split('\n')
+    formatted_lines = []
+    title_processed = False
+    
+    for i, line in enumerate(lines):
+        if not title_processed and (match := re.match(title_pattern, line.strip())):
+            username = match.group(1)
+            # Get the date from metadata if it exists
+            date_match = None
+            for j in range(i+1, min(i+10, len(lines))):  # Look at next few lines
+                if date_match := re.search(date_pattern, lines[j]):
+                    break
+            
+            formatted_lines.extend([
+                r'\title{Git Analysis Report:\\Development Analysis - ' + username + '}',
+                r'\author{AI Analysis System}',
+                r'\date{' + (date_match.group(1) if date_match else r'\today') + '}',
+                r'\maketitle'
+            ])
+            title_processed = True
+        elif title_processed and (re.match(metadata_pattern, line.strip()) or line.strip() == ''):
+            continue  # Skip metadata lines and empty lines after title
+        else:
+            formatted_lines.append(line)
+    
+    return '\n'.join(formatted_lines)
 
 def md_to_latex(model, md_content):
     # Add LaTeX preamble
@@ -92,6 +128,9 @@ def md_to_latex(model, md_content):
 
     latex_end = r"\end{document}"
 
+    # Format title before splitting into sections
+    md_content = format_latex_title(md_content)
+    
     # Split content into sections (assuming sections start with #)
     sections = md_content.split('\n#')
     if sections[0].strip() == '':

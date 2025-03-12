@@ -87,10 +87,13 @@ def md_to_latex(model, md_content):
     - Lists: proper itemize/enumerate
     - Tables: proper tabular
     - Do not use ```latex ``` or any similar code block delimiters.
-    - Use the appropriate document class, title, and sections.
+    - Headings conversion:
+      * # (H1) -> \\title{} (and add \\maketitle after)
+      * ## (H2) -> If text is "Executive Summary" use \\section*{Executive Summary}, otherwise use \\section{}
+      * ### (H3) -> \\subsection{}
     - Correctly format tables, numbering, bullet points, and code blocks.
     - Maintain the full content without reduction.
-    - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style ("below of"):
+    - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style ("below of") to make good graph in laTex
     Do not include \\documentclass, \\begin{document}, or \\end{document}. Section:
     """
 
@@ -175,7 +178,7 @@ def create_pdf(latex_content, output_name):
 
 def main():
     # Use environment variable if provided, otherwise use default path
-    md_file = os.getenv('MARKDOWN_FILE', "Docs/analysis/users/ronyataptika/formatted-analysis-2025-03-10.md")
+    md_file = os.getenv('MARKDOWN_FILE', "Docs/analysis/users/daffa.padantya12/formatted-analysis-2025-03-11.md")
     output_name = os.path.splitext(md_file)[0]
     
     model = setup()

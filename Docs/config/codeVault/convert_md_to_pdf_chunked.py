@@ -17,6 +17,26 @@ def setup():
     genai.configure(api_key=api_key)
     return genai.GenerativeModel('gemini-2.0-pro-exp-02-05')
 
+def clean_latex_sections(content):
+    import re
+    
+    # Find all section commands
+    section_pattern = r'\\section\*?{([^}]*)}'
+    
+    def replace_section(match):
+        section_text = match.group(1)
+        # Remove any leading numbers (e.g., "1.", "1.1.", etc.)
+        cleaned_text = re.sub(r'^\d+\.[\d.]*\s*', '', section_text)
+        
+        # Special case for Executive Summary
+        if cleaned_text.strip() == "Executive Summary":
+            return r'\section*{Executive Summary}'
+        # Remove asterisk for all other sections
+        return r'\section{' + cleaned_text.strip() + '}'
+    
+    # Replace all section commands
+    return re.sub(section_pattern, replace_section, content)
+
 def md_to_latex(model, md_content):
     # Add LaTeX preamble
     latex_preamble = r"""\documentclass{article}
@@ -114,6 +134,9 @@ def md_to_latex(model, md_content):
                 # Clean up any document environments in the section
                 section_content = section_content.replace(r'\begin{document}', '')
                 section_content = section_content.replace(r'\end{document}', '')
+                
+                # Clean up section formatting
+                section_content = clean_latex_sections(section_content)
                 
                 latex_sections.append(section_content)
                 

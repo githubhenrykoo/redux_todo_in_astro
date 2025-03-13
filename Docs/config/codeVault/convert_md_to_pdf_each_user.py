@@ -122,12 +122,14 @@ def get_latest_md_file(user_folder):
     for file in os.listdir(user_folder):
         if file.startswith('refined-analysis-') and file.endswith('.md'):
             full_path = os.path.join(user_folder, file)
-            md_files.append((full_path, os.path.getmtime(full_path)))
+            # Extract date from filename (YYYY-MM-DD)
+            date_str = file.replace('refined-analysis-', '').replace('.md', '')
+            md_files.append((full_path, date_str))
     
     if not md_files:
         return None
     
-    # Sort by modification time and get the most recent
+    # Sort by date string (YYYY-MM-DD format will sort correctly)
     return sorted(md_files, key=lambda x: x[1], reverse=True)[0][0]
 
 def main():

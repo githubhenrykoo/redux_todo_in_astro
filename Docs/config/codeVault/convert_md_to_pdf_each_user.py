@@ -117,10 +117,10 @@ def create_pdf(latex_content, output_name):
         raise Exception(f"PDF file not created at: {pdf_path}")
 
 def get_latest_md_file(user_folder):
-    """Get the most recent .md file from a user's folder"""
+    """Get the most recent refined-analysis-*.md file from a user's folder"""
     md_files = []
     for file in os.listdir(user_folder):
-        if file.endswith('.md'):
+        if file.startswith('refined-analysis-') and file.endswith('.md'):
             full_path = os.path.join(user_folder, file)
             md_files.append((full_path, os.path.getmtime(full_path)))
     

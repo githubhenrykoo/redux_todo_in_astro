@@ -29,39 +29,23 @@ jobs:
         sudo apt-get install -y texlive-latex-base texlive-fonts-recommended texlive-latex-extra texlive-pictures
         pip install --upgrade google-generativeai
         pip install python-dotenv
-
-    - name: Find and Convert Latest MD to PDF
+    - name: Convert MD to PDF
       env:
         GOOGLE_API_KEY: "AIzaSyAPz0ODezXu39YHYaaSUAsKMBhjKwlYJFo"
         USER_FOLDER: ${{ github.event.inputs.user_folder }}
       run: |
         cp Docs/config/codeVault/convert_md_to_pdf_each_user.py .
-        
-        # Find all user folders
-        if [ -n "$USER_FOLDER" ]; then
-          user_folders="Docs/analysis/users/$USER_FOLDER"
-        else
-          user_folders=$(find Docs/analysis/users -mindepth 1 -maxdepth 1 -type d)
-        fi
-        
-        # Process each user folder
-        for user_dir in $user_folders; do
-          # Find the latest refined-analysis file
-          latest_md=$(find "$user_dir" -name "refined-analysis-*.md" | sort -r | head -n 1)
-          if [ -n "$latest_md" ]; then
-            echo "Processing: $latest_md"
-            python convert_md_to_pdf_each_user.py "$latest_md"
-          fi
-        done
-
+        python convert_md_to_pdf_each_user.py
     - name: Commit PDFs
       run: |
+        # Move generated PDFs to the correct location
         mkdir -p Docs/analysis/progress_reports
         mv *.pdf Docs/analysis/progress_reports/ 2>/dev/null || true
         
         git config --local user.email "github-actions[bot]@users.noreply.github.com"
         git config --local user.name "github-actions[bot]"
         
+        # Add and commit all PDFs in the progress_reports directory
         git add Docs/analysis/progress_reports/*.pdf
         git commit -m "docs: update progress report PDFs" || echo "No changes to commit"
         git push origin HEAD:main

@@ -80,7 +80,7 @@ if log_files:
     with open(latest_log, 'r') as f:
         group_content = f.read()
 
-    query = 'Summarize the main changes'
+    query = ''
     analysis = analyze_content(model, group_content, query, GROUP_ANALYSIS_PROMPT)
     os.makedirs('Docs/analysis/group', exist_ok=True)
     with open(f'Docs/analysis/group/team-analysis-{datetime.now().strftime("%Y-%m-%d")}.md', 'w') as f:

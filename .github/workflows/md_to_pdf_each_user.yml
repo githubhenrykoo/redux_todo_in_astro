@@ -46,8 +46,8 @@ jobs:
         
         # Process each user folder
         for user_dir in $user_folders; do
-          # Find the latest formatted-analysis file
-          latest_md=$(find "$user_dir" -name "formatted-analysis-*.md" | sort -r | head -n 1)
+          # Find the latest refined-analysis file
+          latest_md=$(find "$user_dir" -name "refined-analysis-*.md" | sort -r | head -n 1)
           if [ -n "$latest_md" ]; then
             echo "Processing: $latest_md"
             python convert_md_to_pdf_each_user.py "$latest_md"

@@ -17,6 +17,26 @@ def setup():
     
     genai.configure(api_key=api_key)
     return genai.GenerativeModel('gemini-2.0-pro-exp-02-05')
+    
+def format_latex_content(content):
+    # Split content at the Conclusion section
+    parts = content.split('\\section{Conclusion:}')
+    main_content = parts[0]
+    conclusion = parts[1] if len(parts) > 1 else ""
+    
+    # Add multicolumn formatting
+    formatted_content = (
+        "\\begin{document}\n\n"
+        "\\maketitle\n"
+        "\\begin{multicols}{2}\n\n"
+        f"{main_content}\n"
+        "\\end{multicols}\n"
+        "\\noindent\\rule{\\textwidth}{0.4pt}\n\n"
+        "\\section{Conclusion:}"
+        f"{conclusion}"
+    )
+    
+    return formatted_content
 
 def md_to_latex(model, md_content):
     prompt = """
@@ -24,52 +44,60 @@ def md_to_latex(model, md_content):
 
     - Do not use ```latex ``` or any similar code block delimiters.
     - Use the appropriate document class, title, and sections.
+    - Make sure there is title that correctly formats the title
     - [!IMPORTANT] Correctly format bold text, italic text, etc. (** --> \\textbf, * --> \\textit)
     - Correctly format tables, numbering, bullet points, and code blocks.
     - Maintain the full content without reduction.
-    - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style ("below of"):
+    - Convert mermaid graphs into TikZ pictures using the specified styles in vertical style ("below of")
+    Start with these packages and settings:
 
-    % Custom styles for all diagrams
-    \\tikzset{
-        block/.style={
-            rectangle, draw=darkblue, text width=7em,
-            text centered, rounded corners,
-            minimum height=2em, fill=lightgray!10,
-            font=\\small
-        },
-        process/.style={
-            rectangle, draw=forestgreen, text width=6em,
-            text centered, rounded corners,
-            fill=lightgray!30, minimum height=2em,
-            font=\\small
-        },
-        line/.style={
-            draw, -latex',
-            font=\\footnotesize
-        },
-        cloud/.style={
-            draw, ellipse,
-            minimum width=2cm, minimum height=1cm,
-            fill=lightgray!20
-        },
-        state/.style={
-            rectangle, draw=uiblue, text width=8em,
-            text centered, rounded corners,
-            fill=uiblue!10, minimum height=2.5em,
-            font=\\small
-        }
-    }
-    % Color definitions:
-    \definecolor{headingcolor}{RGB}{70,130,180}
-    \definecolor{subheadingcolor}{RGB}{100,149,237}
-    \definecolor{textcolor}{RGB}{50,50,50}
+    \\documentclass[10pt,a4paper]{article}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage[T1]{fontenc}
+    \\usepackage{lmodern}
+    \\usepackage{microtype}
+    \\usepackage{graphicx}
+    \\usepackage[dvipsnames]{xcolor}
+    \\usepackage{enumitem}
+    \\usepackage{titlesec}
+    \\usepackage[margin=0.6in]{geometry}
+    \\usepackage{multicol}
+    \\usepackage{fancyhdr}
+    \\usepackage{lipsum}
+    \\usepackage{hyperref}
+
+    Use these specific LaTeX style settings:
+    % Define colors
+    \\definecolor{headingcolor}{RGB}{70,130,180}
+    \\definecolor{subheadingcolor}{RGB}{100,149,237}
+    \\definecolor{textcolor}{RGB}{50,50,50}
+
+    % Style for headings - more compact
+    \\titleformat{\\section}{\\normalsize\\bfseries\\color{headingcolor}}{\\thesection}{0.5em}{}
+    \\titleformat{\\subsection}{\\small\\bfseries\\color{subheadingcolor}}{\\thesubsection}{0.5em}{}
+    \\titleformat{\\subsubsection}{\\footnotesize\\bfseries\\color{subheadingcolor}}{\\thesubsubsection}{0.5em}{}
+
+    % Adjust spacing - very tight
+    \\titlespacing*{\\section}{0pt}{5pt}{2pt}
+    \\titlespacing*{\\subsection}{0pt}{4pt}{1pt}
+    \\titlespacing*{\\subsubsection}{0pt}{3pt}{1pt}
+
+    % Customize bullet points - very compact
+    \\setlist[itemize]{noitemsep, topsep=0pt, parsep=0pt, partopsep=0pt, leftmargin=*}
+    \\setlist[enumerate]{noitemsep, topsep=0pt, parsep=0pt, partopsep=0pt, leftmargin=*}
+
+    % Page style
+    \\pagestyle{fancy}
+    \\fancyhf{}
+    \\renewcommand{\\headrulewidth}{0pt}
+    \\fancyfoot[C]{\\small\\thepage}
 
     Markdown Content:
-    """ + md_content
+    """ + format_latex_content(md_content)
 
     response = model.generate_content(prompt)
     return response.text
-
+    
 def create_pdf(latex_content, output_name):
     # Clean up the LaTeX content
     latex_content = latex_content.strip()  # Remove leading/trailing whitespace

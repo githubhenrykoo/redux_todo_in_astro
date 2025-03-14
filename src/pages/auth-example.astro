@@ -18,10 +18,10 @@ import AuthentikPanel from '../components/auth/AuthentikPanel';
       <h2 class="text-xl font-semibold mb-3">Authentication Status</h2>
       <div class="p-4 border rounded-lg bg-gray-50">
         <AuthentikPanel 
-          client:load 
+          client:only={true}
           config={{
             clientId: import.meta.env.AUTHENTIK_CLIENT_ID || 'your-client-id',
-            redirectUri: `${import.meta.env.PUBLIC_APP_URL}/auth-example` || window.location.href,
+            redirectUri: `${import.meta.env.PUBLIC_APP_URL}/auth-example` || 'http://localhost:4321/auth-example',
             scopes: 'openid profile email',
             // Use a unique storage key for this page only
             storageKey: 'auth_example_page_auth',
@@ -77,10 +77,10 @@ AUTHENTIK_SCOPES=openid profile email</code></pre>
         
         <p>You can then include the component in your Astro pages:</p>
         <pre><code>&lt;AuthentikPanel 
-  client:load 
+  client:only={true}
   config={{
     clientId: import.meta.env.AUTHENTIK_CLIENT_ID,
-    redirectUri: `${import.meta.env.PUBLIC_APP_URL}/your-page`,
+    redirectUri: `${import.meta.env.PUBLIC_APP_URL}/your-page` || 'http://localhost:4321/your-page',
     scopes: 'openid profile email',
     // Use a unique storage key for each page to ensure isolation
     storageKey: 'your_page_auth'

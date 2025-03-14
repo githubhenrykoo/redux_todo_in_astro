@@ -19,12 +19,12 @@ def setup():
     return genai.GenerativeModel('gemini-2.0-pro-exp-02-05')
     
 def format_latex_content(content):
-    # Split content at the Conclusion section
+    # Split content at the Conclusion section to insert multicols
     parts = content.split('\\section{Conclusion:}')
     main_content = parts[0]
     conclusion = parts[1] if len(parts) > 1 else ""
     
-    # Add multicolumn formatting
+    # Add multicolumn formatting without re-adding the section header
     formatted_content = (
         "\\begin{document}\n\n"
         "\\maketitle\n"
@@ -32,8 +32,7 @@ def format_latex_content(content):
         f"{main_content}\n"
         "\\end{multicols}\n"
         "\\noindent\\rule{\\textwidth}{0.4pt}\n\n"
-        "\\section{Conclusion:}"
-        f"{conclusion}"
+        f"\\section{{Conclusion:}}{conclusion}"  # Keep the original conclusion section
     )
     
     return formatted_content

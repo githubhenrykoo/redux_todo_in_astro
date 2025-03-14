@@ -1,6 +1,10 @@
 ---
 import Layout from '../layouts/BaseLayout.astro';
 import AuthentikPanel from '../components/auth/AuthentikPanel';
+
+// Get current host for proper redirect URI
+const canonicalURL = Astro.url;
+const baseUrl = `${canonicalURL.protocol}//${canonicalURL.host}`;
 ---
 
 <Layout title="Authentik Authentication Example">
@@ -20,11 +24,11 @@ import AuthentikPanel from '../components/auth/AuthentikPanel';
         <AuthentikPanel 
           client:only={true}
           config={{
-            clientId: import.meta.env.AUTHENTIK_CLIENT_ID || 'your-client-id',
-            redirectUri: `${import.meta.env.PUBLIC_APP_URL}/auth-example` || 'http://localhost:4321/auth-example',
-            scopes: 'openid profile email',
-            // Use a unique storage key for this page only
-            storageKey: 'auth_example_page_auth',
+            clientId: import.meta.env.AUTHENTIK_CLIENT_ID,
+            redirectUri: `${baseUrl}/callback`,
+            scopes: import.meta.env.AUTHENTIK_SCOPES,
+            baseUrl: import.meta.env.AUTHENTIK_URL,
+            storageKey: `${import.meta.env.AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}auth_example_page`,
           }}
         />
       </div>
@@ -33,7 +37,7 @@ import AuthentikPanel from '../components/auth/AuthentikPanel';
     <div class="mb-8">
       <h2 class="text-xl font-semibold mb-3">How It Works</h2>
       <div class="prose">
-        <p>This example demonstrates authentication using Authentik, a powerful identity provider available at <a href="https://auth.pkc.pub" target="_blank">auth.pkc.pub</a>.</p>
+        <p>This example demonstrates authentication using Authentik, a powerful identity provider available at <a href={import.meta.env.AUTHENTIK_URL} target="_blank">auth.pkc.pub</a>.</p>
         <p>The authentication flow uses the OAuth 2.0 Authorization Code flow with PKCE (Proof Key for Code Exchange) for enhanced security.</p>
         
         <h3>Authentication Flow:</h3>
@@ -71,19 +75,20 @@ import AuthentikPanel from '../components/auth/AuthentikPanel';
           <li>Set up environment variables in a <code>.env</code> file:</li>
         </ol>
         
-        <pre><code>AUTHENTIK_CLIENT_ID=your-client-id
-PUBLIC_APP_URL=http://localhost:4321
-AUTHENTIK_SCOPES=openid profile email</code></pre>
+        <pre><code>AUTHENTIK_CLIENT_ID=your-client-id-here
+AUTHENTIK_SCOPES=openid profile email
+AUTHENTIK_URL=https://auth.pkc.pub
+AUTHENTIK_STORAGE_KEY_PREFIX=authentik_panel_</code></pre>
         
         <p>You can then include the component in your Astro pages:</p>
         <pre><code>&lt;AuthentikPanel 
   client:only={true}
   config={{
     clientId: import.meta.env.AUTHENTIK_CLIENT_ID,
-    redirectUri: `${import.meta.env.PUBLIC_APP_URL}/your-page` || 'http://localhost:4321/your-page',
-    scopes: 'openid profile email',
-    // Use a unique storage key for each page to ensure isolation
-    storageKey: 'your_page_auth'
+    redirectUri: `${Astro.url.protocol}//${Astro.url.host}/your-page`,
+    scopes: import.meta.env.AUTHENTIK_SCOPES,
+    baseUrl: import.meta.env.AUTHENTIK_URL,
+    storageKey: `${import.meta.env.AUTHENTIK_STORAGE_KEY_PREFIX}your_page`
   }}
 /&gt;</code></pre>
       </div>

@@ -60,10 +60,9 @@ def md_to_latex(model, md_content):
         }
     }
     % Color definitions:
-    % - lightgray: RGB(240,240,240)
-    % - darkblue: RGB(0,0,139)
-    % - forestgreen: RGB(34,139,34)
-    % - uiblue: RGB(66,139,202)
+    \definecolor{headingcolor}{RGB}{70,130,180}
+    \definecolor{subheadingcolor}{RGB}{100,149,237}
+    \definecolor{textcolor}{RGB}{50,50,50}
 
     Markdown Content:
     """ + md_content
@@ -162,7 +161,9 @@ def main():
         print(f"Processing {latest_md} for user {user_folder}")
         
         with open(latest_md, 'r', encoding='utf-8') as f:
-            md_content = f.read()
+            # Skip first 5 lines and read the rest
+            lines = f.readlines()[5:]
+            md_content = ''.join(lines)
         
         latex_content = md_to_latex(model, md_content)
         create_pdf(latex_content, output_path)

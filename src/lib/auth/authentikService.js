@@ -6,13 +6,16 @@
  * won't affect other parts of the application.
  */
 
+// Helper to check if code is running in browser
+const isBrowser = typeof window !== 'undefined';
+
 /**
  * Default authentication configuration
  */
 const defaultAuthConfig = {
   baseUrl: 'https://auth.pkc.pub',
   clientId: '',
-  redirectUri: window.location.origin,
+  redirectUri: isBrowser ? window.location.origin : 'http://localhost:4321',
   scopes: 'openid profile email',
   storageKey: 'authentik_auth',
   responseType: 'code',
@@ -36,6 +39,13 @@ export function initAuth(config = {}) {
  * @returns {string} Random string
  */
 export function generateRandomString(length = 32) {
+  // Server-side fallback
+  if (!isBrowser) {
+    return Array.from({ length }, () => 
+      Math.floor(Math.random() * 16).toString(16)
+    ).join('');
+  }
+  
   const array = new Uint8Array(length);
   window.crypto.getRandomValues(array);
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('').substring(0, length);
@@ -47,6 +57,12 @@ export function generateRandomString(length = 32) {
  * @returns {Promise<string>} Code challenge
  */
 export async function generateCodeChallenge(codeVerifier) {
+  // Server-side rendering fallback
+  if (!isBrowser) {
+    // Return dummy value for SSR - the actual calculation will happen client-side
+    return Promise.resolve('server_side_placeholder_challenge');
+  }
+  
   // Convert string to Uint8Array
   const encoder = new TextEncoder();
   const data = encoder.encode(codeVerifier);
@@ -68,6 +84,11 @@ export async function generateCodeChallenge(codeVerifier) {
  * @returns {string} Login URL
  */
 export function getLoginUrl(auth, state = null) {
+  // Return a placeholder for server-side rendering
+  if (!isBrowser) {
+    return Promise.resolve('#');
+  }
+  
   // Create code verifier and store it
   const codeVerifier = generateRandomString(64);
   localStorage.setItem(`${auth.storageKey}_code_verifier`, codeVerifier);
@@ -108,6 +129,11 @@ export function getLoginUrl(auth, state = null) {
  * @returns {Promise<Object>} Token response
  */
 export async function exchangeCodeForToken(auth, code) {
+  // Not available server-side
+  if (!isBrowser) {
+    return Promise.resolve({});
+  }
+  
   // Get code verifier from storage
   const codeVerifier = localStorage.getItem(`${auth.storageKey}_code_verifier`);
   if (!codeVerifier) {
@@ -148,6 +174,11 @@ export async function exchangeCodeForToken(auth, code) {
  * @returns {Promise<Object>} User information
  */
 export async function getUserInfo(accessToken, baseUrl = 'https://auth.pkc.pub') {
+  // Not available server-side
+  if (!isBrowser) {
+    return Promise.resolve({});
+  }
+  
   const response = await fetch(`${baseUrl}/application/o/userinfo/`, {
     headers: {
       'Authorization': `Bearer ${accessToken}`,
@@ -167,6 +198,11 @@ export async function getUserInfo(accessToken, baseUrl = 'https://auth.pkc.pub')
  * @returns {string} Logout URL
  */
 export function getLogoutUrl(auth) {
+  // Not available server-side
+  if (!isBrowser) {
+    return '#';
+  }
+  
   // Clean up after ourselves
   localStorage.removeItem(`${auth.storageKey}_auth_state`);
   
@@ -181,6 +217,8 @@ export function getLogoutUrl(auth) {
  * @param {Object} authData Authentication data
  */
 export function saveAuth(auth, authData) {
+  if (!isBrowser) return;
+  
   localStorage.setItem(auth.storageKey, JSON.stringify({
     ...authData,
     expires_at: Date.now() + authData.expires_in * 1000,
@@ -194,6 +232,8 @@ export function saveAuth(auth, authData) {
  * @returns {Object|null} Authentication data or null if not found or expired
  */
 export function getAuth(auth) {
+  if (!isBrowser) return null;
+  
   const authJson = localStorage.getItem(auth.storageKey);
   if (!authJson) return null;
   
@@ -219,6 +259,8 @@ export function getAuth(auth) {
  * @param {Object} auth Authentication configuration
  */
 export function removeAuth(auth) {
+  if (!isBrowser) return;
+  
   localStorage.removeItem(auth.storageKey);
   localStorage.removeItem(`${auth.storageKey}_code_verifier`);
   localStorage.removeItem(`${auth.storageKey}_auth_state`);

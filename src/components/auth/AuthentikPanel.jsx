@@ -17,10 +17,13 @@ import {
 } from '../../lib/auth/authentikService';
 import { SiAuthentik } from 'react-icons/si';
 
+// Check if code is running in browser
+const isBrowser = typeof window !== 'undefined';
+
 // Default configuration - will be overridden by props
 const defaultConfig = {
   clientId: 'your-client-id', // Replace with your actual client ID
-  redirectUri: window.location.origin,
+  redirectUri: isBrowser ? window.location.origin : 'http://localhost:4321',
   scopes: 'openid profile email',
 };
 
@@ -82,15 +85,15 @@ const AuthentikPanel = ({
     // Only process callback if explicitly enabled
     if (autoProcessCallback) {
       // Check for callback parameters in URL
-      const urlParams = new URLSearchParams(window.location.search);
+      const urlParams = new URLSearchParams(isBrowser ? window.location.search : '');
       const code = urlParams.get('code');
       const state = urlParams.get('state');
-      const storedState = localStorage.getItem(`${instanceStorageKey}_auth_state`);
+      const storedState = isBrowser ? localStorage.getItem(`${instanceStorageKey}_auth_state`) : null;
       
       // If code and state exist, handle the callback
       if (code && state && storedState === state) {
         // Clear URL parameters (better user experience)
-        window.history.replaceState({}, document.title, window.location.pathname);
+        if (isBrowser) window.history.replaceState({}, document.title, window.location.pathname);
         
         // Handle authentication callback
         setLoading(true);
@@ -135,11 +138,11 @@ const AuthentikPanel = ({
     try {
       // Store state parameter with instance-specific key
       const state = generateRandomState();
-      localStorage.setItem(`${instanceStorageKey}_auth_state`, state);
+      if (isBrowser) localStorage.setItem(`${instanceStorageKey}_auth_state`, state);
       
       // Redirect to Authentik login
       const loginUrl = getLoginUrl(auth, state);
-      window.location.href = loginUrl;
+      if (isBrowser) window.location.href = loginUrl;
     } catch (err) {
       console.error('Login error:', err);
       setError('Login failed. Please try again.');
@@ -162,7 +165,7 @@ const AuthentikPanel = ({
     try {
       // Clear local authentication with instance-specific key
       removeAuth(auth);
-      localStorage.removeItem(`${instanceStorageKey}_auth_state`);
+      if (isBrowser) localStorage.removeItem(`${instanceStorageKey}_auth_state`);
       
       setIsAuthenticated(false);
       setUserInfo(null);
@@ -171,7 +174,7 @@ const AuthentikPanel = ({
       if (onLogout) onLogout();
       
       // Redirect to Authentik logout page
-      window.location.href = getLogoutUrl(auth);
+      if (isBrowser) window.location.href = getLogoutUrl(auth);
     } catch (err) {
       console.error('Logout error:', err);
       setError('Logout failed. Please try again.');

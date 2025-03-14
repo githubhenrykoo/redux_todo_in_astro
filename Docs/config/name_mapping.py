@@ -5,6 +5,7 @@ NAME_MAPPING = {
     'ronyataptika': 'Rony Sinaga',
     'benkoo': 'Ben Koo',
     'panjaitangelita' : 'Angelita',
+    'alessandrorumampuk' : 'Alessandro',
 
     # Add more mappings as needed:
     # 'github_username': 'Real Name',

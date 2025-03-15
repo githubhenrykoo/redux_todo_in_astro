@@ -1,30 +1,24 @@
-import { ReactElement } from 'react';
+import React from 'react';
 
 interface AuthentikConfig {
   clientId: string;
-  redirectUri?: string;
-  scopes?: string;
-  storageKey?: string;
-  [key: string]: any;
+  redirectUri: string;
+  scopes: string;
+  baseUrl: string;
+  storageKey: string;
 }
 
-export interface AuthentikPanelProps {
-  config?: AuthentikConfig;
-  onLogin?: (authData: any) => void;
-  onLogout?: () => void;
-  className?: string;
-  showUserInfo?: boolean;
-  customLoginButton?: (handleLogin: () => void, loading: boolean) => ReactElement;
-  customLogoutButton?: (handleLogout: () => void, loading: boolean) => ReactElement;
-  customUserInfo?: (userInfo: any, handleLogout: () => void) => ReactElement;
-  checkLoginOnMount?: boolean;
-  autoProcessCallback?: boolean;
-  storageKeyPrefix?: string;
-  disabled?: boolean;
-  'client:load'?: boolean;
-  'client:visible'?: boolean;
-  'client:only'?: boolean;
-  'client:idle'?: boolean;
+interface UserInfo {
+  name?: string;
+  email?: string;
+  picture?: string;
+}
+
+interface AuthentikPanelProps {
+  config: AuthentikConfig;
+  renderUserInfo?: (info: UserInfo | null) => React.ReactNode;
+  customLoginButton?: (handleLogin: () => void, loading: boolean) => React.ReactNode;
+  customLogoutButton?: (handleLogout: () => void, loading: boolean) => React.ReactNode;
 }
 
 declare const AuthentikPanel: React.FC<AuthentikPanelProps>;

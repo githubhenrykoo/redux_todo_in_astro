@@ -31,6 +31,19 @@ const baseUrl = `${canonicalURL.protocol}//${canonicalURL.host}`;
             storageKey: `${import.meta.env.AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}auth_example_page`,
           }}
         />
+        
+        <div class="mt-4 text-sm text-gray-600">
+          <p>
+            <strong>Current Authentication Server:</strong> 
+            <a href={import.meta.env.AUTHENTIK_URL} target="_blank" class="text-blue-600 hover:underline">
+              {import.meta.env.AUTHENTIK_URL}
+            </a>
+          </p>
+          <p class="mt-2">
+            <strong>Authentication Scope:</strong> 
+            {import.meta.env.AUTHENTIK_SCOPES}
+          </p>
+        </div>
       </div>
     </div>
     

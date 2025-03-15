@@ -2,7 +2,7 @@
 import '../styles/globals.css';
 import ResizablePanels from '../components/panels/ResizablePanels.astro';
 import PanelGroupLayout from './PanelGroupLayout';
-import TopBanner from '../components/panels/TopBanner.astro';
+import TopBar from '../components/panels/TopBar';
 import Sidebar from '../components/panels/Sidebar.astro';
 import { store } from '../store';
 
@@ -25,8 +25,8 @@ const initialTheme = store.getState().theme?.mode || 'light';
 		<title>{title}</title>
 	</head>
 	<body class="min-h-screen bg-background text-foreground antialiased">
+		<TopBar client:load />
 		<ResizablePanels>
-			<TopBanner slot="banner" />
 			<Sidebar slot="sidebar" />
 			<PanelGroupLayout client:load />
 		</ResizablePanels>

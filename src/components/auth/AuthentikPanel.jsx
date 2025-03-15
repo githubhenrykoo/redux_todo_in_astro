@@ -5,7 +5,7 @@
  * without Redux integration. Completely isolated from other components.
  */
 import React, { useState, useEffect } from 'react';
-import { createClient } from '../../../src/lib/authentik/client';
+import { createClient } from '../../lib/authentik/client';
 
 /**
  * Authentik Authentication Panel Component
@@ -25,6 +25,7 @@ const AuthentikPanel = ({
   const [authClient, setAuthClient] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     // Only create client on client-side
@@ -46,7 +47,13 @@ const AuthentikPanel = ({
         try {
           const user = await authClient.getUserInfo();
           setUserInfo(user);
+          
+          // If no user info, check for authentication callback
+          if (!user && window.location.search.includes('code=')) {
+            await handleAuthCallback();
+          }
         } catch (error) {
+          console.error('Failed to get user info:', error);
           setUserInfo(null);
         }
       }
@@ -55,13 +62,41 @@ const AuthentikPanel = ({
     checkLoginStatus();
   }, [authClient]);
 
+  const handleAuthCallback = async () => {
+    try {
+      // Handle authentication callback if needed
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      
+      if (code) {
+        setIsLoading(true);
+        // You might need to implement a method in your client to handle the callback
+        await authClient.handleCallback(code);
+        
+        // Reload user info after successful callback
+        const user = await authClient.getUserInfo();
+        setUserInfo(user);
+        
+        // Optional: Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (error) {
+      console.error('Authentication callback failed:', error);
+      setError('Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleLogin = async () => {
     if (authClient) {
       setIsLoading(true);
+      setError(null);
       try {
         await authClient.login();
       } catch (error) {
         console.error('Login failed', error);
+        setError('Login failed. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -71,11 +106,13 @@ const AuthentikPanel = ({
   const handleLogout = async () => {
     if (authClient) {
       setIsLoading(true);
+      setError(null);
       try {
         await authClient.logout();
         setUserInfo(null);
       } catch (error) {
         console.error('Logout failed', error);
+        setError('Logout failed. Please try again.');
       } finally {
         setIsLoading(false);
       }
@@ -204,6 +241,17 @@ const AuthentikPanel = ({
     );
   };
 
+  // Render error message if exists
+  const renderErrorMessage = () => {
+    if (!error) return null;
+
+    return (
+      <div className="text-red-500 text-xs mt-1">
+        {error}
+      </div>
+    );
+  };
+
   return (
     <div className="flex items-center space-x-2">
       {userInfo ? (
@@ -214,6 +262,7 @@ const AuthentikPanel = ({
       ) : (
         renderLoginButton()
       )}
+      {renderErrorMessage()}
     </div>
   );
 };

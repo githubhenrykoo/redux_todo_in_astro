@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiSun, FiMoon, FiUser, FiLogOut, FiLogIn } from 'react-icons/fi';
+import { FiSun, FiMoon } from 'react-icons/fi';
 import { store } from '../../store';
 import { toggleTheme } from '../../features/themeSlice';
 import AuthentikPanel from '../auth/AuthentikPanel';
@@ -10,12 +10,21 @@ import type {
 } from '../../types/authentik';
 
 export const TopBar: React.FC = () => {
-  const [theme, setTheme] = useState(store.getState().theme?.mode || 'light');
+  const [theme, setTheme] = useState(() => {
+    // Use a function to ensure this only runs on the client
+    if (typeof window !== 'undefined') {
+      return store.getState().theme?.mode || 'light';
+    }
+    return 'light'; // Default server-side value
+  });
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [redirectUri, setRedirectUri] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Only run on client-side
+    // Ensure this only runs on the client
+    setIsClient(true);
+    
     if (typeof window !== 'undefined') {
       setRedirectUri(`${window.location.origin}/callback`);
     }
@@ -52,7 +61,7 @@ export const TopBar: React.FC = () => {
 
     return (
       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-        {info?.name ? info.name.charAt(0).toUpperCase() : <FiUser />}
+        {info?.name ? info.name.charAt(0).toUpperCase() : '👤'}
       </div>
     );
   };
@@ -97,37 +106,14 @@ export const TopBar: React.FC = () => {
         }}
         disabled={loading}
         className={`
-          flex items-center justify-center w-8 h-8 rounded-full transition-colors
+          flex items-center justify-center px-3 py-1 rounded-full transition-colors text-sm font-medium
           ${loading 
-            ? 'bg-gray-200 cursor-not-allowed' 
+            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
             : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}
         `}
-        aria-label="Login"
+        aria-label="Sign In"
       >
-        {loading ? (
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="animate-spin h-5 w-5 text-blue-600" 
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle 
-              className="opacity-25" 
-              cx="12" 
-              cy="12" 
-              r="10" 
-              stroke="currentColor" 
-              strokeWidth="4"
-            />
-            <path 
-              className="opacity-75" 
-              fill="currentColor" 
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        ) : (
-          <FiLogIn className="w-5 h-5" />
-        )}
+        {loading ? 'Signing In...' : 'Sign In'}
       </button>
     ), []),
     customLogoutButton: useCallback((handleLogout: (...args: any[]) => void | Promise<void>, loading: boolean) => (
@@ -142,41 +128,29 @@ export const TopBar: React.FC = () => {
         }}
         disabled={loading}
         className={`
-          flex items-center justify-center w-8 h-8 rounded-full transition-colors
+          flex items-center justify-center px-3 py-1 rounded-full transition-colors text-sm font-medium
           ${loading 
-            ? 'bg-gray-200 cursor-not-allowed' 
+            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
             : 'hover:bg-gray-200'}
         `}
         aria-label="Logout"
       >
-        {loading ? (
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            className="animate-spin h-5 w-5 text-gray-600" 
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle 
-              className="opacity-25" 
-              cx="12" 
-              cy="12" 
-              r="10" 
-              stroke="currentColor" 
-              strokeWidth="4"
-            />
-            <path 
-              className="opacity-75" 
-              fill="currentColor" 
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        ) : (
-          <FiLogOut className="w-5 h-5 text-gray-600" />
-        )}
+        {loading ? 'Signing Out...' : 'Sign Out'}
       </button>
     ), []),
-    'client:only': 'react', 
+    'client:only': 'react',
   };
+
+  // Only render client-side specific content when on the client
+  if (!isClient) {
+    return (
+      <div className="w-full h-14 bg-background border-b flex items-center justify-between px-6 shadow-sm">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-xl font-semibold text-foreground">Redux Todo App</h1>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-14 bg-background border-b flex items-center justify-between px-6 shadow-sm">

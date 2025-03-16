@@ -2,36 +2,30 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FiSun, FiMoon } from 'react-icons/fi';
 import { store } from '../../store';
 import { toggleTheme } from '../../features/themeSlice';
-import AuthentikPanel from '../auth/AuthentikPanel';
-import type { 
-  AuthentikPanelProps, 
-  UserInfo, 
-  AuthentikConfig 
-} from '../../types/authentik';
+import { createClient } from '../../lib/authentik/client';
 
 export const TopBar: React.FC = () => {
+  const [isClient, setIsClient] = useState(false);
   const [theme, setTheme] = useState(() => {
-    // Use a function to ensure this only runs on the client
     if (typeof window !== 'undefined') {
       return store.getState().theme?.mode || 'light';
     }
-    return 'light'; // Default server-side value
+    return 'light';
   });
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [loading, setLoading] = useState(false);
   const [redirectUri, setRedirectUri] = useState('');
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Ensure this only runs on the client
     setIsClient(true);
     
     if (typeof window !== 'undefined') {
-      setRedirectUri(`${window.location.origin}/callback`);
+      const origin = window.location.origin;
+      const path = '/callback'; // Ensure this matches your Authentik redirect configuration
+      setRedirectUri(`${origin}${path}`);
     }
   }, []);
 
   useEffect(() => {
-    // Subscribe to theme changes
     const unsubscribeTheme = store.subscribe(() => {
       const currentTheme = store.getState().theme?.mode;
       if (currentTheme && currentTheme !== theme) {
@@ -44,101 +38,32 @@ export const TopBar: React.FC = () => {
     };
   }, []);
 
-  const handleThemeToggle = () => {
-    store.dispatch(toggleTheme());
-  };
-
-  const renderUserAvatar = (info?: UserInfo) => {
-    if (info?.picture) {
-      return (
-        <img 
-          src={info.picture} 
-          alt={info.name || 'User'} 
-          className="w-8 h-8 rounded-full object-cover"
-        />
-      );
-    }
-
-    return (
-      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-        {info?.name ? info.name.charAt(0).toUpperCase() : '👤'}
-      </div>
-    );
-  };
-
-  const authentikConfig: AuthentikConfig = {
-    clientId: import.meta.env.AUTHENTIK_CLIENT_ID,
-    redirectUri: redirectUri || '/callback', // Fallback for SSR
-    scopes: import.meta.env.AUTHENTIK_SCOPES,
-    baseUrl: import.meta.env.AUTHENTIK_URL,
-    storageKey: `${import.meta.env.AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_bar_auth`,
-  };
-
-  const authentikPanelProps: AuthentikPanelProps = {
-    config: authentikConfig,
-    renderUserInfo: (info: UserInfo | null) => {
-      setUserInfo(info);
-      if (!info) return null;
+  const handleLogin = async () => {
+    try {
+      setLoading(true);
       
-      return (
-        <div className="flex items-center space-x-2">
-          {renderUserAvatar(info)}
-          <div className="hidden md:block">
-            <p className="text-sm font-medium text-foreground">
-              {info.name || 'Guest'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {info.email ? info.email.split('@')[0] : 'Not logged in'}
-            </p>
-          </div>
-        </div>
-      );
-    },
-    customLoginButton: useCallback((handleLogin: (...args: any[]) => void | Promise<void>, loading: boolean) => (
-      <button 
-        onClick={() => {
-          if (typeof handleLogin === 'function') {
-            const result = handleLogin();
-            if (result instanceof Promise) {
-              result.catch(console.error);
-            }
-          }
-        }}
-        disabled={loading}
-        className={`
-          flex items-center justify-center px-3 py-1 rounded-full transition-colors text-sm font-medium
-          ${loading 
-            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-            : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}
-        `}
-        aria-label="Sign In"
-      >
-        {loading ? 'Signing In...' : 'Sign In'}
-      </button>
-    ), []),
-    customLogoutButton: useCallback((handleLogout: (...args: any[]) => void | Promise<void>, loading: boolean) => (
-      <button 
-        onClick={() => {
-          if (typeof handleLogout === 'function') {
-            const result = handleLogout();
-            if (result instanceof Promise) {
-              result.catch(console.error);
-            }
-          }
-        }}
-        disabled={loading}
-        className={`
-          flex items-center justify-center px-3 py-1 rounded-full transition-colors text-sm font-medium
-          ${loading 
-            ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-            : 'hover:bg-gray-200'}
-        `}
-        aria-label="Logout"
-      >
-        {loading ? 'Signing Out...' : 'Sign Out'}
-      </button>
-    ), []),
-    'client:only': 'react',
+      // Log the environment variables to debug
+      console.log('Authentik Config:', {
+        clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
+        redirectUri,
+        scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES,
+        baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
+        storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
+      });
+
+      const client = createClient({
+        clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
+        redirectUri: redirectUri || '',
+        scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
+        baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
+        storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
+      });
+
+      await client.login();
+    } catch (error) {
+      console.error('Login failed:', error);
+      setLoading(false);
+    }
   };
 
   // Only render client-side specific content when on the client
@@ -157,12 +82,22 @@ export const TopBar: React.FC = () => {
       <div className="flex items-center space-x-4">
         <h1 className="text-xl font-semibold text-foreground">Redux Todo App</h1>
       </div>
-      
       <div className="flex items-center space-x-4">
-        <AuthentikPanel {...authentikPanelProps} />
-        
         <button 
-          onClick={handleThemeToggle}
+          onClick={handleLogin}
+          disabled={loading}
+          className={`
+            flex items-center justify-center px-3 py-1 rounded-full transition-colors text-sm font-medium
+            ${loading 
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+              : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}
+          `}
+          aria-label="Sign In"
+        >
+          {loading ? 'Signing In...' : 'Sign In'}
+        </button>
+        <button 
+          onClick={() => store.dispatch(toggleTheme())}
           className="text-foreground hover:text-foreground/80"
           aria-label="Toggle theme"
         >

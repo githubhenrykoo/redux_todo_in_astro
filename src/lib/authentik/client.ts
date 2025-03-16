@@ -181,6 +181,11 @@ export function createClient(config: AuthentikClientConfig) {
       let tokens;
       try {
         tokens = await tokenResponse.json();
+        console.log('Token Response Parsed:', {
+          hasAccessToken: !!tokens.access_token,
+          hasIdToken: !!tokens.id_token,
+          tokenKeys: Object.keys(tokens)
+        });
       } catch (parseError: unknown) {
         const errorDetails = parseError instanceof Error 
           ? {
@@ -244,6 +249,10 @@ export function createClient(config: AuthentikClientConfig) {
       }
 
       const userInfo = await userInfoResponse.json();
+      console.log('User Info Retrieved:', {
+        userInfoKeys: Object.keys(userInfo)
+      });
+
       localStorage.setItem(`${storageKey}user_info`, JSON.stringify(userInfo));
 
       // Redirect to the specific page

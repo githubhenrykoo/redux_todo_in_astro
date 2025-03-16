@@ -2,6 +2,7 @@ import type { UserInfo } from '../../types/authentik';
 
 interface AuthentikClientConfig {
   clientId: string;
+  clientSecret?: string;
   redirectUri: string;
   scopes: string;
   baseUrl: string;
@@ -16,6 +17,7 @@ export function createClient(config: AuthentikClientConfig) {
 
   const { 
     clientId, 
+    clientSecret, 
     redirectUri, 
     scopes, 
     baseUrl, 
@@ -83,21 +85,44 @@ export function createClient(config: AuthentikClientConfig) {
       // Exchange authorization code for tokens
       const tokenUrl = new URL(`${sanitizedBaseUrl}/application/o/token/`);
       
+      console.error('DEBUG TOKEN EXCHANGE:', {
+        tokenUrl: tokenUrl.toString(),
+        clientId,
+        redirectUri,
+        code: code ? 'Code Present' : 'No Code',
+        baseUrl: sanitizedBaseUrl,
+        hasClientSecret: !!clientSecret
+      });
+
+      // Prepare token exchange parameters
+      const tokenParams = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+        code: code,
+      });
+
+      // Add client secret for confidential clients
+      if (clientSecret) {
+        tokenParams.set('client_secret', clientSecret);
+      }
+
       const tokenResponse = await fetch(tokenUrl.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: new URLSearchParams({
-          client_id: clientId,
-          redirect_uri: redirectUri,
-          grant_type: 'authorization_code',
-          code: code,
-        }),
+        body: tokenParams,
       });
 
       if (!tokenResponse.ok) {
-        throw new Error('Failed to exchange authorization code');
+        const errorText = await tokenResponse.text();
+        console.error('Token Exchange Error:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          errorBody: errorText
+        });
+        throw new Error(`Failed to exchange authorization code: ${errorText}`);
       }
 
       const tokens = await tokenResponse.json();

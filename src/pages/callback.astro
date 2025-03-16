@@ -14,9 +14,17 @@ import Layout from '../layouts/BaseLayout.astro';
     // Function to handle the authentication callback
     async function handleAuthCallback() {
       try {
-        // Extract the authorization code from the URL
+        // Extract the authorization code from the URL and trim any whitespace
         const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
+        const rawCode = urlParams.get('code');
+        const rawState = urlParams.get('state');
+        const code = rawCode ? rawCode.trim() : null;
+
+        // Detailed logging of all URL parameters
+        console.log('Authentication Callback Full URL Details:', {
+          fullUrl: window.location.href,
+          searchParams: Object.fromEntries(urlParams.entries())
+        });
 
         if (!code) {
           console.error('No authorization code found');
@@ -26,11 +34,14 @@ import Layout from '../layouts/BaseLayout.astro';
         // Log detailed debug information
         console.log('Authentication Callback Debug:', {
           code: code ? 'Code Present' : 'No Code',
+          rawCode,
+          rawState,
           origin: window.location.origin,
           fullUrl: window.location.href,
           clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID ? 'Present' : 'Missing',
           baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
-          redirectUri: `${window.location.origin}/callback`
+          redirectUri: `${window.location.origin}/callback`,
+          clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET ? 'Present' : 'Missing'
         });
 
         // Import the Authentik client dynamically

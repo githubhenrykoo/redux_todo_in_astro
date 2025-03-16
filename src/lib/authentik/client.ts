@@ -83,32 +83,88 @@ export function createClient(config: AuthentikClientConfig) {
         throw new Error('Invalid Authentik base URL');
       }
 
+      // Validate input parameters
+      if (!code) {
+        throw new Error('Authorization code is required');
+      }
+      if (!clientId) {
+        throw new Error('Client ID is required');
+      }
+      if (!clientSecret) {
+        throw new Error('Client Secret is required');
+      }
+      if (!redirectUri) {
+        throw new Error('Redirect URI is required');
+      }
+
       // Exchange authorization code for tokens
       const tokenUrl = new URL(`${sanitizedBaseUrl}/application/o/token/`);
       
-      console.log('DEBUG TOKEN EXCHANGE:', {
+      console.log('DEBUG TOKEN EXCHANGE CONFIGURATION:', {
         tokenUrl: tokenUrl.toString(),
         clientId,
         redirectUri,
-        code: code ? 'Code Present' : 'No Code',
-        baseUrl: sanitizedBaseUrl
+        baseUrl: sanitizedBaseUrl,
+        codeLength: code.length,
+        clientSecretLength: clientSecret.length
       });
 
-      // Prepare token exchange parameters
-      const tokenParams = new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: redirectUri,
-        grant_type: 'authorization_code',
-        code: code,
+      // Prepare token exchange parameters with explicit encoding
+      const tokenParams = new URLSearchParams();
+      tokenParams.append('client_id', clientId);
+      tokenParams.append('client_secret', clientSecret);
+      tokenParams.append('redirect_uri', redirectUri);
+      tokenParams.append('grant_type', 'authorization_code');
+      tokenParams.append('code', code);
+
+      // Log the exact parameters being sent
+      console.log('DEBUG TOKEN EXCHANGE PARAMS:', {
+        params: Object.fromEntries(tokenParams.entries())
       });
 
-      const tokenResponse = await fetch(tokenUrl.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: tokenParams,
+      let tokenResponse;
+      try {
+        tokenResponse = await fetch(tokenUrl.toString(), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json'
+          },
+          body: tokenParams.toString()
+        });
+      } catch (fetchError: unknown) {
+        const errorDetails = fetchError instanceof Error 
+          ? {
+              errorName: fetchError.name,
+              errorMessage: fetchError.message,
+              errorStack: fetchError.stack
+            }
+          : {
+              errorName: 'Unknown Fetch Error',
+              errorMessage: String(fetchError),
+              errorStack: null
+            };
+
+        console.error('Fetch Error during token exchange:', {
+          ...errorDetails,
+          tokenUrl: tokenUrl.toString(),
+          clientIdUsed: clientId,
+          redirectUriUsed: redirectUri
+        });
+        throw new Error(`Network error during token exchange: ${errorDetails.errorMessage}`);
+      }
+
+      // Log full response details for debugging
+      const responseHeaders = Object.fromEntries(tokenResponse.headers.entries());
+      const responseStatus = {
+        ok: tokenResponse.ok,
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText
+      };
+
+      console.log('Token Exchange Response Details:', {
+        ...responseStatus,
+        headers: responseHeaders
       });
 
       if (!tokenResponse.ok) {
@@ -116,27 +172,75 @@ export function createClient(config: AuthentikClientConfig) {
         console.error('Token Exchange Error:', {
           status: tokenResponse.status,
           statusText: tokenResponse.statusText,
-          errorBody: errorText
+          errorBody: errorText,
+          requestParams: Object.fromEntries(tokenParams)
         });
-        throw new Error(`Failed to exchange authorization code: ${errorText}`);
+        throw new Error(`Failed to exchange authorization code. Status: ${tokenResponse.status}, Error: ${errorText}`);
       }
 
-      const tokens = await tokenResponse.json();
+      let tokens;
+      try {
+        tokens = await tokenResponse.json();
+      } catch (parseError: unknown) {
+        const errorDetails = parseError instanceof Error 
+          ? {
+              errorName: parseError.name,
+              errorMessage: parseError.message,
+              errorStack: parseError.stack
+            }
+          : {
+              errorName: 'Unknown Parse Error',
+              errorMessage: String(parseError),
+              errorStack: null
+            };
+
+        console.error('Token Parse Error:', errorDetails);
+        throw new Error(`Failed to parse token response: ${errorDetails.errorMessage}`);
+      }
       
+      // Validate tokens
+      if (!tokens.access_token) {
+        throw new Error('No access token received');
+      }
+
       // Store tokens
       localStorage.setItem(`${storageKey}access_token`, tokens.access_token);
-      localStorage.setItem(`${storageKey}id_token`, tokens.id_token);
+      localStorage.setItem(`${storageKey}id_token`, tokens.id_token || '');
 
       // Fetch user info
       const userInfoUrl = new URL(`${sanitizedBaseUrl}/application/o/userinfo/`);
-      const userInfoResponse = await fetch(userInfoUrl.toString(), {
-        headers: {
-          'Authorization': `Bearer ${tokens.access_token}`,
-        },
-      });
+      let userInfoResponse;
+      try {
+        userInfoResponse = await fetch(userInfoUrl.toString(), {
+          headers: {
+            'Authorization': `Bearer ${tokens.access_token}`,
+          },
+        });
+      } catch (fetchError: unknown) {
+        const errorDetails = fetchError instanceof Error 
+          ? {
+              errorName: fetchError.name,
+              errorMessage: fetchError.message,
+              errorStack: fetchError.stack
+            }
+          : {
+              errorName: 'Unknown Fetch Error',
+              errorMessage: String(fetchError),
+              errorStack: null
+            };
+
+        console.error('Fetch User Info Error:', errorDetails);
+        throw new Error(`Network error fetching user info: ${errorDetails.errorMessage}`);
+      }
 
       if (!userInfoResponse.ok) {
-        throw new Error('Failed to fetch user info');
+        const errorText = await userInfoResponse.text();
+        console.error('User Info Fetch Error:', {
+          status: userInfoResponse.status,
+          statusText: userInfoResponse.statusText,
+          errorBody: errorText
+        });
+        throw new Error(`Failed to fetch user info. Status: ${userInfoResponse.status}, Error: ${errorText}`);
       }
 
       const userInfo = await userInfoResponse.json();
@@ -148,8 +252,20 @@ export function createClient(config: AuthentikClientConfig) {
       }
 
       return userInfo;
-    } catch (error) {
-      console.error('Authentication callback failed:', error);
+    } catch (error: unknown) {
+      const errorDetails = error instanceof Error 
+        ? {
+            errorName: error.name,
+            errorMessage: error.message,
+            errorStack: error.stack
+          }
+        : {
+            errorName: 'Unknown Error',
+            errorMessage: String(error),
+            errorStack: null
+          };
+
+      console.error('Authentication callback failed:', errorDetails);
       throw error;
     }
   };

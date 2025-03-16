@@ -82,9 +82,9 @@ const { class: className, ...props } = Astro.props;
 
   // Get the current layout from panels in the state
   const getCurrentLayout = () => {
-    const state = store.getState();
+    const state = store.getState() as any;
     // Look at the panel configuration to determine which layout is active
-    const panels = state.panellayout.panels;
+    const panels = state.panellayout.panels || { right: { type: 'TodoPanel' } };
     if (panels.right.type === 'GeneratePanel') return 'generate_layout';
     return 'todo_layout';
   };

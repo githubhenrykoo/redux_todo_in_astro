@@ -10,15 +10,8 @@ interface TopBarProps {
 
 interface UserInfo {
   email?: string;
-  name?: string;
   email_verified?: boolean;
   sub?: string;
-  preferred_username?: string;
-  given_name?: string;
-  family_name?: string;
-  picture?: string;
-  nickname?: string;
-  groups?: string[];
 }
 
 export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }) => {
@@ -96,25 +89,6 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     setUserInfo(null);
   };
 
-  // Determine the most appropriate display name
-  const getUserDisplayName = () => {
-    if (userInfo) {
-      return (
-        userInfo.name || 
-        userInfo.nickname ||
-        userInfo.preferred_username || 
-        userInfo.email || 
-        `User ${userInfo.sub?.slice(-4)}`
-      );
-    }
-    return 'User';
-  };
-
-  // Get user's group information
-  const getUserGroups = () => {
-    return userInfo?.groups?.join(', ') || 'No Groups';
-  };
-
   // If not hydrated, return a minimal placeholder to prevent hydration mismatches
   if (!isHydrated) {
     return (
@@ -136,16 +110,11 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
           <div className="flex items-center space-x-2">
             <div className="flex flex-col items-end">
               <span className="text-sm font-medium text-foreground">
-                {getUserDisplayName()}
+                {userInfo.email}
               </span>
-              <div className="flex items-center space-x-1">
-                {userInfo.email_verified && (
-                  <span className="text-xs text-green-600">Verified</span>
-                )}
-                <span className="text-xs text-gray-500">
-                  ({getUserGroups()})
-                </span>
-              </div>
+              {userInfo.email_verified && (
+                <span className="text-xs text-green-600">Verified</span>
+              )}
             </div>
             <button 
               onClick={handleLogout}

@@ -40,12 +40,14 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     setRedirectUri(`${origin}${path}`);
 
     // Check for stored user info
-    const storedUserInfo = localStorage.getItem('authentik_top_banner_auth_user_info');
+    const storedUserInfo = localStorage.getItem('authentik_panel_top_banner_authuser_info');
+    console.log('Stored User Info:', storedUserInfo); // Debugging log
+
     if (storedUserInfo) {
       try {
         const parsedUserInfo: UserInfo = JSON.parse(storedUserInfo);
         setUserInfo(parsedUserInfo);
-        console.log('Loaded user info:', parsedUserInfo);
+        console.log('Parsed User Info:', parsedUserInfo);
       } catch (error) {
         console.error('Error parsing user info:', error);
       }
@@ -71,7 +73,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         redirectUri: redirectUri || '',
         scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
         baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
-        storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
+        storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}panel_top_banner_auth`,
       });
 
       await client.login(currentPath);
@@ -82,9 +84,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('authentik_top_banner_auth_access_token');
-    localStorage.removeItem('authentik_top_banner_auth_id_token');
-    localStorage.removeItem('authentik_top_banner_auth_user_info');
+    localStorage.removeItem('authentik_panel_top_banner_authuser_info');
     
     setUserInfo(null);
   };

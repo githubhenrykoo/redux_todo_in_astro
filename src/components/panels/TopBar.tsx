@@ -50,6 +50,7 @@ export const TopBar: React.FC = () => {
       // Log the environment variables to debug
       console.log('Authentik Config:', {
         clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
+        clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
         redirectUri,
         scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES,
         baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
@@ -59,6 +60,7 @@ export const TopBar: React.FC = () => {
 
       const client = createClient({
         clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
+        clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
         redirectUri: redirectUri || '',
         scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
         baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',

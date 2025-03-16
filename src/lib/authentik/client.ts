@@ -2,7 +2,7 @@ import type { UserInfo } from '../../types/authentik';
 
 interface AuthentikClientConfig {
   clientId: string;
-  clientSecret?: string;
+  clientSecret: string;
   redirectUri: string;
   scopes: string;
   baseUrl: string;
@@ -28,6 +28,9 @@ export function createClient(config: AuthentikClientConfig) {
   if (!baseUrl) {
     throw new Error('Authentik base URL is required');
   }
+  if (!clientSecret) {
+    throw new Error('Client secret is required for this Authentik application');
+  }
 
   const login = async (originalUrl?: string) => {
     try {
@@ -44,12 +47,10 @@ export function createClient(config: AuthentikClientConfig) {
           ? window.location.pathname + window.location.search 
           : '/');
 
-      console.error('DEBUG LOGIN - Storing URL:', {
+      console.log('DEBUG LOGIN - Storing URL:', {
         originalUrl,
         currentUrl,
-        windowLocation: typeof window !== 'undefined' ? window.location.href : 'No window',
-        pathname: typeof window !== 'undefined' ? window.location.pathname : 'No window',
-        search: typeof window !== 'undefined' ? window.location.search : 'No window'
+        windowLocation: typeof window !== 'undefined' ? window.location.href : 'No window'
       });
 
       // Construct the authorization URL
@@ -85,27 +86,22 @@ export function createClient(config: AuthentikClientConfig) {
       // Exchange authorization code for tokens
       const tokenUrl = new URL(`${sanitizedBaseUrl}/application/o/token/`);
       
-      console.error('DEBUG TOKEN EXCHANGE:', {
+      console.log('DEBUG TOKEN EXCHANGE:', {
         tokenUrl: tokenUrl.toString(),
         clientId,
         redirectUri,
         code: code ? 'Code Present' : 'No Code',
-        baseUrl: sanitizedBaseUrl,
-        hasClientSecret: !!clientSecret
+        baseUrl: sanitizedBaseUrl
       });
 
       // Prepare token exchange parameters
       const tokenParams = new URLSearchParams({
         client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
         code: code,
       });
-
-      // Add client secret for confidential clients
-      if (clientSecret) {
-        tokenParams.set('client_secret', clientSecret);
-      }
 
       const tokenResponse = await fetch(tokenUrl.toString(), {
         method: 'POST',
@@ -199,7 +195,7 @@ export function createClient(config: AuthentikClientConfig) {
 
       return null;
     } catch (error) {
-      console.error('Failed to retrieve user info:', error);
+      console.error('Failed to get user info:', error);
       return null;
     }
   };
@@ -208,6 +204,6 @@ export function createClient(config: AuthentikClientConfig) {
     login,
     handleCallback,
     logout,
-    getUserInfo,
+    getUserInfo
   };
 }

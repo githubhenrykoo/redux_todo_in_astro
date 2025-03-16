@@ -27,7 +27,7 @@ export function createClient(config: AuthentikClientConfig) {
     throw new Error('Authentik base URL is required');
   }
 
-  const login = async () => {
+  const login = async (originalUrl?: string) => {
     try {
       // Ensure baseUrl is a string and remove trailing slashes
       const sanitizedBaseUrl = (baseUrl || '').toString().replace(/\/+$/, '');
@@ -35,6 +35,20 @@ export function createClient(config: AuthentikClientConfig) {
       if (!sanitizedBaseUrl) {
         throw new Error('Invalid Authentik base URL');
       }
+
+      // Use provided original URL or current window location
+      const currentUrl = originalUrl || 
+        (typeof window !== 'undefined' 
+          ? window.location.pathname + window.location.search 
+          : '/');
+
+      console.error('DEBUG LOGIN - Storing URL:', {
+        originalUrl,
+        currentUrl,
+        windowLocation: typeof window !== 'undefined' ? window.location.href : 'No window',
+        pathname: typeof window !== 'undefined' ? window.location.pathname : 'No window',
+        search: typeof window !== 'undefined' ? window.location.search : 'No window'
+      });
 
       // Construct the authorization URL
       const authorizationUrl = `${sanitizedBaseUrl}/application/o/authorize/`;
@@ -46,8 +60,8 @@ export function createClient(config: AuthentikClientConfig) {
       url.searchParams.set('response_type', 'code');
       url.searchParams.set('scope', scopes);
       
-      // Store the current URL to return after authentication
-      localStorage.setItem(`${storageKey}redirect_uri`, window.location.href);
+      // Store the original URL to return after authentication
+      localStorage.setItem(`${storageKey}redirect_uri`, currentUrl);
 
       // Redirect to Authentik login
       window.location.href = url.toString();
@@ -107,6 +121,11 @@ export function createClient(config: AuthentikClientConfig) {
       const userInfo = await userInfoResponse.json();
       localStorage.setItem(`${storageKey}user_info`, JSON.stringify(userInfo));
 
+      // Redirect to the specific page
+      if (typeof window !== 'undefined') {
+        window.location.href = `${window.location.origin}/Page`;
+      }
+
       return userInfo;
     } catch (error) {
       console.error('Authentication callback failed:', error);
@@ -162,8 +181,8 @@ export function createClient(config: AuthentikClientConfig) {
 
   return {
     login,
+    handleCallback,
     logout,
     getUserInfo,
-    handleCallback,
   };
 }

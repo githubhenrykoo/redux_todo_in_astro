@@ -1,18 +1,16 @@
---- 
+---
 // src/layouts/BaseLayout.astro 
+import '../styles/global.css';
+
 const { title } = Astro.props; 
 ---  
-<html>   
+<html lang="en">   
 	<head>     
-		<title>{title}</title>   
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{title}</title>
 	</head>   
-	<body>     
-		<header>       
-			<h1>{title}</h1>     
-		</header>     
-		<main>       
-			<slot />     
-		</main>     
-		<footer>&copy; 2025 My Website</footer>   
+	<body class="bg-background text-foreground">     
+		<slot />     
 	</body> 
 </html>

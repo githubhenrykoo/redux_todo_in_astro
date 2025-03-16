@@ -1,30 +1,30 @@
 import { createSlice, createSelector } from '@reduxjs/toolkit';
 
-// Initial user state
+// Initial user state matching Authentik user info
 const initialState = {
   isAuthenticated: false,
   profile: {
-    id: null,
-    username: null,
+    sub: null,
     email: null,
-    avatar: null,
-  },
-  preferences: {
-    language: 'en',
-    notifications: {
-      email: true,
-      push: false,
-    },
-    theme: 'system', // system, light, dark
+    email_verified: false,
+    name: null,
+    given_name: null,
+    family_name: null,
+    nickname: null,
+    preferred_username: null,
+    groups: [],
+    picture: null,
   },
   session: {
-    token: null,
+    access_token: null,
+    id_token: null,
+    token_type: null,
+    expires_at: null,
     lastLogin: null,
-    loginAttempts: 0,
   },
-  permissions: {
-    roles: [],
-    capabilities: [],
+  preferences: {
+    theme: 'system', // system, light, dark
+    language: 'en',
   }
 };
 
@@ -32,27 +32,53 @@ export const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    // Login action
+    // Login action using full Authentik user info
     login: (state, action) => {
-      const { profile, token } = action.payload;
+      const { 
+        profile,  // Authentik user profile
+        tokens    // Authentication tokens
+      } = action.payload;
+
+      console.log('Login Action Payload:', { profile, tokens });
+
+      // Explicitly set authentication state to true
       state.isAuthenticated = true;
-      state.profile = { ...state.profile, ...profile };
-      state.session.token = token;
-      state.session.lastLogin = new Date().toISOString();
-      state.session.loginAttempts = 0;
+
+      // Spread Authentik profile information
+      state.profile = { 
+        ...initialState.profile,
+        ...profile 
+      };
+
+      // Update session tokens and login time
+      state.session = {
+        access_token: tokens?.access_token || null,
+        id_token: tokens?.id_token || null,
+        token_type: tokens?.token_type || null,
+        expires_at: tokens?.expires_at || 
+          (tokens?.expires_in 
+            ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() 
+            : null),
+        lastLogin: new Date().toISOString()
+      };
+
+      console.log('Updated User State:', state);
     },
 
     // Logout action
     logout: (state) => {
       state.isAuthenticated = false;
       state.profile = initialState.profile;
-      state.session.token = null;
-      state.session.lastLogin = null;
+      state.session = initialState.session;
+      state.preferences = initialState.preferences;
     },
 
     // Update user profile
     updateProfile: (state, action) => {
-      state.profile = { ...state.profile, ...action.payload };
+      state.profile = { 
+        ...state.profile, 
+        ...action.payload 
+      };
     },
 
     // Update user preferences
@@ -60,14 +86,6 @@ export const userSlice = createSlice({
       state.preferences = { 
         ...state.preferences, 
         ...action.payload 
-      };
-    },
-
-    // Update user permissions
-    updatePermissions: (state, action) => {
-      state.permissions = {
-        ...state.permissions,
-        ...action.payload
       };
     },
 
@@ -89,14 +107,29 @@ export const selectUserProfile = createSelector(
   (user) => user.profile
 );
 
+export const selectUserEmail = createSelector(
+  [(state) => state.user],
+  (user) => user.profile.email
+);
+
+export const selectEmailVerified = createSelector(
+  [(state) => state.user],
+  (user) => user.profile.email_verified
+);
+
+export const selectUserGroups = createSelector(
+  [(state) => state.user],
+  (user) => user.profile.groups
+);
+
+export const selectUserSession = createSelector(
+  [(state) => state.user],
+  (user) => user.session
+);
+
 export const selectUserPreferences = createSelector(
   [(state) => state.user],
   (user) => user.preferences
-);
-
-export const selectUserPermissions = createSelector(
-  [(state) => state.user],
-  (user) => user.permissions
 );
 
 export const { 
@@ -104,7 +137,6 @@ export const {
   logout, 
   updateProfile, 
   updatePreferences,
-  updatePermissions,
   incrementLoginAttempts 
 } = userSlice.actions;
 

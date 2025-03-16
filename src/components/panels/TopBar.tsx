@@ -1,54 +1,65 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiSun, FiMoon, FiUser, FiLogOut } from 'react-icons/fi';
+import { FiSun, FiMoon, FiLogOut, FiUser } from 'react-icons/fi';
 import { store } from '../../store';
 import { toggleTheme } from '../../features/themeSlice';
 import { createClient } from '../../lib/authentik/client';
 
-export const TopBar: React.FC = () => {
-  const [isClient, setIsClient] = useState(false);
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return store.getState().theme?.mode || 'light';
-    }
-    return 'light';
-  });
+interface TopBarProps {
+  initialTheme?: 'light' | 'dark';
+}
+
+interface UserInfo {
+  email?: string;
+  name?: string;
+  email_verified?: boolean;
+  sub?: string;
+  preferred_username?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+  nickname?: string;
+  groups?: string[];
+}
+
+export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }) => {
+  const [theme, setTheme] = useState<'light' | 'dark'>(initialPropTheme || 'light');
   const [loading, setLoading] = useState(false);
   const [redirectUri, setRedirectUri] = useState('');
-  const [userInfo, setUserInfo] = useState<{
-    email?: string;
-    name?: string;
-    email_verified?: boolean;
-  } | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-    
-    if (typeof window !== 'undefined') {
-      const origin = window.location.origin;
-      const path = '/callback';
-      setRedirectUri(`${origin}${path}`);
+    // Initial theme setup
+    const storeTheme = store.getState().theme?.mode || 'light';
+    setTheme(storeTheme);
 
-      // Check for stored user info on component mount
-      const storedUserInfo = localStorage.getItem('authentik_top_banner_auth_user_info');
-      if (storedUserInfo) {
-        try {
-          const parsedUserInfo = JSON.parse(storedUserInfo);
-          setUserInfo(parsedUserInfo);
-          console.log('Loaded user info:', parsedUserInfo);
-        } catch (error) {
-          console.error('Error parsing user info:', error);
-        }
-      }
-    }
-  }, []);
-
-  useEffect(() => {
+    // Set up theme subscription
     const unsubscribeTheme = store.subscribe(() => {
       const currentTheme = store.getState().theme?.mode;
       if (currentTheme && currentTheme !== theme) {
         setTheme(currentTheme);
       }
     });
+
+    // Set up redirect URI
+    const origin = window.location.origin;
+    const path = '/callback';
+    setRedirectUri(`${origin}${path}`);
+
+    // Check for stored user info
+    const storedUserInfo = localStorage.getItem('authentik_top_banner_auth_user_info');
+    if (storedUserInfo) {
+      try {
+        const parsedUserInfo: UserInfo = JSON.parse(storedUserInfo);
+        setUserInfo(parsedUserInfo);
+        console.log('Loaded user info:', parsedUserInfo);
+      } catch (error) {
+        console.error('Error parsing user info:', error);
+      }
+    }
+
+    // Mark as hydrated
+    setIsHydrated(true);
 
     return () => {
       unsubscribeTheme();
@@ -59,19 +70,7 @@ export const TopBar: React.FC = () => {
     try {
       setLoading(true);
       
-      const currentPath = typeof window !== 'undefined' 
-        ? window.location.pathname + window.location.search 
-        : '/';
-
-      console.log('Authentik Config:', {
-        clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
-        clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
-        redirectUri,
-        scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES,
-        baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
-        storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
-        currentPath,
-      });
+      const currentPath = window.location.pathname + window.location.search;
 
       const client = createClient({
         clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
@@ -90,17 +89,34 @@ export const TopBar: React.FC = () => {
   };
 
   const handleLogout = () => {
-    // Clear user info from localStorage
     localStorage.removeItem('authentik_top_banner_auth_access_token');
     localStorage.removeItem('authentik_top_banner_auth_id_token');
     localStorage.removeItem('authentik_top_banner_auth_user_info');
     
-    // Update state
     setUserInfo(null);
   };
 
-  // Only render client-side specific content when on the client
-  if (!isClient) {
+  // Determine the most appropriate display name
+  const getUserDisplayName = () => {
+    if (userInfo) {
+      return (
+        userInfo.name || 
+        userInfo.nickname ||
+        userInfo.preferred_username || 
+        userInfo.email || 
+        `User ${userInfo.sub?.slice(-4)}`
+      );
+    }
+    return 'User';
+  };
+
+  // Get user's group information
+  const getUserGroups = () => {
+    return userInfo?.groups?.join(', ') || 'No Groups';
+  };
+
+  // If not hydrated, return a minimal placeholder to prevent hydration mismatches
+  if (!isHydrated) {
     return (
       <div className="w-full h-14 bg-background border-b flex items-center justify-between px-6 shadow-sm">
         <div className="flex items-center space-x-4">
@@ -120,11 +136,16 @@ export const TopBar: React.FC = () => {
           <div className="flex items-center space-x-2">
             <div className="flex flex-col items-end">
               <span className="text-sm font-medium text-foreground">
-                {userInfo.name || userInfo.email}
+                {getUserDisplayName()}
               </span>
-              {userInfo.email_verified && (
-                <span className="text-xs text-green-600">Verified</span>
-              )}
+              <div className="flex items-center space-x-1">
+                {userInfo.email_verified && (
+                  <span className="text-xs text-green-600">Verified</span>
+                )}
+                <span className="text-xs text-gray-500">
+                  ({getUserGroups()})
+                </span>
+              </div>
             </div>
             <button 
               onClick={handleLogout}

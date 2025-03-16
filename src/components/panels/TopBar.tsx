@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiSun, FiMoon } from 'react-icons/fi';
+import { FiSun, FiMoon, FiUser, FiLogOut } from 'react-icons/fi';
 import { store } from '../../store';
 import { toggleTheme } from '../../features/themeSlice';
 import { createClient } from '../../lib/authentik/client';
@@ -14,14 +14,31 @@ export const TopBar: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [redirectUri, setRedirectUri] = useState('');
+  const [userInfo, setUserInfo] = useState<{
+    email?: string;
+    name?: string;
+    email_verified?: boolean;
+  } | null>(null);
 
   useEffect(() => {
     setIsClient(true);
     
     if (typeof window !== 'undefined') {
       const origin = window.location.origin;
-      const path = '/callback'; // Ensure this matches your Authentik redirect configuration
+      const path = '/callback';
       setRedirectUri(`${origin}${path}`);
+
+      // Check for stored user info on component mount
+      const storedUserInfo = localStorage.getItem('authentik_top_banner_auth_user_info');
+      if (storedUserInfo) {
+        try {
+          const parsedUserInfo = JSON.parse(storedUserInfo);
+          setUserInfo(parsedUserInfo);
+          console.log('Loaded user info:', parsedUserInfo);
+        } catch (error) {
+          console.error('Error parsing user info:', error);
+        }
+      }
     }
   }, []);
 
@@ -42,12 +59,10 @@ export const TopBar: React.FC = () => {
     try {
       setLoading(true);
       
-      // Get the full current path, including any query parameters
       const currentPath = typeof window !== 'undefined' 
         ? window.location.pathname + window.location.search 
         : '/';
 
-      // Log the environment variables to debug
       console.log('Authentik Config:', {
         clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
         clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
@@ -74,6 +89,16 @@ export const TopBar: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    // Clear user info from localStorage
+    localStorage.removeItem('authentik_top_banner_auth_access_token');
+    localStorage.removeItem('authentik_top_banner_auth_id_token');
+    localStorage.removeItem('authentik_top_banner_auth_user_info');
+    
+    // Update state
+    setUserInfo(null);
+  };
+
   // Only render client-side specific content when on the client
   if (!isClient) {
     return (
@@ -91,19 +116,39 @@ export const TopBar: React.FC = () => {
         <h1 className="text-xl font-semibold text-foreground">Redux Todo App</h1>
       </div>
       <div className="flex items-center space-x-4">
-        <button 
-          onClick={handleLogin}
-          disabled={loading}
-          className={`
-            flex items-center justify-center px-3 py-1 rounded-full transition-colors text-sm font-medium
-            ${loading 
-              ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
-              : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}
-          `}
-          aria-label="Sign In"
-        >
-          {loading ? 'Signing In...' : 'Sign In'}
-        </button>
+        {userInfo ? (
+          <div className="flex items-center space-x-2">
+            <div className="flex flex-col items-end">
+              <span className="text-sm font-medium text-foreground">
+                {userInfo.name || userInfo.email}
+              </span>
+              {userInfo.email_verified && (
+                <span className="text-xs text-green-600">Verified</span>
+              )}
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="text-red-500 hover:text-red-600"
+              aria-label="Sign Out"
+            >
+              <FiLogOut className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={handleLogin}
+            disabled={loading}
+            className={`
+              flex items-center justify-center px-3 py-1 rounded-full transition-colors text-sm font-medium
+              ${loading 
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                : 'bg-blue-100 text-blue-600 hover:bg-blue-200'}
+            `}
+            aria-label="Sign In"
+          >
+            {loading ? 'Signing In...' : 'Sign In'}
+          </button>
+        )}
         <button 
           onClick={() => store.dispatch(toggleTheme())}
           className="text-foreground hover:text-foreground/80"

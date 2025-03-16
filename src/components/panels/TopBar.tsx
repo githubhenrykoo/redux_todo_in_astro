@@ -42,6 +42,11 @@ export const TopBar: React.FC = () => {
     try {
       setLoading(true);
       
+      // Get the full current path, including any query parameters
+      const currentPath = typeof window !== 'undefined' 
+        ? window.location.pathname + window.location.search 
+        : '/';
+
       // Log the environment variables to debug
       console.log('Authentik Config:', {
         clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
@@ -49,6 +54,7 @@ export const TopBar: React.FC = () => {
         scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES,
         baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
         storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
+        currentPath,
       });
 
       const client = createClient({
@@ -59,7 +65,7 @@ export const TopBar: React.FC = () => {
         storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
       });
 
-      await client.login();
+      await client.login(currentPath);
     } catch (error) {
       console.error('Login failed:', error);
       setLoading(false);

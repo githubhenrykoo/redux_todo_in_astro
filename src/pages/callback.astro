@@ -11,7 +11,40 @@ import Layout from '../layouts/BaseLayout.astro';
   </div>
 
   <script>
-    // Redirect back to the auth-example page
-    window.location.href = '/auth-example';
+    // Function to handle the authentication callback
+    async function handleAuthCallback() {
+      try {
+        // Extract the authorization code from the URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+
+        if (!code) {
+          console.error('No authorization code found');
+          return;
+        }
+
+        // Import the Authentik client dynamically
+        const { createClient } = await import('../lib/authentik/client');
+
+        // Create the Authentik client with the same configuration used in TopBar
+        const client = createClient({
+          clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
+          redirectUri: `${window.location.origin}/callback`,
+          scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
+          baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
+          storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
+        });
+
+        // Handle the callback
+        await client.handleCallback(code);
+      } catch (error) {
+        console.error('Authentication callback failed:', error);
+        // Fallback redirect if something goes wrong
+        window.location.href = '/';
+      }
+    }
+
+    // Run the callback handler when the page loads
+    handleAuthCallback();
   </script>
 </Layout>

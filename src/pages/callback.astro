@@ -20,8 +20,18 @@ import Layout from '../layouts/BaseLayout.astro';
 
         if (!code) {
           console.error('No authorization code found');
-          return;
+          throw new Error('No authorization code present in the URL');
         }
+
+        // Log detailed debug information
+        console.log('Authentication Callback Debug:', {
+          code: code ? 'Code Present' : 'No Code',
+          origin: window.location.origin,
+          fullUrl: window.location.href,
+          clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID ? 'Present' : 'Missing',
+          baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
+          redirectUri: `${window.location.origin}/callback`
+        });
 
         // Import the Authentik client dynamically
         const { createClient } = await import('../lib/authentik/client');
@@ -29,6 +39,7 @@ import Layout from '../layouts/BaseLayout.astro';
         // Create the Authentik client with the same configuration used in TopBar
         const client = createClient({
           clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
+          clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
           redirectUri: `${window.location.origin}/callback`,
           scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
           baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
@@ -36,9 +47,24 @@ import Layout from '../layouts/BaseLayout.astro';
         });
 
         // Handle the callback
-        await client.handleCallback(code);
-      } catch (error) {
-        console.error('Authentication callback failed:', error);
+        const userInfo = await client.handleCallback(code);
+        
+        console.log('Authentication Successful:', userInfo);
+      } catch (error: unknown) {
+        const errorDetails = error instanceof Error 
+          ? {
+              errorName: error.name,
+              errorMessage: error.message,
+              errorStack: error.stack
+            }
+          : {
+              errorName: 'Unknown Error',
+              errorMessage: String(error),
+              errorStack: null
+            };
+
+        console.error('Authentication callback failed:', errorDetails);
+
         // Fallback redirect if something goes wrong
         window.location.href = '/';
       }

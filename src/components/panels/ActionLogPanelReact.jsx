@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { selectActionHistory } from '../../features/todoSlice';
 import { selectThemeMode } from '../../features/themeSlice';
@@ -30,8 +30,13 @@ const getContentIcon = (content) => {
 const ActionLogPanelReact = () => {
   const actionHistory = useSelector(selectActionHistory);
   const themeMode = useSelector(selectThemeMode);
-  const isDark = themeMode === 'dark';
+  const [isDark, setIsDark] = useState(themeMode === 'dark');
   const scrollRef = useRef(null);
+
+  // Ensure consistent theme state
+  useEffect(() => {
+    setIsDark(themeMode === 'dark');
+  }, [themeMode]);
 
   // Auto-scroll to the latest action when new actions are added
   useEffect(() => {

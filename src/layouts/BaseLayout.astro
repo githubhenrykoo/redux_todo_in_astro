@@ -1,6 +1,8 @@
 ---
 // src/layouts/BaseLayout.astro 
 import '../styles/global.css';
+import PwaUpdater from '../components/PwaUpdater.jsx';
+import InstallPwa from '../components/InstallPwa.jsx';
 
 const { title } = Astro.props; 
 ---  
@@ -9,8 +11,20 @@ const { title } = Astro.props;
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<title>{title}</title>
+		<!-- PWA Meta Tags -->
+		<meta name="description" content="A Todo application built with Astro and Redux" />
+		<meta name="theme-color" content="#ffffff" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="apple-touch-icon" href="/pwa-192x192.png" />
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<!-- PWA Script -->
+		<script src="../pwa.js"></script>
 	</head>   
 	<body class="bg-background text-foreground">     
-		<slot />     
+		<slot />
+		<!-- PWA update notification component -->
+		<PwaUpdater client:only="react" />
+		<!-- PWA install prompt component -->
+		<InstallPwa client:only="react" />
 	</body> 
 </html>

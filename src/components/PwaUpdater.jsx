@@ -1,4 +1,3 @@
-// src/components/PwaUpdater.jsx
 import React, { useState, useEffect } from 'react';
 
 /**
@@ -7,28 +6,68 @@ import React, { useState, useEffect } from 'react';
  */
 const PwaUpdater = () => {
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [swRegistration, setSwRegistration] = useState(null);
 
+  // Register service worker
   useEffect(() => {
-    // Check if service worker is supported
-    if ('serviceWorker' in navigator) {
-      // Listen for the controllerchange event on the navigator.serviceWorker
-      // This event fires when a new service worker has taken control
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // If we have a new service worker, we need to refresh
-        if (needsRefresh === false) {
-          setNeedsRefresh(true);
+    const registerSW = async () => {
+      if ('serviceWorker' in navigator) {
+        try {
+          // Try to register the service worker
+          const registration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/'
+          });
+          
+          console.log('Service Worker registered with scope:', registration.scope);
+          setSwRegistration(registration);
+          
+          // Handle updates
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            console.log('Service Worker update found!');
+            
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New content is available, please refresh.');
+                setNeedsRefresh(true);
+              }
+            });
+          });
+          
+          // Set up automatic checks for updates
+          const checkForUpdates = () => {
+            if (registration.update) {
+              registration.update().catch(err => {
+                console.error('Error checking for service worker updates:', err);
+              });
+            }
+          };
+          
+          // Check for updates every hour
+          const updateInterval = setInterval(checkForUpdates, 60 * 60 * 1000);
+          
+          return () => {
+            clearInterval(updateInterval);
+          };
+          
+        } catch (error) {
+          console.error('Service Worker registration failed:', error);
         }
-      });
+      } else {
+        console.log('Service workers are not supported by this browser');
+      }
+    };
+    
+    registerSW();
+  }, []);
 
-      // Listen for the custom updatefound event from the PWA plugin
-      window.addEventListener('updatefound', () => {
-        setNeedsRefresh(true);
-      });
-    }
-  }, [needsRefresh]);
-
+  // Handle update click
   const handleUpdate = () => {
-    setNeedsRefresh(false);
+    if (swRegistration && swRegistration.waiting) {
+      // Send message to service worker to skip waiting
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+    
     // Reload the page to apply the update
     window.location.reload();
   };
@@ -38,16 +77,45 @@ const PwaUpdater = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-lg z-50">
-      <div className="flex items-center justify-between">
-        <p className="font-medium">A new version of this app is available!</p>
-        <button
-          onClick={handleUpdate}
-          className="px-4 py-2 text-sm text-white bg-purple-600 rounded-md hover:bg-purple-700 transition-colors"
-        >
-          Update Now
-        </button>
+    <div className="pwa-update-toast">
+      <div className="pwa-update-toast-content">
+        <p>A new version is available!</p>
+        <button onClick={handleUpdate}>Update & Refresh</button>
+        <button onClick={() => setNeedsRefresh(false)}>Dismiss</button>
       </div>
+      <style jsx>{`
+        .pwa-update-toast {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 9999;
+          background-color: #fff;
+          color: #333;
+          padding: 16px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          max-width: 300px;
+        }
+        .pwa-update-toast-content {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        button {
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        button:first-of-type {
+          background-color: #4f46e5;
+          color: white;
+        }
+        button:last-of-type {
+          background-color: transparent;
+          color: #666;
+        }
+      `}</style>
     </div>
   );
 };

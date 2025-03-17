@@ -4,7 +4,7 @@
 console.log('PWA initialization');
 
 // NetworkStatus monitor to handle online/offline events
-class NetworkStatusMonitor {
+export class NetworkStatusMonitor {
   constructor() {
     this.isOnline = navigator.onLine;
     
@@ -49,39 +49,29 @@ class NetworkStatusMonitor {
   
   showNotification(message, type) {
     // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `pwa-notification ${type}`;
-    notification.textContent = message;
+    const notificationEl = document.createElement('div');
+    notificationEl.className = `pwa-notification ${type}`;
+    notificationEl.innerHTML = `
+      <div class="pwa-notification-content">
+        <span>${message}</span>
+        <button class="pwa-notification-close">×</button>
+      </div>
+    `;
     
-    // Style the notification
-    Object.assign(notification.style, {
-      position: 'fixed',
-      top: '20px',
-      right: '20px',
-      padding: '12px 16px',
-      backgroundColor: type === 'success' ? '#4CAF50' : '#FF9800',
-      color: 'white',
-      borderRadius: '4px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-      zIndex: '9999',
-      opacity: '0',
-      transition: 'opacity 0.3s ease'
+    // Add to DOM
+    document.body.appendChild(notificationEl);
+    
+    // Set up close button
+    const closeButton = notificationEl.querySelector('.pwa-notification-close');
+    closeButton.addEventListener('click', () => {
+      notificationEl.remove();
     });
     
-    // Add to document
-    document.body.appendChild(notification);
-    
-    // Trigger animation
+    // Auto-remove after 5 seconds
     setTimeout(() => {
-      notification.style.opacity = '1';
-    }, 10);
-    
-    // Remove after 5 seconds
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      setTimeout(() => {
-        document.body.removeChild(notification);
-      }, 300);
+      if (document.body.contains(notificationEl)) {
+        notificationEl.remove();
+      }
     }, 5000);
   }
   
@@ -92,7 +82,7 @@ class NetworkStatusMonitor {
 }
 
 // Service Worker Management
-class PWAManager {
+export class PWAManager {
   constructor() {
     this.registerServiceWorker();
   }
@@ -146,14 +136,21 @@ class PWAManager {
 }
 
 // Initialize the PWA components
-if (typeof window !== 'undefined') {
-  // Start network status monitoring
-  const networkMonitor = new NetworkStatusMonitor();
-  
-  // Register service worker
-  const pwaManager = new PWAManager();
-  
-  // Make them available globally
-  window.networkMonitor = networkMonitor;
-  window.pwaManager = pwaManager;
+export function initializePWA() {
+  if (typeof window !== 'undefined') {
+    // Start network status monitoring
+    const networkMonitor = new NetworkStatusMonitor();
+    
+    // Initialize service worker
+    const pwaManager = new PWAManager();
+    
+    return {
+      networkMonitor,
+      pwaManager
+    };
+  }
+  return null;
 }
+
+// Default export for easy importing
+export default initializePWA;

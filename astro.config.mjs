@@ -1,15 +1,19 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
-import path from 'path';
 import AstroPWA from '@vite-pwa/astro';
+import path from 'path';
 
 // https://astro.build/config
 export default defineConfig({
   integrations: [
     react(),
     AstroPWA({
-      registerType: 'autoUpdate',
+      mode: 'production',
+      base: '/',
+      scope: '/',
+      includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
+      registerType: 'prompt',
       manifest: {
         name: 'Redux Todo in Astro',
         short_name: 'Redux Todo',
@@ -27,20 +31,15 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable',
           }
         ]
       },
       workbox: {
-        // Use navigation fallback to the offline page
-        navigateFallback: '/offline',
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,jpg,jpeg}'],
-        // Customize caching strategies for different resources
+        navigateFallback: '/',
+        globPatterns: ['**/*.{css,js,html,svg,png,ico,txt}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -50,6 +49,9 @@ export default defineConfig({
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
               }
             }
           },
@@ -57,10 +59,68 @@ export default defineConfig({
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'gstatic-fonts-cache',
+              cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: ({ url }) => {
+              return url.origin === self.location.origin && 
+                    (url.pathname.endsWith('.png') || 
+                     url.pathname.endsWith('.jpg') || 
+                     url.pathname.endsWith('.svg') || 
+                     url.pathname.endsWith('.webp'));
+            },
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              }
+            }
+          },
+          {
+            urlPattern: new RegExp('/_astro/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'astro-assets-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 90 // 90 days
+              }
+            }
+          },
+          {
+            urlPattern: ({ url }) => {
+              return url.origin === self.location.origin && url.pathname.startsWith('/api');
+            },
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 // 1 hour
+              },
+              networkTimeoutSeconds: 10
+            }
+          },
+          {
+            urlPattern: ({ url }) => {
+              return url.origin === self.location.origin;
+            },
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 // 24 hours
               }
             }
           }
@@ -69,8 +129,9 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: 'module',
-      },
-    }),
+        navigateFallback: '/',
+      }
+    })
   ],
   vite: {
     resolve: {

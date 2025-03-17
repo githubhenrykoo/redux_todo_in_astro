@@ -8,115 +8,114 @@ const PwaUpdater = () => {
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [swRegistration, setSwRegistration] = useState(null);
 
-  // Register service worker
+  // Monitor service worker updates rather than registering a new one
   useEffect(() => {
-    const registerSW = async () => {
+    const monitorSW = async () => {
       if ('serviceWorker' in navigator) {
         try {
-          // Try to register the service worker
-          const registration = await navigator.serviceWorker.register('/sw.js', {
-            scope: '/'
-          });
+          // Check for existing registrations
+          const registrations = await navigator.serviceWorker.getRegistrations();
           
-          console.log('Service Worker registered with scope:', registration.scope);
-          setSwRegistration(registration);
-          
-          // Handle updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            console.log('Service Worker update found!');
+          if (registrations.length > 0) {
+            console.log('Found existing service worker registration');
+            const registration = registrations[0];
+            setSwRegistration(registration);
             
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('New content is available, please refresh.');
-                setNeedsRefresh(true);
-              }
-            });
-          });
-          
-          // Set up automatic checks for updates
-          const checkForUpdates = () => {
-            if (registration.update) {
-              registration.update().catch(err => {
-                console.error('Error checking for service worker updates:', err);
+            // Handle updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              console.log('Service Worker update found!');
+              
+              newWorker.addEventListener('statechange', () => {
+                console.log('Service worker state:', newWorker.state);
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('New content is available, please refresh.');
+                  setNeedsRefresh(true);
+                }
               });
-            }
-          };
-          
-          // Check for updates every hour
-          const updateInterval = setInterval(checkForUpdates, 60 * 60 * 1000);
-          
-          return () => {
-            clearInterval(updateInterval);
-          };
-          
+            });
+            
+            // Set up automatic checks for updates
+            const checkForUpdates = () => {
+              if (registration.update) {
+                console.log('Checking for service worker updates...');
+                registration.update().catch(err => {
+                  console.error('Error checking for service worker updates:', err);
+                });
+              }
+            };
+            
+            // Check for updates immediately and then every hour
+            checkForUpdates();
+            const updateInterval = setInterval(checkForUpdates, 60 * 60 * 1000);
+            
+            return () => {
+              clearInterval(updateInterval);
+            };
+          } else {
+            console.log('No existing service worker registration found');
+          }
         } catch (error) {
-          console.error('Service Worker registration failed:', error);
+          console.error('Error monitoring service worker:', error);
         }
       } else {
-        console.log('Service workers are not supported by this browser');
+        console.warn('Service workers not supported in this browser');
       }
     };
     
-    registerSW();
+    monitorSW();
   }, []);
 
-  // Handle update click
-  const handleUpdate = () => {
+  // Handler for the refresh button
+  const handleRefresh = () => {
     if (swRegistration && swRegistration.waiting) {
-      // Send message to service worker to skip waiting
+      // Send message to waiting service worker to skip waiting and become active
       swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      // Fallback to regular page refresh
+      window.location.reload();
     }
-    
-    // Reload the page to apply the update
-    window.location.reload();
+    setNeedsRefresh(false);
   };
 
-  if (!needsRefresh) {
-    return null;
-  }
-
   return (
-    <div className="pwa-update-toast">
-      <div className="pwa-update-toast-content">
-        <p>A new version is available!</p>
-        <button onClick={handleUpdate}>Update & Refresh</button>
-        <button onClick={() => setNeedsRefresh(false)}>Dismiss</button>
-      </div>
-      <style jsx>{`
-        .pwa-update-toast {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          z-index: 9999;
-          background-color: #fff;
-          color: #333;
-          padding: 16px;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          max-width: 300px;
-        }
-        .pwa-update-toast-content {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        button {
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-        button:first-of-type {
-          background-color: #4f46e5;
-          color: white;
-        }
-        button:last-of-type {
-          background-color: transparent;
-          color: #666;
-        }
-      `}</style>
-    </div>
+    <>
+      {needsRefresh && (
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            left: '24px',
+            right: '24px',
+            padding: '16px',
+            borderRadius: '4px',
+            backgroundColor: '#2563eb',
+            color: 'white',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            zIndex: 9999
+          }}
+        >
+          <p style={{ margin: 0 }}>New version available! Update to get the latest features.</p>
+          <button
+            onClick={handleRefresh}
+            style={{
+              backgroundColor: 'white',
+              color: '#2563eb',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh
+          </button>
+        </div>
+      )}
+    </>
   );
 };
 

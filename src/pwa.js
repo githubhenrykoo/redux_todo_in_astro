@@ -51,62 +51,58 @@ export class NetworkStatusMonitor {
     // Create notification element
     const notificationEl = document.createElement('div');
     notificationEl.className = `pwa-notification ${type}`;
-    notificationEl.innerHTML = `
-      <div class="pwa-notification-content">
-        <span>${message}</span>
-        <button class="pwa-notification-close">×</button>
-      </div>
-    `;
+    notificationEl.textContent = message;
+    
+    // Style notification
+    Object.assign(notificationEl.style, {
+      position: 'fixed',
+      top: '20px',
+      right: '20px',
+      padding: '12px 20px',
+      borderRadius: '4px',
+      zIndex: 9999,
+      color: 'white',
+      backgroundColor: type === 'success' ? '#4caf50' : '#ff9800',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+      transition: 'all 0.5s ease-in-out'
+    });
     
     // Add to DOM
     document.body.appendChild(notificationEl);
     
-    // Set up close button
-    const closeButton = notificationEl.querySelector('.pwa-notification-close');
-    closeButton.addEventListener('click', () => {
-      notificationEl.remove();
-    });
-    
-    // Auto-remove after 5 seconds
+    // Remove after 3 seconds
     setTimeout(() => {
-      if (document.body.contains(notificationEl)) {
-        notificationEl.remove();
-      }
-    }, 5000);
-  }
-  
-  // Method to register sync function
-  registerSyncFunction(syncFunction) {
-    this.syncPendingData = syncFunction;
+      notificationEl.style.opacity = '0';
+      setTimeout(() => {
+        document.body.removeChild(notificationEl);
+      }, 500);
+    }, 3000);
   }
 }
 
 // Service Worker Management
 export class PWAManager {
   constructor() {
-    this.registerServiceWorker();
+    this.monitorServiceWorker();
   }
   
-  async registerServiceWorker() {
+  async monitorServiceWorker() {
     if ('serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js', {
-          scope: '/'
-        });
+        // Check for existing registrations first
+        const registrations = await navigator.serviceWorker.getRegistrations();
         
-        if (registration.installing) {
-          console.log('Service worker installing');
-        } else if (registration.waiting) {
-          console.log('Service worker installed');
-        } else if (registration.active) {
-          console.log('Service worker active');
+        if (registrations.length > 0) {
+          console.log('PWAManager: Found existing service worker registration');
+          // Use the existing registration
+          const registration = registrations[0];
+          this.setupPeriodicSync(registration);
+        } else {
+          console.log('PWAManager: No existing service worker found, not registering a new one');
+          // We'll rely on the sw-register.js script to handle registration
         }
-        
-        // Set up update checking
-        this.setupPeriodicSync(registration);
-        
       } catch (error) {
-        console.error('Service worker registration failed:', error);
+        console.error('PWAManager: Error while checking service worker registrations:', error);
       }
     }
   }
@@ -115,7 +111,7 @@ export class PWAManager {
     // Check for updates every hour
     setInterval(() => {
       registration.update();
-      console.log('Checking for service worker updates...');
+      console.log('PWAManager: Checking for service worker updates...');
     }, 60 * 60 * 1000);
     
     // Handle new updates
@@ -141,7 +137,7 @@ export function initializePWA() {
     // Start network status monitoring
     const networkMonitor = new NetworkStatusMonitor();
     
-    // Initialize service worker
+    // Initialize service worker monitoring (but not registration)
     const pwaManager = new PWAManager();
     
     return {
@@ -149,7 +145,6 @@ export function initializePWA() {
       pwaManager
     };
   }
-  return null;
 }
 
 // Default export for easy importing

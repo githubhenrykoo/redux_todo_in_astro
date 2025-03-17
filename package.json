@@ -4,11 +4,12 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "npm run generate-pwa-icons && astro build",
     "serve": "astro serve",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "jest"
+    "test": "jest",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js"
   },
   "dependencies": {
     "@astrojs/react": "latest",
@@ -36,6 +37,7 @@
     "@babel/preset-react": "^7.26.3",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.26.0",
+    "@vite-pwa/astro": "^0.2.0",
     "autoprefixer": "^10.4.20",
     "babel-jest": "^29.7.0",
     "eslint": "^9.21.0",

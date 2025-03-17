@@ -17,8 +17,8 @@ const { title } = Astro.props;
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 		<link rel="apple-touch-icon" href="/pwa-192x192.png" />
 		<link rel="manifest" href="/manifest.webmanifest" />
-		<!-- PWA Script -->
-		<script src="../pwa.js"></script>
+		<!-- Manual Service Worker Registration -->
+		<script is:inline src="/sw-register.js"></script>
 	</head>   
 	<body class="bg-background text-foreground">     
 		<slot />
@@ -28,3 +28,17 @@ const { title } = Astro.props;
 		<InstallPwa client:only="react" />
 	</body> 
 </html>
+
+<script>
+	// Import and initialize PWA functionality
+	import { initializePWA } from '../pwa.js';
+	
+	// Only run in browser, not during SSR
+	if (typeof window !== 'undefined') {
+		// Initialize when the page is fully loaded
+		window.addEventListener('load', () => {
+			const pwa = initializePWA();
+			console.log('PWA initialized successfully', pwa);
+		});
+	}
+</script>

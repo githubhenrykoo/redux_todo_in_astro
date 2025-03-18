@@ -1,5 +1,3 @@
-
-
 import os
 import google.generativeai as genai
 import subprocess
@@ -105,9 +103,17 @@ def create_pdf(latex_content, output_name):
     if latex_content.endswith('```'):
         latex_content = latex_content[:-3]  # Remove closing ```
     
-    # Get absolute paths
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    tex_path = os.path.join(current_dir, f"{os.path.basename(output_name)}.tex")
+    # Get absolute paths for output directory
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'analysis/progress_reports')
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Create temporary directory for LaTeX compilation
+    temp_dir = os.path.join(output_dir, '.temp')
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Paths for LaTeX compilation
+    tex_path = os.path.join(temp_dir, f"{os.path.basename(output_name)}.tex")
+    pdf_output = os.path.join(output_dir, f"{os.path.basename(output_name)}.pdf")
     
     # Write cleaned LaTeX content to file
     with open(tex_path, "w", encoding='utf-8') as f:
@@ -120,27 +126,34 @@ def create_pdf(latex_content, output_name):
             ['pdflatex', '-interaction=nonstopmode', os.path.basename(tex_path)],
             capture_output=True,
             text=True,
-            cwd=current_dir  # Set working directory to where the tex file is
+            cwd=temp_dir  # Use temp directory for compilation
         )
         print("LaTeX Output:", result.stdout)
         if result.returncode != 0:
             print("LaTeX Error:", result.stderr)
-            log_file = os.path.join(current_dir, f"{os.path.basename(output_name)}.log")
+            log_file = os.path.join(temp_dir, f"{os.path.basename(output_name)}.log")
             if os.path.exists(log_file):
                 with open(log_file, 'r') as log:
                     print("LaTeX Log:", log.read())
             raise Exception("PDF generation failed")
 
-    pdf_path = os.path.join(current_dir, f"{os.path.basename(output_name)}.pdf")
-    if os.path.exists(pdf_path):
-        print(f"PDF generated successfully at: {pdf_path}")
-        # Comment out the cleanup code to keep auxiliary files for debugging
-        # for ext in [".aux", ".log", ".out"]:
-        #     aux_file = os.path.join(current_dir, f"{os.path.basename(output_name)}{ext}")
-        #     if os.path.exists(aux_file):
-        #         os.remove(aux_file)
+    # Move PDF to final destination
+    temp_pdf = os.path.join(temp_dir, f"{os.path.basename(output_name)}.pdf")
+    if os.path.exists(temp_pdf):
+        os.rename(temp_pdf, pdf_output)
+        print(f"PDF generated successfully at: {pdf_output}")
+        # Cleanup auxiliary files
+        for ext in [".aux", ".log", ".out", ".tex"]:
+            aux_file = os.path.join(temp_dir, f"{os.path.basename(output_name)}{ext}")
+            if os.path.exists(aux_file):
+                os.remove(aux_file)
+        # Try to remove temp directory if empty
+        try:
+            os.rmdir(temp_dir)
+        except OSError:
+            pass  # Directory not empty or other error, ignore
     else:
-        raise Exception(f"PDF file not created at: {pdf_path}")
+        raise Exception(f"PDF file not created at: {temp_pdf}")
 
 def get_latest_md_file(user_folder):
     """Get the most recent refined-analysis-*.md file from a user's folder"""

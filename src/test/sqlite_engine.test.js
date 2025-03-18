@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 
 // Temporary test database path
-const TEST_DB_PATH = path.join(__dirname, 'test_cards.sqlite');
+const TEST_DB_PATH = path.join(__dirname, 'test_cards.db');
 
 describe('SQLiteEngine', () => {
   let sqliteEngine;
@@ -151,21 +151,28 @@ describe('SQLiteEngine', () => {
       new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 3' })), 'hash3', GTime.stampNow())
     ];
 
-    cards.forEach(card => sqliteEngine.add(card));
+    cards.forEach(card => {
+      console.log('Adding card:', card.hash);
+      sqliteEngine.add(card);
+    });
 
     const allCards = sqliteEngine.get_all();
     
+    console.log('All cards:', allCards);
+    console.log('Items:', allCards.items);
+    console.log('Total items:', allCards.total_items);
+
     expect(allCards.items.length).toBe(3);
     expect(allCards.total_items).toBe(3);
   });
 
   test('should throw error for invalid page number', () => {
-    expect(() => sqliteEngine.get_page(0, 10)).toThrow('Page number must be >= 1');
-    expect(() => sqliteEngine.get_page(-1, 10)).toThrow('Page number must be >= 1');
+    expect(() => sqliteEngine.get_page(0, 10)).toThrow('Page number and size must be >= 1');
+    expect(() => sqliteEngine.get_page(-1, 10)).toThrow('Page number and size must be >= 1');
   });
 
   test('should throw error for invalid page size', () => {
-    expect(() => sqliteEngine.get_page(1, 0)).toThrow('Page size must be >= 1');
-    expect(() => sqliteEngine.get_page(1, -1)).toThrow('Page size must be >= 1');
+    expect(() => sqliteEngine.get_page(1, 0)).toThrow('Page number and size must be >= 1');
+    expect(() => sqliteEngine.get_page(1, -1)).toThrow('Page number and size must be >= 1');
   });
 });

@@ -33,11 +33,13 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.26.3",
     "@tailwindcss/typography": "^0.5.10",
     "@types/react": "^18.2.21",
     "@vite-pwa/astro": "^0.5.0",
     "autoprefixer": "^10.4.15",
+    "babel-jest": "^29.7.0",
     "jest": "^29.5.0",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.4.29",

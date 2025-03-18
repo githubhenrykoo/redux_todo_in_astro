@@ -6,8 +6,9 @@ export default {
   testMatch: ['**/__tests__/**/*.js?(x)', '**/?(*.)+(spec|test).js?(x)'],
   extensionsToTreatAsEsm: ['.jsx'],
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1'
+    '^src/(.*)$': '<rootDir>/src/$1'
   },
+  resolver: '<rootDir>/jest-resolver.cjs',
   transformIgnorePatterns: [
     'node_modules/(?!(@astrojs)/)'
   ]

@@ -1,5 +1,6 @@
 import { SQLiteEngine, SQLiteConnection } from 'src/engine/sqlite_engine.js';
 import { MCardFromData } from 'src/content/model/mcard.js';
+import { GTime } from 'src/content/model/g_time.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -16,13 +17,14 @@ describe('SQLiteEngine', () => {
     sqliteEngine = new SQLiteEngine(connection);
 
     // Create a test card
+    const timestamp = GTime.stampNow();
     testCard = new MCardFromData(
-      JSON.stringify({ 
+      Buffer.from(JSON.stringify({ 
         title: 'Test Card', 
         content: 'This is a test card content' 
-      }), 
+      })), 
       'test_hash_123', 
-      Date.now()
+      timestamp
     );
   });
 
@@ -48,7 +50,7 @@ describe('SQLiteEngine', () => {
     
     expect(retrievedCard).toBeTruthy();
     expect(retrievedCard.hash).toBe(testCard.hash);
-    expect(retrievedCard.content).toBe(testCard.content);
+    expect(retrievedCard.content).toEqual(testCard.content);
   });
 
   test('should return null when retrieving non-existent card', () => {
@@ -69,9 +71,9 @@ describe('SQLiteEngine', () => {
   test('should get paginated results', () => {
     // Add multiple cards
     const cards = [
-      new MCardFromData(JSON.stringify({ title: 'Card 1' }), 'hash1', Date.now()),
-      new MCardFromData(JSON.stringify({ title: 'Card 2' }), 'hash2', Date.now()),
-      new MCardFromData(JSON.stringify({ title: 'Card 3' }), 'hash3', Date.now())
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 1' })), 'hash1', GTime.stampNow()),
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 2' })), 'hash2', GTime.stampNow()),
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 3' })), 'hash3', GTime.stampNow())
     ];
 
     cards.forEach(card => sqliteEngine.add(card));
@@ -88,8 +90,8 @@ describe('SQLiteEngine', () => {
   test('should search cards by string', () => {
     // Add multiple cards with different content
     const cards = [
-      new MCardFromData(JSON.stringify({ title: 'Search Test Card 1', content: 'First test card' }), 'hash1', Date.now()),
-      new MCardFromData(JSON.stringify({ title: 'Search Test Card 2', content: 'Second test card' }), 'hash2', Date.now())
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Search Test Card 1', content: 'First test card' })), 'hash1', GTime.stampNow()),
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Search Test Card 2', content: 'Second test card' })), 'hash2', GTime.stampNow())
     ];
 
     cards.forEach(card => sqliteEngine.add(card));
@@ -103,8 +105,8 @@ describe('SQLiteEngine', () => {
   test('should count total cards', () => {
     // Add multiple cards
     const cards = [
-      new MCardFromData(JSON.stringify({ title: 'Card 1' }), 'hash1', Date.now()),
-      new MCardFromData(JSON.stringify({ title: 'Card 2' }), 'hash2', Date.now())
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 1' })), 'hash1', GTime.stampNow()),
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 2' })), 'hash2', GTime.stampNow())
     ];
 
     cards.forEach(card => sqliteEngine.add(card));
@@ -144,9 +146,9 @@ describe('SQLiteEngine', () => {
   test('should get all cards', () => {
     // Add multiple cards
     const cards = [
-      new MCardFromData(JSON.stringify({ title: 'Card 1' }), 'hash1', Date.now()),
-      new MCardFromData(JSON.stringify({ title: 'Card 2' }), 'hash2', Date.now()),
-      new MCardFromData(JSON.stringify({ title: 'Card 3' }), 'hash3', Date.now())
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 1' })), 'hash1', GTime.stampNow()),
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 2' })), 'hash2', GTime.stampNow()),
+      new MCardFromData(Buffer.from(JSON.stringify({ title: 'Card 3' })), 'hash3', GTime.stampNow())
     ];
 
     cards.forEach(card => sqliteEngine.add(card));

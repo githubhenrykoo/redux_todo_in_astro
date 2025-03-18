@@ -1,7 +1,7 @@
-import { MCardFromData } from 'src/content/model/mcard.js';
-import { Page } from 'src/content/model/card-collection.js';
-import { DEFAULT_PAGE_SIZE, CARDS_DB_PATH } from 'src/config/config_constants.js';
-import { MCARD_TABLE_SCHEMA, TRIGGERS } from 'src/models/database_schemas.js';
+import { MCardFromData } from '../content/model/mcard.js';
+import { Page } from '../content/model/card-collection.js';
+import { DEFAULT_PAGE_SIZE, CARDS_DB_PATH } from '../config/config_constants.js';
+import { MCARD_TABLE_SCHEMA, TRIGGERS } from '../models/database_schemas.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
@@ -48,8 +48,6 @@ class SQLiteConnection {
       TRIGGERS.forEach(trigger => {
         this.conn.prepare(trigger).run();
       });
-
-      console.log(`Database setup complete at ${this.dbPath}`);
     } catch (error) {
       console.error(`Error setting up database: ${error.message}`);
       throw error;
@@ -61,11 +59,8 @@ class SQLiteConnection {
    */
   connect() {
     if (!this.conn) {
-      console.log(`Connecting to database at ${this.dbPath}`);
       try {
         this.conn = new Database(this.dbPath);
-        console.log(`Connection established to ${this.dbPath}`);
-        console.log(`Database connection details: ${this.conn}`);
 
         // Check if the database is empty and initialize schema if necessary
         const tablesStmt = this.conn.prepare("SELECT name FROM sqlite_master WHERE type='table'");
@@ -78,15 +73,11 @@ class SQLiteConnection {
 
           // Create tables from schema
           Object.entries(MCARD_TABLE_SCHEMA).forEach(([tableName, schema]) => {
-            console.log(`Executing SQL for ${tableName}: ${schema}`);
             this.conn.prepare(schema).run();
           });
 
-          console.log("Database schema created successfully");
-
           // Create triggers
           TRIGGERS.forEach((trigger) => {
-            console.log(`Executing SQL trigger: ${trigger}`);
             this.conn.prepare(trigger).run();
           });
         }
@@ -104,7 +95,6 @@ class SQLiteConnection {
     if (this.conn) {
       this.conn.close();
       this.conn = null;
-      console.log('Database connection closed');
     }
   }
 
@@ -169,7 +159,6 @@ class SQLiteEngine {
         card.g_time
       );
 
-      console.log(`Added card with hash ${card.hash}`);
       return String(card.hash);
     } catch (error) {
       if (error.code === 'SQLITE_CONSTRAINT') {
@@ -195,7 +184,10 @@ class SQLiteEngine {
       
       if (!row) return null;
       
-      return new MCardFromData(row.content, row.hash, row.g_time);
+      // Convert content to Buffer
+      const contentBuffer = Buffer.from(row.content, 'utf8');
+      
+      return new MCardFromData(contentBuffer, row.hash, row.g_time);
     } catch (error) {
       console.error(`Error retrieving card: ${error.message}`);
       throw error;
@@ -254,7 +246,11 @@ class SQLiteEngine {
     const items = [];
     for (const row of rows) {
         const [content, g_time, hash] = [row.content, row.g_time, row.hash];
-        const card = new MCardFromData(content, hash, g_time);
+        
+        // Convert content to Buffer
+        const contentBuffer = Buffer.from(content, 'utf8');
+        
+        const card = new MCardFromData(contentBuffer, hash, g_time);
         items.push(card);
     }
 
@@ -291,9 +287,6 @@ class SQLiteEngine {
       const offset = (pageNumber - 1) * pageSize;
       const cursor = this.connection.conn;
 
-      // Debug: Log the search parameters
-      console.log(`Searching with string: ${searchString}, Page: ${pageNumber}, PageSize: ${pageSize}`);
-
       // First, get total count of matching items
       const countStmt = cursor.prepare(`
         SELECT COUNT(*) as total FROM card 
@@ -307,9 +300,6 @@ class SQLiteEngine {
         `%${searchString}%`, 
         `%${searchString}%`
       );
-
-      // Debug: Log the total count
-      console.log(`Total matching items: ${total}`);
 
       // Then, get the actual items for the current page
       const stmt = cursor.prepare(`
@@ -329,14 +319,15 @@ class SQLiteEngine {
         offset
       );
 
-      // Debug: Log the rows
-      console.log(`Matching rows: ${JSON.stringify(rows)}`);
-
       // Convert rows to cards
       const items = [];
       for (const row of rows) {
         const [content, g_time, hash] = [row.content, row.g_time, row.hash];
-        const card = new MCardFromData(content, hash, g_time);
+        
+        // Convert content to Buffer
+        const contentBuffer = Buffer.from(content, 'utf8');
+        
+        const card = new MCardFromData(contentBuffer, hash, g_time);
         items.push(card);
       }
 
@@ -401,7 +392,11 @@ class SQLiteEngine {
       const items = [];
       for (const row of rows) {
         const [content, g_time, hash] = [row.content, row.g_time, row.hash];
-        const card = new MCardFromData(content, hash, g_time);
+        
+        // Convert content to Buffer
+        const contentBuffer = Buffer.from(content, 'utf8');
+        
+        const card = new MCardFromData(contentBuffer, hash, g_time);
         items.push(card);
       }
 
@@ -499,7 +494,11 @@ class SQLiteEngine {
     const items = [];
     for (const row of rows) {
         const [content, g_time, hash] = [row.content, row.g_time, row.hash];
-        const card = new MCardFromData(content, hash, g_time);
+        
+        // Convert content to Buffer
+        const contentBuffer = Buffer.from(content, 'utf8');
+        
+        const card = new MCardFromData(contentBuffer, hash, g_time);
         items.push(card);
     }
 

@@ -66,7 +66,7 @@ class MCard {
 
   to_dict() {
     return {
-      content: this.content.toString('base64'),
+      content: this.content,
       hash: this.hash,
       g_time: this.g_time
     };
@@ -114,7 +114,7 @@ class MCardFromData extends MCard {
   // Update to_dict to include content type
   to_dict() {
     return {
-      content: this.content.toString('base64'),
+      content: this.content,
       hash: this.hash,
       g_time: this.g_time,
       content_type: this._content_type

@@ -27,3 +27,6 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+Docs/config/codeVault/.venv
+.venv

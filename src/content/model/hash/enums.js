@@ -1,49 +1,70 @@
 import crypto from 'crypto';
-import { HashAlgorithm, HashAlgorithmMetadata } from '../../config/config_constants.js';
+import { HashAlgorithm, HashAlgorithmMetadata } from '../../../config/config_constants.js';
 
 /**
  * Create a function to get hash algorithm details
- * @param {string} algorithm - Hash algorithm value
- * @returns {Object} Hash algorithm details
+ * @param {string} algorithm - Hash algorithm to get details for
+ * @returns {Object} Details of the hash algorithm
  */
-const getAlgorithmDetails = (algorithm) => {
-  const normalizedAlgo = algorithm.toLowerCase();
-  const algorithmDetails = Object.values(HashAlgorithmMetadata)
-    .find(algo => algo.value === normalizedAlgo);
-  
-  if (!algorithmDetails) {
-    throw new Error(`Unsupported hash algorithm: ${algorithm}`);
-  }
-  
-  return algorithmDetails;
-};
+export function getHashAlgorithmDetails(algorithm) {
+  const normalizedAlgorithm = HashAlgorithm(algorithm);
+  return HashAlgorithmMetadata[normalizedAlgorithm] || null;
+}
 
 /**
- * Compute hash for given content using specified algorithm
- * @param {Uint8Array} content - Content to hash
- * @param {string} algorithm - Hash algorithm
- * @returns {string} Computed hash
+ * Get the output length of a hash algorithm
+ * @param {string} algorithm - Hash algorithm to get output length for
+ * @returns {number} Output length of the hash algorithm
  */
-const hash = (content, algorithm) => {
-  const hash = crypto.createHash(algorithm.toLowerCase());
-  hash.update(content);
-  return hash.digest('hex');
-};
+export function getHashOutputLength(algorithm) {
+  const details = getHashAlgorithmDetails(algorithm);
+  return details ? details.outputLength : 64; // Default to 64 if not found
+}
 
-// Utility function for hash generation
-const generateHash = (input, algorithm = HashAlgorithm.DEFAULT) => {
-  const hash = crypto.createHash(algorithm);
+/**
+ * Check if a hash algorithm is the default
+ * @param {string} algorithm - Hash algorithm to check
+ * @returns {boolean} Whether the algorithm is the default
+ */
+export function isDefaultHashAlgorithm(algorithm) {
+  const details = getHashAlgorithmDetails(algorithm);
+  return details ? details.isDefault : false;
+}
+
+/**
+ * Generate a hash using a specified algorithm
+ * @param {string} input - Input to hash
+ * @param {string} [algorithm] - Hash algorithm to use
+ * @returns {string} Generated hash
+ */
+export function generateHash(input, algorithm = HashAlgorithm.DEFAULT) {
+  const normalizedAlgorithm = HashAlgorithm(algorithm);
+  const hash = crypto.createHash(normalizedAlgorithm);
   hash.update(input);
   return hash.digest('hex');
-};
+}
 
-// Correct way to do a default export
-const HashAlgorithmEnum = {
-  HashAlgorithm,
-  HashAlgorithmMetadata,
-  getAlgorithmDetails,
-  hash,
-  generateHash
-};
+/**
+ * Validate a hash against its algorithm
+ * @param {string} hash - Hash to validate
+ * @param {string} algorithm - Hash algorithm to validate against
+ * @returns {boolean} Whether the hash is valid
+ */
+export function validateHash(hash, algorithm) {
+  const details = getHashAlgorithmDetails(algorithm);
+  if (!details) return false;
 
-export default HashAlgorithmEnum;  // This is the key line
+  // Check hash length
+  if (hash.length !== details.outputLength) return false;
+
+  // Check if hash contains only hexadecimal characters
+  return /^[0-9a-fA-F]+$/.test(hash);
+}
+
+export default {
+  getHashAlgorithmDetails,
+  getHashOutputLength,
+  isDefaultHashAlgorithm,
+  generateHash,
+  validateHash
+};

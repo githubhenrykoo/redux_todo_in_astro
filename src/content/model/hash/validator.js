@@ -4,7 +4,7 @@ import {
   HashAlgorithm, 
   HASH_ALGORITHM_HIERARCHY, 
   VALID_HASH_FUNCTIONS 
-} from '../../config/config_constants.js';
+} from '../../../config/config_constants.js';
 
 export default class HashValidator {
   /**

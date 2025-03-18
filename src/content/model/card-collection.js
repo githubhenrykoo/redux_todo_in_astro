@@ -3,8 +3,8 @@ import {
   generateDuplicationEvent, 
   generateCollisionEvent
 } from './event-producer.js';
-import logger from '../services/logger.js';
-import { DEFAULT_PAGE_SIZE, HASH_ALGORITHM_HIERARCHY, HashAlgorithm } from '../config/config_constants.js';
+import logger from '../../services/logger.js';
+import { DEFAULT_PAGE_SIZE, HASH_ALGORITHM_HIERARCHY, HashAlgorithm } from '../../config/config_constants.js';
 import HashValidator from './hash/validator.js';
 
 console.log('Card Collection Module Loading...');

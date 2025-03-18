@@ -1,4 +1,4 @@
-import { HashAlgorithm } from '../config/config_constants.js';
+import { HashAlgorithm } from '../../config/config_constants.js';
 
 export class GTime {
   /**

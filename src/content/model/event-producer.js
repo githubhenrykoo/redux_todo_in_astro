@@ -1,7 +1,7 @@
 import HashAlgorithmEnum from './hash/enums.js';
 import HashValidator from './hash/validator.js';
 import { GTime as GTimeUtil } from './g_time.js';
-import { HASH_ALGORITHM_HIERARCHY as ALGORITHM_HIERARCHY } from '../config/config_constants.js';
+import { HASH_ALGORITHM_HIERARCHY as ALGORITHM_HIERARCHY } from '../../config/config_constants.js';
 
 // Destructure the enum values
 const { 

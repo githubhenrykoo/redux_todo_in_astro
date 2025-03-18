@@ -1,4 +1,4 @@
-import { HashAlgorithm } from '../../config/config_constants.js';
+import { HashAlgorithm, VALID_HASH_FUNCTIONS } from '../../config/config_constants.js';
 
 const VALID_HASH_FUNCTIONS = Object.values(HashAlgorithm)
   .filter(func => typeof func === 'string')
@@ -20,7 +20,7 @@ export class GTime {
     let normalizedHashFunction = hashFunction;
     if (typeof hashFunction === 'string') {
       const trimmedFunc = hashFunction.toLowerCase().trim();
-      if (!['md5', 'sha256'].includes(trimmedFunc)) {
+      if (!VALID_HASH_FUNCTIONS.includes(trimmedFunc)) {
         throw new Error(`Invalid hash function: ${hashFunction}`);
       }
       try {
@@ -64,48 +64,48 @@ export class GTime {
   static get_hash_function(stringValue) {
     // Validate input is a non-empty string
     if (!stringValue || typeof stringValue !== 'string' || stringValue.trim() === '') {
-      throw new Error('Invalid hash function input');
-    }
-
-    // Validate the entire string format using a strict regex
-    // Format must be exactly: [md5|sha256]|YYYY-MM-DDThh:mm:ss.uuuuuuZ|[A-Z]+
-    const fullFormatRegex = /^(md5|sha256)\|\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z\|[A-Z]+$/i;
-    if (!fullFormatRegex.test(stringValue)) {
-      throw new Error('Invalid hash function: Incorrect format');
+      throw new Error('Invalid hash function: Empty or non-string input');
     }
 
     // Validate exact number of parts
     const parts = stringValue.split('|');
     if (parts.length !== 3) {
-      throw new Error('Invalid hash function: Incorrect timestamp format');
+      throw new Error('Invalid hash function: Incorrect number of components');
     }
 
-    // Validate each part is non-empty
+    // Validate each part is non-empty and has no extra whitespace
     const [hashFunctionStr, timestamp, regionCode] = parts;
     if (!hashFunctionStr || !timestamp || !regionCode) {
       throw new Error('Invalid hash function: Missing components');
     }
 
-    // Validate hash function format (must be md5 or sha256, case insensitive)
+    // Validate hash function format (must be exactly lowercase, no extra whitespace)
     const trimmedHashFunc = hashFunctionStr.trim();
-    if (!/^(md5|sha256)$/i.test(trimmedHashFunc)) {
+    const validLowercaseHashes = VALID_HASH_FUNCTIONS.map(func => func.toLowerCase());
+    
+    if (!validLowercaseHashes.includes(trimmedHashFunc) || 
+        trimmedHashFunc !== hashFunctionStr) {
       throw new Error(`Invalid hash function: ${hashFunctionStr}`);
     }
 
-    // Validate timestamp format (strict ISO 8601 with 6 decimal places)
+    // Validate timestamp format (strict ISO 8601 with exactly 6 decimal places)
     const timestampRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
-    if (!timestampRegex.test(timestamp.trim()) || timestamp.trim() !== timestamp) {
+    const trimmedTimestamp = timestamp.trim();
+    
+    if (!timestampRegex.test(trimmedTimestamp) || 
+        trimmedTimestamp !== timestamp) {
       throw new Error('Invalid hash function: Incorrect timestamp format');
     }
 
-    // Validate region code format (must be all uppercase letters, no spaces)
+    // Validate region code format (must be all uppercase letters, no extra whitespace)
     const trimmedRegionCode = regionCode.trim();
-    if (!/^[A-Z]+$/.test(trimmedRegionCode) || trimmedRegionCode !== regionCode) {
+    if (!/^[A-Z]+$/.test(trimmedRegionCode) || 
+        trimmedRegionCode !== regionCode) {
       throw new Error('Invalid hash function: Incorrect region code format');
     }
 
     try {
-      return HashAlgorithm(trimmedHashFunc.toLowerCase());
+      return HashAlgorithm(trimmedHashFunc);
     } catch (error) {
       throw new Error(`Invalid hash function: ${trimmedHashFunc}`);
     }
@@ -140,25 +140,49 @@ export class GTime {
       return false;
     }
 
-    // For string inputs, be extremely strict
-    if (typeof hashFunction === 'string') {
-      // Only accept exact matches for 'md5' or 'sha256' (lowercase only)
-      const trimmedFunc = hashFunction.trim();
-      
-      // Check for exact match with 'md5' or 'sha256' (lowercase only)
-      // No upper case, no extra whitespace, no extra characters
-      return (trimmedFunc === 'md5' || trimmedFunc === 'sha256') && 
-             trimmedFunc === hashFunction;
-    }
-    
-    // For values that equal HashAlgorithm values (as strings), they are valid 
-    // but only if they match exactly md5 or sha256
-    if (hashFunction === HashAlgorithm.MD5 || hashFunction === HashAlgorithm.SHA256) {
-      return true;
+    // Reject any non-string, non-object inputs
+    if (typeof hashFunction !== 'string' && 
+        typeof hashFunction !== 'object' && 
+        typeof hashFunction !== 'boolean') {
+      return false;
     }
 
-    // Reject any other type of input
-    return false;
+    // Reject non-string objects
+    if (typeof hashFunction === 'object' && 
+        !(hashFunction instanceof String) && 
+        !VALID_HASH_FUNCTIONS.includes(hashFunction)) {
+      return false;
+    }
+
+    // Reject empty strings or whitespace
+    if (typeof hashFunction === 'string' && 
+        (hashFunction.trim() === '' || hashFunction !== hashFunction.trim())) {
+      return false;
+    }
+
+    // For string inputs, be extremely strict
+    if (typeof hashFunction === 'string' || hashFunction instanceof String) {
+      // Convert to string 
+      const strFunc = String(hashFunction);
+      
+      // All valid hash functions, lowercase
+      const validLowercaseHashes = VALID_HASH_FUNCTIONS.map(func => func.toLowerCase());
+      
+      // Reject any input that doesn't match exactly
+      const isValid = validLowercaseHashes.includes(strFunc) && 
+                      strFunc === strFunc.toLowerCase() && 
+                      strFunc.trim() === strFunc;
+
+      // Extra checks to reject inputs like 'md 5', 'md5 hash', 'SHA-256', 'MD5', etc.
+      if (!isValid || strFunc.includes(' ')) {
+        return false;
+      }
+
+      return true;
+    }
+    
+    // If we reach here, it means the input is a valid HashAlgorithm value
+    return VALID_HASH_FUNCTIONS.includes(hashFunction);
   }
 
   /**

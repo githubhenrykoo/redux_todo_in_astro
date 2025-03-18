@@ -1,0 +1,12 @@
+torch
+openai-whisper
+tqdm
+langchain-google-genai
+langchain
+tiktoken
+google-generativeai
+pydub
+ffmpeg-python
+google-auth
+google-api-python-client
+python-dotenv

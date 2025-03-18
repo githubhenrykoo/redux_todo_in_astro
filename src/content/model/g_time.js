@@ -1,8 +1,4 @@
-import { HashAlgorithm, VALID_HASH_FUNCTIONS } from '../../config/config_constants.js';
-
-const VALID_HASH_FUNCTIONS = Object.values(HashAlgorithm)
-  .filter(func => typeof func === 'string')
-  .map(func => func.toLowerCase());
+import { HashAlgorithm } from '../../config/config_constants.js';
 
 export class GTime {
   /**
@@ -20,11 +16,11 @@ export class GTime {
     let normalizedHashFunction = hashFunction;
     if (typeof hashFunction === 'string') {
       const trimmedFunc = hashFunction.toLowerCase().trim();
-      if (!VALID_HASH_FUNCTIONS.includes(trimmedFunc)) {
+      if (!Object.values(HashAlgorithm).filter(func => typeof func === 'string').map(func => func.toLowerCase()).includes(trimmedFunc)) {
         throw new Error(`Invalid hash function: ${hashFunction}`);
       }
       try {
-        normalizedHashFunction = HashAlgorithm(trimmedFunc);
+        normalizedHashFunction = HashAlgorithm[trimmedFunc.toUpperCase()];
       } catch (error) {
         throw new Error(`Invalid hash function: ${hashFunction}`);
       }
@@ -81,7 +77,7 @@ export class GTime {
 
     // Validate hash function format (must be exactly lowercase, no extra whitespace)
     const trimmedHashFunc = hashFunctionStr.trim();
-    const validLowercaseHashes = VALID_HASH_FUNCTIONS.map(func => func.toLowerCase());
+    const validLowercaseHashes = Object.values(HashAlgorithm).filter(func => typeof func === 'string').map(func => func.toLowerCase());
     
     if (!validLowercaseHashes.includes(trimmedHashFunc) || 
         trimmedHashFunc !== hashFunctionStr) {
@@ -105,7 +101,7 @@ export class GTime {
     }
 
     try {
-      return HashAlgorithm(trimmedHashFunc);
+      return HashAlgorithm[trimmedHashFunc.toUpperCase()];
     } catch (error) {
       throw new Error(`Invalid hash function: ${trimmedHashFunc}`);
     }
@@ -149,8 +145,7 @@ export class GTime {
 
     // Reject non-string objects
     if (typeof hashFunction === 'object' && 
-        !(hashFunction instanceof String) && 
-        !VALID_HASH_FUNCTIONS.includes(hashFunction)) {
+        !(hashFunction instanceof String)) {
       return false;
     }
 
@@ -166,7 +161,7 @@ export class GTime {
       const strFunc = String(hashFunction);
       
       // All valid hash functions, lowercase
-      const validLowercaseHashes = VALID_HASH_FUNCTIONS.map(func => func.toLowerCase());
+      const validLowercaseHashes = Object.values(HashAlgorithm).filter(func => typeof func === 'string').map(func => func.toLowerCase());
       
       // Reject any input that doesn't match exactly
       const isValid = validLowercaseHashes.includes(strFunc) && 
@@ -182,7 +177,7 @@ export class GTime {
     }
     
     // If we reach here, it means the input is a valid HashAlgorithm value
-    return VALID_HASH_FUNCTIONS.includes(hashFunction);
+    return Object.values(HashAlgorithm).includes(hashFunction);
   }
 
   /**

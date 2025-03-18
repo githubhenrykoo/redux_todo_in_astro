@@ -44,22 +44,6 @@ class MCard {
 
     // Generate timestamp
     this.g_time = GTime.stamp_now(this.hash_algorithm);
-
-    // Set content type based on options
-    this._content_type = options.detectContentType 
-      ? this._initContentType() 
-      : 'text/plain';
-  }
-
-  // Optional content type detection
-  _initContentType() {
-    try {
-      const interpreter = new ContentTypeInterpreter();
-      return interpreter.detectContentType(this.content);
-    } catch (error) {
-      console.warn('Content type detection failed:', error);
-      return 'text/plain';
-    }
   }
 
   // Getter methods
@@ -75,15 +59,6 @@ class MCard {
     return this.g_time;
   }
 
-  get_content_type() {
-    return this._content_type;
-  }
-
-  // Async method for content type (for compatibility)
-  async getContentType() {
-    return this._content_type;
-  }
-
   // Utility methods
   equals(other) {
     return this.hash === other.hash;
@@ -91,10 +66,9 @@ class MCard {
 
   to_dict() {
     return {
-      content: this.content.toString('utf-8'),
+      content: this.content.toString('base64'),
       hash: this.hash,
-      g_time: this.g_time,
-      content_type: this._content_type
+      g_time: this.g_time
     };
   }
 }
@@ -122,9 +96,29 @@ class MCardFromData extends MCard {
     this.g_time = g_time_str; // Directly assign the provided g_time string
     this.hash_function = GTime.get_hash_function(this.g_time);
 
-    // Cache the content type (similar to Python implementation)
+    // Detect content type
     const interpreter = new ContentTypeInterpreter();
     this._content_type = interpreter.detectContentType(this.content);
+  }
+
+  // Getter method for content type
+  get_content_type() {
+    return this._content_type;
+  }
+
+  // Async method for content type (for compatibility)
+  async getContentType() {
+    return this._content_type;
+  }
+
+  // Update to_dict to include content type
+  to_dict() {
+    return {
+      content: this.content.toString('base64'),
+      hash: this.hash,
+      g_time: this.g_time,
+      content_type: this._content_type
+    };
   }
 }
 

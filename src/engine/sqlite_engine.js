@@ -453,7 +453,7 @@ class SQLiteEngine {
    * @returns {number} Total number of cards
    */
   count() {
-    const stmt = this.connection.conn.prepare('SELECT COUNT(*) FROM card');
+    const stmt = this.connection.conn.prepare('SELECT COUNT(*) as total FROM card');
     const { total } = stmt.get();
     return total;
   }
@@ -476,9 +476,10 @@ class SQLiteEngine {
     
     // Get total count of items
     const countStmt = this.connection.conn.prepare(
-      'SELECT COUNT(*) FROM card'
+      'SELECT COUNT(*) as total FROM card'
     );
     const { total } = countStmt.get();
+    console.log('Total cards:', total);
 
     // Get page of items
     const stmt = this.connection.conn.prepare(`
@@ -489,6 +490,7 @@ class SQLiteEngine {
     `);
     
     const rows = stmt.all(page_size, offset);
+    console.log('Rows:', rows);
 
     // Convert rows to cards
     const items = [];

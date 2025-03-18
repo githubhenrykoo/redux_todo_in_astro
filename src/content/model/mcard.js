@@ -1,6 +1,6 @@
 import { Buffer } from 'buffer';
 import GTime from './g_time.js';
-import { HashAlgorithm } from '../config/config_constants.js';
+import { HashAlgorithm } from '../../config/config_constants.js';
 import HashValidator from './hash/validator.js';
 import ContentTypeInterpreter from './content_type_detector.js';
 

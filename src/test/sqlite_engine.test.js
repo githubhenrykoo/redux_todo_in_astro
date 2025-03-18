@@ -122,6 +122,7 @@ describe('SQLiteEngine', () => {
       const retrievedCard = sqliteEngine.get(testCard.hash);
       expect(retrievedCard).toBeNull();
     } catch (error) {
+      console.log('Transaction rollback failed:', error);
       fail('Transaction rollback failed');
     }
   });
@@ -135,6 +136,7 @@ describe('SQLiteEngine', () => {
       const retrievedCard = sqliteEngine.get(testCard.hash);
       expect(retrievedCard).toBeTruthy();
     } catch (error) {
+      console.log('Transaction commit failed:', error);
       fail('Transaction commit failed');
     }
   });

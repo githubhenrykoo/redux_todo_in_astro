@@ -1,6 +1,5 @@
-import log from 'src/services/logger.js';
 import { MCardFromData } from 'src/content/model/mcard.js';
-import { Page } from 'src/models/card-collection.js';
+import { Page } from 'src/content/model/card-collection.js';
 import { DEFAULT_PAGE_SIZE, CARDS_DB_PATH } from 'src/config/config_constants.js';
 import { MCARD_TABLE_SCHEMA, TRIGGERS } from 'src/models/database_schemas.js';
 import { promises as fs } from 'fs';
@@ -50,9 +49,9 @@ class SQLiteConnection {
         this.conn.prepare(trigger).run();
       });
 
-      log.debug(`Database setup complete at ${this.dbPath}`);
+      console.log(`Database setup complete at ${this.dbPath}`);
     } catch (error) {
-      log.error(`Error setting up database: ${error.message}`);
+      console.error(`Error setting up database: ${error.message}`);
       throw error;
     }
   }
@@ -62,11 +61,11 @@ class SQLiteConnection {
    */
   connect() {
     if (!this.conn) {
-      log.debug(`Connecting to database at ${this.dbPath}`);
+      console.log(`Connecting to database at ${this.dbPath}`);
       try {
         this.conn = new Database(this.dbPath);
-        log.debug(`Connection established to ${this.dbPath}`);
-        log.debug(`Database connection details: ${this.conn}`);
+        console.log(`Connection established to ${this.dbPath}`);
+        console.log(`Database connection details: ${this.conn}`);
 
         // Check if the database is empty and initialize schema if necessary
         const tablesStmt = this.conn.prepare("SELECT name FROM sqlite_master WHERE type='table'");
@@ -79,20 +78,20 @@ class SQLiteConnection {
 
           // Create tables from schema
           Object.entries(MCARD_TABLE_SCHEMA).forEach(([tableName, schema]) => {
-            log.info(`Executing SQL for ${tableName}: ${schema}`);
+            console.log(`Executing SQL for ${tableName}: ${schema}`);
             this.conn.prepare(schema).run();
           });
 
-          log.debug("Database schema created successfully");
+          console.log("Database schema created successfully");
 
           // Create triggers
           TRIGGERS.forEach((trigger) => {
-            log.info(`Executing SQL trigger: ${trigger}`);
+            console.log(`Executing SQL trigger: ${trigger}`);
             this.conn.prepare(trigger).run();
           });
         }
       } catch (error) {
-        log.error(`Database error connecting to ${this.dbPath}: ${error.message}`);
+        console.error(`Database error connecting to ${this.dbPath}: ${error.message}`);
         throw error;
       }
     }
@@ -105,7 +104,7 @@ class SQLiteConnection {
     if (this.conn) {
       this.conn.close();
       this.conn = null;
-      log.debug('Database connection closed');
+      console.log('Database connection closed');
     }
   }
 
@@ -170,13 +169,13 @@ class SQLiteEngine {
         card.g_time
       );
 
-      log.debug(`Added card with hash ${card.hash}`);
+      console.log(`Added card with hash ${card.hash}`);
       return String(card.hash);
     } catch (error) {
       if (error.code === 'SQLITE_CONSTRAINT') {
         throw new Error(`Card with hash ${card.hash} already exists`);
       }
-      log.error(`Error adding card: ${error.message}`);
+      console.error(`Error adding card: ${error.message}`);
       throw error;
     }
   }
@@ -198,7 +197,7 @@ class SQLiteEngine {
       
       return new MCardFromData(row.content, row.hash, row.g_time);
     } catch (error) {
-      log.error(`Error retrieving card: ${error.message}`);
+      console.error(`Error retrieving card: ${error.message}`);
       throw error;
     }
   }
@@ -217,7 +216,7 @@ class SQLiteEngine {
       const result = stmt.run(String(hashValue));
       return result.changes > 0;
     } catch (error) {
-      log.error(`Error deleting card: ${error.message}`);
+      console.error(`Error deleting card: ${error.message}`);
       throw error;
     }
   }
@@ -293,7 +292,7 @@ class SQLiteEngine {
       const cursor = this.connection.conn;
 
       // Debug: Log the search parameters
-      log.info(`Searching with string: ${searchString}, Page: ${pageNumber}, PageSize: ${pageSize}`);
+      console.log(`Searching with string: ${searchString}, Page: ${pageNumber}, PageSize: ${pageSize}`);
 
       // First, get total count of matching items
       const countStmt = cursor.prepare(`
@@ -310,7 +309,7 @@ class SQLiteEngine {
       );
 
       // Debug: Log the total count
-      log.info(`Total matching items: ${total}`);
+      console.log(`Total matching items: ${total}`);
 
       // Then, get the actual items for the current page
       const stmt = cursor.prepare(`
@@ -331,7 +330,7 @@ class SQLiteEngine {
       );
 
       // Debug: Log the rows
-      log.info(`Matching rows: ${JSON.stringify(rows)}`);
+      console.log(`Matching rows: ${JSON.stringify(rows)}`);
 
       // Convert rows to cards
       const items = [];
@@ -355,7 +354,7 @@ class SQLiteEngine {
         total_pages: Math.ceil(total / pageSize)
       });
     } catch (error) {
-      log.error(`Error searching cards: ${error.message}`);
+      console.error(`Error searching cards: ${error.message}`);
       throw error;
     }
   }
@@ -420,7 +419,7 @@ class SQLiteEngine {
         total_pages: Math.ceil(total / pageSize)
       });
     } catch (error) {
-      log.error(`Error searching cards: ${error.message}`);
+      console.error(`Error searching cards: ${error.message}`);
       throw error;
     }
   }

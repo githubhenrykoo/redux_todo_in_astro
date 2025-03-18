@@ -17,9 +17,17 @@ describe('GTime', () => {
     test('should generate a timestamp with specified hash function', () => {
       const hashFunctions = [
         HashAlgorithm.MD5,
+        HashAlgorithm.SHA1,
+        HashAlgorithm.SHA224,
         HashAlgorithm.SHA256,
+        HashAlgorithm.SHA384,
+        HashAlgorithm.SHA512,
         'md5',
-        'sha256'
+        'sha1',
+        'sha224',
+        'sha256',
+        'sha384',
+        'sha512'
       ];
 
       hashFunctions.forEach(func => {
@@ -107,11 +115,22 @@ describe('GTime', () => {
         'md5|2023-01-01T12:00:00.000000Z|ASIA extra|extra|extra',
         'md5|2023-01-01T12:00:00.000000Z| extra ASIA|extra|extra',
         'md5|2023-01-01T12:00:00.000000Z|ASIA extra|extra|extra',
-        'md5|2023-01-01T12:00:00.000000Z|extra ASIA|extra|extra'
+        'md5|2023-01-01T12:00:00.000000Z|extra ASIA|extra|extra',
+        'invalid_hash|2023-01-01T12:00:00.000000Z|ASIA',
+        '|2023-01-01T12:00:00.000000Z|ASIA',
+        'md5||ASIA',
+        'md5|2023-01-01T12:00:00.000000Z',
+        'md5|2023-01-01T12:00:00.000000Z|INVALID_REGION',
+        'md5|2023-01-01T12:00:00.000000Z|ASIA|EXTRA',
+        ' md5|2023-01-01T12:00:00.000000Z|ASIA',
+        'md5 |2023-01-01T12:00:00.000000Z|ASIA',
+        'md5| 2023-01-01T12:00:00.000000Z|ASIA'
       ];
 
       invalidInputs.forEach(input => {
-        expect(() => GTime.get_hash_function(input)).toThrow('Invalid hash function');
+        expect(() => {
+          GTime.get_hash_function(input);
+        }).toThrow('Invalid hash function');
       });
     });
   });
@@ -136,9 +155,17 @@ describe('GTime', () => {
     test('should validate hash functions', () => {
       const validFunctions = [
         HashAlgorithm.MD5,
+        HashAlgorithm.SHA1,
+        HashAlgorithm.SHA224,
         HashAlgorithm.SHA256,
+        HashAlgorithm.SHA384,
+        HashAlgorithm.SHA512,
         'md5',
-        'sha256'
+        'sha1',
+        'sha224',
+        'sha256',
+        'sha384',
+        'sha512'
       ];
 
       const invalidFunctions = [
@@ -153,7 +180,6 @@ describe('GTime', () => {
         'SHA256',
         'Md5',
         'MD5',
-        'sha1',
         'MD5 ',
         'md 5',
         'md5 hash',

@@ -35,3 +35,6 @@ pnpm-debug.log*
 
 Docs/config/codeVault/.venv
 .venv
+
+
+src/test/test_cards.db

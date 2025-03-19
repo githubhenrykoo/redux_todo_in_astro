@@ -187,4 +187,50 @@ describe('Integration Test: MCard + GTime + CardCollection + SQLiteEngine', () =
     // This is not a strict test, but a performance benchmark
     expect(endTime - startTime).toBeLessThan(10000); // Should complete within 10 seconds
   });
+
+  test('Comprehensive search functionality', () => {
+    // 1. Create cards with different content types for search testing
+    const textCard1 = new MCard('Hello world of text cards');
+    const textCard2 = new MCard('Another text card with unique content');
+    const jsonCard = new MCard(JSON.stringify({ 
+      title: 'Search Test', 
+      description: 'A card for testing search functionality' 
+    }));
+    const binaryCard = new MCard(Buffer.from('Binary search test content'));
+
+    // Add cards to the collection
+    cardCollection.add(textCard1);
+    cardCollection.add(textCard2);
+    cardCollection.add(jsonCard);
+    cardCollection.add(binaryCard);
+
+    // 2. Test text-based searches
+    // Search for partial text match
+    const textSearchResults1 = cardCollection.search_by_string('world');
+    expect(textSearchResults1.items.length).toBeGreaterThan(0);
+    expect(textSearchResults1.items.some(item => item.hash === textCard1.hash)).toBe(true);
+
+    const textSearchResults2 = cardCollection.search_by_string('unique content');
+    expect(textSearchResults2.items.length).toBeGreaterThan(0);
+    expect(textSearchResults2.items.some(item => item.hash === textCard2.hash)).toBe(true);
+
+    // 3. Test JSON content search
+    const jsonSearchResults = cardCollection.search_by_string('Search Test');
+    expect(jsonSearchResults.items.length).toBeGreaterThan(0);
+    expect(jsonSearchResults.items.some(item => item.hash === jsonCard.hash)).toBe(true);
+
+    // 4. Test binary content search
+    const binarySearchResults = cardCollection.search_by_string('Binary search');
+    expect(binarySearchResults.items.length).toBeGreaterThan(0);
+    expect(binarySearchResults.items.some(item => item.hash === binaryCard.hash)).toBe(true);
+
+    // 5. Test case-insensitive search
+    const caseInsensitiveResults = cardCollection.search_by_string('HELLO world');
+    expect(caseInsensitiveResults.items.length).toBeGreaterThan(0);
+    expect(caseInsensitiveResults.items.some(item => item.hash === textCard1.hash)).toBe(true);
+
+    // 6. Test search with no results
+    const noResultsSearch = cardCollection.search_by_string('nonexistent search term');
+    expect(noResultsSearch.items.length).toBe(0);
+  });
 });

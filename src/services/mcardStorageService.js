@@ -107,6 +107,20 @@ class McardStorageService {
       throw error;
     }
   }
+
+  /**
+   * Retrieve all stored cards
+   * @returns {Promise<Array>} - Array of stored cards
+   */
+  static async getAllCards() {
+    // Ensure the engine is initialized
+    await this.initialize();
+    
+    // Use the sqliteEngine to search for all cards
+    const allCards = await this.sqliteEngine.search_by_content('', 1, 1000);
+    
+    return allCards.items || [];
+  }
 }
 
 export default McardStorageService;

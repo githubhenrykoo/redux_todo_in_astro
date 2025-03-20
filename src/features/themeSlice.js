@@ -13,10 +13,16 @@ import { createSelector } from 'reselect';
 
 // Initialize with system preference or fallback
 const getInitialTheme = () => {
-  if (typeof window === 'undefined') return 'light';
   const saved = localStorage.getItem('theme');
   if (saved) return saved;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  
+  // Check if window and matchMedia exist before calling
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  
+  // Fallback to light theme if no window or matchMedia
+  return 'light';
 };
 
 /** @type {{ mode: ThemeMode }} */

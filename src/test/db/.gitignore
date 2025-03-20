@@ -1,0 +1,6 @@
+# Ignore all SQLite database files in this directory
+*.db
+
+# Keep this gitignore file and the README
+!.gitignore
+!README.md

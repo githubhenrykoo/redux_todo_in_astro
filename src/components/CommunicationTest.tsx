@@ -1,27 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { store } from '../store';
 
 export const CommunicationTest: React.FC = () => {
   const [input, setInput] = useState('');
   const [message, setMessage] = useState('');
   const [response, setResponse] = useState<any>(null);
+  const [currentState, setCurrentState] = useState<any>(null);
+  
+  // Get current state directly instead of using useSelector
+  const fetchCurrentState = () => {
+    try {
+      const storeState = store.getState();
+      setCurrentState(storeState);
+      return storeState;
+    } catch (error) {
+      console.error('Error accessing store state:', error);
+      return { error: 'Unable to access store state' };
+    }
+  };
+
+  // Initial fetch of state
+  useEffect(() => {
+    fetchCurrentState();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage('Sending...');
+    setMessage('Sending state to server...');
     
     try {
-      // Try sending as form data first
-      const formData = new URLSearchParams();
-      formData.append('text', input);
+      // Get the current store state
+      const storeState = fetchCurrentState();
+      console.log('Current store state:', storeState);
       
-      console.log('Sending message:', input);
+      // Send both the input message and the entire store state
+      const payload = {
+        text: input,
+        state: storeState
+      };
+      
+      console.log('Sending payload:', payload);
       
       const response = await fetch('/api/submit', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify(payload)
       });
 
       console.log('Response status:', response.status);
@@ -33,7 +58,7 @@ export const CommunicationTest: React.FC = () => {
         const data = JSON.parse(responseText);
         console.log('Parsed response data:', data);
         setResponse(data);
-        setMessage(data.message || 'Request processed successfully');
+        setMessage(data.message || 'State sent successfully');
       } catch (parseError) {
         console.error('Error parsing response:', parseError);
         setMessage('Server responded but sent invalid JSON');
@@ -51,16 +76,23 @@ export const CommunicationTest: React.FC = () => {
           type="text" 
           value={input} 
           onChange={(e) => setInput(e.target.value)} 
-          placeholder="Enter message..." 
+          placeholder="Enter optional message..." 
           className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
         />
         
         <button 
           type="submit" 
           className="w-full py-2 rounded-md text-white font-semibold bg-blue-500 hover:bg-blue-600 active:bg-blue-700"
         >
-          Send to Server
+          Send Store State to Server
+        </button>
+        
+        <button 
+          type="button" 
+          onClick={fetchCurrentState}
+          className="w-full py-2 rounded-md text-white font-semibold bg-gray-500 hover:bg-gray-600 active:bg-gray-700"
+        >
+          Refresh State
         </button>
       </form>
       
@@ -78,6 +110,13 @@ export const CommunicationTest: React.FC = () => {
           </pre>
         </div>
       )}
+      
+      <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
+        <h3 className="font-semibold mb-2">Current Redux State:</h3>
+        <pre className="bg-gray-100 p-2 rounded text-sm overflow-auto max-h-60">
+          {currentState ? JSON.stringify(currentState, null, 2) : 'Loading state...'}
+        </pre>
+      </div>
     </div>
   );
 };

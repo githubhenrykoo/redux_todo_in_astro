@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { storeData } from '../../utils/storeAdapter.js';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -62,19 +63,44 @@ export const POST: APIRoute = async ({ request }) => {
     // Log the parsed data
     console.log('Final processed data:', receivedData);
 
-    // Return a simple response
-    return new Response(
-      JSON.stringify({
-        message: 'Request received successfully!',
-        receivedData: receivedData
-      }),
-      { 
-        status: 200, 
-        headers: { 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
+    // Save to database
+    try {
+      // Store the data and get the hash value
+      const hash = storeData(receivedData);
+      console.log(`Successfully created Mcard with hash: ${hash}`);
+      
+      // Return a success response with the hash value
+      return new Response(
+        JSON.stringify({
+          message: 'Data saved successfully as Mcard!',
+          hash: hash,
+          receivedData: receivedData
+        }),
+        { 
+          status: 200, 
+          headers: { 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    } catch (dbError) {
+      console.error('Error saving to database:', dbError);
+      
+      return new Response(
+        JSON.stringify({
+          error: 'Database error',
+          message: 'Received data but failed to save to database',
+          details: dbError instanceof Error ? dbError.message : 'Unknown database error',
+          receivedData: receivedData
+        }),
+        { 
+          status: 500, 
+          headers: { 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
   } catch (error) {
     // Handle any unexpected errors
     console.error('Unexpected error processing request:', error);

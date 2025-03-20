@@ -17,6 +17,17 @@ export function getStoreEngine(): SQLiteEngine {
 }
 
 /**
+ * Safely create a Buffer from content in both Node.js and browser environments
+ * @param content The content to convert to Buffer
+ * @returns Buffer or Uint8Array depending on environment
+ */
+function safeBufferFrom(content: string): any {
+  // Use TextEncoder to convert string to Uint8Array in any environment
+  const encoder = new TextEncoder();
+  return encoder.encode(content);
+}
+
+/**
  * Store data as an MCard
  * @param data The data to store
  * @returns The hash of the created card
@@ -34,8 +45,8 @@ export function storeData(data: any): string {
       content = JSON.stringify(data);
     }
     
-    // Create an MCard with the content
-    const card = new MCard(Buffer.from(content));
+    // Create an MCard with the content using our safe buffer approach
+    const card = new MCard(safeBufferFrom(content));
     
     // Store the card using the engine
     const engine = getStoreEngine();

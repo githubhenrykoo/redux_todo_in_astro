@@ -21,26 +21,26 @@ export const POST: APIRoute = async ({ request }) => {
       console.log('Raw request body (string):', rawData);
       console.log('Raw request body (length):', rawData.length);
       
-      // Try to parse as form data
-      try {
-        const formData = await request.clone().formData();
-        console.log('Form data entries:', [...formData.entries()]);
-        
-        // Convert FormData to object
-        for (const [key, value] of formData.entries()) {
-          receivedData[key] = value;
-        }
-      } catch (formError) {
-        console.log('Not valid form data, continuing...');
-      }
-      
-      // If we don't have any data yet, try JSON parsing
-      if (Object.keys(receivedData).length === 0 && rawData.trim().length > 0) {
+      // Try to parse as JSON first since we're expecting Redux state data
+      if (rawData.trim().length > 0) {
         try {
           receivedData = JSON.parse(rawData);
           console.log('Parsed as JSON:', receivedData);
         } catch (jsonError) {
-          console.log('Not valid JSON, continuing...');
+          console.log('Not valid JSON, trying form data...');
+          
+          // Try to parse as form data if JSON fails
+          try {
+            const formData = await request.clone().formData();
+            console.log('Form data entries:', [...formData.entries()]);
+            
+            // Convert FormData to object
+            for (const [key, value] of formData.entries()) {
+              receivedData[key] = value;
+            }
+          } catch (formError) {
+            console.log('Not valid form data either, continuing...');
+          }
         }
       }
       

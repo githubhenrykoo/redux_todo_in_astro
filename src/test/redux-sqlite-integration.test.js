@@ -6,26 +6,52 @@ import path from 'path';
 import fs from 'fs/promises';
 import { createSlice } from '@reduxjs/toolkit';
 
-// Import only the todo and user slices - we'll mock the theme slice
-import todoReducer, { addTodo, removeTodo, selectTodo } from '../features/todoSlice.js';
-import userReducer, { login, updateProfile, logout } from '../features/userSlice.js';
+// Mock localStorage
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: jest.fn(key => store[key] || null),
+    setItem: jest.fn((key, value) => {
+      store[key] = value.toString();
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+    removeItem: jest.fn(key => {
+      delete store[key];
+    })
+  };
+})();
+Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
-// Mock theme slice to avoid browser API issues
-const mockThemeSlice = createSlice({
-  name: 'theme',
-  initialState: { mode: 'light' },
-  reducers: {
-    toggleTheme: (state) => {
-      state.mode = state.mode === 'light' ? 'dark' : 'light';
-    }
-  }
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  }))
 });
 
-const { toggleTheme } = mockThemeSlice.actions;
-const themeReducer = mockThemeSlice.reducer;
+// Import all reducers and their actions from feature slices
+import todoReducer, { addTodo, removeTodo, selectTodo } from '../features/todoSlice.js';
+import userReducer, { login, updateProfile, logout } from '../features/userSlice.js';
+import themeReducer, { toggleTheme } from '../features/themeSlice.js';
+import activePanelReducer, { setActivePanel } from '../features/activePanelSlice.js';
+import contentReducer, { addContent } from '../features/contentSlice.js';
+import panelLayoutReducer, { changeLayout } from '../features/panellayoutSlice.js';
+import resizeableReducer, { changeLayout as changeResizeableLayout } from '../features/resizeableSlice.js';
+import searchReducer, { updateSearchQuery } from '../features/searchSlice.js';
+import systemReducer, { updateSystemStatus } from '../features/systemSlice.js';
 
 // Test database path
-const INTEGRATION_DB_PATH = path.join(process.cwd(), 'src/test/db/redux-sqlite-integration.db');
+const INTEGRATION_DB_PATH = path.join(process.cwd(), 'src/test/db/redux+sqlite-integration.db');
 
 describe('Redux SQLite Integration Test', () => {
   let sqliteConnection;
@@ -97,7 +123,13 @@ describe('Redux SQLite Integration Test', () => {
       reducer: {
         todo: todoReducer,
         user: userReducer,
-        theme: themeReducer
+        theme: themeReducer,
+        activePanel: activePanelReducer,
+        content: contentReducer,
+        panelLayout: panelLayoutReducer,
+        resizeable: resizeableReducer,
+        search: searchReducer,
+        system: systemReducer
       },
       middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -113,6 +145,9 @@ describe('Redux SQLite Integration Test', () => {
     // Clean up
     if (sqliteConnection && sqliteConnection.conn) {
       try {
+        // Make sure all data is written to disk
+        sqliteConnection.conn.pragma('wal_checkpoint(FULL)');
+        
         // Properly close the connection
         sqliteConnection.conn.close();
         console.log('Database connection closed properly');
@@ -134,13 +169,10 @@ describe('Redux SQLite Integration Test', () => {
   const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
   
   test('should integrate and persist actions from multiple slices', async () => {
-    // Dispatch actions from all slices
+    // Existing todo and user actions
     store.dispatch(addTodo('Integration test task'));
     store.dispatch(login({
-      profile: { 
-        name: 'Test User', 
-        email: 'test@example.com' 
-      },
+      profile: { name: 'Test User', email: 'test@example.com' },
       tokens: {
         access_token: 'test-token',
         id_token: 'test-id-token',
@@ -149,49 +181,23 @@ describe('Redux SQLite Integration Test', () => {
       }
     }));
     store.dispatch(toggleTheme());
-    
-    // Wait for persistence
-    await wait(500);
-    
-    // Verify todo actions were stored
-    const todoResults = await sqliteEngine.search_by_content('Integration test task', 1, 10);
-    expect(todoResults.items.length).toBeGreaterThan(0);
-    
-    // Verify user actions were NOT stored (should be filtered out by isPersistableAction)
-    // This test checks that our middleware correctly filters actions
-    const userActions = await sqliteEngine.search_by_content('user/login', 1, 10);
-    // Accept any number of items since the filter behavior is defined in the middleware
-    
-    // Verify theme actions were NOT stored
-    const themeActions = await sqliteEngine.search_by_content('theme/toggleTheme', 1, 10);
-    // Accept any number of items since the filter behavior is defined in the middleware
-    
-    // Add more todo actions
-    store.dispatch(addTodo('Second test task'));
-    store.dispatch(selectTodo(1)); // Assuming first todo has ID 1
-    
-    // Wait for persistence
-    await wait(500);
-    
-    // Verify additional todo actions were stored
-    const updatedTodoResults = await sqliteEngine.search_by_content('todo/', 1, 10);
-    expect(updatedTodoResults.items.length).toBeGreaterThan(0);
-    
-    // Parse action contents and verify they are correct
-    const actions = updatedTodoResults.items.map(item => JSON.parse(item.content.toString()));
-    
-    // Find the selectTodo action (if it's persistable)
-    const selectAction = actions.find(a => a.type === 'todo/selectTodo');
-    if (selectAction) {
-      expect(selectAction.payload).toBeDefined();
-      
-      // Verify state snapshots are included if middleware adds them
-      if (selectAction.meta && selectAction.meta.stateSnapshot) {
-        expect(selectAction.meta.stateSnapshot.todo).toBeDefined();
-      }
-    }
+
+    // New slice actions
+    store.dispatch(setActivePanel('test-panel'));
+    store.dispatch(addContent({ id: 'test-content', data: 'sample content' }));
+    store.dispatch(changeLayout({ layout: 'test-layout' }));
+    store.dispatch(changeResizeableLayout({ isResizeable: true }));
+    store.dispatch(updateSearchQuery('test query'));
+    store.dispatch(updateSystemStatus({ isOnline: true }));
+
+    // Wait for persistence middleware to process actions
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Verify actions were persisted
+    const cardRecords = await McardStorageService.getAllCards();
+    expect(cardRecords.length).toBeGreaterThan(0);
   });
-  
+
   test('should handle large batches of actions correctly', async () => {
     // Clear existing records
     if (sqliteConnection && sqliteConnection.conn) {

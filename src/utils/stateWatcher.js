@@ -4,6 +4,7 @@ import { SQLiteEngine, SQLiteConnection } from '../engine/sqlite_engine.js';
 import { HASH_ALGORITHM_SHA256 } from '../config/config_constants.js';
 import path from 'path';
 import fs from 'fs';
+import axios from 'axios';
 
 // Cross-environment state persistence middleware
 export function createStatePersistenceMiddleware() {
@@ -94,4 +95,104 @@ export function cleanupStatePersistence(sqliteConnection) {
       console.error('❌ Database Cleanup Error:', error);
     }
   }
+}
+
+// Standalone state observer that can be attached to any store
+export class StateObserver {
+  constructor(store, options = {}) {
+    this.store = store;
+    this.options = {
+      // Default options
+      shouldCapture: () => true,
+      transformState: (state) => state,
+      endpoint: '/api/state-capture',
+      debounceTime: 500,
+      ...options
+    };
+
+    this.lastSentState = null;
+    this.debounceTimer = null;
+    this.unsubscribe = null;
+  }
+
+  // Start observing store changes
+  start() {
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined') return;
+
+    // Prevent multiple subscriptions
+    this.stop();
+
+    // Subscribe to store changes
+    this.unsubscribe = this.store.subscribe(() => {
+      this.captureState();
+    });
+
+    console.log('🔍 State Observer Started');
+    return this;
+  }
+
+  // Stop observing
+  stop() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+      console.log('🛑 State Observer Stopped');
+    }
+    return this;
+  }
+
+  // Capture and send state
+  captureState() {
+    // Clear previous debounce timer
+    clearTimeout(this.debounceTimer);
+
+    // Set new debounce timer
+    this.debounceTimer = setTimeout(async () => {
+      try {
+        const currentState = this.store.getState();
+        const currentAction = this.store.getState().lastAction;
+
+        // Check if we should capture this state
+        if (!this.options.shouldCapture(currentState, currentAction)) {
+          return;
+        }
+
+        // Transform state
+        const transformedState = this.options.transformState(currentState);
+
+        // Prepare state to send
+        const stateToSend = {
+          timestamp: new Date().toISOString(),
+          action: currentAction?.type || 'unknown',
+          state: transformedState
+        };
+
+        // Avoid sending identical states
+        const stateString = JSON.stringify(stateToSend);
+        if (stateString === this.lastSentState) {
+          return;
+        }
+
+        // Send to server
+        await axios.post(this.options.endpoint, stateToSend, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        // Update last sent state
+        this.lastSentState = stateString;
+      } catch (error) {
+        console.error('State capture error:', error);
+      }
+    }, this.options.debounceTime);
+  }
+}
+
+// Convenience function to create and start observer
+export function initStateObserver(store, options = {}) {
+  // Only run on client side
+  if (typeof window === 'undefined') return null;
+
+  const observer = new StateObserver(store, options);
+  return observer.start();
 }

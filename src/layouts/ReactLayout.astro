@@ -2,7 +2,7 @@
 // src/layouts/ReactLayout.astro 
 import { Provider } from 'react-redux';
 import { store } from '../store';
-import { initStateObserver } from '../utils/reduxStateObserver';
+import { initStateObserver } from '../utils/stateWatcher';
 import { initializeDatabase } from '../utils/dbInitializer';
 import type { RootState } from '../types/store';
 import type { Action } from '@reduxjs/toolkit';
@@ -13,7 +13,7 @@ if (import.meta.env.DEV) {
   initializeDatabase();
 
   // Then initialize state observer
-  initStateObserver(store, {
+  const stateObserver = initStateObserver(store, {
     // Optional: Only capture specific slice states
     shouldCapture: (state: RootState, action: Action | null) => {
       // Capture all actions for now
@@ -23,9 +23,26 @@ if (import.meta.env.DEV) {
     // Optional: Transform state before storing
     transformState: (state: RootState) => {
       // You can modify/filter state here if needed
-      return state;
-    }
+      return {
+        // Only capture specific slices
+        theme: state.theme,
+        user: state.user,
+        panellayout: state.panellayout,
+        // Add other slices as needed
+      };
+    },
+
+    // Custom endpoint if needed
+    endpoint: '/api/state-capture',
+
+    // Adjust debounce time
+    debounceTime: 1000
   });
+
+  // Optional: Attach to window for debugging
+  if (typeof window !== 'undefined') {
+    (window as any).stateObserver = stateObserver;
+  }
 }
 
 interface Props {

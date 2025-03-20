@@ -6,6 +6,7 @@ import path from 'path';
 
 // https://astro.build/config
 export default defineConfig({
+  output: 'server', // Enable server-side rendering
   integrations: [
     react(),
     AstroPWA({

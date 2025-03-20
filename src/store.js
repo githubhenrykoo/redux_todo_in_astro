@@ -13,6 +13,9 @@ import systemReducer from './features/systemSlice';
 import todoReducer from './features/todoSlice';
 import resizeableReducer from './features/resizeableSlice';
 
+// Middleware
+import { mcardPersistenceMiddleware } from './middleware/mcardPersistenceMiddleware';
+
 const store = configureStore({
   reducer: {
     // Core State
@@ -34,7 +37,7 @@ const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false
-    }),
+    }).concat(mcardPersistenceMiddleware),
   devTools: {
     name: 'Progressive Knowledge Container',
     trace: true,

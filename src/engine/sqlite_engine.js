@@ -1,90 +1,100 @@
 import { MCardFromData } from '../content/model/mcard.js';
 import { Page } from '../content/model/card-collection.js';
-import { DEFAULT_PAGE_SIZE, CARDS_DB_PATH } from '../config/config_constants.js';
+import { DEFAULT_PAGE_SIZE } from '../config/config_constants.js';
 import { MCARD_TABLE_SCHEMA, TRIGGERS } from '../models/database_schemas.js';
-import { promises as fs } from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
+import fs from 'fs';
 
 class SQLiteConnection {
   /**
    * Create a new SQLite database connection
    * @param {string} dbPath - Path to the SQLite database file
    */
-  constructor(dbPath = CARDS_DB_PATH) {
+  constructor(dbPath = path.resolve(__dirname, '../test/db/test_cards.db')) {
     this.dbPath = dbPath;
     this.conn = null;
-    this.setup_database();
-  }
-
-  /**
-   * Set up the database, creating the file and table if they don't exist
-   */
-  async setup_database() {
-    try {
-      // Ensure the directory exists
-      const dbDir = path.dirname(this.dbPath);
-      await fs.mkdir(dbDir, { recursive: true });
-
-      // Create the database connection
-      this.conn = new Database(this.dbPath);
-
-      // Drop existing tables if they exist
-      const dropTableStatements = [
-        'DROP TABLE IF EXISTS documents',
-        'DROP TABLE IF EXISTS card'
-      ];
-      dropTableStatements.forEach(stmt => {
-        this.conn.prepare(stmt).run();
-      });
-
-      // Create the documents table using FTS5
-      this.conn.prepare(MCARD_TABLE_SCHEMA.documents).run();
-
-      // Create the card table
-      this.conn.prepare(MCARD_TABLE_SCHEMA.card).run();
-
-      // Create triggers
-      TRIGGERS.forEach(trigger => {
-        this.conn.prepare(trigger).run();
-      });
-    } catch (error) {
-      console.error(`Error setting up database: ${error.message}`);
-      throw error;
-    }
   }
 
   /**
    * Establish a database connection
    */
   connect() {
-    if (!this.conn) {
-      try {
-        this.conn = new Database(this.dbPath);
-
-        // Check if the database is empty and initialize schema if necessary
-        const tablesStmt = this.conn.prepare("SELECT name FROM sqlite_master WHERE type='table'");
-        const tables = tablesStmt.all();
-
-        if (tables.length === 0) {
-          // Drop existing tables and triggers
-          this.conn.prepare("DROP TABLE IF EXISTS card").run();
-          this.conn.prepare("DROP TABLE IF EXISTS documents").run();
-
-          // Create tables from schema
-          Object.entries(MCARD_TABLE_SCHEMA).forEach(([tableName, schema]) => {
-            this.conn.prepare(schema).run();
-          });
-
-          // Create triggers
-          TRIGGERS.forEach((trigger) => {
-            this.conn.prepare(trigger).run();
-          });
-        }
-      } catch (error) {
-        console.error(`Database error connecting to ${this.dbPath}: ${error.message}`);
-        throw error;
+    try {
+      // Ensure the directory exists
+      const dir = path.dirname(this.dbPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
       }
+
+      // Remove existing database file to start fresh
+      if (fs.existsSync(this.dbPath)) {
+        fs.unlinkSync(this.dbPath);
+      }
+
+      // Open the database connection with appropriate flags
+      this.conn = new Database(this.dbPath, {
+        // Open in read-write mode, create if not exists
+        mode: Database.OPEN_READWRITE | Database.OPEN_CREATE,
+        // Disable verbose mode to reduce unnecessary logging
+        verbose: null
+      });
+
+      return this;
+    } catch (error) {
+      console.error(`Database connection error: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Set up the database, creating the file and table if they don't exist
+   */
+  setup_database() {
+    try {
+      // Ensure the connection is open
+      if (!this.conn) {
+        this.connect();
+      }
+
+      // Drop existing tables if they exist
+      const dropTableStatements = [
+        'DROP TABLE IF EXISTS documents',
+        'DROP TABLE IF EXISTS card',
+        'DROP TABLE IF EXISTS card_metadata'
+      ];
+
+      dropTableStatements.forEach(stmt => {
+        try {
+          this.conn.prepare(stmt).run();
+        } catch (dropError) {
+          console.warn(`Warning during table drop: ${dropError.message}`);
+        }
+      });
+
+      // Create tables from schema
+      Object.entries(MCARD_TABLE_SCHEMA).forEach(([tableName, schema]) => {
+        try {
+          this.conn.prepare(schema).run();
+        } catch (createError) {
+          console.error(`Error creating table ${tableName}: ${createError.message}`);
+          throw createError;
+        }
+      });
+
+      // Create triggers
+      TRIGGERS.forEach((trigger) => {
+        try {
+          this.conn.prepare(trigger).run();
+        } catch (triggerError) {
+          console.warn(`Warning creating trigger: ${triggerError.message}`);
+        }
+      });
+
+      return this;
+    } catch (error) {
+      console.error(`Database setup error: ${error.message}`);
+      throw error;
     }
   }
 
@@ -92,9 +102,13 @@ class SQLiteConnection {
    * Close the database connection
    */
   disconnect() {
-    if (this.conn) {
-      this.conn.close();
-      this.conn = null;
+    try {
+      if (this.conn) {
+        this.conn.close();
+        this.conn = null;
+      }
+    } catch (error) {
+      console.warn(`Error during database disconnect: ${error.message}`);
     }
   }
 
@@ -125,6 +139,7 @@ class SQLiteEngine {
   constructor(connection = null) {
     this.connection = connection || new SQLiteConnection();
     this.connection.connect();
+    this.connection.setup_database();
     this.clearStmt = this.connection.conn.prepare('DELETE FROM card');
   }
 

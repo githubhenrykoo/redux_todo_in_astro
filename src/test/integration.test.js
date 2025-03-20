@@ -25,24 +25,36 @@ describe('Integration Test: MCard + GTime + CardCollection + SQLiteEngine', () =
    * Fixed database path for testing.
    * This path is used to ensure consistent testing and is reset after each test run.
    */
-  const testDbPath = path.resolve(__dirname, 'test_cards.db');
+  const testDbPath = path.resolve(__dirname, 'db/test_cards.db');
 
   beforeEach(async () => {
-    // Initialize the SQLite connection with the fixed test database
-    sqliteConnection = new SQLiteConnection(testDbPath);
-    await sqliteConnection.setup_database();
-    
-    // Initialize the SQLite engine with the connection
-    sqliteEngine = new SQLiteEngine(sqliteConnection);
-    
-    // Initialize CardCollection with the SQLite engine
-    cardCollection = new CardCollection(sqliteEngine);
+    try {
+      // Initialize the SQLite connection with the fixed test database
+      sqliteConnection = new SQLiteConnection(testDbPath);
+      
+      // Ensure database setup is robust
+      sqliteConnection.connect();
+      await sqliteConnection.setup_database();
+      
+      // Initialize the SQLite engine with the connection
+      sqliteEngine = new SQLiteEngine(sqliteConnection);
+      
+      // Initialize CardCollection with the SQLite engine
+      cardCollection = new CardCollection(sqliteEngine);
+    } catch (error) {
+      console.error('Setup error:', error);
+      throw error;
+    }
   });
 
   afterEach(() => {
     // Close the database connection
     if (sqliteConnection && sqliteConnection.conn) {
-      sqliteConnection.disconnect();
+      try {
+        sqliteConnection.disconnect();
+      } catch (error) {
+        console.warn('Disconnect error:', error);
+      }
     }
   });
 

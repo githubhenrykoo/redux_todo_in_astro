@@ -5,11 +5,14 @@ export const CommunicationTest: React.FC = () => {
   const [message, setMessage] = useState('');
   const [response, setResponse] = useState<any>(null);
   const [currentState, setCurrentState] = useState<any>(null);
+  const [hash, setHash] = useState<string | null>(null);
   
   // Get current state directly instead of using useSelector
   const fetchCurrentState = () => {
     try {
       const storeState = store.getState();
+      console.log('Retrieved Redux state:', storeState);
+      console.log('Redux state contains keys:', Object.keys(storeState));
       setCurrentState(storeState);
       return storeState;
     } catch (error) {
@@ -26,23 +29,41 @@ export const CommunicationTest: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('Sending state to server...');
+    setHash(null);
     
     try {
       // Get the current store state
       const storeState = fetchCurrentState();
-      console.log('Current store state:', storeState);
+      console.log('Current store state type:', typeof storeState);
+      console.log('Current store state keys:', Object.keys(storeState));
       
-      // Send only the store state
-      const payload = storeState;
+      // Convert state to a simpler format that's easy to send
+      const simplePayload: Record<string, any> = {};
       
-      console.log('Sending payload:', payload);
+      // Only add properties that exist in the state
+      if ('theme' in storeState) simplePayload.theme = storeState.theme;
+      if ('user' in storeState) simplePayload.user = storeState.user;
+      if ('content' in storeState) simplePayload.content = storeState.content;
+      if ('todo' in storeState) simplePayload.todo = storeState.todo;
+      
+      // Add basic information if nothing else is available
+      if (Object.keys(simplePayload).length === 0) {
+        simplePayload.basic = {
+          timestamp: new Date().toISOString(),
+          availableKeys: Object.keys(storeState)
+        };
+      }
+      
+      console.log('Sending simplified payload:', simplePayload);
+      const stringified = JSON.stringify(simplePayload);
+      console.log('Payload JSON string length:', stringified.length);
       
       const response = await fetch('/api/submit', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: stringified
       });
 
       console.log('Response status:', response.status);
@@ -54,7 +75,13 @@ export const CommunicationTest: React.FC = () => {
         const data = JSON.parse(responseText);
         console.log('Parsed response data:', data);
         setResponse(data);
-        setMessage(data.message || 'State sent successfully');
+        
+        if (data.hash) {
+          setHash(data.hash);
+          setMessage(`State sent successfully! Hash: ${data.hash}`);
+        } else {
+          setMessage(data.message || 'State sent successfully');
+        }
       } catch (parseError) {
         console.error('Error parsing response:', parseError);
         setMessage('Server responded but sent invalid JSON');
@@ -87,6 +114,18 @@ export const CommunicationTest: React.FC = () => {
       {message && (
         <div className="mt-4 p-3 bg-gray-100 rounded text-center">
           {message}
+        </div>
+      )}
+      
+      {hash && (
+        <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+          <h3 className="font-semibold mb-1">Created Card Hash:</h3>
+          <div className="bg-blue-100 p-2 rounded font-mono text-sm overflow-auto select-all">
+            {hash}
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Use this hash to look up the stored data using the Card Viewer below
+          </p>
         </div>
       )}
       

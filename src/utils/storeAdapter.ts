@@ -10,8 +10,14 @@ let engineInstance: SQLiteEngine | null = null;
  */
 export function getStoreEngine(): SQLiteEngine {
   if (!engineInstance) {
-    const connection = SQLiteConnection.getInstance(CARDS_DB_PATH);
-    engineInstance = new SQLiteEngine(connection);
+    try {
+      const connection = SQLiteConnection.getInstance(CARDS_DB_PATH);
+      engineInstance = new SQLiteEngine(connection);
+      console.log('SQLiteEngine initialized successfully');
+    } catch (error) {
+      console.error('Error initializing SQLiteEngine:', error);
+      throw error;
+    }
   }
   return engineInstance;
 }
@@ -22,9 +28,14 @@ export function getStoreEngine(): SQLiteEngine {
  * @returns Buffer or Uint8Array depending on environment
  */
 function safeBufferFrom(content: string): any {
-  // Use TextEncoder to convert string to Uint8Array in any environment
-  const encoder = new TextEncoder();
-  return encoder.encode(content);
+  try {
+    // Use TextEncoder to convert string to Uint8Array in any environment
+    const encoder = new TextEncoder();
+    return encoder.encode(content);
+  } catch (error) {
+    console.error('Error creating buffer:', error);
+    throw error;
+  }
 }
 
 /**
@@ -34,23 +45,34 @@ function safeBufferFrom(content: string): any {
  */
 export function storeData(data: any): string {
   try {
+    // Log what we're trying to store
+    console.log('storeData called with data type:', typeof data);
+    console.log('Data has these keys:', Object.keys(data || {}));
+    
     // Format the data for storage
     let content: string;
     
     // If it's already a string, use it directly
     if (typeof data === 'string') {
       content = data;
+      console.log('Data is already a string, length:', content.length);
     } else {
       // Otherwise, stringify it
       content = JSON.stringify(data);
+      console.log('Stringified data, length:', content.length);
     }
     
     // Create an MCard with the content using our safe buffer approach
-    const card = new MCard(safeBufferFrom(content));
+    const buffer = safeBufferFrom(content);
+    console.log('Created buffer with length:', buffer.length);
+    
+    const card = new MCard(buffer);
+    console.log('Created MCard successfully');
     
     // Store the card using the engine
     const engine = getStoreEngine();
     const hashValue = engine.add(card);
+    console.log('Added card to engine, received hash:', hashValue);
     
     return hashValue;
   } catch (error) {
@@ -66,17 +88,27 @@ export function storeData(data: any): string {
  */
 export function getCardByHash(hash: string): any {
   try {
+    console.log('Getting card with hash:', hash);
     const engine = getStoreEngine();
     const card = engine.get(hash);
     
     if (!card) {
+      console.log('No card found with hash:', hash);
       return null;
     }
     
+    console.log('Card found, content type:', typeof card.content);
+    
     // Try to parse the content as JSON if possible
     try {
-      return JSON.parse(card.content.toString());
-    } catch {
+      const contentStr = card.content.toString();
+      console.log('Card content as string length:', contentStr.length);
+      
+      const parsed = JSON.parse(contentStr);
+      console.log('Successfully parsed card content as JSON');
+      return parsed;
+    } catch (parseError) {
+      console.log('Failed to parse as JSON, returning as string:', parseError);
       // If parsing fails, return the raw content as string
       return card.content.toString();
     }
@@ -94,8 +126,11 @@ export function getCardByHash(hash: string): any {
  */
 export function getAllCards(pageNumber = 1, pageSize = 10): any {
   try {
+    console.log(`Getting cards page ${pageNumber} with size ${pageSize}`);
     const engine = getStoreEngine();
-    return engine.get_all(pageNumber, pageSize);
+    const results = engine.get_all(pageNumber, pageSize);
+    console.log(`Retrieved ${results.items.length} cards`);
+    return results;
   } catch (error) {
     console.error('Error retrieving all cards:', error);
     throw error;

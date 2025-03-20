@@ -2,120 +2,85 @@ import type { APIRoute } from 'astro';
 import { storeData } from '../../utils/storeAdapter.js';
 
 export const POST: APIRoute = async ({ request }) => {
+  console.log('API: Submit endpoint hit');
+  
   try {
-    // Log the entire request for debugging
-    console.log('Received request method:', request.method);
-    console.log('Received request headers:', Object.fromEntries(request.headers));
+    // Get request body as text
+    const bodyText = await request.text();
+    console.log('API: Request body length:', bodyText.length);
     
-    // Check content type
-    const contentType = request.headers.get('content-type');
-    console.log('Content-Type:', contentType);
-
-    let receivedData: any = {};
-    let rawData: string = '';
-    
-    // Try to extract data using multiple methods
-    try {
-      // First try to read as text
-      rawData = await request.clone().text();
-      console.log('Raw request body (string):', rawData);
-      console.log('Raw request body (length):', rawData.length);
-      
-      // Try to parse as JSON first since we're expecting Redux state data
-      if (rawData.trim().length > 0) {
-        try {
-          receivedData = JSON.parse(rawData);
-          console.log('Parsed as JSON:', receivedData);
-        } catch (jsonError) {
-          console.log('Not valid JSON, trying form data...');
-          
-          // Try to parse as form data if JSON fails
-          try {
-            const formData = await request.clone().formData();
-            console.log('Form data entries:', [...formData.entries()]);
-            
-            // Convert FormData to object
-            for (const [key, value] of formData.entries()) {
-              receivedData[key] = value;
+    // If we have data, try to parse it as JSON
+    if (bodyText && bodyText.trim()) {
+      try {
+        // Parse JSON
+        const jsonData = JSON.parse(bodyText);
+        console.log('API: Successfully parsed JSON with keys:', Object.keys(jsonData));
+        
+        // Store in database
+        const hash = storeData(jsonData);
+        console.log('API: Successfully stored data with hash:', hash);
+        
+        // Return success response
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Data stored successfully',
+            hash: hash
+          }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json'
             }
-          } catch (formError) {
-            console.log('Not valid form data either, continuing...');
           }
-        }
+        );
+      } catch (error) {
+        console.error('API: Error parsing JSON:', error);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Invalid JSON data',
+            message: 'Could not parse request body as JSON'
+          }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
       }
-      
-      // If we still don't have data, use the raw data as-is
-      if (Object.keys(receivedData).length === 0) {
-        receivedData = { 
-          rawInput: rawData || 'No input data',
-          timestamp: new Date().toISOString()
-        };
-      }
-    } catch (error) {
-      console.error('Error extracting request data:', error);
-      // Create a fallback response with empty data
-      receivedData = { 
-        error: 'Failed to extract data',
-        timestamp: new Date().toISOString()
-      };
-    }
-
-    // Log the parsed data
-    console.log('Final processed data:', receivedData);
-
-    // Save to database
-    try {
-      // Store the data and get the hash value
-      const hash = storeData(receivedData);
-      console.log(`Successfully created Mcard with hash: ${hash}`);
-      
-      // Return a success response with the hash value
+    } else {
+      // No data provided
+      console.log('API: No data provided in request body');
       return new Response(
         JSON.stringify({
-          message: 'Data saved successfully as Mcard!',
-          hash: hash,
-          receivedData: receivedData
+          success: false,
+          error: 'No data provided',
+          message: 'Request body is empty'
         }),
-        { 
-          status: 200, 
-          headers: { 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-    } catch (dbError) {
-      console.error('Error saving to database:', dbError);
-      
-      return new Response(
-        JSON.stringify({
-          error: 'Database error',
-          message: 'Received data but failed to save to database',
-          details: dbError instanceof Error ? dbError.message : 'Unknown database error',
-          receivedData: receivedData
-        }),
-        { 
-          status: 500, 
-          headers: { 
-            'Content-Type': 'application/json' 
-          } 
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
       );
     }
   } catch (error) {
-    // Handle any unexpected errors
-    console.error('Unexpected error processing request:', error);
-
+    // Server error
+    console.error('API: Unexpected error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Unexpected server error', 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
+      JSON.stringify({
+        success: false,
+        error: 'Server error',
+        message: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { 
-        status: 500, 
-        headers: { 
-          'Content-Type': 'application/json' 
-        } 
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
       }
     );
   }

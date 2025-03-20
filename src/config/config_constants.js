@@ -115,7 +115,6 @@ export default {
   // Database Constants
   DEFAULT_PAGE_SIZE,
   CARDS_DB_PATH,
-  DEFAULT_CARDS_DB_PATH,
 
   // Store Constants
   DEFAULT_HASH_ALGORITHM,
@@ -140,7 +139,6 @@ export const configConstants = {
   DEFAULT_PAGE_SIZE,
   CARDS_DB_PATH,
   TEST_DB_PATH,
-  DEFAULT_CARDS_DB_PATH,
 
   // Store Constants
   DEFAULT_HASH_ALGORITHM,
@@ -165,7 +163,6 @@ export {
   DEFAULT_PAGE_SIZE,
   CARDS_DB_PATH,
   TEST_DB_PATH,
-  DEFAULT_CARDS_DB_PATH,
 
   // Store Constants
   DEFAULT_HASH_ALGORITHM,

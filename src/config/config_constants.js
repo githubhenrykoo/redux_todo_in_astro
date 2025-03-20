@@ -8,7 +8,7 @@ const projectRoot = process.cwd();
 // Database Configuration
 const DEFAULT_PAGE_SIZE = process.env.DEFAULT_PAGE_SIZE || 10;
 const CARDS_DB_PATH = process.env.MCARD_DB_PATH || path.join(projectRoot, 'public', 'data', 'cards.db');
-const TEST_DB_PATH = process.env.TEST_DB_PATH || path.join(projectRoot,'src','test', 'data', 'db' ,'test.db');
+const TEST_DB_PATH = process.env.TEST_DB_PATH || path.join(projectRoot,'src','test', 'db' ,'test.db');
 // Default Configuration Values
 const DEFAULT_HASH_ALGORITHM = process.env.MCARD_HASH_ALGORITHM || 'md5';
 const DEFAULT_HASH_LENGTH = process.env.DEFAULT_HASH_LENGTH || 64;
@@ -115,6 +115,7 @@ export default {
   // Database Constants
   DEFAULT_PAGE_SIZE,
   CARDS_DB_PATH,
+  DEFAULT_CARDS_DB_PATH,
 
   // Store Constants
   DEFAULT_HASH_ALGORITHM,
@@ -139,6 +140,7 @@ export const configConstants = {
   DEFAULT_PAGE_SIZE,
   CARDS_DB_PATH,
   TEST_DB_PATH,
+  DEFAULT_CARDS_DB_PATH,
 
   // Store Constants
   DEFAULT_HASH_ALGORITHM,
@@ -163,6 +165,7 @@ export {
   DEFAULT_PAGE_SIZE,
   CARDS_DB_PATH,
   TEST_DB_PATH,
+  DEFAULT_CARDS_DB_PATH,
 
   // Store Constants
   DEFAULT_HASH_ALGORITHM,
@@ -181,4 +184,3 @@ export {
   // Project Root
   projectRoot
 };
-

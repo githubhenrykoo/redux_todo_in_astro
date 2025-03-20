@@ -2,7 +2,6 @@ import { configureStore, createSlice } from '@reduxjs/toolkit';
 import { mcardPersistenceMiddleware } from '../middleware/mcardPersistenceMiddleware.js';
 import { SQLiteEngine, SQLiteConnection } from '../engine/sqlite_engine.js';
 import McardStorageService from '../services/mcardStorageService.js';
-import { MCard } from '../content/model/mcard.js';
 import path from 'path';
 import fs from 'fs/promises';
 

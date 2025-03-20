@@ -29,9 +29,8 @@ const store = configureStore({
     panellayout: panellayoutReducer,
     activePanel: activePanelReducer,
     resizeable: resizeableReducer,
-    
   },
-  middleware: (getDefaultMiddleware) =>
+  middleware: (getDefaultMiddleware) => 
     getDefaultMiddleware({
       serializableCheck: false
     }),

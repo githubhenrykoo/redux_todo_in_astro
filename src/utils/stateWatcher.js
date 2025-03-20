@@ -4,7 +4,6 @@ import { SQLiteEngine, SQLiteConnection } from '../engine/sqlite_engine.js';
 import { HASH_ALGORITHM_SHA256 } from '../config/config_constants.js';
 import path from 'path';
 import fs from 'fs';
-import axios from 'axios';
 
 // Cross-environment state persistence middleware
 export function createStatePersistenceMiddleware() {
@@ -102,14 +101,12 @@ export class StateObserver {
   constructor(store, options = {}) {
     this.store = store;
     this.options = {
-      // Default options
       shouldCapture: () => true,
       transformState: (state) => state,
       endpoint: '/api/state-capture',
-      debounceTime: 500,
+      debounceTime: 1000,
       ...options
     };
-
     this.lastSentState = null;
     this.debounceTimer = null;
     this.unsubscribe = null;
@@ -132,22 +129,18 @@ export class StateObserver {
     return this;
   }
 
-  // Stop observing
+  // Stop observing store changes
   stop() {
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
-      console.log('🛑 State Observer Stopped');
     }
-    return this;
   }
 
   // Capture and send state
-  captureState() {
-    // Clear previous debounce timer
+  async captureState() {
     clearTimeout(this.debounceTimer);
-
-    // Set new debounce timer
+    
     this.debounceTimer = setTimeout(async () => {
       try {
         const currentState = this.store.getState();
@@ -161,9 +154,8 @@ export class StateObserver {
         // Transform state
         const transformedState = this.options.transformState(currentState);
 
-        // Prepare state to send
+        // Prepare payload
         const stateToSend = {
-          timestamp: new Date().toISOString(),
           action: currentAction?.type || 'unknown',
           state: transformedState
         };
@@ -174,10 +166,18 @@ export class StateObserver {
           return;
         }
 
-        // Send to server
-        await axios.post(this.options.endpoint, stateToSend, {
-          headers: { 'Content-Type': 'application/json' }
+        // Send to server using fetch
+        const response = await fetch(this.options.endpoint, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json' 
+          },
+          body: JSON.stringify(stateToSend)
         });
+
+        if (!response.ok) {
+          throw new Error('Failed to send state');
+        }
 
         // Update last sent state
         this.lastSentState = stateString;
@@ -188,11 +188,6 @@ export class StateObserver {
   }
 }
 
-// Convenience function to create and start observer
-export function initStateObserver(store, options = {}) {
-  // Only run on client side
-  if (typeof window === 'undefined') return null;
-
-  const observer = new StateObserver(store, options);
-  return observer.start();
+export function initStateObserver(store, options) {
+  return new StateObserver(store, options).start();
 }

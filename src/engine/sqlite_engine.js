@@ -1,6 +1,6 @@
 import { MCardFromData } from '../content/model/mcard.js';
 import { Page } from '../content/model/card-collection.js';
-import { DEFAULT_PAGE_SIZE } from '../config/config_constants.js';
+import { DEFAULT_PAGE_SIZE, CARDS_DB_PATH } from '../config/config_constants.js';
 import { MCARD_TABLE_SCHEMA, TRIGGERS } from '../models/database_schemas.js';
 import path from 'path';
 import Database from 'better-sqlite3';
@@ -9,10 +9,21 @@ import fs from 'fs';
 class SQLiteConnection {
   /**
    * Create a new SQLite database connection
-   * @param {string} dbPath - Path to the SQLite database file
+   * @param {string} [dbPath] - Optional path to the SQLite database file
+   * Prioritizes the provided path, then environment variable, then default config
    */
-  constructor(dbPath = path.resolve(__dirname, '../test/db/test_cards.db')) {
-    this.dbPath = dbPath;
+  constructor(dbPath = null) {
+    // Determine the database path in order of priority:
+    // 1. Explicitly provided path
+    // 2. Environment variable
+    // 3. Default configuration path
+    this.dbPath = dbPath || 
+                  process.env.MCARD_DB_PATH || 
+                  CARDS_DB_PATH;
+    
+    // Ensure the path is an absolute path
+    this.dbPath = path.resolve(this.dbPath);
+    
     this.conn = null;
   }
 

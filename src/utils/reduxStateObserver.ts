@@ -1,27 +1,46 @@
 import { MCard } from '../models/MCard';
 import { SQLiteEngine } from '../engine/sqlite_engine';
+import type { RootState } from '../types/store';
+import type { Action } from '@reduxjs/toolkit';
+
+interface StateObserverOptions {
+  shouldCapture?: (state: RootState, action: Action | null) => boolean;
+  transformState?: (state: RootState) => any;
+}
+
+interface StoreInterface {
+  getState: () => RootState;
+  dispatch: (action: Action) => any;
+  subscribe: (callback: () => void) => () => void;
+}
 
 export class ReduxStateObserver {
-  constructor(store, options = {}) {
+  private store: StoreInterface;
+  private options: Required<StateObserverOptions>;
+  private previousState: RootState;
+  private lastDispatchedAction: Action | null;
+  private unsubscribe: (() => void) | null;
+  private originalDispatch: (action: Action) => any;
+
+  constructor(store: StoreInterface, options: StateObserverOptions = {}) {
     this.store = store;
     this.options = {
-      // Optional configuration to filter or modify state capture
       shouldCapture: options.shouldCapture || (() => true),
-      transformState: options.transformState || (state => state)
+      transformState: options.transformState || ((state) => state)
     };
     this.previousState = store.getState();
     this.lastDispatchedAction = null;
+    this.unsubscribe = null;
+    this.originalDispatch = store.dispatch;
   }
 
-  observe() {
+  observe(): void {
     this.unsubscribe = this.store.subscribe(() => {
       const currentState = this.store.getState();
       
       try {
-        // Use the last dispatched action from the store
         const action = this.lastDispatchedAction;
         
-        // Optional filtering of state capture
         if (this.options.shouldCapture(currentState, action)) {
           this.persistState(action, currentState);
         }
@@ -33,14 +52,13 @@ export class ReduxStateObserver {
     });
 
     // Wrap the original dispatch to capture the last action
-    const originalDispatch = this.store.dispatch;
-    this.store.dispatch = (action) => {
+    this.store.dispatch = (action: Action) => {
       this.lastDispatchedAction = action;
-      return originalDispatch(action);
+      return this.originalDispatch(action);
     };
   }
 
-  persistState(action, state) {
+  persistState(action: Action | null, state: RootState): void {
     // Create MCard with full state snapshot
     const mcard = new MCard(
       JSON.stringify({
@@ -56,19 +74,22 @@ export class ReduxStateObserver {
     SQLiteEngine.getInstance().storeMCard(mcard);
   }
 
-  stop() {
+  stop(): void {
     if (this.unsubscribe) {
       this.unsubscribe();
-      // Restore original dispatch if needed
+      this.unsubscribe = null;
       this.store.dispatch = this.originalDispatch;
     }
   }
 }
 
 // Singleton initialization
-let observerInstance = null;
+let observerInstance: ReduxStateObserver | null = null;
 
-export const initStateObserver = (store, options = {}) => {
+export const initStateObserver = (
+  store: StoreInterface, 
+  options: StateObserverOptions = {}
+): ReduxStateObserver => {
   if (!observerInstance) {
     observerInstance = new ReduxStateObserver(store, options);
     observerInstance.observe();
@@ -76,4 +97,4 @@ export const initStateObserver = (store, options = {}) => {
   return observerInstance;
 };
 
-export const getStateObserver = () => observerInstance;
+export const getStateObserver = (): ReduxStateObserver | null => observerInstance;

@@ -8,6 +8,23 @@ import fs from 'fs';
 
 class SQLiteConnection {
   /**
+   * Singleton instance management
+   */
+  static _instance = null;
+
+  /**
+   * Get singleton instance of SQLiteConnection
+   * @param {string} [dbPath] - Optional path to the SQLite database file
+   * @returns {SQLiteConnection} Singleton instance
+   */
+  static getInstance(dbPath = null) {
+    if (!this._instance) {
+      this._instance = new SQLiteConnection(dbPath);
+    }
+    return this._instance;
+  }
+
+  /**
    * Create a new SQLite database connection
    * @param {string} [dbPath] - Optional path to the SQLite database file
    * Prioritizes the provided path, then environment variable, then default config
@@ -104,7 +121,7 @@ class SQLiteConnection {
 
       return this;
     } catch (error) {
-      console.error(`Database setup error: ${error.message}`);
+      console.error('Database setup failed:', error);
       throw error;
     }
   }
@@ -140,6 +157,20 @@ class SQLiteConnection {
       this.conn.prepare('ROLLBACK').run();
     }
   }
+
+  /**
+   * Add a method to execute raw queries
+   * @param {string} query - Raw query to execute
+   * @param {array} params - Parameters for the query
+   * @returns {array} Results of the query
+   */
+  executeQuery(query, params = []) {
+    if (!this.conn) {
+      this.connect();
+    }
+    const stmt = this.conn.prepare(query);
+    return stmt.all(...params);
+  }
 }
 
 class SQLiteEngine {
@@ -148,7 +179,7 @@ class SQLiteEngine {
    * @param {SQLiteConnection} connection - Database connection
    */
   constructor(connection = null) {
-    this.connection = connection || new SQLiteConnection();
+    this.connection = connection || SQLiteConnection.getInstance();
     this.connection.connect();
     this.connection.setup_database();
     this.clearStmt = this.connection.conn.prepare('DELETE FROM card');

@@ -50,11 +50,6 @@ async function startDevServer() {
   
   server.stdout.on('data', (data) => {
     console.log(`Server: ${data}`);
-    
-    // Check for the "Local" URL in the output
-    if (data.toString().includes('http://localhost:4321')) {
-      console.log('Server is ready');
-    }
   });
   
   server.stderr.on('data', (data) => {
@@ -66,6 +61,7 @@ async function startDevServer() {
     const running = await isServerRunning('http://localhost:4321');
     if (running) {
       console.log('Dev server started successfully');
+      await sleep(3000); // Wait for full initialization
       return server;
     }
     console.log('Waiting for server to start...');
@@ -79,17 +75,13 @@ async function startDevServer() {
 
 async function checkDatabaseChanges(initialState) {
   try {
-    // Initialize SQLite engine
     const sqliteEngine = new SQLiteEngine();
-    
-    // Get all cards
     const page = sqliteEngine.get_all();
     const cardEntries = page.items;
     
-    console.log('\nDatabase Contents:');
+    console.log('\n🔍 Database Contents:');
     console.log(`Found ${cardEntries.length} card entries`);
     
-    // Compare with initial state
     if (initialState) {
       const newEntries = cardEntries.filter(entry => 
         !initialState.some(initialEntry => 
@@ -97,21 +89,29 @@ async function checkDatabaseChanges(initialState) {
         )
       );
       
-      console.log(`\nNew Entries Added: ${newEntries.length}`);
+      console.log(`\n✨ New Entries Added: ${newEntries.length}`);
       
-      // Log details of new entries
       for (const entry of newEntries) {
-        console.log('\nNew Entry:');
+        console.log('\n📦 New Entry:');
         console.log('Hash:', entry.hash);
-        console.log('Content:', entry.content.toString());
+        try {
+          const parsedContent = JSON.parse(entry.content.toString());
+          console.log('Content:', JSON.stringify(parsedContent, null, 2));
+        } catch (parseError) {
+          console.log('Content (raw):', entry.content.toString());
+        }
         console.log('Timestamp:', entry.g_time);
+      }
+
+      if (newEntries.length === 0) {
+        throw new Error('❌ No new state entries were captured during the test');
       }
     }
     
     return cardEntries;
   } catch (error) {
-    console.error('Database check error:', error);
-    return [];
+    console.error('❌ Database check error:', error);
+    throw error;
   }
 }
 
@@ -121,8 +121,8 @@ async function main() {
   
   // Launch browser
   const browser = await puppeteer.launch({ 
-    headless: false, // Set to true for headless mode
-    slowMo: 50 // Slow down operations to see what's happening
+    headless: false,
+    slowMo: 50
   });
 
   try {
@@ -137,21 +137,13 @@ async function main() {
     
     // Navigate to the development server
     console.log('Navigating to development server...');
-    await page.goto('http://localhost:4321');
-    await sleep(2000); // Wait for page to load
-    
-    // Take a screenshot at the beginning
-    await page.screenshot({ path: path.join(DATA_DIR, 'screenshot-initial.png') });
-    console.log('Saved initial screenshot');
-    
-    // Save initial page HTML
-    const initialPageContent = await page.content();
-    fs.writeFileSync(path.join(DATA_DIR, 'initial-page.html'), initialPageContent);
+    await page.goto('http://localhost:4321', { waitUntil: 'networkidle0' });
+    await sleep(3000);
     
     // Find and interact with panel change buttons
     console.log('Locating panel change buttons...');
-    const todoLayoutBtn = await page.waitForSelector('#todoLayoutBtn');
-    const generateLayoutBtn = await page.waitForSelector('#generateLayoutBtn');
+    const todoLayoutBtn = await page.waitForSelector('#todoLayoutBtn', { timeout: 5000 });
+    const generateLayoutBtn = await page.waitForSelector('#generateLayoutBtn', { timeout: 5000 });
     console.log('Found panel buttons');
     
     // Interact with buttons
@@ -163,79 +155,24 @@ async function main() {
       
       // Click the button
       await buttons[i].click();
-      await sleep(1000); // Wait for state to update
+      await sleep(2000); // Wait for state update
       
       // Take a screenshot after each button click
       await page.screenshot({ 
         path: path.join(DATA_DIR, `screenshot-panel-${i + 1}.png`) 
       });
       console.log(`Saved screenshot for panel ${i + 1}`);
-      
-      // Save page HTML after button click
-      const pageContent = await page.content();
-      fs.writeFileSync(path.join(DATA_DIR, `page-panel-${i + 1}.html`), pageContent);
-    }
-    
-    // Search functionality
-    console.log('Interacting with search input...');
-    
-    // Try multiple selectors for search input
-    const searchSelectors = [
-      'input#search', 
-      'input[placeholder="Search..."]', 
-      'input[type="search"]'
-    ];
-    
-    let searchInput = null;
-    for (const selector of searchSelectors) {
-      try {
-        searchInput = await page.waitForSelector(selector, { timeout: 2000 });
-        console.log(`Found search input with selector: ${selector}`);
-        break;
-      } catch {
-        console.log(`Selector ${selector} not found`);
-      }
-    }
-    
-    // If search input is found, interact with it
-    if (searchInput) {
-      // Enter different search terms
-      const searchTerms = ['test', 'todo', 'content'];
-      for (const term of searchTerms) {
-        console.log(`Searching for: ${term}`);
-        await searchInput.type(term);
-        await sleep(1000);
-        
-        // Take screenshot of search results
-        await page.screenshot({
-          path: path.join(DATA_DIR, `screenshot-search-${term}.png`)
-        });
-        
-        // Save page HTML during search
-        const searchPageContent = await page.content();
-        fs.writeFileSync(path.join(DATA_DIR, `page-search-${term}.html`), searchPageContent);
-        
-        // Clear the search
-        await page.evaluate(() => {
-          const searchInput = document.querySelector('input#search, input[placeholder="Search..."], input[type="search"]');
-          if (searchInput) {
-            searchInput.value = '';
-            searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-            searchInput.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        });
-        await sleep(500);
-      }
-    } else {
-      console.log('No search input found');
     }
     
     // Check database contents and changes
     console.log('\nChecking database contents...');
-    await checkDatabaseChanges(initialEntries);
+    const finalEntries = await checkDatabaseChanges(initialEntries);
+
+    console.log('\n✅ State Capture Test Completed Successfully!');
 
   } catch (error) {
-    console.error('Test failed:', error);
+    console.error('❌ Test failed:', error);
+    throw error;
   } finally {
     await browser.close();
     

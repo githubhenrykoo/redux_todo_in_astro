@@ -1,7 +1,7 @@
-import { MCardFromData } from '../content/model/mcard.js';
 import { SQLiteConnection } from '../engine/sqlite_engine';
 import type { RootState } from '../types/store';
 import type { Action } from '@reduxjs/toolkit';
+import { MCardFromData } from '../content/model/mcard.js';
 
 // Extend Action type to include payload
 interface PayloadAction<T = any> extends Action {
@@ -64,14 +64,17 @@ export class ReduxStateObserver {
   }
 
   persistState(action: PayloadAction | null, state: RootState): void {
-    // Create MCard with full state snapshot
+    // Serialize state snapshot
+    const serializedState = JSON.stringify({
+      type: action?.type || 'unknown',
+      payload: action?.payload,
+      timestamp: new Date().toISOString(),
+      state: this.options.transformState(state)
+    });
+
+    // Create MCard with serialized state
     const mcard = new MCardFromData(
-      Buffer.from(JSON.stringify({
-        type: action?.type || 'unknown',
-        payload: action?.payload,
-        timestamp: new Date().toISOString(),
-        state: this.options.transformState(state)
-      }), 'utf8'),
+      new TextEncoder().encode(serializedState),
       'redux-state-' + Date.now().toString(), // Generate unique hash
       Date.now().toString()
     );
@@ -83,7 +86,7 @@ export class ReduxStateObserver {
     
     stmt.run(
       mcard.hash, 
-      mcard.content.toString('utf8'), 
+      serializedState, 
       mcard.g_time,
       JSON.stringify({ source: 'redux-state' })
     );

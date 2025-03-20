@@ -1,16 +1,21 @@
-import { MCard } from '../models/MCard';
-import { SQLiteEngine } from '../engine/sqlite_engine';
+import { MCardFromData } from '../content/model/mcard.js';
+import { SQLiteConnection } from '../engine/sqlite_engine';
 import type { RootState } from '../types/store';
 import type { Action } from '@reduxjs/toolkit';
 
+// Extend Action type to include payload
+interface PayloadAction<T = any> extends Action {
+  payload?: T;
+}
+
 interface StateObserverOptions {
-  shouldCapture?: (state: RootState, action: Action | null) => boolean;
+  shouldCapture?: (state: RootState, action: PayloadAction | null) => boolean;
   transformState?: (state: RootState) => any;
 }
 
 interface StoreInterface {
   getState: () => RootState;
-  dispatch: (action: Action) => any;
+  dispatch: (action: PayloadAction) => any;
   subscribe: (callback: () => void) => () => void;
 }
 
@@ -18,9 +23,9 @@ export class ReduxStateObserver {
   private store: StoreInterface;
   private options: Required<StateObserverOptions>;
   private previousState: RootState;
-  private lastDispatchedAction: Action | null;
+  private lastDispatchedAction: PayloadAction | null;
   private unsubscribe: (() => void) | null;
-  private originalDispatch: (action: Action) => any;
+  private originalDispatch: (action: PayloadAction) => any;
 
   constructor(store: StoreInterface, options: StateObserverOptions = {}) {
     this.store = store;
@@ -52,32 +57,43 @@ export class ReduxStateObserver {
     });
 
     // Wrap the original dispatch to capture the last action
-    this.store.dispatch = (action: Action) => {
+    this.store.dispatch = (action: PayloadAction) => {
       this.lastDispatchedAction = action;
       return this.originalDispatch(action);
     };
   }
 
-  persistState(action: Action | null, state: RootState): void {
+  persistState(action: PayloadAction | null, state: RootState): void {
     // Create MCard with full state snapshot
-    const mcard = new MCard(
-      JSON.stringify({
+    const mcard = new MCardFromData(
+      Buffer.from(JSON.stringify({
         type: action?.type || 'unknown',
         payload: action?.payload,
         timestamp: new Date().toISOString(),
         state: this.options.transformState(state)
-      }),
-      'application/json',
-      { source: 'redux-state' }
+      }), 'utf8'),
+      'redux-state-' + Date.now().toString(), // Generate unique hash
+      Date.now().toString()
     );
 
-    SQLiteEngine.getInstance().storeMCard(mcard);
+    const engine = SQLiteConnection.getInstance();
+    const stmt = engine.conn.prepare(
+      'INSERT OR REPLACE INTO card (hash, content, g_time, metadata) VALUES (?, ?, ?, ?)'
+    );
+    
+    stmt.run(
+      mcard.hash, 
+      mcard.content.toString('utf8'), 
+      mcard.g_time,
+      JSON.stringify({ source: 'redux-state' })
+    );
   }
 
   stop(): void {
     if (this.unsubscribe) {
       this.unsubscribe();
       this.unsubscribe = null;
+      // Restore original dispatch
       this.store.dispatch = this.originalDispatch;
     }
   }

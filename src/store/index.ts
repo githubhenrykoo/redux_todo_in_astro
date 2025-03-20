@@ -18,6 +18,9 @@ import panelLayoutReducer from '../features/panellayoutSlice';
 import networkReducer from '../features/networkSlice';
 import storageReducer from '../features/storageSlice';
 
+// Import state observer
+import { initStateObserver } from '../utils/reduxStateObserver';
+
 export const store = configureStore({
   reducer: {
     // Core State
@@ -51,6 +54,9 @@ export const store = configureStore({
       serializableCheck: false // Disable for complex states
     })
 });
+
+// Initialize state observer
+initStateObserver(store);
 
 // Type definitions for TypeScript
 export type RootState = ReturnType<typeof store.getState>;

@@ -38,3 +38,5 @@ Docs/config/codeVault/.venv
 
 
 src/test/test_cards.db
+
+src/tests/data

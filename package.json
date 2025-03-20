@@ -10,7 +10,8 @@
     "astro": "astro",
     "test": "jest",
     "test:all": "bash src/test/run_all_tests.sh",
-    "generate-pwa-icons": "node scripts/generate-pwa-icons.js"
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
+    "test:state": "node src/tests/stateCapture.test.js"
   },
   "dependencies": {
     "@astrojs/react": "latest",
@@ -24,6 +25,7 @@
     "dotenv": "^16.4.7",
     "jimp": "^0.22.8",
     "lucide-react": "^0.284.0",
+    "puppeteer": "^24.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.6",
@@ -32,6 +34,8 @@
     "react-resizable-panels": "^2.1.7",
     "react-split": "^2.0.14",
     "redux-persist": "^6.0.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7"
   },

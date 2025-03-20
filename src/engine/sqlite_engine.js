@@ -55,12 +55,8 @@ class SQLiteConnection {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      // Remove existing database file to start fresh
-      if (fs.existsSync(this.dbPath)) {
-        fs.unlinkSync(this.dbPath);
-      }
-
       // Open the database connection with appropriate flags
+      // Don't remove the existing database file to prevent data loss
       this.conn = new Database(this.dbPath, {
         // Open in read-write mode, create if not exists
         mode: Database.OPEN_READWRITE | Database.OPEN_CREATE,
@@ -85,41 +81,32 @@ class SQLiteConnection {
         this.connect();
       }
 
-      // Drop existing tables if they exist
-      const dropTableStatements = [
-        'DROP TABLE IF EXISTS documents',
-        'DROP TABLE IF EXISTS card',
-        'DROP TABLE IF EXISTS card_metadata'
-      ];
+      // Check if the tables already exist
+      const tableExists = this.conn.prepare(`
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name='card'
+      `).get();
 
-      dropTableStatements.forEach(stmt => {
-        try {
-          this.conn.prepare(stmt).run();
-        } catch (dropError) {
-          console.warn(`Warning during table drop: ${dropError.message}`);
-        }
-      });
+      // Only create tables if they don't exist
+      if (!tableExists) {
+        console.log('Creating new database tables...');
+        
+        // Create the table using the schema
+        this.conn.exec(MCARD_TABLE_SCHEMA);
+        
+        // Add triggers
+        TRIGGERS.forEach(trigger => {
+          try {
+            this.conn.exec(trigger);
+          } catch (triggerError) {
+            console.warn(`Warning during trigger creation: ${triggerError.message}`);
+          }
+        });
 
-      // Create tables from schema
-      Object.entries(MCARD_TABLE_SCHEMA).forEach(([tableName, schema]) => {
-        try {
-          this.conn.prepare(schema).run();
-        } catch (createError) {
-          console.error(`Error creating table ${tableName}: ${createError.message}`);
-          throw createError;
-        }
-      });
-
-      // Create triggers
-      TRIGGERS.forEach((trigger) => {
-        try {
-          this.conn.prepare(trigger).run();
-        } catch (triggerError) {
-          console.warn(`Warning creating trigger: ${triggerError.message}`);
-        }
-      });
-
-      return this;
+        console.log('Database tables created successfully');
+      } else {
+        console.log('Database tables already exist, skipping creation');
+      }
     } catch (error) {
       console.error('Database setup failed:', error);
       throw error;

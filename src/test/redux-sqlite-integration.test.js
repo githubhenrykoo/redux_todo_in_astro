@@ -62,6 +62,9 @@ describe('Redux SQLite Integration Test', () => {
     // Create a new SQLite connection for the test
     try {
       sqliteConnection = new SQLiteConnection(INTEGRATION_DB_PATH);
+      
+      // Connect and set up the database - this should create tables
+      sqliteConnection.connect();
       await sqliteConnection.setup_database();
       
       // Verify database creation
@@ -81,8 +84,11 @@ describe('Redux SQLite Integration Test', () => {
       throw error;
     }
     
-    // Initialize engine and service
+    // Initialize engine and service with our prepared connection
     sqliteEngine = new SQLiteEngine(sqliteConnection);
+    console.log('SQLite engine created with existing connection');
+    
+    // Initialize the service
     McardStorageService.sqliteEngine = sqliteEngine;
     McardStorageService.initialized = true;
     
@@ -106,7 +112,13 @@ describe('Redux SQLite Integration Test', () => {
   afterAll(async () => {
     // Clean up
     if (sqliteConnection && sqliteConnection.conn) {
-      sqliteConnection.conn.close();
+      try {
+        // Properly close the connection
+        sqliteConnection.conn.close();
+        console.log('Database connection closed properly');
+      } catch (error) {
+        console.error('Error closing database connection:', error);
+      }
     }
     
     // Restore console

@@ -2,13 +2,37 @@
 // src/layouts/ReactLayout.astro 
 import { Provider } from 'react-redux';
 import { store } from '../store';
+import { initStateObserver } from '../utils/reduxStateObserver';
+import { initializeDatabase } from '../utils/dbInitializer';
+import type { RootState } from '../types/store';
+import type { Action } from '@reduxjs/toolkit';
+
+// Initialize database and state observer only in development
+if (import.meta.env.DEV) {
+  // Initialize database first
+  initializeDatabase();
+
+  // Then initialize state observer
+  initStateObserver(store, {
+    // Optional: Only capture specific slice states
+    shouldCapture: (state: RootState, action: Action | null) => {
+      // Capture all actions for now
+      return true;
+    },
+    
+    // Optional: Transform state before storing
+    transformState: (state: RootState) => {
+      // You can modify/filter state here if needed
+      return state;
+    }
+  });
+}
 
 interface Props {
   children: any;
 }
 
 const { children } = Astro.props;
-
 ---
 <html>   
 	<body>     

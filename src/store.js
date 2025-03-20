@@ -42,4 +42,5 @@ const store = configureStore({
   }
 });
 
+// Export store
 export { store };

@@ -11,21 +11,35 @@ import { createSelector } from 'reselect';
  * @property {string} hover
  */
 
-// Initialize with system preference or fallback
-const getInitialTheme = () => {
-  // Check if we're in a browser environment
-  const isClient = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
-  
-  if (isClient) {
-    const saved = localStorage.getItem('theme');
-    if (saved) return saved;
-    
-    if (window.matchMedia) {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+// Safe localStorage wrapper for cross-environment compatibility
+const safeLocalStorage = {
+  getItem: (key) => {
+    // Check if localStorage is available in the current environment
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem(key);
+    }
+    return null;
+  },
+  setItem: (key, value) => {
+    // Check if localStorage is available in the current environment
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, value);
     }
   }
+};
+
+// Initialize with system preference or fallback
+const getInitialTheme = () => {
+  // First, check for saved theme in localStorage
+  const saved = safeLocalStorage.getItem('theme');
+  if (saved) return saved;
   
-  // Fallback to light theme if not in browser or no preferences found
+  // Check if window and matchMedia exist before calling
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  
+  // Fallback to light theme if no window or matchMedia
   return 'light';
 };
 
@@ -43,12 +57,10 @@ export const themeSlice = createSlice({
      */
     toggleTheme: (state) => {
       state.mode = state.mode === 'light' ? 'dark' : 'light';
-      // Check if we're in a browser environment
-      const isClient = typeof window !== 'undefined' && typeof localStorage !== 'undefined';
-      if (isClient) {
+      if (typeof document !== 'undefined') {
         document.documentElement.classList.remove('light', 'dark');
         document.documentElement.classList.add(state.mode);
-        localStorage.setItem('theme', state.mode);
+        safeLocalStorage.setItem('theme', state.mode);
       }
     }
   }

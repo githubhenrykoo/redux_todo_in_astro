@@ -20,7 +20,6 @@ def format_latex_content(content):
     # Split content at the Conclusion section to insert multicols
     parts = content.split('\\section{Conclusion:}')
     main_content = parts[0]
-    conclusion = parts[1] if len(parts) > 1 else ""
     
     # Add multicolumn formatting without re-adding the section header
     formatted_content = (
@@ -29,8 +28,6 @@ def format_latex_content(content):
         "\\begin{multicols}{2}\n\n"
         f"{main_content}\n"
         "\\end{multicols}\n"
-        "\\noindent\\rule{\\textwidth}{0.4pt}\n\n"
-        f"\\section{{Conclusion:}}{conclusion}"  # Keep the original conclusion section
     )
     
     return formatted_content

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { store } from '../store';
 
 export const CommunicationTest: React.FC = () => {
-  const [input, setInput] = useState('');
   const [message, setMessage] = useState('');
   const [response, setResponse] = useState<any>(null);
   const [currentState, setCurrentState] = useState<any>(null);
@@ -33,11 +32,8 @@ export const CommunicationTest: React.FC = () => {
       const storeState = fetchCurrentState();
       console.log('Current store state:', storeState);
       
-      // Send both the input message and the entire store state
-      const payload = {
-        text: input,
-        state: storeState
-      };
+      // Send only the store state
+      const payload = storeState;
       
       console.log('Sending payload:', payload);
       
@@ -72,19 +68,11 @@ export const CommunicationTest: React.FC = () => {
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input 
-          type="text" 
-          value={input} 
-          onChange={(e) => setInput(e.target.value)} 
-          placeholder="Enter optional message..." 
-          className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        
         <button 
           type="submit" 
           className="w-full py-2 rounded-md text-white font-semibold bg-blue-500 hover:bg-blue-600 active:bg-blue-700"
         >
-          Send Store State to Server
+          Send Redux State to Server
         </button>
         
         <button 

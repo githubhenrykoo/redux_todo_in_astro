@@ -1,101 +1,71 @@
 import type { APIRoute } from 'astro';
-import { getCardByHash } from '../../utils/storeAdapter.js';
+import { getCardByHash } from '../../utils/storeAdapter';
 
+/**
+ * API endpoint to retrieve a card by its hash
+ */
 export const GET: APIRoute = async ({ request }) => {
-  console.log('API: get-card endpoint hit');
+  console.log('GET /api/get-card called');
   
-  try {
-    // Get the URL
-    const url = new URL(request.url);
-    console.log('API: Requested URL:', url.toString());
-    
-    // Extract the hash from the query parameters
-    const hash = url.searchParams.get('hash');
-    console.log('API: Hash parameter:', hash);
-    
-    if (!hash) {
-      console.log('API: No hash parameter provided');
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Missing hash parameter'
-        }),
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-    }
+  // Parse the URL to get the query parameters
+  const url = new URL(request.url);
+  const hash = url.searchParams.get('hash');
 
-    // Retrieve the card
-    console.log('API: Attempting to retrieve card with hash:', hash);
-    const cardData = getCardByHash(hash);
-    
-    if (!cardData) {
-      console.log('API: Card not found for hash:', hash);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Card not found',
-          hash: hash
-        }),
-        {
-          status: 404,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-    }
-
-    console.log('API: Card retrieved successfully');
-    
-    // Parse card data to get timestamp (if available)
-    let parsedData;
-    let retrievedTimestamp = null;
-    
-    try {
-      parsedData = JSON.parse(cardData.content);
-      retrievedTimestamp = parsedData.timestamp;
-      console.log('API: Retrieved timestamp:', retrievedTimestamp);
-    } catch (parseError) {
-      console.warn('API: Could not parse card content as JSON:', parseError);
-    }
-    
-    // Return the card data with retrieved and server timestamps
+  // Validate hash parameter
+  if (!hash) {
+    console.error('Missing required hash parameter');
     return new Response(
-      JSON.stringify({
-        success: true,
-        card: cardData,
-        hash: hash,
-        timestamp: {
-          retrieved: retrievedTimestamp,
-          server: new Date().toISOString()
-        }
+      JSON.stringify({ 
+        error: 'Missing required hash parameter' 
       }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json'
+      { 
+        status: 400, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
+  try {
+    console.log('Retrieving card with hash:', hash);
+    const card = getCardByHash(hash);
+    
+    if (!card) {
+      console.log('Card not found for hash:', hash);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Card not found' 
+        }),
+        { 
+          status: 404, 
+          headers: { 'Content-Type': 'application/json' } 
         }
+      );
+    }
+
+    // Add server timestamp
+    const responseData = {
+      ...card,
+      serverTimestamp: new Date().toISOString(),
+    };
+
+    console.log('Card retrieved successfully');
+    return new Response(
+      JSON.stringify(responseData),
+      { 
+        status: 200, 
+        headers: { 'Content-Type': 'application/json' } 
       }
     );
   } catch (error) {
-    console.error('API: Error retrieving card:', error);
-    
+    console.error('Error retrieving card:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: 'Server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
+      JSON.stringify({ 
+        error: 'Failed to retrieve card', 
+        details: error instanceof Error ? error.message : String(error)
       }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      { 
+        status: 500, 
+        headers: { 'Content-Type': 'application/json' } 
       }
     );
   }

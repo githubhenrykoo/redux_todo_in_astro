@@ -193,22 +193,45 @@ class SQLiteEngine {
    */
   add(card) {
     try {
-      const stmt = this.connection.conn.prepare(
-        'INSERT OR REPLACE INTO card (hash, content, g_time) VALUES (?, ?, ?)'
-      );
+      console.log('SQLiteEngine.add called with card hash:', card.hash);
       
-      const result = stmt.run(
-        String(card.hash), 
-        card.content, 
-        card.g_time
-      );
-
-      return String(card.hash);
-    } catch (error) {
-      if (error.code === 'SQLITE_CONSTRAINT') {
-        throw new Error(`Card with hash ${card.hash} already exists`);
+      // Check if the card already exists
+      const existingCard = this.get(card.hash);
+      if (existingCard) {
+        console.log('Card already exists with hash:', card.hash);
+        return card.hash;
       }
-      console.error(`Error adding card: ${error.message}`);
+
+      // Get card content, checking if it's a string or Buffer
+      const content = card.content;
+      
+      // Prepare the content for SQLite storage
+      let sqliteContent;
+      if (typeof content === 'string') {
+        sqliteContent = content; // Store strings directly
+      } else if (Buffer.isBuffer(content)) {
+        sqliteContent = content; // Store Buffer objects directly
+      } else {
+        // Convert other types to string
+        sqliteContent = String(content);
+      }
+
+      // Insert the card into the database
+      try {
+        const stmt = this.connection.conn.prepare(
+          'INSERT INTO card (hash, content, g_time) VALUES (?, ?, ?)'
+        );
+        
+        stmt.run(card.hash, sqliteContent, card.g_time);
+        
+        console.log('Card inserted successfully with hash:', card.hash);
+        return card.hash;
+      } catch (sqlError) {
+        console.error('SQL error inserting card:', sqlError);
+        throw sqlError;
+      }
+    } catch (error) {
+      console.error('Error in SQLiteEngine.add:', error);
       throw error;
     }
   }
@@ -218,23 +241,33 @@ class SQLiteEngine {
    * @param {string} hashValue - Hash of the card to retrieve
    * @returns {MCard|null} Retrieved card or null
    */
-  get(hashValue) {
+  get(hash) {
     try {
+      console.log('SQLiteEngine.get called with hash:', hash);
+      
+      // Query the database for the card
       const stmt = this.connection.conn.prepare(
-        'SELECT content, g_time, hash FROM card WHERE hash = ?'
+        'SELECT hash, content, g_time FROM card WHERE hash = ?'
       );
       
-      const row = stmt.get(String(hashValue));
+      const row = stmt.get(String(hash));
       
-      if (!row) return null;
+      if (!row) {
+        console.log('No card found with hash:', hash);
+        return null;
+      }
       
-      // Convert content to Buffer
-      const contentBuffer = Buffer.from(row.content, 'utf8');
+      // Return the card data with content preserved in its original form
+      console.log('Card retrieved successfully with hash:', hash);
       
-      return new MCardFromData(contentBuffer, row.hash, row.g_time);
+      return {
+        hash: row.hash,
+        content: row.content,
+        g_time: row.g_time
+      };
     } catch (error) {
-      console.error(`Error retrieving card: ${error.message}`);
-      throw error;
+      console.error('Error retrieving card:', error);
+      return null;
     }
   }
 

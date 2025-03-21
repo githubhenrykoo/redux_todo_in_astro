@@ -1,22 +1,15 @@
 import React, { useState } from 'react';
 
 interface CardData {
-  theme?: any;
-  user?: any;
   content?: any;
-  todo?: any;
+  hash?: string;
+  g_time?: string;
   [key: string]: any;
 }
 
 interface CardResponse {
-  success: boolean;
-  card: CardData;
-  hash: string;
-  timestamp?: {
-    retrieved: string | null;
-    server: string;
-  };
   error?: string;
+  serverTimestamp?: string;
 }
 
 export const CardViewer: React.FC = () => {
@@ -26,10 +19,7 @@ export const CardViewer: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [availableSections, setAvailableSections] = useState<string[]>([]);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
-  const [timestampInfo, setTimestampInfo] = useState<{
-    retrieved: string | null;
-    server: string;
-  } | null>(null);
+  const [serverTimestamp, setServerTimestamp] = useState<string | null>(null);
 
   const fetchCard = async () => {
     if (!hash.trim()) {
@@ -42,29 +32,27 @@ export const CardViewer: React.FC = () => {
     setCard(null);
     setAvailableSections([]);
     setSelectedSection(null);
-    setTimestampInfo(null);
+    setServerTimestamp(null);
 
     try {
       console.log('Fetching card with hash:', hash);
       const response = await fetch(`/api/get-card?hash=${encodeURIComponent(hash)}`);
-      const data: CardResponse = await response.json();
+      const data: CardResponse & CardData = await response.json();
       console.log('Card fetch response:', data);
 
-      if (response.ok && data.success) {
-        setCard(data.card);
+      if (response.ok && !data.error) {
+        setCard(data);
+        setServerTimestamp(data.serverTimestamp || null);
         
-        // Store timestamp information if available
-        if (data.timestamp) {
-          setTimestampInfo(data.timestamp);
-        }
-        
-        // Extract available sections from the card
-        const sections = Object.keys(data.card);
-        setAvailableSections(sections);
-        
-        // Set default selected section
-        if (sections.length > 0) {
-          setSelectedSection(sections[0]);
+        // Extract available sections from the content
+        if (data.content) {
+          const sections = Object.keys(data.content);
+          setAvailableSections(sections);
+          
+          // Set default selected section
+          if (sections.length > 0) {
+            setSelectedSection(sections[0]);
+          }
         }
       } else {
         setError(data.error || 'Failed to retrieve card');
@@ -79,79 +67,68 @@ export const CardViewer: React.FC = () => {
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md mt-8">
-      <h2 className="text-xl font-bold mb-4">Card Viewer</h2>
-      
-      <div className="flex mb-4">
-        <input
-          type="text"
-          value={hash}
-          onChange={(e) => setHash(e.target.value)}
-          placeholder="Enter card hash..."
-          className="flex-1 px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          onClick={fetchCard}
-          disabled={loading}
-          className="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 disabled:bg-blue-300"
-        >
-          {loading ? 'Loading...' : 'View Card'}
-        </button>
+      <div className="mb-4">
+        <label htmlFor="hash" className="block text-sm font-medium text-gray-700 mb-1">Card Hash</label>
+        <div className="flex">
+          <input
+            type="text"
+            id="hash"
+            value={hash}
+            onChange={(e) => setHash(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter card hash"
+          />
+          <button 
+            onClick={fetchCard}
+            className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
+          >
+            {loading ? 'Loading...' : 'Fetch'}
+          </button>
+        </div>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-100 text-red-700 rounded mb-4">
+        <div className="p-3 bg-red-100 text-red-700 rounded-md mb-4">
           {error}
         </div>
       )}
 
-      {timestampInfo && (
-        <div className="mb-4 text-sm bg-gray-50 p-3 rounded border border-gray-200">
-          <h3 className="font-medium mb-1">Timestamp Information:</h3>
-          <div>
-            <strong>Retrieved:</strong> {timestampInfo.retrieved || 'Not available'} 
-          </div>
-          <div>
-            <strong>Server:</strong> {timestampInfo.server}
-          </div>
-        </div>
-      )}
-
       {card && (
-        <div className="mt-4">
-          <h3 className="font-semibold mb-2">Card Content:</h3>
+        <div className="bg-gray-100 p-4 rounded-md">
+          <h3 className="font-medium text-lg mb-2">Card Details</h3>
           
+          <div className="mb-3 text-sm text-gray-600">
+            <p><strong>Hash:</strong> {card.hash}</p>
+            <p><strong>Created:</strong> {new Date(card.g_time || '').toLocaleString()}</p>
+            {serverTimestamp && (
+              <p><strong>Retrieved:</strong> {new Date(serverTimestamp).toLocaleString()}</p>
+            )}
+          </div>
+
           {availableSections.length > 0 && (
-            <div className="mb-4">
-              <h4 className="text-sm font-medium mb-1">Select Section:</h4>
-              <div className="flex flex-wrap gap-2">
-                {availableSections.map(section => (
-                  <button
-                    key={section}
-                    onClick={() => setSelectedSection(section)}
-                    className={`px-2 py-1 text-xs rounded ${
-                      selectedSection === section 
-                        ? 'bg-blue-500 text-white' 
-                        : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                    }`}
-                  >
-                    {section}
-                  </button>
-                ))}
+            <>
+              <div className="mb-3">
+                <label className="block text-sm font-medium text-gray-700 mb-1">View Section</label>
+                <select 
+                  value={selectedSection || ''}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {availableSections.map(section => (
+                    <option key={section} value={section}>{section}</option>
+                  ))}
+                </select>
               </div>
-            </div>
-          )}
-          
-          {selectedSection ? (
-            <div className="mt-2">
-              <h4 className="text-sm font-medium mb-1">{selectedSection}:</h4>
-              <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto max-h-96">
-                {JSON.stringify(card[selectedSection], null, 2)}
-              </pre>
-            </div>
-          ) : (
-            <pre className="bg-gray-100 p-3 rounded text-sm overflow-auto max-h-96">
-              {JSON.stringify(card, null, 2)}
-            </pre>
+
+              {selectedSection && (
+                <div className="bg-white p-3 rounded-md border border-gray-300 overflow-auto max-h-60">
+                  <pre className="text-xs whitespace-pre-wrap">
+                    {JSON.stringify(card.content[selectedSection], null, 2)}
+                  </pre>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

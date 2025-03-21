@@ -50,34 +50,27 @@ export function storeData(data: any): string {
     console.log('storeData called with data type:', typeof data);
     console.log('Data has these keys:', Object.keys(data || {}));
     
-    // Format the data for storage
-    let content: string;
-    
-    // If it's already a string, use it directly
+    // Convert data to JSON string
+    let jsonData: string;
     if (typeof data === 'string') {
-      content = data;
-      console.log('Data is already a string, length:', content.length);
+      jsonData = data;
     } else {
-      // Otherwise, stringify it
-      content = JSON.stringify(data);
-      console.log('Stringified data, length:', content.length);
+      jsonData = JSON.stringify(data);
     }
+    console.log('Stringified data, length:', jsonData.length);
     
-    // Create an MCard with the content using our safe buffer approach
-    const buffer = safeBufferFrom(content);
-    console.log('Created buffer with length:', buffer.length);
-    
-    const card = new MCard(buffer);
+    // Create MCard (no need to convert to buffer here, the MCard constructor handles it)
+    const mcard = new MCard(jsonData);
     console.log('Created MCard successfully');
     
-    // Store the card using the engine
+    // Store the card
     const engine = getStoreEngine();
-    const hashValue = engine.add(card);
-    console.log('Added card to engine, received hash:', hashValue);
+    const hash = engine.add(mcard);
+    console.log('Added card to engine, received hash:', hash);
     
-    return hashValue;
+    return hash;
   } catch (error) {
-    console.error('Error storing data as MCard:', error);
+    console.error('Error in storeData:', error);
     throw error;
   }
 }
@@ -89,33 +82,38 @@ export function storeData(data: any): string {
  */
 export function getCardByHash(hash: string): any {
   try {
-    console.log('Getting card with hash:', hash);
+    console.log('getCardByHash called with hash:', hash);
     const engine = getStoreEngine();
     const card = engine.get(hash);
     
     if (!card) {
-      console.log('No card found with hash:', hash);
+      console.log('No card found for hash:', hash);
       return null;
     }
     
-    console.log('Card found, content type:', typeof card.content);
-    
-    // Try to parse the content as JSON if possible
-    try {
-      const contentStr = card.content.toString();
-      console.log('Card content as string length:', contentStr.length);
-      
-      const parsed = JSON.parse(contentStr);
-      console.log('Successfully parsed card content as JSON');
-      return parsed;
-    } catch (parseError) {
-      console.log('Failed to parse as JSON, returning as string:', parseError);
-      // If parsing fails, return the raw content as string
-      return card.content.toString();
+    // Try to parse content if it's a string that looks like JSON
+    if (typeof card.content === 'string') {
+      try {
+        // Check if the string starts with a typical JSON character
+        const firstChar = card.content.trim()[0];
+        if (firstChar === '{' || firstChar === '[') {
+          const parsed = JSON.parse(card.content);
+          return {
+            content: parsed,
+            hash: card.hash,
+            g_time: card.g_time
+          };
+        }
+      } catch (e) {
+        // Silent catch - if it's not JSON, just return as is
+      }
     }
+    
+    // Return the card with original content
+    return card;
   } catch (error) {
-    console.error('Error retrieving card by hash:', error);
-    throw error;
+    console.error('Error in getCardByHash:', error);
+    return null;
   }
 }
 

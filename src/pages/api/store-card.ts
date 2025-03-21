@@ -12,8 +12,15 @@ export const POST: APIRoute = async ({ request }) => {
     const data = await request.json();
     console.log('Received data to store:', Object.keys(data || {}));
     
+    // Add timestamp to the data
+    const stateTimestamp = new Date().toISOString();
+    const dataWithTimestamp = {
+      ...data,
+      __stateTimestamp: stateTimestamp
+    };
+    
     // Store the data and get the hash
-    const hash = storeData(data);
+    const hash = storeData(dataWithTimestamp);
     console.log('Data stored successfully with hash:', hash);
     
     // Get the stored card to include in response
@@ -24,11 +31,13 @@ export const POST: APIRoute = async ({ request }) => {
       JSON.stringify({ 
         success: true, 
         hash,
+        stateTimestamp,
         timestamp: new Date().toISOString(),
         cardData: {
           hash: storedCard?.hash,
           contentType: typeof storedCard?.content,
           createdAt: storedCard?.timestamp,
+          stateTimestamp: storedCard?.content?.__stateTimestamp,
           size: typeof storedCard?.content === 'string' 
             ? storedCard.content.length 
             : JSON.stringify(storedCard?.content).length

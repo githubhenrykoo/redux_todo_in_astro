@@ -21,16 +21,11 @@ if (typeof window !== 'undefined') {
   window.forceSaveReduxState = (immediate = false) => {
     console.log('Force save called from outside TopBar');
     const state = store.getState();
-    // Wait for component to be fully mounted
-    setTimeout(() => {
-      // Call save function if TopBar is mounted
-      if (document.querySelector('.top-bar')) {
-        const event = new CustomEvent('force-save-state', { 
-          detail: { state, immediate } 
-        });
-        window.dispatchEvent(event);
-      }
-    }, 100);
+    // Always try to save, regardless of component state
+    const event = new CustomEvent('force-save-state', { 
+      detail: { state, immediate } 
+    });
+    window.dispatchEvent(event);
   };
 }
 
@@ -65,7 +60,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       console.log('Setting debounce timeout for save');
       saveTimeoutRef.current = window.setTimeout(() => {
         console.log('Debounce timeout expired, saving state');
-        saveState(state);
+        saveState(state, true);
       }, 1000); // 1 second debounce
       return;
     }
@@ -73,12 +68,12 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     // If immediate or auto-save disabled, save right away
     if (immediate || !autoSaveEnabled) {
       console.log('Saving immediately without debounce');
-      saveState(state);
+      saveState(state, immediate);
     }
   };
   
   // Actual save function
-  const saveState = async (state: any) => {
+  const saveState = async (state: any, force = false) => {
     try {
       setSaving(true);
       const stateJson = JSON.stringify(state);
@@ -86,11 +81,11 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       console.log('saveState called', {
         stateJsonLength: stateJson.length,
         lastSavedStateLength: lastSavedState ? lastSavedState.length : 0,
-        isEqual: stateJson === lastSavedState
+        force
       });
       
-      // Skip if state hasn't changed
-      if (stateJson === lastSavedState) {
+      // Skip if state hasn't changed, unless force is true
+      if (!force && stateJson === lastSavedState) {
         console.log('State unchanged, skipping save');
         setSaving(false);
         return;

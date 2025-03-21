@@ -1,5 +1,5 @@
-import React, { useState, useEffect, startTransition } from 'react';
-import { FiSun, FiMoon, FiLogOut, FiSave } from 'react-icons/fi';
+import React, { useState, useEffect, startTransition, useRef } from 'react';
+import { FiSun, FiMoon, FiLogOut, FiSave, FiCheck } from 'react-icons/fi';
 import { store } from '../../store';
 import { toggleTheme } from '../../features/themeSlice';
 import { createClient } from '../../lib/authentik/client';
@@ -19,16 +19,41 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
   const [theme, setTheme] = useState<'light' | 'dark'>(initialPropTheme || 'light');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [redirectUri, setRedirectUri] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserInfo>({});
   const [lastSavedState, setLastSavedState] = useState('');
   const [isClient, setIsClient] = useState(false);
+  const saveTimeoutRef = useRef<number | null>(null);
 
-  // Function to post state to backend
-  const postStateToBackend = async (state: any) => {
+  // Function to post state to backend with debounce
+  const postStateToBackend = async (state: any, immediate = false) => {
     if (!isClient) return; // Don't run on server
-
+    
+    // Clear any pending save timeout
+    if (saveTimeoutRef.current !== null) {
+      window.clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    
+    // If not immediate, set a debounce timeout
+    if (!immediate && autoSaveEnabled) {
+      saveTimeoutRef.current = window.setTimeout(() => {
+        saveState(state);
+      }, 1000); // 1 second debounce
+      return;
+    }
+    
+    // If immediate or auto-save disabled, save right away
+    if (immediate || !autoSaveEnabled) {
+      saveState(state);
+    }
+  };
+  
+  // Actual save function
+  const saveState = async (state: any) => {
     try {
       setSaving(true);
       const stateJson = JSON.stringify(state);
@@ -39,7 +64,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         return;
       }
       
-      console.log('Posting state to backend:', state);
+      console.log('Saving state to backend...');
       
       const response = await fetch('/api/store-card', {
         method: 'POST',
@@ -56,6 +81,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       const result = await response.json();
       console.log('State saved successfully:', result);
       setLastSavedState(stateJson);
+      setLastSaved(new Date());
     } catch (error) {
       console.error('Error saving state:', error);
     } finally {
@@ -86,13 +112,13 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
     });
 
-    // Set up state change subscription and auto-saving
+    // Set up state change subscription and auto-saving with debounce
     const unsubscribeStateChange = store.subscribe(() => {
-      const currentState = store.getState();
-      // Wrap in startTransition to avoid hydration issues
-      startTransition(() => {
+      if (autoSaveEnabled) {
+        const currentState = store.getState();
+        // Use the debounced save function
         postStateToBackend(currentState);
-      });
+      }
     });
 
     // Set up redirect URI
@@ -146,14 +172,18 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
 
     // Initial store state save - delay to ensure hydration is complete
     setTimeout(() => {
-      postStateToBackend(store.getState());
+      postStateToBackend(store.getState(), true);
     }, 1000);
 
     return () => {
+      // Clear any pending timeouts
+      if (saveTimeoutRef.current !== null) {
+        window.clearTimeout(saveTimeoutRef.current);
+      }
       unsubscribeTheme();
       unsubscribeStateChange();
     };
-  }, []);
+  }, [autoSaveEnabled]);
 
   const handleLogin = async () => {
     try {
@@ -195,13 +225,40 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
 
   // Manually trigger state save
   const handleManualSave = () => {
-    postStateToBackend(store.getState());
+    postStateToBackend(store.getState(), true);
+  };
+
+  // Toggle auto-save functionality
+  const toggleAutoSave = () => {
+    setAutoSaveEnabled(prev => !prev);
+  };
+
+  // Format the last saved time
+  const formatLastSaved = () => {
+    if (!lastSaved) return 'Never saved';
+    
+    const now = new Date();
+    const diff = now.getTime() - lastSaved.getTime();
+    
+    if (diff < 60000) {
+      return 'Just now';
+    } else if (diff < 3600000) {
+      const minutes = Math.floor(diff / 60000);
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    } else {
+      return lastSaved.toLocaleTimeString();
+    }
   };
 
   return (
     <div className="w-full h-14 bg-background border-b flex items-center justify-between px-6 shadow-sm">
       <div className="flex items-center space-x-4">
         <h1 className="text-xl font-semibold text-foreground">Redux Todo App</h1>
+        {isClient && lastSaved && (
+          <span className="text-xs text-gray-500">
+            Last saved: {formatLastSaved()}
+          </span>
+        )}
       </div>
       <div className="flex items-center space-x-4">
         {isClient && isAuthenticated ? (
@@ -239,20 +296,39 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         ) : null}
         {isClient && (
           <>
-            <button 
-              onClick={handleManualSave}
-              disabled={saving}
-              className={`
-                flex items-center justify-center w-8 h-8 rounded-full transition-colors
-                ${saving 
-                  ? 'text-gray-400 cursor-not-allowed' 
-                  : 'text-green-600 hover:bg-green-100'}
-              `}
-              aria-label="Save state"
-              title="Save current state"
-            >
-              <FiSave className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={toggleAutoSave}
+                className={`
+                  flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium
+                  ${autoSaveEnabled
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-gray-100 text-gray-500'}
+                `}
+                aria-label={autoSaveEnabled ? "Auto-save enabled" : "Auto-save disabled"}
+                title={autoSaveEnabled ? "Click to disable auto-save" : "Click to enable auto-save"}
+              >
+                {autoSaveEnabled ? 'Auto-save ON' : 'Auto-save OFF'}
+              </button>
+              <button 
+                onClick={handleManualSave}
+                disabled={saving}
+                className={`
+                  flex items-center justify-center w-8 h-8 rounded-full transition-colors
+                  ${saving 
+                    ? 'text-gray-400 cursor-not-allowed' 
+                    : 'text-green-600 hover:bg-green-100'}
+                `}
+                aria-label="Force save state"
+                title="Force save current state"
+              >
+                {saving ? (
+                  <span className="animate-spin">•</span>
+                ) : (
+                  <FiSave className="w-5 h-5" />
+                )}
+              </button>
+            </div>
             <button 
               onClick={() => store.dispatch(toggleTheme())}
               className="text-foreground hover:text-foreground/80"

@@ -48,19 +48,9 @@ export function storeData(data: any): string {
   try {
     // Log what we're trying to store
     console.log('storeData called with data type:', typeof data);
-    console.log('Data has these keys:', Object.keys(data || {}));
     
-    // Convert data to JSON string
-    let jsonData: string;
-    if (typeof data === 'string') {
-      jsonData = data;
-    } else {
-      jsonData = JSON.stringify(data);
-    }
-    console.log('Stringified data, length:', jsonData.length);
-    
-    // Create MCard (no need to convert to buffer here, the MCard constructor handles it)
-    const mcard = new MCard(jsonData);
+    // Create MCard with data as-is
+    const mcard = new MCard(data);
     console.log('Created MCard successfully');
     
     // Store the card
@@ -77,7 +67,7 @@ export function storeData(data: any): string {
 
 /**
  * Get a card by its hash
- * @param hash The hash of the card to retrieve
+ * @param hash Hash of the card to retrieve
  * @returns The card if found, null otherwise
  */
 export function getCardByHash(hash: string): any {
@@ -91,26 +81,13 @@ export function getCardByHash(hash: string): any {
       return null;
     }
     
-    // Try to parse content if it's a string that looks like JSON
-    if (typeof card.content === 'string') {
-      try {
-        // Check if the string starts with a typical JSON character
-        const firstChar = card.content.trim()[0];
-        if (firstChar === '{' || firstChar === '[') {
-          const parsed = JSON.parse(card.content);
-          return {
-            content: parsed,
-            hash: card.hash,
-            g_time: card.g_time
-          };
-        }
-      } catch (e) {
-        // Silent catch - if it's not JSON, just return as is
-      }
-    }
-    
-    // Return the card with original content
-    return card;
+    // Return the card with additional metadata
+    return {
+      hash: card.hash,
+      content: card.content,
+      timestamp: card.g_time,
+      retrievedAt: new Date().toISOString()
+    };
   } catch (error) {
     console.error('Error in getCardByHash:', error);
     return null;

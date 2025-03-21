@@ -7,7 +7,7 @@ const projectRoot = process.cwd();
 
 // Database Configuration
 const DEFAULT_PAGE_SIZE = process.env.DEFAULT_PAGE_SIZE || 10;
-const CARDS_DB_PATH = process.env.MCARD_DB_PATH || path.join(projectRoot, 'public', 'data', 'card.db');
+const CARDS_DB_PATH = process.env.MCARD_DB_PATH || path.join(projectRoot, 'public', 'data', 'cards.db');
 const TEST_DB_PATH = process.env.TEST_DB_PATH || path.join(projectRoot,'src','test', 'db' ,'test.db');
 // Default Configuration Values
 const DEFAULT_HASH_ALGORITHM = process.env.MCARD_HASH_ALGORITHM || 'md5';

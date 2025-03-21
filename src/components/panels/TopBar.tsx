@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
+import React, { useState, useEffect, startTransition } from 'react';
+import { FiSun, FiMoon, FiLogOut, FiSave } from 'react-icons/fi';
 import { store } from '../../store';
 import { toggleTheme } from '../../features/themeSlice';
 import { createClient } from '../../lib/authentik/client';
@@ -18,27 +18,89 @@ interface UserInfo {
 export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(initialPropTheme || 'light');
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [redirectUri, setRedirectUri] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<UserInfo>({});
+  const [lastSavedState, setLastSavedState] = useState('');
+  const [isClient, setIsClient] = useState(false);
+
+  // Function to post state to backend
+  const postStateToBackend = async (state: any) => {
+    if (!isClient) return; // Don't run on server
+
+    try {
+      setSaving(true);
+      const stateJson = JSON.stringify(state);
+      
+      // Skip if state hasn't changed
+      if (stateJson === lastSavedState) {
+        setSaving(false);
+        return;
+      }
+      
+      console.log('Posting state to backend:', state);
+      
+      const response = await fetch('/api/store-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: stateJson,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to save state: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('State saved successfully:', result);
+      setLastSavedState(stateJson);
+    } catch (error) {
+      console.error('Error saving state:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   useEffect(() => {
+    // Set client-side flag
+    setIsClient(true);
+    
+    // Only run client-side code in the browser
+    if (typeof window === 'undefined') return;
+
     // Initial theme setup
     const storeTheme = store.getState().theme?.mode || 'light';
-    setTheme(storeTheme);
+    startTransition(() => {
+      setTheme(storeTheme);
+    });
 
     // Set up theme subscription
     const unsubscribeTheme = store.subscribe(() => {
       const currentTheme = store.getState().theme?.mode;
       if (currentTheme && currentTheme !== theme) {
-        setTheme(currentTheme);
+        startTransition(() => {
+          setTheme(currentTheme);
+        });
       }
+    });
+
+    // Set up state change subscription and auto-saving
+    const unsubscribeStateChange = store.subscribe(() => {
+      const currentState = store.getState();
+      // Wrap in startTransition to avoid hydration issues
+      startTransition(() => {
+        postStateToBackend(currentState);
+      });
     });
 
     // Set up redirect URI
     const origin = window.location.origin;
     const path = '/callback';
-    setRedirectUri(`${origin}${path}`);
+    startTransition(() => {
+      setRedirectUri(`${origin}${path}`);
+    });
 
     // Check for stored user info
     const storedUserInfo = localStorage.getItem('authentik_panel_top_banner_authuser_info');
@@ -71,8 +133,10 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         const loginAction = store.dispatch(login(loginPayload));
 
         // Update local state
-        setIsAuthenticated(true);
-        setUserProfile(parsedUserInfo);
+        startTransition(() => {
+          setIsAuthenticated(true);
+          setUserProfile(parsedUserInfo);
+        });
 
         console.log('Login dispatched with action:', loginAction);
       } catch (error) {
@@ -80,8 +144,14 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
     }
 
+    // Initial store state save - delay to ensure hydration is complete
+    setTimeout(() => {
+      postStateToBackend(store.getState());
+    }, 1000);
+
     return () => {
       unsubscribeTheme();
+      unsubscribeStateChange();
     };
   }, []);
 
@@ -117,8 +187,15 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     store.dispatch(logout());
 
     // Update local state
-    setIsAuthenticated(false);
-    setUserProfile({});
+    startTransition(() => {
+      setIsAuthenticated(false);
+      setUserProfile({});
+    });
+  };
+
+  // Manually trigger state save
+  const handleManualSave = () => {
+    postStateToBackend(store.getState());
   };
 
   return (
@@ -127,7 +204,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         <h1 className="text-xl font-semibold text-foreground">Redux Todo App</h1>
       </div>
       <div className="flex items-center space-x-4">
-        {isAuthenticated ? (
+        {isClient && isAuthenticated ? (
           <div className="flex items-center space-x-2">
             <div className="flex flex-col items-end">
               <span className="text-sm font-medium text-foreground">
@@ -145,7 +222,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
               <FiLogOut className="w-5 h-5" />
             </button>
           </div>
-        ) : (
+        ) : isClient ? (
           <button 
             onClick={handleLogin}
             disabled={loading}
@@ -159,18 +236,36 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
           >
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
+        ) : null}
+        {isClient && (
+          <>
+            <button 
+              onClick={handleManualSave}
+              disabled={saving}
+              className={`
+                flex items-center justify-center w-8 h-8 rounded-full transition-colors
+                ${saving 
+                  ? 'text-gray-400 cursor-not-allowed' 
+                  : 'text-green-600 hover:bg-green-100'}
+              `}
+              aria-label="Save state"
+              title="Save current state"
+            >
+              <FiSave className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={() => store.dispatch(toggleTheme())}
+              className="text-foreground hover:text-foreground/80"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? (
+                <FiMoon className="w-6 h-6" />
+              ) : (
+                <FiSun className="w-6 h-6" />
+              )}
+            </button>
+          </>
         )}
-        <button 
-          onClick={() => store.dispatch(toggleTheme())}
-          className="text-foreground hover:text-foreground/80"
-          aria-label="Toggle theme"
-        >
-          {theme === 'light' ? (
-            <FiMoon className="w-6 h-6" />
-          ) : (
-            <FiSun className="w-6 h-6" />
-          )}
-        </button>
       </div>
     </div>
   );

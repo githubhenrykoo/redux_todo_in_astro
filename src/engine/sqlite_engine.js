@@ -202,18 +202,24 @@ class SQLiteEngine {
         return card.hash;
       }
 
-      // Get card content, checking if it's a string or Buffer
-      const content = card.content;
-      
-      // Prepare the content for SQLite storage
-      let sqliteContent;
-      if (typeof content === 'string') {
-        sqliteContent = content; // Store strings directly
-      } else if (Buffer.isBuffer(content)) {
-        sqliteContent = content; // Store Buffer objects directly
+      // Ensure content is properly serialized for SQLite storage
+      let finalContent;
+      if (typeof card.content === 'object' && card.content !== null && !(card.content instanceof Buffer)) {
+        // For objects, stringify to ensure proper SQLite storage
+        finalContent = JSON.stringify(card.content);
+        console.log('Serialized object content to JSON string');
+      } else if (typeof card.content === 'string') {
+        // Strings can be stored directly
+        finalContent = card.content;
+        console.log('Using string content directly');
+      } else if (Buffer.isBuffer(card.content)) {
+        // Buffers can be stored directly
+        finalContent = card.content;
+        console.log('Using Buffer content directly');
       } else {
         // Convert other types to string
-        sqliteContent = String(content);
+        finalContent = String(card.content);
+        console.log('Converted content to string');
       }
 
       // Insert the card into the database
@@ -222,7 +228,7 @@ class SQLiteEngine {
           'INSERT INTO card (hash, content, g_time) VALUES (?, ?, ?)'
         );
         
-        stmt.run(card.hash, sqliteContent, card.g_time);
+        stmt.run(card.hash, finalContent, card.g_time);
         
         console.log('Card inserted successfully with hash:', card.hash);
         return card.hash;
@@ -257,12 +263,27 @@ class SQLiteEngine {
         return null;
       }
       
-      // Return the card data with content preserved in its original form
+      // Parse content if it's a JSON string
+      let content = row.content;
+      if (typeof content === 'string') {
+        try {
+          // Check if the string is a JSON object
+          if (content.startsWith('{') || content.startsWith('[')) {
+            const parsed = JSON.parse(content);
+            content = parsed;
+            console.log('Parsed JSON content successfully');
+          }
+        } catch (e) {
+          // If parsing fails, keep the original string
+          console.log('Content is not a valid JSON string, keeping as-is');
+        }
+      }
+      
       console.log('Card retrieved successfully with hash:', hash);
       
       return {
         hash: row.hash,
-        content: row.content,
+        content: content,
         g_time: row.g_time
       };
     } catch (error) {
@@ -324,10 +345,18 @@ class SQLiteEngine {
     for (const row of rows) {
         const [content, g_time, hash] = [row.content, row.g_time, row.hash];
         
-        // Convert content to Buffer
-        const contentBuffer = Buffer.from(content, 'utf8');
+        // Parse content if it's a JSON string
+        let parsedContent = content;
+        if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('['))) {
+          try {
+            parsedContent = JSON.parse(content);
+          } catch (e) {
+            console.warn('Failed to parse JSON content for hash:', hash);
+          }
+        }
         
-        const card = new MCardFromData(contentBuffer, hash, g_time);
+        // Create card with properly parsed content
+        const card = new MCardFromData(parsedContent, hash, g_time);
         items.push(card);
     }
 
@@ -399,12 +428,20 @@ class SQLiteEngine {
       // Convert rows to cards
       const items = [];
       for (const row of rows) {
-        const [content, g_time, hash] = [row.content, row.g_time, row.hash];
+        const { content, g_time, hash } = row;
         
-        // Convert content to Buffer
-        const contentBuffer = Buffer.from(content, 'utf8');
+        // Parse content if it's a JSON string
+        let parsedContent = content;
+        if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('['))) {
+          try {
+            parsedContent = JSON.parse(content);
+          } catch (e) {
+            console.warn('Failed to parse JSON content for hash:', hash);
+          }
+        }
         
-        const card = new MCardFromData(contentBuffer, hash, g_time);
+        // Create card with properly parsed content
+        const card = new MCardFromData(parsedContent, hash, g_time);
         items.push(card);
       }
 
@@ -468,12 +505,20 @@ class SQLiteEngine {
       // Convert rows to cards
       const items = [];
       for (const row of rows) {
-        const [content, g_time, hash] = [row.content, row.g_time, row.hash];
+        const { content, g_time, hash } = row;
         
-        // Convert content to Buffer
-        const contentBuffer = Buffer.from(content, 'utf8');
+        // Parse content if it's a JSON string
+        let parsedContent = content;
+        if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('['))) {
+          try {
+            parsedContent = JSON.parse(content);
+          } catch (e) {
+            console.warn('Failed to parse JSON content for hash:', hash);
+          }
+        }
         
-        const card = new MCardFromData(contentBuffer, hash, g_time);
+        // Create card with properly parsed content
+        const card = new MCardFromData(parsedContent, hash, g_time);
         items.push(card);
       }
 
@@ -567,17 +612,25 @@ class SQLiteEngine {
     `);
     
     const rows = stmt.all(page_size, offset);
-    console.log('Rows:', rows);
+    console.log('Rows found:', rows.length);
 
     // Convert rows to cards
     const items = [];
     for (const row of rows) {
-        const [content, g_time, hash] = [row.content, row.g_time, row.hash];
+        const { content, g_time, hash } = row;
         
-        // Convert content to Buffer
-        const contentBuffer = Buffer.from(content, 'utf8');
+        // Parse content if it's a JSON string
+        let parsedContent = content;
+        if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('['))) {
+          try {
+            parsedContent = JSON.parse(content);
+          } catch (e) {
+            console.warn('Failed to parse JSON content for hash:', hash);
+          }
+        }
         
-        const card = new MCardFromData(contentBuffer, hash, g_time);
+        // Create card with properly parsed content
+        const card = new MCardFromData(parsedContent, hash, g_time);
         items.push(card);
     }
 

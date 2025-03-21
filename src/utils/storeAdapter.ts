@@ -48,9 +48,19 @@ export function storeData(data: any): string {
   try {
     // Log what we're trying to store
     console.log('storeData called with data type:', typeof data);
+    console.log('Data keys:', Object.keys(data));
     
-    // Create MCard with data as-is
-    const mcard = new MCard(data);
+    // Deep clone the data to ensure complete preservation
+    const fullData = JSON.parse(JSON.stringify(data));
+    
+    // Ensure todos are fully preserved
+    if (fullData.todo && fullData.todo.todos) {
+      console.log('Todos count:', fullData.todo.todos.length);
+      console.log('Todo details:', fullData.todo.todos);
+    }
+    
+    // Create MCard with full data
+    const mcard = new MCard(fullData);
     console.log('Created MCard successfully');
     
     // Store the card

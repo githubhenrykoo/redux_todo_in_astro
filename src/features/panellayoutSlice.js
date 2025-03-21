@@ -5,16 +5,14 @@ const initialState = {
   panels: layoutConfig["todo_layout"],
 };
 
-// Create a function to trigger auto-save
-// This will be called after layout changes
-const triggerAutoSave = () => {
+// Simplified function to trigger save
+const triggerSave = () => {
   // Check if we're in the browser
-  if (typeof window !== 'undefined') {
-    // Dispatch a custom event that TopBar can listen for
-    window.dispatchEvent(new CustomEvent('redux-state-change', {
-      detail: { source: 'panellayout' }
-    }));
-    console.log('Triggered custom auto-save event after layout change');
+  if (typeof window !== 'undefined' && window.forceSaveReduxState) {
+    console.log('Directly calling forceSaveReduxState after layout change');
+    window.forceSaveReduxState(true);
+  } else {
+    console.log('forceSaveReduxState not available');
   }
 };
 
@@ -33,7 +31,7 @@ const panellayoutSlice = createSlice({
         console.log('New layout:', newLayout);
         state.panels = newLayout;
         // Schedule the trigger function to run after this reducer completes
-        setTimeout(() => triggerAutoSave(), 0);
+        setTimeout(() => triggerSave(), 200);
       } else {
         console.error(`Layout ${layoutName} not found`);
       }

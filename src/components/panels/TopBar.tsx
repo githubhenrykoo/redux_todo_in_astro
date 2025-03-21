@@ -15,6 +15,25 @@ interface UserInfo {
   sub?: string;
 }
 
+// Add save function to window for external components to call
+if (typeof window !== 'undefined') {
+  // @ts-ignore
+  window.forceSaveReduxState = (immediate = false) => {
+    console.log('Force save called from outside TopBar');
+    const state = store.getState();
+    // Wait for component to be fully mounted
+    setTimeout(() => {
+      // Call save function if TopBar is mounted
+      if (document.querySelector('.top-bar')) {
+        const event = new CustomEvent('force-save-state', { 
+          detail: { state, immediate } 
+        });
+        window.dispatchEvent(event);
+      }
+    }, 100);
+  };
+}
+
 export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(initialPropTheme || 'light');
   const [loading, setLoading] = useState(false);
@@ -136,6 +155,16 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
     });
 
+    // Handle force save events
+    const handleForceSave = (event: CustomEvent) => {
+      console.log('Force save event received', event.detail);
+      const { state, immediate } = event.detail;
+      postStateToBackend(state, immediate || true);
+    };
+
+    // Add event listener for force save events
+    window.addEventListener('force-save-state', handleForceSave as EventListener);
+
     // Add listener for custom layout change events
     const handleCustomStateChange = (event: CustomEvent) => {
       console.log('Custom state change event received:', event.detail);
@@ -227,6 +256,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       unsubscribeTheme();
       unsubscribeStateChange();
       window.removeEventListener('redux-state-change', handleCustomStateChange as EventListener);
+      window.removeEventListener('force-save-state', handleForceSave as EventListener);
       
       // Clear any pending save timeout
       if (saveTimeoutRef.current !== null) {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   addContent, 
@@ -13,6 +13,7 @@ export default function ContentDetailPanel() {
   const [editContent, setEditContent] = useState('');
   
   const dispatch = useDispatch();
+  // Using memoized selector to prevent unnecessary rerenders
   const { selectedHash, selectedContentItem } = useSelector(state => {
     const hash = state.content.selectedHash;
     const cards = state.content.cards;
@@ -24,6 +25,10 @@ export default function ContentDetailPanel() {
       selectedHash: hash,
       selectedContentItem: card
     };
+  }, (prev, next) => {
+    // Custom equality function for shallow comparison of returned objects
+    return prev.selectedHash === next.selectedHash && 
+           prev.selectedContentItem === next.selectedContentItem;
   });
 
   // Effect to update content when a new card is selected

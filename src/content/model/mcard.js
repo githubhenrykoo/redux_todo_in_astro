@@ -15,35 +15,30 @@ class MCard {
       throw new Error('hash_function cannot be None');
     }
 
-    // Store content directly in its original form
-    if (typeof content === 'string') {
-      // Keep string as is
-      this.content = content;
-    } else if (content instanceof Buffer) {
-      // Keep buffer as is
-      this.content = content;
-    } else {
-      // Convert objects to string if needed
-      this.content = content === undefined 
-        ? '' 
-        : (typeof content === 'object' 
-            ? JSON.stringify(content) 
-            : content.toString());
-    }
+    // Store content directly without any conversions
+    this.content = content;
 
     // Validate content is not empty
-    if (!this.content || (typeof this.content === 'string' && this.content.length === 0) || 
-        (Buffer.isBuffer(this.content) && this.content.length === 0)) {
+    if (content === undefined || 
+        (typeof content === 'string' && content.length === 0) || 
+        (Buffer.isBuffer(content) && content.length === 0) ||
+        (typeof content === 'object' && Object.keys(content).length === 0)) {
       throw new Error('Content cannot be empty');
     }
 
-    // Compute hash with optional forced hash algorithm
+    // Compute hash - convert to buffer for hashing if needed
     const forcedHashAlgorithm = options.forceHashAlgorithm || hashFunction;
     
-    // Convert to buffer only for hash computation if needed
-    const contentForHash = typeof this.content === 'string' 
-      ? Buffer.from(this.content, 'utf-8') 
-      : this.content;
+    // Convert to buffer only for hash computation
+    let contentForHash;
+    if (Buffer.isBuffer(content)) {
+      contentForHash = content;
+    } else if (typeof content === 'string') {
+      contentForHash = Buffer.from(content, 'utf-8');
+    } else {
+      // For hashing, we need to stringify objects
+      contentForHash = Buffer.from(JSON.stringify(content), 'utf-8');
+    }
       
     this.hash = HashValidator.computeHash(contentForHash, HashAlgorithm(forcedHashAlgorithm));
     this.hash_algorithm = HashAlgorithm(forcedHashAlgorithm);
@@ -102,11 +97,18 @@ class MCardFromData extends MCard {
     this.g_time = g_time_str; // Directly assign the provided g_time string
     this.hash_function = GTime.get_hash_function(this.g_time);
 
-    // Detect content type
+    // Detect content type (for metadata only, don't modify the content)
     const interpreter = new ContentTypeInterpreter();
-    this._content_type = interpreter.detectContentType(
-      Buffer.isBuffer(this.content) ? this.content : Buffer.from(String(this.content), 'utf-8')
-    );
+    let contentForType = content;
+    
+    // For type detection, convert to Buffer if needed
+    if (!(content instanceof Buffer) && typeof content !== 'string') {
+      contentForType = Buffer.from(JSON.stringify(content), 'utf-8');
+    } else if (typeof content === 'string') {
+      contentForType = Buffer.from(content, 'utf-8');
+    }
+    
+    this._content_type = interpreter.detectContentType(contentForType);
   }
 
   // Getter method for content type

@@ -15,31 +15,37 @@ class MCard {
       throw new Error('hash_function cannot be None');
     }
 
-    // Direct buffer assignment to prevent recursion
-    if (content instanceof Buffer) {
+    // Store content directly in its original form
+    if (typeof content === 'string') {
+      // Keep string as is
+      this.content = content;
+    } else if (content instanceof Buffer) {
+      // Keep buffer as is
       this.content = content;
     } else {
-      // Use a primitive conversion method
-      const contentValue = content === undefined 
+      // Convert objects to string if needed
+      this.content = content === undefined 
         ? '' 
         : (typeof content === 'object' 
             ? JSON.stringify(content) 
             : content.toString());
-      
-      // Create buffer using a primitive method
-      this.content = Buffer.allocUnsafe(Buffer.byteLength(contentValue)).fill(0);
-      this.content.write(contentValue, 0, 'utf-8');
     }
 
     // Validate content is not empty
-    if (this.content.length === 0) {
+    if (!this.content || (typeof this.content === 'string' && this.content.length === 0) || 
+        (Buffer.isBuffer(this.content) && this.content.length === 0)) {
       throw new Error('Content cannot be empty');
     }
 
     // Compute hash with optional forced hash algorithm
     const forcedHashAlgorithm = options.forceHashAlgorithm || hashFunction;
     
-    this.hash = HashValidator.computeHash(this.content, HashAlgorithm(forcedHashAlgorithm));
+    // Convert to buffer only for hash computation if needed
+    const contentForHash = typeof this.content === 'string' 
+      ? Buffer.from(this.content, 'utf-8') 
+      : this.content;
+      
+    this.hash = HashValidator.computeHash(contentForHash, HashAlgorithm(forcedHashAlgorithm));
     this.hash_algorithm = HashAlgorithm(forcedHashAlgorithm);
 
     // Generate timestamp
@@ -76,8 +82,8 @@ class MCard {
 class MCardFromData extends MCard {
   constructor(content, hash_value, g_time_str) {
     // Validate input parameters
-    if (!(content instanceof Buffer)) {
-      throw new TypeError("Content must be a Buffer when initializing from existing data.");
+    if (!content) {
+      throw new Error("Content cannot be null or empty");
     }
 
     if (!hash_value) {
@@ -98,7 +104,9 @@ class MCardFromData extends MCard {
 
     // Detect content type
     const interpreter = new ContentTypeInterpreter();
-    this._content_type = interpreter.detectContentType(this.content);
+    this._content_type = interpreter.detectContentType(
+      Buffer.isBuffer(this.content) ? this.content : Buffer.from(String(this.content), 'utf-8')
+    );
   }
 
   // Getter method for content type

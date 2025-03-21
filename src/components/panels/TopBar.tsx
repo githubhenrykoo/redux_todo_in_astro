@@ -60,11 +60,16 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       
       // Skip if state hasn't changed
       if (stateJson === lastSavedState) {
+        console.log('State unchanged, skipping save');
         setSaving(false);
         return;
       }
       
-      console.log('Saving state to backend...');
+      console.log('Saving state to backend...', {
+        panelLayout: state.panellayout?.panels ? Object.keys(state.panellayout.panels) : 'none',
+        themeMode: state.theme?.mode || 'unknown',
+        todoCount: state.todos?.items?.length || 0
+      });
       
       const response = await fetch('/api/store-card', {
         method: 'POST',
@@ -112,12 +117,23 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
     });
 
+    // Track the previous state for comparison
+    let previousState = JSON.stringify(store.getState());
+
     // Set up state change subscription and auto-saving with debounce
     const unsubscribeStateChange = store.subscribe(() => {
-      if (autoSaveEnabled) {
-        const currentState = store.getState();
-        // Use the debounced save function
-        postStateToBackend(currentState);
+      const currentState = store.getState();
+      const currentStateString = JSON.stringify(currentState);
+      
+      // Only trigger save if state actually changed
+      if (currentStateString !== previousState) {
+        console.log('State changed, triggering auto-save');
+        previousState = currentStateString; // Update previous state
+        
+        if (autoSaveEnabled) {
+          // Use the debounced save function
+          postStateToBackend(currentState);
+        }
       }
     });
 

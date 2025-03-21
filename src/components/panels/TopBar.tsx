@@ -32,15 +32,20 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
   const postStateToBackend = async (state: any, immediate = false) => {
     if (!isClient) return; // Don't run on server
     
+    console.log('postStateToBackend called', { immediate, autoSaveEnabled });
+    
     // Clear any pending save timeout
     if (saveTimeoutRef.current !== null) {
+      console.log('Clearing previous save timeout');
       window.clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
     
     // If not immediate, set a debounce timeout
     if (!immediate && autoSaveEnabled) {
+      console.log('Setting debounce timeout for save');
       saveTimeoutRef.current = window.setTimeout(() => {
+        console.log('Debounce timeout expired, saving state');
         saveState(state);
       }, 1000); // 1 second debounce
       return;
@@ -48,6 +53,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     
     // If immediate or auto-save disabled, save right away
     if (immediate || !autoSaveEnabled) {
+      console.log('Saving immediately without debounce');
       saveState(state);
     }
   };
@@ -57,6 +63,12 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     try {
       setSaving(true);
       const stateJson = JSON.stringify(state);
+      
+      console.log('saveState called', {
+        stateJsonLength: stateJson.length,
+        lastSavedStateLength: lastSavedState ? lastSavedState.length : 0,
+        isEqual: stateJson === lastSavedState
+      });
       
       // Skip if state hasn't changed
       if (stateJson === lastSavedState) {
@@ -71,6 +83,8 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         todoCount: state.todos?.items?.length || 0
       });
       
+      // Actually make the API request
+      console.log('Making POST request to /api/store-card');
       const response = await fetch('/api/store-card', {
         method: 'POST',
         headers: {
@@ -101,8 +115,13 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     // Only run client-side code in the browser
     if (typeof window === 'undefined') return;
 
+    // Initialize with the current state
+    const initialState = store.getState();
+    setLastSavedState(JSON.stringify(initialState));
+    console.log('Initial state set for auto-save comparison');
+
     // Initial theme setup
-    const storeTheme = store.getState().theme?.mode || 'light';
+    const storeTheme = initialState.theme?.mode || 'light';
     startTransition(() => {
       setTheme(storeTheme);
     });
@@ -123,7 +142,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     // Set up state change subscription and auto-saving with debounce
     const unsubscribeStateChange = store.subscribe(() => {
       const currentState = store.getState();
-      const currentStateString = JSON.stringify(currentState);
+      const currentStateString = JSON.stringify(currentState, Object.keys(currentState).sort());
       
       // Only trigger save if state actually changed
       if (currentStateString !== previousState) {

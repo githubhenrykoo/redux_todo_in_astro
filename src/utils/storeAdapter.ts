@@ -46,31 +46,64 @@ function safeBufferFrom(content: string): any {
  */
 export function storeData(data: any): string {
   try {
-    // Log what we're trying to store
-    console.log('storeData called with data type:', typeof data);
-    console.log('Data keys:', Object.keys(data));
+    // Comprehensive logging of input data
+    console.log('storeData called with full data keys:', Object.keys(data));
     
-    // Deep clone the data to ensure complete preservation
+    // Deep clone with JSON parse/stringify to ensure complete object preservation
     const fullData = JSON.parse(JSON.stringify(data));
     
-    // Ensure todos are fully preserved
-    if (fullData.todo && fullData.todo.todos) {
-      console.log('Todos count:', fullData.todo.todos.length);
-      console.log('Todo details:', fullData.todo.todos);
+    // Exhaustive logging of each major slice of the store
+    const slicesToLog = [
+      'theme', 'user', 'content', 'search', 
+      'system', 'todo', 'panellayout', 'activePanel', 
+      'resizeable', '__stateTimestamp'
+    ];
+    
+    slicesToLog.forEach(slice => {
+      if (fullData[slice]) {
+        console.log(`Detailed ${slice} slice:`, 
+          slice === 'todo' 
+            ? { 
+                todos: fullData[slice].todos?.length, 
+                actionHistory: fullData[slice].actionHistory?.length,
+                searchQuery: fullData[slice].searchQuery,
+                selectedContent: fullData[slice].selectedContent
+              }
+            : fullData[slice]
+        );
+      }
+    });
+    
+    // Verify todos and action history are preserved
+    if (fullData.todo) {
+      console.log('Todos preservation check:', {
+        todosCount: fullData.todo.todos?.length,
+        actionHistoryCount: fullData.todo.actionHistory?.length,
+        actionHistoryDetails: fullData.todo.actionHistory
+      });
     }
     
-    // Create MCard with full data
+    // Create MCard with full, unmodified data
     const mcard = new MCard(fullData);
-    console.log('Created MCard successfully');
+    console.log('Created MCard successfully with complete state');
     
     // Store the card
     const engine = getStoreEngine();
     const hash = engine.add(mcard);
     console.log('Added card to engine, received hash:', hash);
     
+    // Additional verification logging
+    const storedCard = getCardByHash(hash);
+    console.log('Verification - Stored card details:', {
+      hash: storedCard?.hash,
+      contentKeys: Object.keys(storedCard?.content || {}),
+      todoCount: storedCard?.content?.todo?.todos?.length,
+      actionHistoryCount: storedCard?.content?.todo?.actionHistory?.length
+    });
+    
     return hash;
   } catch (error) {
-    console.error('Error in storeData:', error);
+    console.error('Critical error in storeData:', error);
     throw error;
   }
 }

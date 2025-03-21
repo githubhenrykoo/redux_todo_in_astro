@@ -52,12 +52,28 @@ export const GET: APIRoute = async ({ request }) => {
 
     console.log('API: Card retrieved successfully');
     
-    // Return the card data
+    // Parse card data to get timestamp (if available)
+    let parsedData;
+    let retrievedTimestamp = null;
+    
+    try {
+      parsedData = JSON.parse(cardData.content);
+      retrievedTimestamp = parsedData.timestamp;
+      console.log('API: Retrieved timestamp:', retrievedTimestamp);
+    } catch (parseError) {
+      console.warn('API: Could not parse card content as JSON:', parseError);
+    }
+    
+    // Return the card data with retrieved and server timestamps
     return new Response(
       JSON.stringify({
         success: true,
         card: cardData,
-        hash: hash
+        hash: hash,
+        timestamp: {
+          retrieved: retrievedTimestamp,
+          server: new Date().toISOString()
+        }
       }),
       {
         status: 200,

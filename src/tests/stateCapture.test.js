@@ -85,11 +85,21 @@ async function checkDatabaseChanges(initialState) {
     // Convert content to string if it's a Buffer
     const formattedEntries = cardEntries.map(entry => {
       let contentStr = entry.content;
-      if (typeof contentStr !== 'string') {
+      
+      // If content is an object but not a string or buffer, stringify it
+      if (typeof contentStr === 'object' && contentStr !== null && !(contentStr instanceof Buffer)) {
+        try {
+          contentStr = JSON.stringify(contentStr);
+        } catch (e) {
+          console.log('Failed to stringify content object:', e.message);
+          contentStr = '[Complex Object]';
+        }
+      } else if (contentStr instanceof Buffer) {
         try {
           contentStr = contentStr.toString('utf8');
         } catch (e) {
-          contentStr = JSON.stringify(contentStr);
+          console.log('Failed to convert Buffer to string:', e.message);
+          contentStr = '[Buffer]';
         }
       }
       
@@ -106,7 +116,8 @@ async function checkDatabaseChanges(initialState) {
       
       return {
         ...entry,
-        contentObj: parsedContent
+        contentObj: parsedContent,
+        contentString: contentStr
       };
     });
     
@@ -123,12 +134,21 @@ async function checkDatabaseChanges(initialState) {
       for (const entry of newEntries) {
         console.log('\n📦 New Entry:');
         console.log('Hash:', entry.hash);
-        console.log('Content Sample:', 
-          typeof entry.contentObj === 'object' 
-            ? JSON.stringify(entry.contentObj).substring(0, 200) + '...' 
-            : String(entry.contentObj).substring(0, 200) + '...'
-        );
+        
+        // Properly display content
+        if (typeof entry.contentObj === 'object' && entry.contentObj !== null) {
+          console.log('Content Sample (JSON):', 
+            JSON.stringify(entry.contentObj, null, 2).substring(0, 500) + 
+            (JSON.stringify(entry.contentObj).length > 500 ? '...' : '')
+          );
+        } else {
+          console.log('Content Sample:', 
+            String(entry.contentString).substring(0, 200) + 
+            (entry.contentString.length > 200 ? '...' : '')
+          );
+        }
         console.log('Timestamp:', entry.g_time);
+        console.log('Content Type:', typeof entry.content);
       }
 
       if (newEntries.length === 0) {

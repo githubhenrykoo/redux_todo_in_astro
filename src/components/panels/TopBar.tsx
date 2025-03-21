@@ -136,8 +136,21 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
     });
 
+    // Add listener for custom layout change events
+    const handleCustomStateChange = (event: CustomEvent) => {
+      console.log('Custom state change event received:', event.detail);
+      if (autoSaveEnabled) {
+        // Force an immediate save when layout changes
+        const currentState = store.getState();
+        postStateToBackend(currentState, true);
+      }
+    };
+
+    // Add event listener for custom state change events
+    window.addEventListener('redux-state-change', handleCustomStateChange as EventListener);
+    
     // Track the previous state for comparison
-    let previousState = JSON.stringify(store.getState());
+    let previousState = JSON.stringify(store.getState(), Object.keys(store.getState()).sort());
 
     // Set up state change subscription and auto-saving with debounce
     const unsubscribeStateChange = store.subscribe(() => {
@@ -211,12 +224,16 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     }, 1000);
 
     return () => {
-      // Clear any pending timeouts
-      if (saveTimeoutRef.current !== null) {
-        window.clearTimeout(saveTimeoutRef.current);
-      }
       unsubscribeTheme();
       unsubscribeStateChange();
+      window.removeEventListener('redux-state-change', handleCustomStateChange as EventListener);
+      
+      // Clear any pending save timeout
+      if (saveTimeoutRef.current !== null) {
+        console.log('Cleaning up save timeout during component unmount');
+        window.clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
     };
   }, [autoSaveEnabled]);
 

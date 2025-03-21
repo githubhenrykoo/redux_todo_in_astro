@@ -11,6 +11,7 @@ let engineInstance: SQLiteEngine | null = null;
 export function getStoreEngine(): SQLiteEngine {
   if (!engineInstance) {
     try {
+      console.log('Initializing SQLiteEngine with database path:', CARDS_DB_PATH);
       const connection = SQLiteConnection.getInstance(CARDS_DB_PATH);
       engineInstance = new SQLiteEngine(connection);
       console.log('SQLiteEngine initialized successfully');

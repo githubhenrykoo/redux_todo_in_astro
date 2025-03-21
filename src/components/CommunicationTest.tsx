@@ -38,7 +38,10 @@ export const CommunicationTest: React.FC = () => {
       console.log('Current store state keys:', Object.keys(storeState));
       
       // Convert state to a simpler format that's easy to send
-      const simplePayload: Record<string, any> = {};
+      const simplePayload: Record<string, any> = {
+        // Always include a timestamp with every payload
+        timestamp: new Date().toISOString()
+      };
       
       // Only add properties that exist in the state
       if ('theme' in storeState) simplePayload.theme = storeState.theme;
@@ -47,9 +50,8 @@ export const CommunicationTest: React.FC = () => {
       if ('todo' in storeState) simplePayload.todo = storeState.todo;
       
       // Add basic information if nothing else is available
-      if (Object.keys(simplePayload).length === 0) {
+      if (Object.keys(simplePayload).length === 1) { // Only timestamp exists
         simplePayload.basic = {
-          timestamp: new Date().toISOString(),
           availableKeys: Object.keys(storeState)
         };
       }

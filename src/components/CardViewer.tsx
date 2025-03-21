@@ -8,6 +8,17 @@ interface CardData {
   [key: string]: any;
 }
 
+interface CardResponse {
+  success: boolean;
+  card: CardData;
+  hash: string;
+  timestamp?: {
+    retrieved: string | null;
+    server: string;
+  };
+  error?: string;
+}
+
 export const CardViewer: React.FC = () => {
   const [hash, setHash] = useState('');
   const [card, setCard] = useState<CardData | null>(null);
@@ -15,6 +26,10 @@ export const CardViewer: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [availableSections, setAvailableSections] = useState<string[]>([]);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
+  const [timestampInfo, setTimestampInfo] = useState<{
+    retrieved: string | null;
+    server: string;
+  } | null>(null);
 
   const fetchCard = async () => {
     if (!hash.trim()) {
@@ -27,15 +42,21 @@ export const CardViewer: React.FC = () => {
     setCard(null);
     setAvailableSections([]);
     setSelectedSection(null);
+    setTimestampInfo(null);
 
     try {
       console.log('Fetching card with hash:', hash);
       const response = await fetch(`/api/get-card?hash=${encodeURIComponent(hash)}`);
-      const data = await response.json();
+      const data: CardResponse = await response.json();
       console.log('Card fetch response:', data);
 
       if (response.ok && data.success) {
         setCard(data.card);
+        
+        // Store timestamp information if available
+        if (data.timestamp) {
+          setTimestampInfo(data.timestamp);
+        }
         
         // Extract available sections from the card
         const sections = Object.keys(data.card);
@@ -80,6 +101,18 @@ export const CardViewer: React.FC = () => {
       {error && (
         <div className="p-3 bg-red-100 text-red-700 rounded mb-4">
           {error}
+        </div>
+      )}
+
+      {timestampInfo && (
+        <div className="mb-4 text-sm bg-gray-50 p-3 rounded border border-gray-200">
+          <h3 className="font-medium mb-1">Timestamp Information:</h3>
+          <div>
+            <strong>Retrieved:</strong> {timestampInfo.retrieved || 'Not available'} 
+          </div>
+          <div>
+            <strong>Server:</strong> {timestampInfo.server}
+          </div>
         </div>
       )}
 

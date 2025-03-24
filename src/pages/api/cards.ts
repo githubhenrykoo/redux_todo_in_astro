@@ -6,19 +6,47 @@ export const GET: APIRoute = async ({ url }) => {
   try {
     // Parse page number from query parameters, default to 1
     const pageParam = url.searchParams.get('page');
-    const page = pageParam ? parseInt(pageParam, 10) : 1;
+    const page = pageParam !== null 
+      ? Number.parseInt(pageParam, 10) 
+      : 1;
 
     // Optional: Allow custom page size, default to config
     const pageSizeParam = url.searchParams.get('pageSize');
-    const pageSize = pageSizeParam 
-      ? parseInt(pageSizeParam, 10) 
+    const pageSize = pageSizeParam !== null 
+      ? Number.parseInt(pageSizeParam, 10)
       : DEFAULT_PAGE_SIZE;
+
+    // Validate parsed numbers
+    const parsedPage = Number(page);
+    const parsedPageSize = Number(pageSize);
+
+    if (Number.isNaN(parsedPage) || parsedPage <= 0) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid page parameter' 
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    if (Number.isNaN(parsedPageSize) || parsedPageSize <= 0) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid page size parameter' 
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+    }
 
     // Create SQLite engine instance
     const engine = new SQLiteEngine();
 
     // Fetch page of cards
-    const cardPage = engine.get_all(page, pageSize);
+    const cardPage = engine.get_all(parsedPage, parsedPageSize);
 
     // Return as JSON response
     return new Response(JSON.stringify(cardPage), {

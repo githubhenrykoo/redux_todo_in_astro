@@ -11,6 +11,8 @@
       "components": [
         "DemoLeftPanel",
         "SearchAndTodos",
+        "DemoRightPanel",
+        "SearchAndTodos",
         "DemoRightPanel"
       ]
     },
@@ -24,11 +26,6 @@
     "minimal": {
       "components": [
         "SearchANDPrompts"
-      ]
-    },
-    "minimaltest": {
-      "components": [
-        "SearchAndTodos"
       ]
     },
     "expandedtest": {
@@ -77,6 +74,11 @@
         "DemoMainPanel",
         ["SearchAndTodos", "DemoRightPanel"],
         "SearchAndTodos"
+      ]
+    },
+    "test2": {
+      "components": [
+        ["SearchAndTodos", "DemoRightPanel"]
       ]
     }
   }

@@ -227,6 +227,58 @@ export class ContentTypeInterpreter {
   static detectContentType(input: any): ContentTypeResult {
     const startTime = performance.now();
 
+    // Direct handling for string inputs
+    if (typeof input === 'string') {
+      const trimmedInput = input.trim();
+      
+      // Handle empty input
+      if (trimmedInput === '') {
+        return {
+          type: 'text/plain',
+          subtype: 'plain',
+          label: 'TXT',
+          preview: ''
+        };
+      }
+
+      // Direct type detection for strings
+      if (this.isJSONContent(trimmedInput)) {
+        return {
+          type: 'text/json',
+          subtype: 'json',
+          label: 'JSON',
+          preview: trimmedInput.slice(0, 100)
+        };
+      }
+
+      if (this.isMarkdownContent(trimmedInput)) {
+        return {
+          type: 'text/markdown',
+          subtype: 'markdown',
+          label: 'MD',
+          preview: trimmedInput.slice(0, 100)
+        };
+      }
+
+      if (this.isCSVContent(trimmedInput)) {
+        return {
+          type: 'text/csv',
+          subtype: 'csv',
+          label: 'CSV',
+          preview: `CSV, ${trimmedInput.split('\n').length} rows, ${trimmedInput.length} bytes`
+        };
+      }
+
+      if (this.isXMLContent(trimmedInput)) {
+        return {
+          type: 'text/xml',
+          subtype: 'xml',
+          label: 'XML',
+          preview: trimmedInput.slice(0, 100)
+        };
+      }
+    }
+
     let buffer: Uint8Array;
     try {
       buffer = this.convertToUint8Array(input);
@@ -263,10 +315,53 @@ export class ContentTypeInterpreter {
       const decodedText = decoder.decode(buffer);
       
       const previewText = bufferToPreviewString(buffer);
-      const textTypeResult = this.detectTextType(previewText);
       
+      // Enhanced text type detection with more robust checks
+      // Check for specific text types in order of specificity
+      if (this.isXMLContent(previewText)) {
+        return {
+          type: 'text/xml',
+          subtype: 'xml',
+          label: 'XML',
+          preview: previewText.slice(0, 100)
+        };
+      }
+
+      if (this.isJSONContent(previewText)) {
+        return {
+          type: 'text/json',
+          subtype: 'json',
+          label: 'JSON',
+          preview: previewText.slice(0, 100)
+        };
+      }
+
+      if (this.isMarkdownContent(previewText)) {
+        return {
+          type: 'text/markdown',
+          subtype: 'markdown',
+          label: 'MD',
+          preview: previewText.slice(0, 100)
+        };
+      }
+
+      if (this.isCSVContent(previewText)) {
+        return {
+          type: 'text/csv',
+          subtype: 'csv',
+          label: 'CSV',
+          preview: `CSV, ${previewText.split('\n').length} rows, ${previewText.length} bytes`
+        };
+      }
+      
+      // Fallback to text/plain if no specific type is detected
       const endTime = performance.now();
-      return textTypeResult;
+      return {
+        type: 'text/plain',
+        subtype: 'plain',
+        label: 'TXT',
+        preview: previewText.slice(0, 100)
+      };
     } catch (textDecodeError) {
       // Completely unrecognized
       const endTime = performance.now();
@@ -304,8 +399,15 @@ export class ContentTypeInterpreter {
       
       if (!isJsonStructure) return false;
       
-      JSON.parse(trimmed);
-      return true;
+      // Validate JSON structure
+      const parsed = JSON.parse(trimmed);
+      
+      // Additional checks for JSON validity
+      if (typeof parsed === 'object' && parsed !== null) {
+        return true;
+      }
+      
+      return false;
     } catch {
       return false;
     }
@@ -322,10 +424,14 @@ export class ContentTypeInterpreter {
       /^\s*-\s/m,  // Unordered list
       /^\s*\d+\.\s/m,  // Ordered list
       /`{3}/,  // Code blocks
-      /\[.*\]\(.*\)/  // Links
+      /\[.*\]\(.*\)/,  // Links
+      /\*{1,2}.*\*{1,2}/,  // Bold or italic
+      /_{1,2}.*_{1,2}/     // Underline or italic
     ];
 
-    return markdownPatterns.some(pattern => pattern.test(content));
+    // Require at least two markdown-specific patterns to match
+    const matchCount = markdownPatterns.filter(pattern => pattern.test(content)).length;
+    return matchCount >= 2;
   }
 
   /**
@@ -336,10 +442,20 @@ export class ContentTypeInterpreter {
   private static isCSVContent(content: string): boolean {
     const csvPatterns = [
       /^.*,(?=.*\n)/m,  // Comma-separated values
-      /^.*\t.*\n/m  // Tab-separated values
+      /^.*\t.*\n/m,  // Tab-separated values
+      /^[^,\n]+,[^,\n]+/  // At least two comma-separated columns
     ];
 
-    return csvPatterns.some(pattern => pattern.test(content));
+    // Require multiple rows and multiple columns
+    const lines = content.split('\n').filter(line => line.trim() !== '');
+    const hasMultipleRows = lines.length > 1;
+    const hasMultipleColumns = lines.some(line => {
+      const cols = line.split(',');
+      return cols.length > 1 && cols.every(col => col.trim() !== '');
+    });
+    
+    const patternMatches = csvPatterns.filter(pattern => pattern.test(content)).length;
+    return hasMultipleRows && hasMultipleColumns && patternMatches > 0;
   }
 
   /**
@@ -351,10 +467,14 @@ export class ContentTypeInterpreter {
     const xmlPatterns = [
       /^\s*<\?xml\s+version=/,  // XML declaration
       /^\s*<\w+\s*xmlns:/,      // XML with namespace
-      /^\s*<!DOCTYPE\s+\w+/     // DOCTYPE declaration
+      /^\s*<!DOCTYPE\s+\w+/,    // DOCTYPE declaration
+      /<\w+>.*<\/\w+>/,         // Basic tag structure
+      /&\w+;/                   // XML entities
     ];
 
-    return xmlPatterns.some(pattern => pattern.test(content));
+    // Require at least two XML-specific patterns to match
+    const matchCount = xmlPatterns.filter(pattern => pattern.test(content)).length;
+    return matchCount >= 2;
   }
 
   /**
@@ -415,8 +535,10 @@ export class ContentTypeInterpreter {
       // Analyze binary content
       const firstBytes = Array.from(buffer.slice(0, 16)).map(b => parseInt(b.toString(16).padStart(2, '0'), 16));
       
-      // Determine if content is likely binary
-      const isBinary = this.isPotentialBinaryContent(buffer);
+      // More aggressive binary detection
+      const isBinary = buffer.length > 0 && 
+        (this.isPotentialBinaryContent(buffer) || 
+         this.detectBinaryType(buffer) !== null);
 
       // Attempt to detect specific binary type
       const detectedType = this.detectContentType(buffer);
@@ -424,7 +546,7 @@ export class ContentTypeInterpreter {
       return {
         isString: false,
         isBinary: isBinary,
-        contentType: detectedType?.type || 'unknown',
+        contentType: detectedType?.type || 'application/octet-stream',
         length: buffer.length,
         firstBytes: firstBytes
       };

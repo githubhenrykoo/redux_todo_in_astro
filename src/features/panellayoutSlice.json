@@ -27,13 +27,13 @@
             "visible": true
         },
         "middle": {
-            "type": "ItemDetailPanel",
+            "type": "chatbot",
             "size": 40,
             "minSize": 20,
             "visible": true
         },
         "right": {
-            "type": "DatabaseRetrievePanel",
+            "type": "xterm",
             "size": 30,
             "minSize": 20,
             "visible": true

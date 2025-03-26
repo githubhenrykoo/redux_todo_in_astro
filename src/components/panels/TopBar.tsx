@@ -193,12 +193,11 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
     });
 
-    // Set up redirect URI
-    const origin = window.location.origin;
-    const path = '/callback';
-    startTransition(() => {
-      setRedirectUri(`${origin}${path}`);
-    });
+    // Set redirect URI based on environment configuration
+    setRedirectUri(
+      import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || 
+      `${import.meta.env.PUBLIC_APP_URL}/callback`
+    );
 
     // Check for stored user info
     const storedUserInfo = localStorage.getItem('authentik_panel_top_banner_authuser_info');
@@ -266,6 +265,27 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     try {
       setLoading(true);
       
+      // For development purposes, you can bypass authentication
+      const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+      
+      if (isDev && !import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET) {
+        console.log('Development mode: Skipping authentication');
+        // Mock authentication for development
+        localStorage.setItem('authentik_panel_top_banner_authuser_info', JSON.stringify({
+          email: 'dev@example.com',
+          email_verified: true,
+          sub: 'dev-user'
+        }));
+        setIsAuthenticated(true);
+        setUserProfile({
+          email: 'dev@example.com',
+          email_verified: true,
+          sub: 'dev-user'
+        });
+        setLoading(false);
+        return;
+      }
+      
       const currentPath = window.location.pathname + window.location.search;
 
       const client = createClient({
@@ -281,6 +301,22 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     } catch (error) {
       console.error('Login failed:', error);
       setLoading(false);
+      
+      // Fall back to mock login in development mode if there's an error
+      if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
+        console.log('Development mode: Using mock authentication after error');
+        localStorage.setItem('authentik_panel_top_banner_authuser_info', JSON.stringify({
+          email: 'dev@example.com',
+          email_verified: true,
+          sub: 'dev-user'
+        }));
+        setIsAuthenticated(true);
+        setUserProfile({
+          email: 'dev@example.com',
+          email_verified: true,
+          sub: 'dev-user'
+        });
+      }
     }
   };
 

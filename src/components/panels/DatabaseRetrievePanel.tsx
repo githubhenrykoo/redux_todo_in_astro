@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ContentTypeInterpreter } from '../../content/model/interpreter';
 import { MCardFromData } from '../../content/model/mcard';
+import { useDispatch } from 'react-redux';
+import { importCardFromDatabase, updateContent } from '../../features/contentSlice';
 
 interface PageData {
   items: MCardFromData[];
@@ -17,7 +19,15 @@ interface PageData {
   retrievalMethod?: string;
 }
 
+// Interface to better represent the content type
+interface ContentType {
+  mimeType?: string;
+  extension?: string;
+  isValid?: boolean;
+}
+
 export const DatabaseRetrievePanel: React.FC = () => {
+  const dispatch = useDispatch();
   const [cards, setCards] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,8 +36,13 @@ export const DatabaseRetrievePanel: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [hashValue, setHashValue] = useState('');
   const [selectedCard, setSelectedCard] = useState<MCardFromData | null>(null);
-  const [viewMode, setViewMode] = useState<'raw' | 'formatted'>('formatted');
+  const [viewMode, setViewMode] = useState<'raw' | 'formatted' | 'edit'>('formatted');
   const [panelSizes, setPanelSizes] = useState([50, 50]); // Initial split for card list and details
+  const [editableContent, setEditableContent] = useState<string>('');
+  const [updateStatus, setUpdateStatus] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error';
+    message: string;
+  }>({ status: 'idle', message: '' });
 
   // Function to fetch cards
   const fetchCards = async (params: {
@@ -103,6 +118,107 @@ export const DatabaseRetrievePanel: React.FC = () => {
   // Handle viewing card details
   const handleViewCard = (card: MCardFromData) => {
     setSelectedCard(card);
+    setViewMode('formatted');
+    
+    // Convert card content to string for editing
+    if (typeof card.content === 'object') {
+      setEditableContent(JSON.stringify(card.content, null, 2));
+    } else {
+      setEditableContent(String(card.content));
+    }
+  };
+
+  // Handle entering edit mode
+  const handleEditCard = () => {
+    setViewMode('edit');
+  };
+
+  // Handle content changes in edit mode
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditableContent(e.target.value);
+  };
+
+  // Handle saving the edited content
+  const handleSaveContent = async () => {
+    if (!selectedCard) return;
+    
+    setUpdateStatus({ status: 'loading', message: 'Updating card...' });
+    
+    try {
+      // Parse content if it's JSON
+      let parsedContent: any = editableContent;
+      const contentType = detectContentType(selectedCard);
+      
+      // Check if we're dealing with JSON content
+      const isJsonContent = 
+        (contentType && 'mimeType' in contentType && contentType.mimeType === 'application/json') ||
+        (typeof selectedCard.content === 'object');
+      
+      if (isJsonContent) {
+        try {
+          parsedContent = JSON.parse(editableContent);
+        } catch (e) {
+          throw new Error('Invalid JSON format');
+        }
+      }
+      
+      // First, update card in local Redux store
+      dispatch(updateContent({
+        hash: selectedCard.hash,
+        content: parsedContent
+      }));
+      
+      // Also import the card into the local Redux state
+      dispatch(importCardFromDatabase({
+        card: {
+          hash: selectedCard.hash,
+          content: parsedContent
+        }
+      }));
+      
+      // Then update in the database
+      const response = await fetch('/api/update-card', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          hash: selectedCard.hash,
+          content: parsedContent
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update card');
+      }
+      
+      // Update the selected card in state by fetching it again
+      fetchCards({ hash: selectedCard.hash });
+      
+      setUpdateStatus({ status: 'success', message: 'Card updated successfully!' });
+      setViewMode('formatted');
+    } catch (err) {
+      setUpdateStatus({ 
+        status: 'error', 
+        message: err instanceof Error ? err.message : 'Failed to update card' 
+      });
+      console.error('Error updating card:', err);
+    }
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    // Reset editable content to the original
+    if (selectedCard) {
+      if (typeof selectedCard.content === 'object') {
+        setEditableContent(JSON.stringify(selectedCard.content, null, 2));
+      } else {
+        setEditableContent(String(selectedCard.content));
+      }
+    }
+    setViewMode('formatted');
+    setUpdateStatus({ status: 'idle', message: '' });
   };
 
   // Helper function to format content based on type
@@ -114,18 +230,26 @@ export const DatabaseRetrievePanel: React.FC = () => {
   };
 
   // Helper function to detect content type
-  const detectContentType = (card: MCardFromData) => {
+  const detectContentType = (card: MCardFromData): ContentType => {
     // First try to use the card's native content type if available
     if (card._content_type) {
-      return card._content_type;
+      return card._content_type as ContentType;
     }
     
     // Fallback to static detection
-    return ContentTypeInterpreter.detectContentType(card.content);
+    const result = ContentTypeInterpreter.detectContentType(card.content);
+    
+    // Convert to standardized ContentType
+    if (typeof result === 'object' && result !== null) {
+      return result as ContentType;
+    }
+    
+    // Default fallback
+    return { mimeType: 'text/plain' };
   };
 
   // Helper function to get a display label for content type
-  const getContentTypeLabel = (contentType: any) => {
+  const getContentTypeLabel = (contentType: ContentType | null) => {
     if (!contentType) return 'Unknown';
     
     // Handle different content type structures
@@ -136,7 +260,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
     }
     
     // Fallback to string representation
-    return String(contentType);
+    return 'Unknown Content Type';
   };
 
   // Helper function to format date
@@ -336,7 +460,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
               {cards.items.map((card) => (
                 <div
                   key={card.hash}
-                  className="border rounded p-4 cursor-pointer hover:bg-gray-50"
+                  className={`border rounded p-4 cursor-pointer hover:bg-gray-50 ${selectedCard?.hash === card.hash ? 'bg-blue-50 border-blue-300' : ''}`}
                   onClick={() => handleViewCard(card)}
                 >
                   <div className="flex justify-between mb-2">
@@ -459,13 +583,23 @@ export const DatabaseRetrievePanel: React.FC = () => {
                   <span className="font-medium">Hash: </span>
                   <span className="font-mono">{selectedCard.hash}</span>
                 </div>
-                <div>
-                  <button
-                    onClick={() => setViewMode(viewMode === 'raw' ? 'formatted' : 'raw')}
-                    className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-                  >
-                    {viewMode === 'raw' ? 'Formatted View' : 'Raw View'}
-                  </button>
+                <div className="flex gap-2">
+                  {viewMode !== 'edit' && (
+                    <button
+                      onClick={handleEditCard}
+                      className="px-3 py-1 text-sm bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {viewMode !== 'edit' && (
+                    <button
+                      onClick={() => setViewMode(viewMode === 'raw' ? 'formatted' : 'raw')}
+                      className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
+                    >
+                      {viewMode === 'raw' ? 'Formatted View' : 'Raw View'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -480,34 +614,103 @@ export const DatabaseRetrievePanel: React.FC = () => {
               <span>{getContentTypeLabel(detectContentType(selectedCard))}</span>
             </div>
             
+            {/* Update Status Message */}
+            {updateStatus.status !== 'idle' && (
+              <div className={`mb-4 p-3 rounded ${
+                updateStatus.status === 'loading' ? 'bg-blue-100 text-blue-800' :
+                updateStatus.status === 'success' ? 'bg-green-100 text-green-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {updateStatus.message}
+              </div>
+            )}
+            
             <div className="mb-4">
               <div className="font-medium mb-2">Content:</div>
-              <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96 font-mono text-sm">
-                {viewMode === 'raw' 
-                  ? typeof selectedCard.content === 'object' 
-                    ? JSON.stringify(selectedCard.content)
-                    : String(selectedCard.content)
-                  : formatContent(selectedCard.content)
-                }
-              </pre>
+              {viewMode === 'edit' ? (
+                <div>
+                  <textarea
+                    value={editableContent}
+                    onChange={handleContentChange}
+                    className="w-full h-64 font-mono text-sm p-4 border rounded"
+                  />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveContent}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                      disabled={updateStatus.status === 'loading'}
+                    >
+                      Save Changes
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <pre className="bg-gray-100 p-4 rounded overflow-auto max-h-96 font-mono text-sm">
+                  {viewMode === 'raw' 
+                    ? typeof selectedCard.content === 'object' 
+                      ? JSON.stringify(selectedCard.content)
+                      : String(selectedCard.content)
+                    : formatContent(selectedCard.content)
+                  }
+                </pre>
+              )}
             </div>
             
-            <div className="mt-2">
-              <button
-                onClick={() => {
-                  const content = typeof selectedCard.content === 'object' 
-                    ? JSON.stringify(selectedCard.content, null, 2)
-                    : String(selectedCard.content);
-                  navigator.clipboard.writeText(content);
-                }}
-                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Copy Content
-              </button>
-            </div>
+            {viewMode !== 'edit' && (
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => {
+                    const content = typeof selectedCard.content === 'object' 
+                      ? JSON.stringify(selectedCard.content, null, 2)
+                      : String(selectedCard.content);
+                    navigator.clipboard.writeText(content);
+                    alert('Content copied to clipboard!');
+                  }}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Copy Content
+                </button>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedCard.hash);
+                    alert('Hash copied to clipboard!');
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Copy Hash
+                </button>
+                <button
+                  onClick={() => {
+                    // Import the card into Redux
+                    dispatch(importCardFromDatabase({ 
+                      card: {
+                        hash: selectedCard.hash,
+                        content: selectedCard.content,
+                        metadata: {},
+                        relationships: {
+                          parentHash: null,
+                          childHashes: [],
+                          relatedHashes: []
+                        }
+                      }
+                    }));
+                    alert('Card imported to local state!');
+                  }}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  Import to Redux
+                </button>
+              </div>
+            )}
           </div>
         ) : (
-          <div className="text-center text-gray-500 py-8">
+          <div className="flex items-center justify-center h-full text-gray-500">
             Select a card to view details
           </div>
         )}

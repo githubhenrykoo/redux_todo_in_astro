@@ -581,6 +581,64 @@ class SQLiteEngine {
   }
 
   /**
+   * Update a card's content by hash
+   * @param {string} hash - Hash of the card to update
+   * @param {any} newContent - New content for the card
+   * @returns {boolean} Whether the update was successful
+   */
+  update(hash, newContent) {
+    try {
+      console.log('SQLiteEngine.update called with hash:', hash);
+      
+      // First verify the card exists
+      const existingCard = this.get(hash);
+      if (!existingCard) {
+        console.log('No card found with hash:', hash);
+        return false;
+      }
+      
+      // Prepare content for storage
+      let finalContent;
+      
+      if (typeof newContent === 'object' && newContent !== null && !(newContent instanceof Buffer)) {
+        // For objects, stringify to ensure proper SQLite storage
+        finalContent = JSON.stringify(newContent);
+        console.log('Serialized object content to JSON string for update');
+      } else if (typeof newContent === 'string') {
+        // Strings can be stored directly
+        finalContent = newContent;
+        console.log('Using string content directly for update');
+      } else if (Buffer.isBuffer(newContent)) {
+        // Buffers can be stored directly
+        finalContent = newContent;
+        console.log('Using Buffer content directly for update');
+      } else {
+        // Convert other types to string
+        finalContent = String(newContent);
+        console.log('Converted content to string for update');
+      }
+      
+      // Update the card in the database
+      const stmt = this.connection.conn.prepare(
+        'UPDATE card SET content = ? WHERE hash = ?'
+      );
+      
+      const result = stmt.run(finalContent, String(hash));
+      
+      if (result.changes > 0) {
+        console.log('Card updated successfully with hash:', hash);
+        return true;
+      } else {
+        console.log('Card update had no effect for hash:', hash);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error updating card:', error);
+      return false;
+    }
+  }
+
+  /**
    * Get all cards
    * @param {number} page_number - Page number to retrieve
    * @param {number} page_size - Number of items per page

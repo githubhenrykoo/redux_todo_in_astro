@@ -27,7 +27,15 @@ const ContentEditor: React.FC<ContentEditorProps> = ({
   const [localContent, setLocalContent] = useState(content);
   const contentLines = localContent.split('\n');
   const lineNumberWidth = contentLines.length.toString().length;
-  const themeMode = useSelector(selectThemeMode);
+  
+  // Safely access theme mode with fallback
+  const themeMode = useSelector((state: any) => {
+    try {
+      return state?.theme?.mode || 'light';
+    } catch (e) {
+      return 'light';
+    }
+  });
   const isDark = themeMode === 'dark';
 
   // Update local content when prop changes

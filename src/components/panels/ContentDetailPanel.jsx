@@ -31,10 +31,30 @@ export default function ContentDetailPanel() {
            prev.selectedContentItem === next.selectedContentItem;
   });
 
+  // Helper function to handle different content types
+  const formatContent = (content) => {
+    if (!content) return '';
+    
+    // If content is already a string, return it
+    if (typeof content === 'string') return content;
+    
+    // If it's an object (parsed JSON), stringify it for display
+    if (typeof content === 'object') {
+      try {
+        return JSON.stringify(content, null, 2);
+      } catch (e) {
+        console.error('Error stringifying content:', e);
+      }
+    }
+    
+    // Fallback: convert to string
+    return String(content);
+  };
+
   // Effect to update content when a new card is selected
   useEffect(() => {
     if (selectedContentItem) {
-      setEditContent(selectedContentItem.content);
+      setEditContent(formatContent(selectedContentItem.content));
       setIsEditing(false);
     } else {
       setEditContent('');
@@ -62,7 +82,7 @@ export default function ContentDetailPanel() {
   const handleCancel = () => {
     // Revert to original content if editing
     if (selectedContentItem) {
-      setEditContent(selectedContentItem.content);
+      setEditContent(formatContent(selectedContentItem.content));
     }
     setIsEditing(false);
   };
@@ -76,7 +96,7 @@ export default function ContentDetailPanel() {
   // Determine the content to display
   const displayContent = isEditing 
     ? editContent 
-    : (selectedContentItem?.content || '');
+    : formatContent(selectedContentItem?.content);
 
   return (
     <div className="flex flex-col h-full">

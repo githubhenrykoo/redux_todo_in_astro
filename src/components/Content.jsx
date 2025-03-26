@@ -41,6 +41,20 @@ const Content = () => {
           filteredContent.map(card => {
             if (!card) return null;
             
+            // Convert content to a string safely
+            const contentPreview = (() => {
+              if (!card.content) return 'No content';
+              
+              let contentString;
+              if (typeof card.content === 'object') {
+                contentString = JSON.stringify(card.content);
+              } else {
+                contentString = String(card.content);
+              }
+              
+              return contentString.substring(0, 200);
+            })();
+
             return (
               <div 
                 key={card.hash} 
@@ -54,7 +68,7 @@ const Content = () => {
                   onClick={() => handleContentSelect(card.hash)}
                   className="cursor-pointer mb-2 dark:text-neutral-100"
                 >
-                  {card.content.substring(0, 200)}...
+                  {contentPreview}...
                 </div>
 
                 {/* Metadata and Actions */}

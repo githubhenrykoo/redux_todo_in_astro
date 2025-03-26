@@ -226,6 +226,32 @@ class CardCollection {
     return this.engine.search_by_content(search_string, page_number, page_size);
   }
   
+  /**
+   * Update the content of an existing card
+   * @param {string} hash - Hash of the card to update
+   * @param {any} newContent - New content for the card
+   * @returns {boolean} Whether the update was successful
+   */
+  update(hash, newContent) {
+    if (!hash) {
+      throw new Error("Hash cannot be empty");
+    }
+    
+    // Check if the card exists
+    const existingCard = this.get(hash);
+    if (!existingCard) {
+      return false;
+    }
+    
+    try {
+      // Update the card in the engine
+      return this.engine.update(hash, newContent);
+    } catch (error) {
+      console.error(`Error updating card ${hash}:`, error);
+      return false;
+    }
+  }
+  
   clear() {
     this.engine.clear();
   }

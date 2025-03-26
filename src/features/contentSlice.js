@@ -123,6 +123,29 @@ export const contentSlice = createSlice({
           ...relationships
         };
       }
+    },
+
+    // Update card content
+    updateContent: (state, action) => {
+      const { hash, content } = action.payload;
+      if (state.cards[hash]) {
+        state.cards[hash].content = content;
+        state.cards[hash].updatedAt = new Date().toISOString();
+      }
+    },
+    importCardFromDatabase: (state, action) => {
+      const { hash, content, relationships = {}, metadata = {} } = action.payload;
+      state.cards[hash] = {
+        hash,
+        content,
+        createdAt: new Date().toISOString(),
+        metadata,
+        relationships: {
+          parentHash: relationships?.parentHash || null,
+          childHashes: relationships?.childHashes || [],
+          relatedHashes: relationships?.relatedHashes || []
+        }
+      };
     }
   }
 });
@@ -143,7 +166,9 @@ export const {
   selectContent, 
   setSearchQuery,
   updateContentMetadata,
-  updateContentRelationships
+  updateContentRelationships,
+  updateContent,
+  importCardFromDatabase
 } = contentSlice.actions;
 
 export default contentSlice.reducer;

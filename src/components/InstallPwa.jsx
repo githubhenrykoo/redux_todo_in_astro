@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 
 const InstallPwa = () => {
+  // Only initialize hooks if we're in the browser
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
+  // Safe check to ensure we're running in the browser before using hooks
   useEffect(() => {
+    // Set mounted flag to ensure client-side rendering
+    setIsMounted(true);
+    
     // Check if on iOS
     const checkIos = () => {
+      if (typeof window === 'undefined') return false;
+      
       const ua = window.navigator.userAgent;
       const iOS = !!ua.match(/iPad/i) || !!ua.match(/iPhone/i);
       const webkit = !!ua.match(/WebKit/i);
@@ -28,26 +36,28 @@ const InstallPwa = () => {
       console.log('BeforeInstallPrompt event fired and captured');
     };
 
-    // Check if already installed
-    const checkIfInstalled = () => {
+    // Only run if we're in the browser
+    if (typeof window !== 'undefined') {
+      checkIos();
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      
+      // Check if already installed
       if (window.matchMedia('(display-mode: standalone)').matches || 
           window.navigator.standalone === true) {
         console.log('App is already installed');
         setShowInstallButton(false);
       }
-    };
-
-    checkIos();
-    checkIfInstalled();
-
-    // Add event listener for beforeinstallprompt
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Clean up
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
+      
+      return () => {
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      };
+    }
   }, []);
+
+  // Don't render anything during SSR
+  if (!isMounted) {
+    return null;
+  }
 
   // Handle install button click
   const handleInstallClick = async () => {

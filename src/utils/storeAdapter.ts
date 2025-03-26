@@ -1,6 +1,7 @@
 import { MCard } from '../content/model/mcard.js';
 import { SQLiteEngine, SQLiteConnection } from '../engine/sqlite_engine.js';
 import { CARDS_DB_PATH } from '../config/config_constants.js';
+import { encodeText } from './textEncoderPolyfill.js';
 
 // Singleton instance
 let engineInstance: SQLiteEngine | null = null;
@@ -30,9 +31,8 @@ export function getStoreEngine(): SQLiteEngine {
  */
 function safeBufferFrom(content: string): any {
   try {
-    // Use TextEncoder to convert string to Uint8Array in any environment
-    const encoder = new TextEncoder();
-    return encoder.encode(content);
+    // Use polyfill to convert string to Uint8Array in any environment
+    return encodeText(content);
   } catch (error) {
     console.error('Error creating buffer:', error);
     throw error;

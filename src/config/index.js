@@ -8,32 +8,26 @@
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
-let config;
+// Import the configuration module - this will work because config_constants.js 
+// now has environment-aware code that works in both browser and Node.js
+import * as config from './config_constants.js';
 
-// Dynamic import based on environment
-if (isBrowser) {
-  // In the browser, use the browser-safe configuration
-  config = require('./browser-constants.js');
-} else {
-  // In Node.js, use the full configuration with process.env support
-  config = require('./config_constants.js');
-}
-
-// Re-export everything from the selected configuration
-module.exports = config;
-
-// Maintain compatibility with both named and default exports
-if (config.default) {
-  module.exports.default = config.default;
-}
-
-// Handle direct module references in ESM
+// Export everything from config_constants
 export default config.default || config;
-export const configConstants = config.configConstants || config;
+export const configConstants = config;
 
-// Export all named exports
-for (const key in config) {
-  if (key !== 'default' && key !== 'configConstants') {
-    exports[key] = config[key];
-  }
-}
+// Re-export named exports for convenience
+export const {
+  DEFAULT_PAGE_SIZE,
+  CARDS_DB_PATH,
+  TEST_DB_PATH,
+  DEFAULT_HASH_ALGORITHM,
+  DEFAULT_HASH_LENGTH,
+  DEFAULT_LOG_LEVEL,
+  LOG_LEVEL,
+  HashAlgorithm,
+  HASH_ALGORITHM_HIERARCHY,
+  HashAlgorithmMetadata,
+  VALID_HASH_FUNCTIONS,
+  projectRoot
+} = config;

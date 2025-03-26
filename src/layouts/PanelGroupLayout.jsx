@@ -9,9 +9,22 @@ const PanelContent = () => {
 
   const renderPanel = (config) => {
     const Component = React.lazy(() => 
-      import(`../components/panels/${config.type}.jsx`)
-        .catch(() => import(`../components/panels/${config.type}.tsx`))
+      // Try both .tsx and .jsx extensions using Promise.any
+      Promise.any([
+        import(`../components/panels/${config.type}.tsx`).then(module => {
+          console.log(`Successfully loaded .tsx component for: ${config.type}`);
+          return { default: module.default || module[config.type] };
+        }),
+        import(`../components/panels/${config.type}.jsx`).then(module => {
+          console.log(`Successfully loaded .jsx component for: ${config.type}`);
+          return { default: module.default || module[config.type] };
+        })
+      ]).catch((error) => {
+        console.error(`Failed to load component for panel type: ${config.type}`, error);
+        throw new Error(`No component found for panel type: ${config.type}`);
+      })
     );
+    
     return (
       <Suspense fallback={<div>Loading panel...</div>}>
         <Component />

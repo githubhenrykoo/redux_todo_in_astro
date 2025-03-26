@@ -4,10 +4,16 @@ import JsonSidebar from '../components/JsonSidebar';
 import ResizablePanel from '../components/ResizablePanel';
 import { store } from '../store';
 
-const initialLayout = store.getState().resizeable.currentLayout || 'default';
+// Initialize all key state values
+const initialState = store.getState();
+const initialTheme = initialState.theme?.mode || 'light';
+const initialLayout = initialState.resizeable?.currentLayout || 'default';
+const contentState = initialState.content || {};
+const todoState = initialState.todo || {};
+const panelLayoutState = initialState.panellayout || {};
 ---
 
-<html lang="en">
+<html lang="en" class:list={[initialTheme, 'min-h-screen']}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width" />
@@ -38,8 +44,13 @@ const initialLayout = store.getState().resizeable.currentLayout || 'default';
         color: #666;
       }
     </style>
+    <script define:vars={{initialTheme}}>
+      // Ensure consistent theme on initial load
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(initialTheme);
+    </script>
   </head>
-  <body>
+  <body class="min-h-screen bg-background text-foreground antialiased">
     <div class="app-container">
       <div class="sidebar-container">
         <JsonSidebar client:load />
@@ -49,14 +60,50 @@ const initialLayout = store.getState().resizeable.currentLayout || 'default';
           client:load
           useDefaultContent={true}
         />
+        <slot />
       </div>
     </div>
 
-    <script define:vars={{ initialLayout }}>
-      import { store } from '../store';
-
-      // Apply initial layout
-      console.log('Initial Layout:', initialLayout);
+    <!-- Use the is:inline type="module" syntax to properly define this as a module -->
+    <script is:inline type="module">
+      // Ensure Redux state is properly initialized
+      import { store } from '/src/store.js';
+      
+      // Apply initial theme and set up theme subscription
+      const initialTheme = store.getState().theme?.mode || 'light';
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add(initialTheme);
+      
+      // Subscribe to state changes using startTransition to prevent hydration errors
+      let isHydrated = false;
+      
+      // Wait for hydration to complete
+      setTimeout(() => {
+        isHydrated = true;
+        console.log('Hydration complete, safe to update state now');
+      }, 100);
+      
+      store.subscribe(() => {
+        // Only process state updates after hydration
+        if (!isHydrated) return;
+        
+        const state = store.getState();
+        
+        // Handle theme changes
+        const theme = state.theme?.mode;
+        if (theme) {
+          document.documentElement.classList.remove('light', 'dark');
+          document.documentElement.classList.add(theme);
+        }
+        
+        // Log state changes to help with debugging
+        console.log('Redux state updated', {
+          theme: state.theme?.mode,
+          content: state.content?.selectedHash ? 'Has selected content' : 'No selected content',
+          todo: Object.keys(state.todo || {}).length > 0 ? 'Has todos' : 'No todos',
+          layout: state.resizeable?.currentLayout
+        });
+      });
     </script>
   </body>
 </html>

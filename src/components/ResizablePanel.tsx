@@ -189,10 +189,34 @@ function ResizablePanelComponent({
 }
 
 export default function ResizablePanel(props: ResizablePanelProps) {
+  // Force an initial state access to ensure Redux state is available in DevTools
+  React.useEffect(() => {
+    // Use startTransition to avoid hydration errors
+    if (typeof window !== 'undefined') {
+      // Only run in browser environment
+      React.startTransition(() => {
+        const state = store.getState();
+        console.log('Redux state initialized in ResizablePanel:', {
+          theme: state.theme?.mode,
+          content: state.content ? 'Available' : 'Not available',
+          todo: state.todo ? 'Available' : 'Not available',
+          panels: state.panellayout ? 'Available' : 'Not available',
+          resizeable: state.resizeable?.currentLayout || 'default'
+        });
+        
+        // Dispatch a dummy action to make the state visible in DevTools
+        store.dispatch({ type: 'panels/initialized', payload: { timestamp: Date.now() } });
+      });
+    }
+  }, []);
+
+  // Wrap provider in React.StrictMode to help catch potential issues
   return (
-    <Provider store={store}>
-      <ResizablePanelComponent {...props} />
-    </Provider>
+    <React.StrictMode>
+      <Provider store={store}>
+        <ResizablePanelComponent {...props} />
+      </Provider>
+    </React.StrictMode>
   );
 }
 

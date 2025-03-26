@@ -11,19 +11,15 @@ export default function ItemDetailPanel() {
   
   const dispatch = useDispatch();
   
-  // Extract useSelector calls outside of useMemo to follow Rules of Hooks
-  const state = useSelector(state => state || {});
-  const selectedHash = state?.content?.selectedHash;
+  // Use specific selectors that only return needed parts of state
+  const selectedHash = useSelector(state => state?.content?.selectedHash);
+  const cards = useSelector(state => state?.content?.cards || {});
   
   // Memoize the calculated values, not the selector itself
   const selectedContentItem = useMemo(() => {
-    // Safely handle undefined state
-    const contentState = state.content || {};
-    const cards = contentState.cards || {};
-    
     // Find the card by hash
     return selectedHash ? cards[selectedHash] : null;
-  }, [state, selectedHash]);
+  }, [cards, selectedHash]);
 
   // Helper function to handle different content types
   const formatContent = (content) => {

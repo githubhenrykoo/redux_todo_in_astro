@@ -13,23 +13,24 @@ export default function ContentDetailPanel() {
   const [editContent, setEditContent] = useState('');
   
   const dispatch = useDispatch();
-  // Using memoized selector to prevent unnecessary rerenders
-  const { selectedHash, selectedContentItem } = useSelector(state => {
-    const hash = state.content.selectedHash;
-    const cards = state.content.cards;
+  
+  // Extract useSelector calls outside of useMemo to follow Rules of Hooks
+  const state = useSelector(state => state || {});
+  const selectedHash = state?.content?.selectedHash;
+  
+  // Memoize the calculated values, not the selector itself
+  const selectedContentItem = useMemo(() => {
+    // Safely handle undefined state
+    const contentState = state.content || {};
+    const cards = contentState.cards || {};
     
-    // Find the card by iterating through cards
-    const card = Object.values(cards).find(c => c.hash === hash);
+    // Find the card by hash - safely handle when cards is undefined or empty
+    if (selectedHash && cards) {
+      return Object.values(cards).find(c => c && c.hash === selectedHash) || null;
+    }
     
-    return {
-      selectedHash: hash,
-      selectedContentItem: card
-    };
-  }, (prev, next) => {
-    // Custom equality function for shallow comparison of returned objects
-    return prev.selectedHash === next.selectedHash && 
-           prev.selectedContentItem === next.selectedContentItem;
-  });
+    return null;
+  }, [state, selectedHash]);
 
   // Helper function to handle different content types
   const formatContent = (content) => {
@@ -152,12 +153,11 @@ export default function ContentDetailPanel() {
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-auto">
         <ContentEditor
-          content={displayContent}
+          content={displayContent || ''}
           onChange={handleContentChange}
           onSave={isEditing ? handleSubmit : undefined}
           title={isEditing ? 'Edit Content' : 'Content Viewer'}
           isReadOnly={!isEditing}
-          theme={isEditing ? 'light' : 'dark'}
           showLineNumbers={true}
           language="Plain Text"
           className="h-full"

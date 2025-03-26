@@ -7,9 +7,18 @@ import React, { useState, useEffect } from 'react';
 const PwaUpdater = () => {
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const [swRegistration, setSwRegistration] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Monitor service worker updates rather than registering a new one
   useEffect(() => {
+    // Set mounted flag to ensure client-side rendering
+    setIsMounted(true);
+
+    // Only run in browser context
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+      return;
+    }
+
     const monitorSW = async () => {
       if ('serviceWorker' in navigator) {
         try {
@@ -29,7 +38,7 @@ const PwaUpdater = () => {
               newWorker.addEventListener('statechange', () => {
                 console.log('Service worker state:', newWorker.state);
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('New content is available, please refresh.');
+                  console.log('New content is available!');
                   setNeedsRefresh(true);
                 }
               });
@@ -64,7 +73,16 @@ const PwaUpdater = () => {
     };
     
     monitorSW();
+
+    return () => {
+      // Cleanup if needed
+    };
   }, []);
+
+  // Don't render anything during SSR
+  if (!isMounted) {
+    return null;
+  }
 
   // Handler for the refresh button
   const handleRefresh = () => {

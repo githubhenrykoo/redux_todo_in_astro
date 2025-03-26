@@ -22,5 +22,8 @@
   },
   "ContentDetailPanel": {
     "component": "../components/panels/ContentDetailPanel.jsx"
+  },
+  "DatabaseRetrievePanel": {
+    "component": "../components/panels/DatabaseRetrievePanel.tsx"
   }
 }

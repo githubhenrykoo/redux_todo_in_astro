@@ -10,9 +10,9 @@ interface TopBarProps {
 }
 
 interface UserInfo {
-  email?: string;
-  email_verified?: boolean;
-  sub?: string;
+  email?: string | null;
+  email_verified?: boolean | null;
+  sub?: string | null;
 }
 
 // Add save function to window for external components to call
@@ -134,6 +134,20 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     setLastSavedState(JSON.stringify(initialState));
     console.log('Initial state set for auto-save comparison');
 
+    // Check authentication state from Redux store
+    const userState = initialState.user;
+    console.log('Initial user state from Redux:', userState);
+    if (userState && userState.isAuthenticated) {
+      startTransition(() => {
+        setIsAuthenticated(true);
+        setUserProfile({
+          email: userState.profile?.email,
+          email_verified: userState.profile?.email_verified,
+          sub: userState.profile?.sub
+        });
+      });
+    }
+
     // Initial theme setup
     const storeTheme = initialState.theme?.mode || 'light';
     startTransition(() => {
@@ -147,6 +161,29 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         startTransition(() => {
           setTheme(currentTheme);
         });
+      }
+    });
+
+    // Set up user state subscription
+    const unsubscribeUser = store.subscribe(() => {
+      const currentUserState = store.getState().user;
+      console.log('User state updated in Redux:', currentUserState);
+      if (currentUserState) {
+        const shouldBeAuthenticated = !!currentUserState.isAuthenticated;
+        if (shouldBeAuthenticated !== isAuthenticated) {
+          startTransition(() => {
+            setIsAuthenticated(shouldBeAuthenticated);
+            if (shouldBeAuthenticated) {
+              setUserProfile({
+                email: currentUserState.profile?.email,
+                email_verified: currentUserState.profile?.email_verified,
+                sub: currentUserState.profile?.sub
+              });
+            } else {
+              setUserProfile({});
+            }
+          });
+        }
       }
     });
 
@@ -200,9 +237,9 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     );
 
     // Check for stored user info
-    const storedUserInfo = localStorage.getItem('authentik_panel_top_banner_authuser_info');
-    const accessToken = localStorage.getItem('authentik_panel_top_banner_auth_access_token');
-    const idToken = localStorage.getItem('authentik_panel_top_banner_auth_id_token');
+    const storedUserInfo = localStorage.getItem('authentik_top_banner_authuser_info');
+    const accessToken = localStorage.getItem('authentik_top_banner_authaccess_token');
+    const idToken = localStorage.getItem('authentik_top_banner_authid_token');
 
     console.log('Stored User Info:', {
       userInfo: storedUserInfo,
@@ -212,32 +249,95 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
 
     if (storedUserInfo) {
       try {
-        const parsedUserInfo: UserInfo = JSON.parse(storedUserInfo);
+        // Try to parse the full stored user info
+        let parsedUserInfo = {};
         
-        // Dispatch login action with comprehensive payload
-        const loginPayload = {
-          profile: parsedUserInfo,
-          tokens: {
-            access_token: accessToken,
-            id_token: idToken,
-            // Add other token details if available
+        try {
+          // First, try parsing the full stored info
+          parsedUserInfo = JSON.parse(storedUserInfo);
+        } catch (partialParseError) {
+          console.warn('Partial or truncated user info, attempting recovery', partialParseError);
+          
+          // Attempt to recover by parsing the valid part of the JSON
+          const validJsonMatch = storedUserInfo.match(/^{[^}]*}/);
+          if (validJsonMatch) {
+            try {
+              parsedUserInfo = JSON.parse(validJsonMatch[0]);
+            } catch (recoveryError) {
+              console.error('Could not recover user info', recoveryError);
+              localStorage.removeItem('authentik_top_banner_authuser_info');
+              return;
+            }
+          }
+        }
+
+        // Decode JWT tokens to get additional information
+        const decodeJWT = (token: string) => {
+          try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            return JSON.parse(window.atob(base64));
+          } catch (error) {
+            console.error('Error decoding JWT', error);
+            return {};
           }
         };
 
-        console.log('Dispatching Login Payload:', loginPayload);
+        // Try to get additional info from access token
+        const decodedAccessToken = accessToken ? decodeJWT(accessToken) : {};
+        const decodedIdToken = idToken ? decodeJWT(idToken) : {};
 
-        // Dispatch login action
-        const loginAction = store.dispatch(login(loginPayload));
+        // Merge information from different sources
+        const mergedUserInfo = {
+          ...decodedAccessToken,
+          ...decodedIdToken,
+          ...parsedUserInfo,
+          access_token: accessToken,
+          id_token: idToken
+        };
+        
+        // Comprehensive login payload
+        const loginPayload = {
+          isAuthenticated: true,
+          sub: mergedUserInfo.sub || null,
+          email: mergedUserInfo.email || null,
+          email_verified: mergedUserInfo.email_verified || false,
+          name: mergedUserInfo.name || null,
+          given_name: mergedUserInfo.given_name || null,
+          family_name: mergedUserInfo.family_name || null,
+          nickname: mergedUserInfo.nickname || null,
+          preferred_username: mergedUserInfo.preferred_username || null,
+          groups: mergedUserInfo.groups || [],
+          picture: mergedUserInfo.picture || null,
+          access_token: accessToken,
+          id_token: idToken,
+          token_type: 'Bearer',
+          expires_at: mergedUserInfo.exp ? new Date(mergedUserInfo.exp * 1000).toISOString() : null,
+          lastLogin: new Date().toISOString(),
+          theme: 'system',
+          language: 'en'
+        };
 
-        // Update local state
+        console.log('Dispatching Comprehensive Login Payload:', loginPayload);
+
+        // Dispatch login action with comprehensive payload
+        store.dispatch(login(loginPayload));
+
+        // Update local state directly
         startTransition(() => {
           setIsAuthenticated(true);
-          setUserProfile(parsedUserInfo);
+          setUserProfile({
+            email: mergedUserInfo.email,
+            email_verified: mergedUserInfo.email_verified,
+            sub: mergedUserInfo.sub
+          });
         });
 
-        console.log('Login dispatched with action:', loginAction);
+        console.log('Login processed successfully');
       } catch (error) {
-        console.error('Error parsing user info:', error);
+        console.error('Error processing user info:', error);
+        // Clear invalid stored info
+        localStorage.removeItem('authentik_top_banner_authuser_info');
       }
     }
 
@@ -249,6 +349,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     return () => {
       unsubscribeTheme();
       unsubscribeStateChange();
+      unsubscribeUser();
       window.removeEventListener('redux-state-change', handleCustomStateChange as EventListener);
       window.removeEventListener('force-save-state', handleForceSave as EventListener);
       
@@ -259,7 +360,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         saveTimeoutRef.current = null;
       }
     };
-  }, [autoSaveEnabled]);
+  }, [autoSaveEnabled, isAuthenticated, theme]);
 
   const handleLogin = async () => {
     try {
@@ -271,16 +372,42 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       if (isDev && !import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET) {
         console.log('Development mode: Skipping authentication');
         // Mock authentication for development
-        localStorage.setItem('authentik_panel_top_banner_authuser_info', JSON.stringify({
+        const mockUserInfo = {
           email: 'dev@example.com',
           email_verified: true,
           sub: 'dev-user'
-        }));
+        };
+        
+        localStorage.setItem('authentik_top_banner_authuser_info', JSON.stringify(mockUserInfo));
+        
+        // Structure the Redux action payload correctly
+        const loginPayload = {
+          profile: {
+            ...mockUserInfo,
+            name: 'Dev User',
+            given_name: 'Dev',
+            family_name: 'User',
+            nickname: 'dev',
+            preferred_username: 'devuser',
+            groups: ['Developers'],
+            picture: null
+          },
+          tokens: {
+            access_token: 'mock-access-token',
+            id_token: 'mock-id-token',
+            token_type: 'Bearer',
+            expires_at: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+          }
+        };
+        
+        // Dispatch login action
+        store.dispatch(login(loginPayload));
+        
         setIsAuthenticated(true);
         setUserProfile({
-          email: 'dev@example.com',
-          email_verified: true,
-          sub: 'dev-user'
+          email: mockUserInfo.email,
+          email_verified: mockUserInfo.email_verified,
+          sub: mockUserInfo.sub
         });
         setLoading(false);
         return;
@@ -294,7 +421,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         redirectUri: redirectUri || '',
         scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
         baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
-        storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}panel_top_banner_auth`,
+        storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
       });
 
       await client.login(currentPath);
@@ -305,16 +432,43 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       // Fall back to mock login in development mode if there's an error
       if (import.meta.env.DEV || import.meta.env.MODE === 'development') {
         console.log('Development mode: Using mock authentication after error');
-        localStorage.setItem('authentik_panel_top_banner_authuser_info', JSON.stringify({
+        
+        const mockUserInfo = {
           email: 'dev@example.com',
           email_verified: true,
           sub: 'dev-user'
-        }));
+        };
+        
+        localStorage.setItem('authentik_top_banner_authuser_info', JSON.stringify(mockUserInfo));
+        
+        // Structure the Redux action payload correctly
+        const loginPayload = {
+          profile: {
+            ...mockUserInfo,
+            name: 'Dev User',
+            given_name: 'Dev',
+            family_name: 'User',
+            nickname: 'dev',
+            preferred_username: 'devuser',
+            groups: ['Developers'],
+            picture: null
+          },
+          tokens: {
+            access_token: 'mock-access-token',
+            id_token: 'mock-id-token',
+            token_type: 'Bearer',
+            expires_at: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+          }
+        };
+        
+        // Dispatch login action
+        store.dispatch(login(loginPayload));
+        
         setIsAuthenticated(true);
         setUserProfile({
-          email: 'dev@example.com',
-          email_verified: true,
-          sub: 'dev-user'
+          email: mockUserInfo.email,
+          email_verified: mockUserInfo.email_verified,
+          sub: mockUserInfo.sub
         });
       }
     }
@@ -322,9 +476,9 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
 
   const handleLogout = () => {
     // Remove stored user info
-    localStorage.removeItem('authentik_panel_top_banner_authuser_info');
-    localStorage.removeItem('authentik_panel_top_banner_auth_access_token');
-    localStorage.removeItem('authentik_panel_top_banner_auth_id_token');
+    localStorage.removeItem('authentik_top_banner_authuser_info');
+    localStorage.removeItem('authentik_top_banner_authaccess_token');
+    localStorage.removeItem('authentik_top_banner_authid_token');
     
     // Dispatch logout action
     store.dispatch(logout());

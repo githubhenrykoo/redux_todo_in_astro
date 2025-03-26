@@ -138,12 +138,53 @@ export const DatabaseRetrievePanel: React.FC = () => {
   };
 
   // Helper function to format date
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleString();
-    } catch (e) {
-      return dateString;
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) {
+      return 'N/A';
     }
+    
+    try {
+      const date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
+      
+      return date.toLocaleString();
+    } catch (e) {
+      return 'N/A';
+    }
+  };
+
+  // Helper function to get timestamp from card
+  const getCardTimestamp = (card: MCardFromData) => {
+    // Try g_time first (if it exists and is valid)
+    if (card.g_time) {
+      return card.g_time;
+    }
+    
+    // Try to extract timestamp from content if it's a JSON object
+    if (typeof card.content === 'object' && card.content !== null) {
+      // Look for __stateTimestamp in the content object
+      if (card.content.__stateTimestamp) {
+        return card.content.__stateTimestamp;
+      }
+    }
+    
+    // If content is a string, try to parse it as JSON to find timestamp
+    if (typeof card.content === 'string') {
+      try {
+        const parsedContent = JSON.parse(card.content);
+        if (parsedContent.__stateTimestamp) {
+          return parsedContent.__stateTimestamp;
+        }
+      } catch (e) {
+        // Not valid JSON, ignore
+      }
+    }
+    
+    return null;
   };
 
   return (
@@ -270,7 +311,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
                     {card.hash.substring(0, 10)}...
                   </span>
                   <span className="text-gray-500 text-sm">
-                    {formatDate(card.g_time)}
+                    {formatDate(getCardTimestamp(card))}
                   </span>
                 </div>
                 <div className="text-gray-700 truncate">
@@ -345,7 +386,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
           
           <div className="mb-4">
             <span className="font-medium">Created: </span>
-            <span>{formatDate(selectedCard.g_time)}</span>
+            <span>{formatDate(getCardTimestamp(selectedCard))}</span>
           </div>
           
           <div className="mb-4">

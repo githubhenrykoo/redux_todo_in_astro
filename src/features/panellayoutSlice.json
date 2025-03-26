@@ -33,7 +33,7 @@
             "visible": true
         },
         "right": {
-            "type": "ActionLogPanelReact",
+            "type": "DatabaseRetrievePanel",
             "size": 30,
             "minSize": 20,
             "visible": true

@@ -14,23 +14,19 @@ export default function ContentDetailPanel() {
   
   const dispatch = useDispatch();
   
-  // Extract useSelector calls outside of useMemo to follow Rules of Hooks
-  const state = useSelector(state => state || {});
-  const selectedHash = state?.content?.selectedHash;
+  // Use specific selectors that only return needed parts of state
+  const selectedHash = useSelector(state => state?.content?.selectedHash);
+  const cardsMap = useSelector(state => state?.content?.cards || {});
   
   // Memoize the calculated values, not the selector itself
   const selectedContentItem = useMemo(() => {
-    // Safely handle undefined state
-    const contentState = state.content || {};
-    const cards = contentState.cards || {};
-    
     // Find the card by hash - safely handle when cards is undefined or empty
-    if (selectedHash && cards) {
-      return Object.values(cards).find(c => c && c.hash === selectedHash) || null;
+    if (selectedHash && cardsMap) {
+      return Object.values(cardsMap).find(c => c && c.hash === selectedHash) || null;
     }
     
     return null;
-  }, [state, selectedHash]);
+  }, [cardsMap, selectedHash]);
 
   // Helper function to handle different content types
   const formatContent = (content) => {

@@ -13,7 +13,7 @@
             "visible": true
         },
         "right": {
-            "type": "DemoMainPanel",
+            "type": "DatabaseRetrievePanel",
             "size": 30,
             "minSize": 20,
             "visible": true

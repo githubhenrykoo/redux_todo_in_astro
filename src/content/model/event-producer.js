@@ -1,4 +1,4 @@
-import HashAlgorithmEnum from './hash/enums.js';
+import { HashAlgorithm as HashAlgorithmEnum } from './hash/enums.js';
 import HashValidator from './hash/validator.js';
 import { GTime as GTimeUtil } from './g_time.js';
 import { HASH_ALGORITHM_HIERARCHY as ALGORITHM_HIERARCHY } from '../../config/config_constants.js';
@@ -10,7 +10,8 @@ const {
   SHA224, 
   SHA256, 
   SHA384, 
-  SHA512 
+  SHA512, 
+  DEFAULT
 } = HashAlgorithmEnum;
 
 // Event type constants
@@ -33,33 +34,43 @@ const COLLISION_EVENT_TYPE = 'collision';
 const HASH_FUNCTION_ORDER = ['md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512'];
 
 // Create a new HashValidator instance for use
-const hashValidator = new HashValidator(Buffer.from(''), HashAlgorithmEnum.DEFAULT);
+const hashValidator = new HashValidator(Buffer.from(''), 'sha256');
 
 // Explicitly define HASH_ALGORITHM_HIERARCHY
 const HASH_ALGORITHM_HIERARCHY = {
-  [HashAlgorithmEnum.MD5]: [HashAlgorithmEnum.SHA1],
-  [HashAlgorithmEnum.SHA1]: [HashAlgorithmEnum.SHA224],
-  [HashAlgorithmEnum.SHA224]: [HashAlgorithmEnum.SHA256],
-  [HashAlgorithmEnum.SHA256]: [HashAlgorithmEnum.SHA384],
-  [HashAlgorithmEnum.SHA384]: [HashAlgorithmEnum.SHA512],
-  [HashAlgorithmEnum.SHA512]: []
+  [MD5]: [SHA1],
+  [SHA1]: [SHA224],
+  [SHA224]: [SHA256],
+  [SHA256]: [SHA384],
+  [SHA384]: [SHA512],
+  [SHA512]: []
 };
 
 // Replace existing nextHashFunction with method from instance
 function nextHashFunction(currentHashFunction) {
+  const algMap = {
+    'md5': MD5,
+    'sha1': SHA1,
+    'sha224': SHA224, 
+    'sha256': SHA256,
+    'sha384': SHA384,
+    'sha512': SHA512
+  };
+  
+  const currFunc = algMap[currentHashFunction] || currentHashFunction;
+  
   const hashFunctions = Object.values(HashAlgorithmEnum).filter(
-    func => func !== currentHashFunction
+    func => func !== currFunc && typeof func === 'string' 
   );
   
-  // Find the first stronger hash function based on hierarchy
   const strongerFunctions = hashFunctions.filter(func => {
-    const currentStrongerFuncs = HASH_ALGORITHM_HIERARCHY[currentHashFunction] || [];
+    const currentStrongerFuncs = HASH_ALGORITHM_HIERARCHY[currFunc] || [];
     return currentStrongerFuncs.includes(func);
   });
   
   return strongerFunctions.length > 0 
     ? strongerFunctions[0] 
-    : hashFunctions[0];  // Fallback to first available if no stronger function
+    : currFunc; 
 }
 
 // Generate a duplication event for the given card
@@ -98,8 +109,8 @@ function generateCollisionEvent(newCard, existingCard = null) {
   if (existingCard) {
     const upgradedFunction = nextHashFunction(existingCard.hashFunction);
     event.upgraded_function = upgradedFunction;
-    event.upgraded_hash = existingCard.hash;  // Use existing hash instead of calling non-existent method
-    event.hash_algorithm = upgradedFunction;  // Add hash algorithm for test
+    event.upgraded_hash = existingCard.hash;  
+    event.hash_algorithm = upgradedFunction;  
   }
 
   return JSON.stringify(event);

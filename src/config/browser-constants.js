@@ -13,7 +13,7 @@ const SHA512 = 'sha512';
 
 // Browser-safe constants
 const DEFAULT_PAGE_SIZE = 10;
-const DEFAULT_HASH_ALGORITHM = MD5;
+const DEFAULT_HASH_ALGORITHM = SHA256;
 const DEFAULT_HASH_LENGTH = 64;
 const DEFAULT_LOG_LEVEL = 'info';
 const LOG_LEVEL = DEFAULT_LOG_LEVEL;

@@ -1,3 +1,5 @@
+import { encodeText } from '../../utils/textEncoderPolyfill.js';
+
 /**
  * Content Type Interpreter for Client-Side Use
  * Lightweight and efficient content type detection
@@ -41,7 +43,7 @@ export class ContentTypeInterpreter {
     }
 
     if (typeof input === 'string') {
-      return new TextEncoder().encode(input);
+      return encodeText(input);
     }
 
     // Handle Node.js Buffer
@@ -53,7 +55,7 @@ export class ContentTypeInterpreter {
     if (typeof input === 'object') {
       try {
         const jsonString = JSON.stringify(input);
-        return new TextEncoder().encode(jsonString);
+        return encodeText(jsonString);
       } catch {
         throw new Error('Failed to convert object to Uint8Array');
       }

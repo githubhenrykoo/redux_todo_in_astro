@@ -1,21 +1,65 @@
-import dotenv from 'dotenv';
-dotenv.config();
-import path from 'path';
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
 
-// Determine the current directory path
-const projectRoot = process.cwd();
+// Default empty values that will be replaced in Node.js environment
+let projectRoot = '';
+let dotenv = null;
+let path = null;
+
+// Only import Node.js modules when in Node.js environment
+// Use try/catch to make this safe in any environment
+if (!isBrowser) {
+  try {
+    // Use dynamic import with eval to prevent browser parsing errors
+    // This code won't execute in the browser because of the isBrowser check
+    if (typeof process !== 'undefined') {
+      projectRoot = process.cwd();
+      
+      // Only attempt to load Node.js modules in a Node.js environment
+      try {
+        // Use a function wrapper to avoid direct require syntax that browsers will parse
+        const dynamicRequire = new Function('module', 'return require(module)');
+        dotenv = dynamicRequire('dotenv');
+        path = dynamicRequire('path');
+        
+        // Configure dotenv if available
+        if (dotenv && dotenv.config) {
+          dotenv.config();
+        }
+      } catch (e) {
+        console.warn('Node.js modules not available:', e.message);
+      }
+    }
+  } catch (e) {
+    console.warn('Unable to determine environment:', e.message);
+  }
+}
+
+// Safe path join function that works in any environment
+const safePath = (base, ...parts) => {
+  if (path && path.join) {
+    return path.join(base, ...parts);
+  } else {
+    return [base, ...parts].filter(Boolean).join('/');
+  }
+};
 
 // Database Configuration
-const DEFAULT_PAGE_SIZE = process.env.DEFAULT_PAGE_SIZE || 10;
-const CARDS_DB_PATH = process.env.MCARD_DB_PATH || path.join(projectRoot, 'public', 'data', 'cards.db');
-const TEST_DB_PATH = process.env.TEST_DB_PATH || path.join(projectRoot,'src','test', 'db' ,'test.db');
+const DEFAULT_PAGE_SIZE = isBrowser ? 10 : (process.env?.DEFAULT_PAGE_SIZE || 10);
+const CARDS_DB_PATH = isBrowser 
+  ? '/data/cards.db' 
+  : (process.env?.MCARD_DB_PATH || safePath(projectRoot, 'public', 'data', 'cards.db'));
+const TEST_DB_PATH = isBrowser
+  ? '/test/db/test.db'
+  : (process.env?.TEST_DB_PATH || safePath(projectRoot, 'src', 'test', 'db', 'test.db'));
+
 // Default Configuration Values
-const DEFAULT_HASH_ALGORITHM = process.env.MCARD_HASH_ALGORITHM || 'md5';
-const DEFAULT_HASH_LENGTH = process.env.DEFAULT_HASH_LENGTH || 64;
+const DEFAULT_HASH_ALGORITHM = isBrowser ? 'sha256' : (process.env?.MCARD_HASH_ALGORITHM || 'sha256');
+const DEFAULT_HASH_LENGTH = isBrowser ? 64 : (process.env?.DEFAULT_HASH_LENGTH || 64);
 
 // Logging Configuration
 const DEFAULT_LOG_LEVEL = 'info';
-const LOG_LEVEL = process.env.LOG_LEVEL || DEFAULT_LOG_LEVEL;
+const LOG_LEVEL = isBrowser ? DEFAULT_LOG_LEVEL : (process.env?.LOG_LEVEL || DEFAULT_LOG_LEVEL);
 
 // Hash Algorithm Configuration
 const HashAlgorithm = (input) => {
@@ -39,7 +83,7 @@ HashAlgorithm.SHA256 = 'sha256';
 HashAlgorithm.SHA384 = 'sha384';
 HashAlgorithm.SHA512 = 'sha512';
 HashAlgorithm.CUSTOM = 'custom';
-HashAlgorithm.DEFAULT = 'md5';
+HashAlgorithm.DEFAULT = 'sha256';
 
 // Hash Algorithm Hierarchy
 const HASH_ALGORITHM_HIERARCHY = {
@@ -56,7 +100,7 @@ const HashAlgorithmMetadata = {
     name: HashAlgorithm.MD5,
     description: 'MD5 hash function',
     outputLength: 32,
-    isDefault: true
+    isDefault: false
   },
   [HashAlgorithm.SHA1]: {
     name: HashAlgorithm.SHA1,
@@ -74,7 +118,7 @@ const HashAlgorithmMetadata = {
     name: HashAlgorithm.SHA256,
     description: 'SHA-256 hash function',
     outputLength: 64,
-    isDefault: false
+    isDefault: true
   },
   [HashAlgorithm.SHA384]: {
     name: HashAlgorithm.SHA384,

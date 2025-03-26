@@ -1,23 +1,115 @@
-import crypto from 'crypto';
-import { TextEncoder } from 'util';
+// Replace direct crypto import with environment-aware implementation
+import { encodeText } from '../../../utils/textEncoderPolyfill.js';
+import { SafeBuffer } from '../../../utils/bufferPolyfill.js';
 import { 
   HashAlgorithm, 
   HASH_ALGORITHM_HIERARCHY, 
   VALID_HASH_FUNCTIONS 
 } from '../../../config/config_constants.js';
 
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
+// Create a cross-environment crypto hash function that works in both browser and Node.js
+const createHash = (algorithm) => {
+  // Convert to lowercase and remove hyphens for consistency
+  const normalizedAlg = String(algorithm).toLowerCase().replace('-', '');
+  
+  if (isBrowser) {
+    // In browser environments, use Web Crypto API
+    return {
+      data: null,
+      update: function(data) {
+        this.data = data;
+        return this;
+      },
+      digest: async function(encoding) {
+        if (!this.data) return encoding === 'hex' ? '' : new Uint8Array();
+        
+        // Convert algorithm name to one supported by Web Crypto API
+        const webCryptoAlg = 
+          normalizedAlg === 'md5' ? 'SHA-1' : // Web Crypto doesn't support MD5, fallback to SHA-1
+          normalizedAlg === 'sha1' ? 'SHA-1' :
+          normalizedAlg === 'sha224' ? 'SHA-256' : // Web Crypto doesn't support SHA-224
+          normalizedAlg === 'sha256' ? 'SHA-256' :
+          normalizedAlg === 'sha384' ? 'SHA-384' :
+          normalizedAlg === 'sha512' ? 'SHA-512' : 'SHA-256';
+        
+        try {
+          // Ensure data is a proper Uint8Array
+          const dataBuffer = this.data instanceof Uint8Array 
+            ? this.data.buffer 
+            : encodeText(this.data).buffer;
+          
+          // Use Web Crypto API to compute hash
+          const hashBuffer = await window.crypto.subtle.digest(webCryptoAlg, dataBuffer);
+          
+          // Convert to hex string if requested
+          if (encoding === 'hex') {
+            return Array.from(new Uint8Array(hashBuffer))
+              .map(b => b.toString(16).padStart(2, '0'))
+              .join('');
+          }
+          
+          // Return raw buffer if no encoding specified
+          return new Uint8Array(hashBuffer);
+        } catch (e) {
+          console.error('Error using Web Crypto API:', e);
+          return encoding === 'hex' ? '' : new Uint8Array();
+        }
+      }
+    };
+  } else {
+    // In Node.js, try to use native crypto module
+    try {
+      // Only attempt to use require in non-browser environments
+      const crypto = require('crypto');
+      return crypto.createHash(normalizedAlg);
+    } catch (e) {
+      console.error('Crypto module not available:', e);
+      
+      // Return a dummy hash object that does nothing
+      return {
+        update: function() { return this; },
+        digest: function(encoding) { 
+          return encoding === 'hex' ? 'no-crypto-available' : new Uint8Array();
+        }
+      };
+    }
+  }
+};
+
 export default class HashValidator {
   /**
    * Constructor for HashValidator
    */
   constructor(content, hashAlgorithm = HashAlgorithm.DEFAULT) {
-    // Convert content to Buffer if it's a string
-    this.content = content instanceof Buffer 
+    // Convert content to Buffer/Uint8Array if it's a string
+    this.content = SafeBuffer.isBuffer(content) 
       ? content 
-      : new TextEncoder().encode(content);
+      : encodeText(content);
     
     this.hashAlgorithm = this.normalizeHashAlgorithm(hashAlgorithm);
-    this.hashValue = this.computeHash();
+    
+    // In browser environments, we can't synchronously compute crypto hashes
+    if (isBrowser) {
+      this.hashValue = "computing...";
+      this._computeHashAsync().then(hash => {
+        this.hashValue = hash;
+      });
+    } else {
+      this.hashValue = this.computeHash();
+    }
+  }
+  
+  /**
+   * Async computation of hash for browser environments
+   * @private
+   */
+  async _computeHashAsync() {
+    const hash = createHash(this.hashAlgorithm);
+    hash.update(this.content);
+    return await hash.digest('hex');
   }
 
   /**
@@ -28,20 +120,21 @@ export default class HashValidator {
   normalizeHashAlgorithm(hashAlgorithm) {
     // Handle undefined or null input
     if (hashAlgorithm === undefined || hashAlgorithm === null) {
-      return HashAlgorithm.DEFAULT;
+      return HashAlgorithm.DEFAULT || 'sha256';
     }
     
     // If input is an object, try to extract the type
     if (typeof hashAlgorithm === 'object') {
-      hashAlgorithm = hashAlgorithm.type || hashAlgorithm.value || HashAlgorithm.DEFAULT;
+      hashAlgorithm = hashAlgorithm.type || hashAlgorithm.value || HashAlgorithm.DEFAULT || 'sha256';
     }
     
-    // Convert to lowercase string
-    const normalizedAlgo = String(hashAlgorithm).toLowerCase();
+    // Convert to lowercase string and remove dashes for consistency
+    const normalizedAlgo = String(hashAlgorithm).toLowerCase().replace('-', '');
     
     // Validate the hash algorithm
     if (!HashValidator.isValidHashFunction(normalizedAlgo)) {
-      throw new Error(`Invalid hash algorithm: ${normalizedAlgo}`);
+      console.warn(`Invalid hash algorithm: ${normalizedAlgo}, using default instead`);
+      return HashAlgorithm.DEFAULT || 'sha256';
     }
     
     return normalizedAlgo;
@@ -56,21 +149,36 @@ export default class HashValidator {
     if (!hashFunction) return false;
     
     const normalizedFunc = String(hashFunction).toLowerCase().trim();
-    return crypto.getHashes().includes(normalizedFunc);
+    
+    // Accept both formats: with dashes (Web Crypto format) and without dashes (Node.js format)
+    const validAlgorithms = [
+      // Node.js format
+      'md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512',
+      // Web Crypto format
+      'sha-1', 'sha-256', 'sha-384', 'sha-512'
+    ];
+    
+    return validAlgorithms.includes(normalizedFunc) || 
+           validAlgorithms.includes(normalizedFunc.replace('-', ''));
   }
 
   /**
-   * Computes hash for the content
+   * Compute hash from content
    * @returns {string} Computed hash
    */
   computeHash() {
+    if (isBrowser) {
+      // In browser, we can't compute synchronously
+      return "computing...";
+    }
+    
     try {
-      const hash = crypto.createHash(this.hashAlgorithm);
+      const hash = createHash(this.hashAlgorithm);
       hash.update(this.content);
       return hash.digest('hex');
-    } catch (error) {
-      console.error(`Error computing hash with ${this.hashAlgorithm}:`, error);
-      return null;
+    } catch (e) {
+      console.error('Error computing hash:', e);
+      return '';
     }
   }
 
@@ -92,28 +200,41 @@ export default class HashValidator {
 
   /**
    * Static method to compute hash
-   * @param {Buffer|string} content - Content to hash
-   * @param {string} [hashAlgorithm=HashAlgorithm.DEFAULT] - Hash algorithm to use
-   * @returns {string} Computed hash
+   * @param {string|Buffer} content - Content to hash
+   * @param {string} hashAlgorithm - Algorithm to use
+   * @returns {string|Promise<string>} Computed hash or Promise of hash in browser
    */
   static computeHash(content, hashAlgorithm = HashAlgorithm.DEFAULT) {
-    const encoder = new TextEncoder();
-    const buffer = content instanceof Buffer 
+    const buffer = SafeBuffer.isBuffer(content) 
       ? content 
-      : encoder.encode(content);
+      : encodeText(content);
     
-    const hash = crypto.createHash(hashAlgorithm);
+    const hash = createHash(hashAlgorithm);
     hash.update(buffer);
+    
+    if (isBrowser) {
+      // In browser, we need to handle async
+      return hash.digest('hex');
+    }
+    
     return hash.digest('hex');
   }
 
   /**
    * Validate hash against an expected hash
    * @param {string} [expectedHash] - Expected hash value
-   * @returns {boolean} True if hash matches, false otherwise
+   * @returns {boolean|Promise<boolean>} True if hash matches, false otherwise
    */
   validate(expectedHash) {
     if (!expectedHash) return false;
+    
+    if (isBrowser) {
+      // In browser, we need to handle async validation
+      return this._computeHashAsync().then(computedHash => {
+        return computedHash === expectedHash;
+      });
+    }
+    
     return this.hashValue === expectedHash;
   }
 

@@ -9,6 +9,8 @@
 // Helper to check if code is running in browser
 const isBrowser = typeof window !== 'undefined';
 
+import { encodeText } from '../../utils/textEncoderPolyfill.js';
+
 /**
  * Default authentication configuration
  */
@@ -64,8 +66,7 @@ export async function generateCodeChallenge(codeVerifier) {
   }
   
   // Convert string to Uint8Array
-  const encoder = new TextEncoder();
-  const data = encoder.encode(codeVerifier);
+  const data = encodeText(codeVerifier);
   
   // Hash the code verifier with SHA-256
   const hash = await window.crypto.subtle.digest('SHA-256', data);

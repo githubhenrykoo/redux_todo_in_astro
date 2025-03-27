@@ -25,5 +25,11 @@
   },
   "DatabaseRetrievePanel": {
     "component": "../components/panels/DatabaseRetrievePanel.tsx"
+  },
+  "xterm": {
+    "component": "../components/panels/xterm.jsx"
+  },
+  "chatbot": {
+    "component": "../components/panels/chatbot.jsx"
   }
 }

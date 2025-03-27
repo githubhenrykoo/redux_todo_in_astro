@@ -23,7 +23,7 @@ Generated at: 2025-03-26
 
 1.3 Knowledge Sharing with Ekonomi Indonesia
 
--Conducted a technical knowledge-sharing session with Ekonomi Indonesia community members. Covered essential modern web development topics, including: Git for version control and collaboration. Progressive Web Apps (PWAs) for performance and offline support. Astro Framework for building optimized web applications. Discussions related to PKC.
+- Conducted a technical knowledge-sharing session with Ekonomi Indonesia community members. Covered essential modern web development topics, including: Git for version control and collaboration. Progressive Web Apps (PWAs) for performance and offline support. Astro Framework for building optimized web applications. Discussions related to PKC.
 
 2. Recommendations
 

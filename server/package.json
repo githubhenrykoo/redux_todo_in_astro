@@ -1,0 +1,14 @@
+{
+  "name": "terminal-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for terminal access",
+  "main": "terminal-server.js",
+  "scripts": {
+    "start": "node terminal-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "cors": "^2.8.5"
+  }
+}

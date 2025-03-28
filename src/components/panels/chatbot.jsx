@@ -163,11 +163,18 @@ const ChatbotPanel = ({ className = '' }) => {
   };
 
   // Add this after other function declarations
+  // Remove the duplicate state declaration and move it to the top with other states
+  const [selectedText, setSelectedText] = useState('');
+  
+  // Keep the handleMentionClick function, but remove the JSX block that's outside return
   const handleMentionClick = (word) => {
-    setInput(prev => prev + (prev ? ' ' : '') + word);
+    const selection = window.getSelection().toString().trim();
+    const textToAdd = selection || word;
+    setInput(prev => prev + (prev ? ' ' : '') + textToAdd);
     inputRef.current?.focus();
   };
-
+  
+  // In the return statement, update the message content div to include the selection handler
   return (
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
@@ -214,23 +221,27 @@ const ChatbotPanel = ({ className = '' }) => {
       
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.map((message, index) => (
-          <div 
-            key={index} 
-            className={`mb-4 ${
-              message.role === 'user' ? 'text-right' : 
-              message.role === 'error' ? 'text-center' : 
-              'text-left'
-            }`}
-          >
-            <div 
-              className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
-                message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 
-                message.role === 'system' ? 'bg-gray-700 text-gray-200' : 
-                message.role === 'error' ? 'bg-red-600 text-white' : 
-                'bg-gray-800 text-gray-200 rounded-bl-none'
-              } ${message.isThinking ? 'animate-pulse' : ''}`}
-            >
-              <div className="whitespace-pre-wrap">
+          <div key={index} className={`mb-4 ${
+            message.role === 'user' ? 'text-right' : 
+            message.role === 'error' ? 'text-center' : 
+            'text-left'
+          }`}>
+            <div className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
+              message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 
+              message.role === 'system' ? 'bg-gray-700 text-gray-200' : 
+              message.role === 'error' ? 'bg-red-600 text-white' : 
+              'bg-gray-800 text-gray-200 rounded-bl-none'
+            } ${message.isThinking ? 'animate-pulse' : ''}`}>
+              <div 
+                className="whitespace-pre-wrap"
+                onMouseUp={() => {
+                  const selection = window.getSelection().toString().trim();
+                  if (selection) {
+                    setInput(prev => prev + (prev ? ' ' : '') + selection);
+                    inputRef.current?.focus();
+                  }
+                }}
+              >
                 {message.role === 'assistant' && !message.isThinking ? (
                   message.content.split(' ').map((word, i) => (
                     <React.Fragment key={i}>

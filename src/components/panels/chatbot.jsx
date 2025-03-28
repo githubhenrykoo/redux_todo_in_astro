@@ -85,21 +85,69 @@ const ChatbotPanel = ({ className = '' }) => {
     }
   };
 
+  // Add this function after other function declarations
+  // Update the processNaturalLanguageCommand function
+  const processNaturalLanguageCommand = (text) => {
+    const commandMap = {
+      'read': 'cat',
+      'show': 'cat',
+      'list': 'ls',
+      'show files': 'ls',
+      'show directory': 'ls',
+      'current directory': 'pwd',
+      'where am i': 'pwd',
+      'clear screen': 'clear',
+      'make directory': 'mkdir',
+      'create directory': 'mkdir',
+      'remove': 'rm',
+      'delete': 'rm',
+    };
+  
+    // Common patterns for file operations
+    const readPattern = /(?:read|show|display|open)\s+(?:contents\s+of\s+|the\s+)?(?:file\s+)?["']?([^"']+?)["']?\s*$/i;
+    const listPattern = /(?:list|show)\s+(?:files|directory|contents)\s*(?:in\s+)?(.+)?/i;
+    const mkdirPattern = /(?:make|create)\s+(?:a\s+)?(?:new\s+)?directory\s+(?:named\s+)?(.+)/i;
+    const removePattern = /(?:remove|delete)\s+(?:the\s+)?(?:file|directory)?\s+(.+)/i;
+  
+    let command = '';
+  
+    if (readPattern.test(text)) {
+      const match = text.match(readPattern);
+      const filename = match[1].trim();
+      command = `cat "${filename}"`;
+    } else if (listPattern.test(text)) {
+      const match = text.match(listPattern);
+      command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
+    } else if (mkdirPattern.test(text)) {
+      const match = text.match(mkdirPattern);
+      command = `mkdir "${match[1].trim()}"`;
+    } else if (removePattern.test(text)) {
+      const match = text.match(removePattern);
+      command = `rm "${match[1].trim()}"`;
+    } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
+      command = 'pwd';
+    } else if (text.toLowerCase().includes('clear screen')) {
+      command = 'clear';
+    }
+  
+    return command;
+  };
+  
+  // Update the sendMessage function's command handling section
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
-
+  
     const userMessage = { role: 'user', content: input.trim() };
     
-    // Add user message to chat
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
     setError(null);
-
-    // Check if the message starts with a command prefix
-    if (input.trim().startsWith('$')) {
-      // Send command to terminal
-      const command = input.trim().slice(1);
+  
+    // Check for terminal commands (both direct and natural language)
+    const naturalCommand = processNaturalLanguageCommand(input.trim());
+    if (input.trim().startsWith('$') || naturalCommand) {
+      const command = input.trim().startsWith('$') ? input.trim().slice(1) : naturalCommand;
       if (terminalSocketRef.current?.readyState === WebSocket.OPEN) {
         terminalSocketRef.current.send(JSON.stringify({
           type: 'input',

@@ -4,144 +4,96 @@ const ChatbotPanel = ({ className = '' }) => {
   // Add this with other state declarations
   const [mentions, setMentions] = useState([]);
   
+  // Update the initial message to include file creation examples
   const [messages, setMessages] = useState([
-    { 
-      role: 'system', 
-      content: `How can I help?
-
-Command:
-- "read the testing.txt", "show contents of testing.txt"
-- "list files in downloads"
-- "where am i"
-- "make directory projects"
-- "delete file test.txt"`
-    }
-  ]);
-
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('llama3');
+      { 
+        role: 'system', 
+        content: `How can I help?
   
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-  const terminalSocketRef = useRef(null);
-
-  // Fetch available models on component mount
-  useEffect(() => {
-    fetchModels();
-  }, []);
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const fetchModels = async () => {
-    try {
-      const response = await fetch('http://localhost:11434/api/tags');
-      if (!response.ok) {
-        throw new Error('Failed to fetch models');
+      Command:
+      - "read the testing.txt", "show contents of testing.txt"
+      - "list files in downloads"
+      - "where am i"
+      - "make directory projects"
+      - "delete file test.txt"
+      - "create file notes.txt"
+      - "make new file config.json"
+      - "touch example.md"`
       }
-      const data = await response.json();
-      setModels(data.models || []);
-    } catch (err) {
-      console.error('Error fetching models:', err);
-      setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434');
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleInputChange = (e) => {
-    setInput(e.target.value);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  useEffect(() => {
-    // Connect to terminal WebSocket server
-    connectToTerminal();
-    return () => {
-      if (terminalSocketRef.current) {
-        terminalSocketRef.current.close();
-      }
-    };
-  }, []);
-
-  const connectToTerminal = () => {
-    try {
-      const ws = new WebSocket('ws://localhost:3001');
-      terminalSocketRef.current = ws;
-
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'output') {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: message.data
-          }]);
-        }
-      };
-    } catch (err) {
-      console.error('Terminal connection error:', err);
-    }
-  };
-
-  // Add this function after other function declarations
-  // Update the processNaturalLanguageCommand function
+    ]);
+  
+  // Add to the commandMap in processNaturalLanguageCommand
   const processNaturalLanguageCommand = (text) => {
-    const commandMap = {
-      'read': 'cat',
-      'show': 'cat',
-      'list': 'ls',
-      'show files': 'ls',
-      'show directory': 'ls',
-      'current directory': 'pwd',
-      'where am i': 'pwd',
-      'clear screen': 'clear',
-      'make directory': 'mkdir',
-      'create directory': 'mkdir',
-      'remove': 'rm',
-      'delete': 'rm',
-    };
+      const commandMap = {
+        'read': 'cat',
+        'show': 'cat',
+        'list': 'ls',
+        'show files': 'ls',
+        'show directory': 'ls',
+        'current directory': 'pwd',
+        'where am i': 'pwd',
+        'clear screen': 'clear',
+        'make directory': 'mkdir',
+        'create directory': 'mkdir',
+        'remove': 'rm',
+        'delete': 'rm',
+      };
   
-    // Common patterns for file operations
-    const readPattern = /(?:read|show|display|open)\s+(?:contents\s+of\s+|the\s+)?(?:file\s+)?["']?([^"']+?)["']?\s*$/i;
-    const listPattern = /(?:list|show)\s+(?:files|directory|contents)\s*(?:in\s+)?(.+)?/i;
-    const mkdirPattern = /(?:make|create)\s+(?:a\s+)?(?:new\s+)?directory\s+(?:named\s+)?(.+)/i;
-    const removePattern = /(?:remove|delete)\s+(?:the\s+)?(?:file|directory)?\s+(.+)/i;
+      // Common patterns for file operations
+      const readPattern = /(?:read|show|display|open)\s+(?:contents\s+of\s+|the\s+)?(?:file\s+)?["']?([^"']+?)["']?\s*$/i;
+      const listPattern = /(?:list|show)\s+(?:files|directory|contents)\s*(?:in\s+)?(.+)?/i;
+      const mkdirPattern = /(?:make|create)\s+(?:a\s+)?(?:new\s+)?directory\s+(?:named\s+)?(.+)/i;
+      const removePattern = /(?:remove|delete)\s+(?:the\s+)?(?:file|directory)?\s+(.+)/i;
   
-    let command = '';
+      let command = '';
   
-    if (readPattern.test(text)) {
-      const match = text.match(readPattern);
-      const filename = match[1].trim();
-      command = `cat "${filename}"`;
-    } else if (listPattern.test(text)) {
-      const match = text.match(listPattern);
-      command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
-    } else if (mkdirPattern.test(text)) {
-      const match = text.match(mkdirPattern);
-      command = `mkdir "${match[1].trim()}"`;
-    } else if (removePattern.test(text)) {
-      const match = text.match(removePattern);
-      command = `rm "${match[1].trim()}"`;
-    } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
-      command = 'pwd';
-    } else if (text.toLowerCase().includes('clear screen')) {
-      command = 'clear';
-    }
+      if (readPattern.test(text)) {
+        const match = text.match(readPattern);
+        const filename = match[1].trim();
+        command = `cat "${filename}"`;
+      } else if (listPattern.test(text)) {
+        const match = text.match(listPattern);
+        command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
+      } else if (mkdirPattern.test(text)) {
+        const match = text.match(mkdirPattern);
+        command = `mkdir "${match[1].trim()}"`;
+      } else if (removePattern.test(text)) {
+        const match = text.match(removePattern);
+        command = `rm "${match[1].trim()}"`;
+      } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
+        command = 'pwd';
+      } else if (text.toLowerCase().includes('clear screen')) {
+        command = 'clear';
+      }
   
-    return command;
+      // Add new pattern for file creation
+      const createFilePattern = /(?:create|make|new)\s+(?:a\s+)?(?:new\s+)?file\s+(?:called\s+)?["']?([^"']+?)["']?\s*$/i;
+  
+      // Add to the command processing logic
+      if (createFilePattern.test(text)) {
+        const match = text.match(createFilePattern);
+        const filename = match[1].trim();
+        command = `touch "${filename}"`;
+      } else if (readPattern.test(text)) {
+        const match = text.match(readPattern);
+        const filename = match[1].trim();
+        command = `cat "${filename}"`;
+      } else if (listPattern.test(text)) {
+        const match = text.match(listPattern);
+        command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
+      } else if (mkdirPattern.test(text)) {
+        const match = text.match(mkdirPattern);
+        command = `mkdir "${match[1].trim()}"`;
+      } else if (removePattern.test(text)) {
+        const match = text.match(removePattern);
+        command = `rm "${match[1].trim()}"`;
+      } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
+        command = 'pwd';
+      } else if (text.toLowerCase().includes('clear screen')) {
+        command = 'clear';
+      }
+  
+      return command;
   };
   
   // Update the sendMessage function's command handling section

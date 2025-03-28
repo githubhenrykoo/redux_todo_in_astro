@@ -1,0 +1,297 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{lipsum}
+\usepackage{hyperref}
+
+% Define colors
+\definecolor{headingcolor}{RGB}{70,130,180}
+\definecolor{subheadingcolor}{RGB}{100,149,237}
+\definecolor{textcolor}{RGB}{50,50,50}
+
+% Style for headings - more compact
+\titleformat{\section}{\normalsize\bfseries\color{headingcolor}}{\thesection}{0.5em}{}
+\titleformat{\subsection}{\small\bfseries\color{subheadingcolor}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\footnotesize\bfseries\color{subheadingcolor}}{\thesubsubsection}{0.5em}{}
+
+% Adjust spacing - very tight
+\titlespacing*{\section}{0pt}{3pt}{1pt}
+\titlespacing*{\subsection}{0pt}{2pt}{0pt}
+\titlespacing*{\subsubsection}{0pt}{1pt}{0pt}
+
+% Customize bullet points - very compact
+\setlist[itemize]{noitemsep, topsep=0pt, parsep=0pt, partopsep=0pt, leftmargin=*}
+\setlist[enumerate]{noitemsep, topsep=0pt, parsep=0pt, partopsep=0pt, leftmargin=*}
+
+% Page style
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[C]{\small\thepage}
+
+% Document information - CUSTOMIZE THESE FIELDS
+\title{\vspace{-1.5cm}\textbf{\large{REPORT TITLE}}}
+\author{\small{AUTHOR NAME}}
+\date{\small{REPORT DATE}}
+
+\begin{document}
+
+\maketitle
+\vspace{-1.2cm}
+
+% Summary Section - Two Columns
+\begin{multicols}{2}
+\section*{Summary of Achievements}
+
+\subsection*{Achievement Area 1}
+\begin{itemize}\small
+  \item Key achievement point 1
+  \item Key achievement point 2 with nested items:
+    \begin{itemize}
+      \item Subpoint 1
+      \item Subpoint 2
+      \item Subpoint 3
+    \end{itemize}
+  \item Key achievement point 3
+  \item Key achievement point 4
+\end{itemize}
+
+\subsection*{Achievement Area 2}
+\begin{enumerate}\small
+  \item \textbf{Category 1}
+    \begin{itemize}
+      \item Item 1
+      \item Item 2
+      \item Item 3
+      \item Item 4
+    \end{itemize}
+  
+  \item \textbf{Category 2}
+    \begin{itemize}
+      \item Item 1
+      \item Item 2
+      \item Item 3
+      \item Item 4
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Achievement Area 3}
+\begin{enumerate}\small
+  \item \textbf{Category 1}
+    \begin{itemize}
+      \item Item 1
+      \item Item 2
+      \item Item 3
+      \item Item 4
+    \end{itemize}
+  
+  \item \textbf{Category 2}
+    \begin{itemize}
+      \item Item 1
+      \item Item 2
+      \item Item 3
+      \item Item 4
+    \end{itemize}
+\end{enumerate}
+\end{multicols}
+
+% Horizontal line to separate sections
+\noindent\rule{\textwidth}{0.4pt}
+
+% Recommendations Section - Two Columns
+\begin{multicols}{2}
+\section*{Recommendations}
+
+\subsection*{Area 1 Recommendations}
+\begin{enumerate}\small
+  \item \textbf{Recommendation Category 1}
+    \begin{itemize}
+      \item Action item 1
+      \item Action item 2
+      \item Action item 3
+      \item Action item 4
+    \end{itemize}
+  
+  \item \textbf{Recommendation Category 2}
+    \begin{itemize}
+      \item Action item 1
+      \item Action item 2
+      \item Action item 3
+      \item Action item 4
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Area 2 Recommendations}
+\begin{enumerate}\small
+  \item \textbf{Recommendation Category 1}
+    \begin{itemize}
+      \item Action item 1
+      \item Action item 2
+      \item Action item 3
+      \item Action item 4
+    \end{itemize}
+  
+  \item \textbf{Recommendation Category 2}
+    \begin{itemize}
+      \item Action item 1
+      \item Action item 2
+      \item Action item 3
+      \item Action item 4
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Area 3 Recommendations}
+\begin{enumerate}\small
+  \item \textbf{Recommendation Category 1}
+    \begin{itemize}
+      \item Action item 1
+      \item Action item 2
+      \item Action item 3
+      \item Action item 4
+    \end{itemize}
+  
+  \item \textbf{Recommendation Category 2}
+    \begin{itemize}
+      \item Action item 1
+      \item Action item 2
+      \item Action item 3
+      \item Action item 4
+    \end{itemize}
+\end{enumerate}
+\end{multicols}
+
+\clearpage % Force a page break here
+
+% Critique Section - Two Columns
+\begin{multicols}{2}
+\section*{Critique}
+
+\subsection*{Strengths}
+\begin{enumerate}\small
+  \item \textbf{Strength Area 1}
+    \begin{itemize}
+      \item Point 1
+      \item Point 2
+      \item Point 3
+      \item Point 4
+    \end{itemize}
+  
+  \item \textbf{Strength Area 2}
+    \begin{itemize}
+      \item Point 1
+      \item Point 2
+      \item Point 3
+      \item Point 4
+    \end{itemize}
+  
+  \item \textbf{Strength Area 3}
+    \begin{itemize}
+      \item Point 1
+      \item Point 2
+      \item Point 3
+      \item Point 4
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Areas for Improvement}
+\begin{enumerate}\small
+  \item \textbf{Improvement Area 1}
+    \begin{itemize}
+      \item Issue 1
+      \item Issue 2
+      \item Issue 3
+      \item Issue 4
+    \end{itemize}
+  
+  \item \textbf{Improvement Area 2}
+    \begin{itemize}
+      \item Issue 1
+      \item Issue 2
+      \item Issue 3
+      \item Issue 4
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{Risk Assessment}
+\begin{enumerate}\small
+  \item \textbf{Risk Category 1}
+    \begin{itemize}
+      \item Risk 1
+      \item Risk 2
+      \item Risk 3
+      \item Risk 4
+    \end{itemize}
+  
+  \item \textbf{Risk Category 2}
+    \begin{itemize}
+      \item Risk 1
+      \item Risk 2
+      \item Risk 3
+      \item Risk 4
+    \end{itemize}
+\end{enumerate}
+
+\section*{Detailed Insights}
+\subsection*{Topic Area 1}
+\begin{itemize}\small
+  \item \textbf{Subtopic 1}
+    \begin{itemize}
+      \item Point 1
+      \item Point 2
+      \item Point 3
+      \item Point 4
+    \end{itemize}
+  
+  \item \textbf{Subtopic 2}
+    \begin{itemize}
+      \item Point 1
+      \item Point 2
+      \item Point 3
+      \item Point 4
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Topic Area 2}
+\begin{itemize}\small
+  \item \textbf{Subtopic 1}
+    \begin{itemize}
+      \item Point 1
+      \item Point 2
+      \item Point 3
+      \item Point 4
+    \end{itemize}
+  
+  \item \textbf{Subtopic 2}
+    \begin{itemize}
+      \item Point 1
+      \item Point 2
+      \item Point 3
+      \item Point 4
+    \end{itemize}
+\end{itemize}
+
+\section*{Next Steps}
+\begin{itemize}\small
+  \item Next step 1
+  \item Next step 2
+  \item Next step 3
+  \item Next step 4
+  \item Next step 5
+  \item Next step 6
+  \item Next step 7
+\end{itemize}
+
+\section*{Conclusion}
+Replace this text with your conclusion paragraph. This should summarize the key points from your report and provide a forward-looking perspective. Keep it concise but impactful, highlighting the most important achievements and next steps.
+\end{multicols}
+
+\end{document}

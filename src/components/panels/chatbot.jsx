@@ -182,7 +182,7 @@ const ChatbotPanel = ({ className = '' }) => {
               </div>
               {message.role !== 'user' && message.role !== 'system' && message.role !== 'error' && (
                 <div className="text-xs text-gray-400 mt-1">
-                  Llama3
+                  System
                 </div>
               )}
             </div>

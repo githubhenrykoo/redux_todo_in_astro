@@ -1,0 +1,1 @@
+import{s as e}from"./store.WvhFAbWr.js";import"./contentSlice.DBLxFn2W.js";const m=e.getState().theme?.mode||"light";document.documentElement.classList.remove("light","dark");document.documentElement.classList.add(m);e.subscribe(()=>{const t=e.getState().theme?.mode;t&&(document.documentElement.classList.remove("light","dark"),document.documentElement.classList.add(t))});

@@ -1,0 +1,83 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "^/_astro/(.*)$",
+			"headers": {
+				"cache-control": "public, max-age=31536000, immutable"
+			},
+			"continue": true
+		},
+		{
+			"src": "^/_server-islands/([^/]+?)/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/_image/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/get-card/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/retrieve/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/store-card/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/submit/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/api/update-card/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/auth-example/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/callback/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/communication/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/offline/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/Page/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/resizablePage/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/retrieve/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/slot_and_resizable/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/urlresiablepage/?$",
+			"dest": "_render"
+		},
+		{
+			"src": "^/$",
+			"dest": "_render"
+		}
+	]
+}

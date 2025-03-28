@@ -205,50 +205,52 @@ export const DatabaseRetrievePanel: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-auto bg-white shadow-md rounded-lg">
-      {/* Search and Hash Lookup Forms */}
-      <div className="flex flex-col md:flex-row gap-4 p-6 border-b">
-        <form onSubmit={handleSearch} className="flex-1">
-          <div className="flex flex-col md:flex-row gap-2">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by content..."
-              className="flex-1 px-4 py-2 border rounded"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              disabled={loading}
-            >
-              Search
-            </button>
-          </div>
-        </form>
+    <div className="flex flex-col h-full max-h-full bg-background">
+      {/* Header Section */}
+      <div className="flex-none p-4 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <form onSubmit={handleSearch} className="flex-1">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by content..."
+                className="flex-1 px-3 py-1 border rounded text-sm"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                disabled={loading}
+              >
+                Search
+              </button>
+            </div>
+          </form>
 
-        <form onSubmit={handleHashLookup} className="flex-1">
-          <div className="flex flex-col md:flex-row gap-2">
-            <input
-              type="text"
-              value={hashValue}
-              onChange={(e) => setHashValue(e.target.value)}
-              placeholder="Lookup by hash..."
-              className="flex-1 px-4 py-2 border rounded"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-              disabled={loading}
-            >
-              Lookup
-            </button>
-          </div>
-        </form>
+          <form onSubmit={handleHashLookup} className="flex-1">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={hashValue}
+                onChange={(e) => setHashValue(e.target.value)}
+                placeholder="Lookup by hash..."
+                className="flex-1 px-3 py-1 border rounded text-sm"
+              />
+              <button
+                type="submit"
+                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                disabled={loading}
+              >
+                Lookup
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
-      {/* Reset and Page Size Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-center p-4 border-b">
+      {/* Controls Section */}
+      <div className="flex-none flex items-center justify-between p-2 border-b border-neutral-200 dark:border-neutral-800">
         <button
           onClick={() => {
             setSearchTerm('');
@@ -256,29 +258,28 @@ export const DatabaseRetrievePanel: React.FC = () => {
             setPage(1);
             fetchCards({ page: 1, pageSize });
           }}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 mb-2 md:mb-0"
+          className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
           disabled={loading}
         >
           Reset
         </button>
         
         <div className="flex items-center">
-          <span className="mr-2">Items per page:</span>
+          <span className="mr-2 text-sm">Items:</span>
           <select
             value={pageSize}
             onChange={(e) => {
               const newSize = Number(e.target.value);
               setPageSize(newSize);
-              setPage(1); // Reset to first page when changing page size
+              setPage(1);
               
-              // Refetch with new page size
               if (searchTerm) {
                 fetchCards({ search: searchTerm, page: 1, pageSize: newSize });
               } else {
                 fetchCards({ page: 1, pageSize: newSize });
               }
             }}
-            className="px-2 py-1 border rounded"
+            className="px-2 py-1 border rounded text-sm"
           >
             <option value="5">5</option>
             <option value="10">10</option>
@@ -290,25 +291,24 @@ export const DatabaseRetrievePanel: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mx-6 my-4">
+        <div className="flex-none bg-red-100 border-l-4 border-red-500 text-red-700 p-2 text-sm">
           <p>{error}</p>
         </div>
       )}
 
-      {/* Loading Indicator */}
-      {loading && (
-        <div className="flex justify-center p-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
+      {/* Card List with Overflow */}
+      <div className="flex-1 overflow-y-auto">
+        {loading && (
+          <div className="flex justify-center p-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        )}
 
-      {/* Card List */}
-      <div className="flex-1 overflow-auto p-6">
         {cards && cards.items.length > 0 ? (
-          <div>
+          <div className="p-4">
             {/* Results Summary */}
-            <div className="mb-4">
-              <p className="text-gray-700">
+            <div className="mb-2">
+              <p className="text-sm text-gray-700">
                 {cards.retrievalMethod === 'hash'
                   ? 'Card found by hash'
                   : `Showing ${cards.items.length} of ${cards.total_items} cards`}
@@ -316,25 +316,25 @@ export const DatabaseRetrievePanel: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 mb-6">
+            <div className="space-y-2 mb-4">
               {cards.items.map((card) => (
                 <div
                   key={card.hash}
-                  className={`border rounded p-4 cursor-pointer hover:bg-gray-50 ${selectedCardHash === card.hash ? 'bg-blue-50 border-blue-300' : ''}`}
+                  className={`border rounded p-3 cursor-pointer hover:bg-gray-50 ${selectedCardHash === card.hash ? 'bg-blue-50 border-blue-300' : ''}`}
                   onClick={() => handleSelectCard(card)}
                 >
-                  <div className="flex justify-between mb-2">
-                    <span className="font-medium text-blue-600">
-                      {card.hash.substring(0, 10)}...
+                  <div className="flex justify-between mb-1">
+                    <span className="font-medium text-blue-600 text-sm">
+                      {card.hash.substring(0, 8)}...
                     </span>
-                    <span className="text-gray-500 text-sm">
+                    <span className="text-gray-500 text-xs">
                       {formatDate(getCardTimestamp(card))}
                     </span>
                   </div>
-                  <div className="text-gray-700 truncate">
+                  <div className="text-gray-700 text-sm truncate">
                     {typeof card.content === 'object'
                       ? '{...}'
-                      : String(card.content).substring(0, 80)}
+                      : String(card.content).substring(0, 60)}
                   </div>
                 </div>
               ))}
@@ -342,40 +342,24 @@ export const DatabaseRetrievePanel: React.FC = () => {
 
             {/* Pagination */}
             {cards.total_pages > 1 && (
-              <div className="flex justify-center items-center gap-2 mb-6">
+              <div className="flex justify-center items-center gap-1 text-sm">
                 <button
                   onClick={() => handlePageChange(page - 1)}
                   disabled={!cards.has_previous}
-                  className={`px-3 py-1 rounded ${
+                  className={`px-2 py-1 rounded ${
                     cards.has_previous
                       ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  Previous
+                  Prev
                 </button>
 
-                {/* First page button */}
-                {getSlidingPageNumbers(page, cards.total_pages).showStartEllipsis && (
-                  <button
-                    onClick={() => handlePageChange(1)}
-                    className="px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200"
-                  >
-                    1
-                  </button>
-                )}
-                
-                {/* Start ellipsis */}
-                {getSlidingPageNumbers(page, cards.total_pages).showStartEllipsis && (
-                  <span className="px-2 text-gray-500">...</span>
-                )}
-
-                {/* Sliding page numbers */}
-                {getSlidingPageNumbers(page, cards.total_pages).pages.map((pageNumber) => (
+                {getSlidingPageNumbers(page, cards.total_pages, 3).pages.map((pageNumber) => (
                   <button
                     key={pageNumber}
                     onClick={() => handlePageChange(pageNumber)}
-                    className={`px-3 py-1 rounded ${
+                    className={`px-2 py-1 rounded ${
                       pageNumber === page
                         ? 'bg-blue-500 text-white'
                         : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
@@ -385,25 +369,10 @@ export const DatabaseRetrievePanel: React.FC = () => {
                   </button>
                 ))}
 
-                {/* End ellipsis */}
-                {getSlidingPageNumbers(page, cards.total_pages).showEndEllipsis && (
-                  <span className="px-2 text-gray-500">...</span>
-                )}
-
-                {/* Last page button */}
-                {getSlidingPageNumbers(page, cards.total_pages).showEndEllipsis && (
-                  <button
-                    onClick={() => handlePageChange(cards.total_pages)}
-                    className="px-3 py-1 rounded bg-blue-100 text-blue-800 hover:bg-blue-200"
-                  >
-                    {cards.total_pages}
-                  </button>
-                )}
-
                 <button
                   onClick={() => handlePageChange(page + 1)}
                   disabled={!cards.has_next}
-                  className={`px-3 py-1 rounded ${
+                  className={`px-2 py-1 rounded ${
                     cards.has_next
                       ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -416,7 +385,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
           </div>
         ) : (
           !loading && (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-gray-500 p-4">
               {cards ? 'No cards found' : 'Enter search terms or fetch cards'}
             </div>
           )

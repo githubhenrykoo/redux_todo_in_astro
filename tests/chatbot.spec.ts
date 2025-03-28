@@ -4,8 +4,8 @@ test('Chatbot UI elements are visible', async ({ page }) => {
   // Navigate to the main page
   await page.goto('http://localhost:4322');
 
-  // Wait for chatbot panel to load
-  await page.waitForSelector('div[class*="bg-gray-900"]');
+  // Wait for chatbot panel to load with a more specific selector
+  await page.waitForSelector('div[class*="bg-gray-900"]:has-text("ChatBot")');
 
   // Find the chatbot input, should be a textarea not an input
   const chatInput = await page.locator('textarea[placeholder="Type your message here..."]');
@@ -17,13 +17,16 @@ test('Chatbot UI elements are visible', async ({ page }) => {
   const modelSelector = await page.locator('select[class*="bg-gray-700"]');
 
   // Check page title
-  const title = await page.locator('div[class*="text-center flex-grow"]');
+  const title = await page.locator('div[class*="text-center flex-grow"]:has-text("ChatBot")');
 
-  // Ensure elements are visible
+  // Verify elements are visible
   await expect(chatInput).toBeVisible({ timeout: 10000 });
   await expect(sendButton).toBeVisible({ timeout: 10000 });
   await expect(modelSelector).toBeVisible({ timeout: 10000 });
-  await expect(title).toContainText('ChatBot', { timeout: 10000 });
+  await expect(title).toBeVisible({ timeout: 10000 });
+  
+  // Take a screenshot for debugging
+  await page.screenshot({ path: 'tests/data/chatbot-ui-test.png' });
 });
 
 test('Chatbot model selection works', async ({ page }) => {

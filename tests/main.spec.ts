@@ -7,8 +7,8 @@ test('Application loads and renders main components', async ({ page }) => {
   // Wait for page to load
   await page.waitForSelector('div[class*="flex flex-col"]');
 
-  // Check for key UI elements using data attributes or class names
-  const chatbotPanel = await page.locator('div[class*="bg-gray-900"]');
+  // Check for key UI elements using more specific selectors
+  const chatbotPanel = await page.locator('div[class*="bg-gray-900"]:has-text("ChatBot")');
   const searchPanel = await page.locator('div[class*="search-panel"]');
   const contentPanel = await page.locator('div[class*="content-panel"]');
 

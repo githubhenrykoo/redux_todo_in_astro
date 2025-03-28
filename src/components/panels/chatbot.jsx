@@ -12,6 +12,7 @@ const ChatbotPanel = ({ className = '' }) => {
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const terminalSocketRef = useRef(null);
 
   // Fetch available models on component mount
   useEffect(() => {
@@ -52,6 +53,35 @@ const ChatbotPanel = ({ className = '' }) => {
     }
   };
 
+  useEffect(() => {
+    // Connect to terminal WebSocket server
+    connectToTerminal();
+    return () => {
+      if (terminalSocketRef.current) {
+        terminalSocketRef.current.close();
+      }
+    };
+  }, []);
+
+  const connectToTerminal = () => {
+    try {
+      const ws = new WebSocket('ws://localhost:3001');
+      terminalSocketRef.current = ws;
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'output') {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: message.data
+          }]);
+        }
+      };
+    } catch (err) {
+      console.error('Terminal connection error:', err);
+    }
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -62,6 +92,20 @@ const ChatbotPanel = ({ className = '' }) => {
     setInput('');
     setIsLoading(true);
     setError(null);
+
+    // Check if the message starts with a command prefix
+    if (input.trim().startsWith('$')) {
+      // Send command to terminal
+      const command = input.trim().slice(1);
+      if (terminalSocketRef.current?.readyState === WebSocket.OPEN) {
+        terminalSocketRef.current.send(JSON.stringify({
+          type: 'input',
+          data: command + '\n'
+        }));
+      }
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Add thinking indicator

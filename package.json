@@ -12,7 +12,10 @@
     "test:all": "bash src/test/run_all_tests.sh",
     "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
     "test:state": "node src/tests/stateCapture.test.js",
-    "test:interpreter": "jest src/content/model/interpreter.test.ts"
+    "test:interpreter": "jest src/content/model/interpreter.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@astrojs/react": "latest",
@@ -46,6 +49,7 @@
     "@babel/preset-env": "^7.26.9",
     "@babel/preset-react": "^7.26.3",
     "@jest/globals": "^29.7.0",
+    "@playwright/test": "^1.51.1",
     "@tailwindcss/typography": "^0.5.10",
     "@types/jest": "^29.5.14",
     "@typescript-eslint/eslint-plugin": "^8.26.0",

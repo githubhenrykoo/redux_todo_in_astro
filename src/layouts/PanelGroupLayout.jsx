@@ -33,7 +33,7 @@ const PanelContent = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden">
+    <div className="h-full w-full overflow-hidden">
       <PanelGroup direction="horizontal" className="h-full">
         <Panel defaultSize={panels.left.size} minSize={panels.left.minSize}>
           {renderPanel(panels.left)}

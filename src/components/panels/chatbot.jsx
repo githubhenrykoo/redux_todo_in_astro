@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 const ChatbotPanel = ({ className = '' }) => {
-  // Add this with other state declarations
-  const [mentions, setMentions] = useState([]);
-  
   const [messages, setMessages] = useState([
     { role: 'system', content: 'How can I help?' }
   ]);
@@ -15,7 +12,6 @@ const ChatbotPanel = ({ className = '' }) => {
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const terminalSocketRef = useRef(null);
 
   // Fetch available models on component mount
   useEffect(() => {
@@ -56,35 +52,6 @@ const ChatbotPanel = ({ className = '' }) => {
     }
   };
 
-  useEffect(() => {
-    // Connect to terminal WebSocket server
-    connectToTerminal();
-    return () => {
-      if (terminalSocketRef.current) {
-        terminalSocketRef.current.close();
-      }
-    };
-  }, []);
-
-  const connectToTerminal = () => {
-    try {
-      const ws = new WebSocket('ws://localhost:3001');
-      terminalSocketRef.current = ws;
-
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'output') {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: message.data
-          }]);
-        }
-      };
-    } catch (err) {
-      console.error('Terminal connection error:', err);
-    }
-  };
-
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -95,20 +62,6 @@ const ChatbotPanel = ({ className = '' }) => {
     setInput('');
     setIsLoading(true);
     setError(null);
-
-    // Check if the message starts with a command prefix
-    if (input.trim().startsWith('$')) {
-      // Send command to terminal
-      const command = input.trim().slice(1);
-      if (terminalSocketRef.current?.readyState === WebSocket.OPEN) {
-        terminalSocketRef.current.send(JSON.stringify({
-          type: 'input',
-          data: command + '\n'
-        }));
-      }
-      setIsLoading(false);
-      return;
-    }
 
     try {
       // Add thinking indicator
@@ -162,19 +115,6 @@ const ChatbotPanel = ({ className = '' }) => {
     setSelectedModel(e.target.value);
   };
 
-  // Add this after other function declarations
-  // Remove the duplicate state declaration and move it to the top with other states
-  const [selectedText, setSelectedText] = useState('');
-  
-  // Keep the handleMentionClick function, but remove the JSX block that's outside return
-  const handleMentionClick = (word) => {
-    const selection = window.getSelection().toString().trim();
-    const textToAdd = selection || word;
-    setInput(prev => prev + (prev ? ' ' : '') + textToAdd);
-    inputRef.current?.focus();
-  };
-  
-  // In the return statement, update the message content div to include the selection handler
   return (
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
@@ -221,46 +161,28 @@ const ChatbotPanel = ({ className = '' }) => {
       
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.map((message, index) => (
-          <div key={index} className={`mb-4 ${
-            message.role === 'user' ? 'text-right' : 
-            message.role === 'error' ? 'text-center' : 
-            'text-left'
-          }`}>
-            <div className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
-              message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 
-              message.role === 'system' ? 'bg-gray-700 text-gray-200' : 
-              message.role === 'error' ? 'bg-red-600 text-white' : 
-              'bg-gray-800 text-gray-200 rounded-bl-none'
-            } ${message.isThinking ? 'animate-pulse' : ''}`}>
-              <div 
-                className="whitespace-pre-wrap"
-                onMouseUp={() => {
-                  const selection = window.getSelection().toString().trim();
-                  if (selection) {
-                    setInput(prev => prev + (prev ? ' ' : '') + selection);
-                    inputRef.current?.focus();
-                  }
-                }}
-              >
-                {message.role === 'assistant' && !message.isThinking ? (
-                  message.content.split(' ').map((word, i) => (
-                    <React.Fragment key={i}>
-                      <span 
-                        className="cursor-pointer hover:text-yellow-400 transition-colors"
-                        onClick={() => handleMentionClick(word)}
-                      >
-                        {word}
-                      </span>
-                      {' '}
-                    </React.Fragment>
-                  ))
-                ) : (
-                  message.content
-                )}
+          <div 
+            key={index} 
+            className={`mb-4 ${
+              message.role === 'user' ? 'text-right' : 
+              message.role === 'error' ? 'text-center' : 
+              'text-left'
+            }`}
+          >
+            <div 
+              className={`inline-block px-4 py-2 rounded-lg max-w-[80%] ${
+                message.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 
+                message.role === 'system' ? 'bg-gray-700 text-gray-200' : 
+                message.role === 'error' ? 'bg-red-600 text-white' : 
+                'bg-gray-800 text-gray-200 rounded-bl-none'
+              } ${message.isThinking ? 'animate-pulse' : ''}`}
+            >
+              <div className="whitespace-pre-wrap">
+                {message.content}
               </div>
               {message.role !== 'user' && message.role !== 'system' && message.role !== 'error' && (
                 <div className="text-xs text-gray-400 mt-1">
-                  System
+                  Llama3
                 </div>
               )}
             </div>

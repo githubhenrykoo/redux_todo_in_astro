@@ -15,7 +15,7 @@ const initialTheme = store.getState().theme?.mode || 'light';
 ---
 
 <!doctype html>
-<html lang="en" class:list={[initialTheme, 'min-h-screen']}>
+<html lang="en" class:list={[initialTheme, 'min-h-screen overflow-hidden']}>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="description" content="Astro description" />
@@ -29,12 +29,20 @@ const initialTheme = store.getState().theme?.mode || 'light';
 			document.documentElement.classList.add(initialTheme);
 		</script>
 	</head>
-	<body class="min-h-screen bg-background text-foreground antialiased">
-		<TopBar client:load initial-theme={initialTheme} />
-		<ResizablePanels>
-			<Sidebar slot="sidebar" />
-			<PanelGroupLayout client:load />
-		</ResizablePanels>
+	<body class="min-h-screen max-h-screen h-screen flex flex-col bg-background text-foreground antialiased">
+		<div class="flex-none h-14">
+			<TopBar client:load initial-theme={initialTheme} />
+		</div>
+		<div class="flex-1 overflow-hidden">
+			<div class="flex h-full">
+				<div class="w-12 flex-none bg-muted border-r border-neutral-200 dark:border-neutral-800">
+					<Sidebar />
+				</div>
+				<div class="flex-1 bg-background">
+					<PanelGroupLayout client:load />
+				</div>
+			</div>
+		</div>
 	</body>
 </html>
 
@@ -72,6 +80,7 @@ const initialTheme = store.getState().theme?.mode || 'light';
 		font-family: system-ui, sans-serif;
 		background-color: hsl(var(--background));
 		color: hsl(var(--foreground));
+		overflow: hidden;
 	}
 	code {
 		font-family:

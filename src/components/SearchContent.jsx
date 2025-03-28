@@ -17,18 +17,18 @@ const SearchContent = () => {
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-1">
       <input 
         type="text" 
         value={searchQuery}
         onChange={handleSearchChange}
         placeholder="Search content..."
-        className="flex-1 p-2 border rounded"
+        className="flex-1 p-1 text-sm border rounded"
       />
       {searchQuery && (
         <button 
           onClick={handleClearSearch}
-          className="px-4 py-2 bg-gray-200 text-gray-700 rounded"
+          className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded"
         >
           Clear
         </button>

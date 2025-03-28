@@ -5,8 +5,19 @@ const ChatbotPanel = ({ className = '' }) => {
   const [mentions, setMentions] = useState([]);
   
   const [messages, setMessages] = useState([
-    { role: 'system', content: 'How can I help?' }
+    { 
+      role: 'system', 
+      content: `How can I help?
+
+Command:
+- "read the testing.txt", "show contents of testing.txt"
+- "list files in downloads"
+- "where am i"
+- "make directory projects"
+- "delete file test.txt"`
+    }
   ]);
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);

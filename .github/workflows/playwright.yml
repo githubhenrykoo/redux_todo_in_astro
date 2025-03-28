@@ -38,11 +38,12 @@ jobs:
           libgbm1 \
           libpango-1.0-0 \
           libcairo2 \
-          libasound2t64
+          libasound2t64 || true
     
     - name: Install dependencies
       run: |
-        npm ci
+        # Use install instead of ci to update lock file with current package.json
+        npm install --no-fund --no-audit
         npm install -D @playwright/test
         npx playwright install --with-deps chromium
       env:

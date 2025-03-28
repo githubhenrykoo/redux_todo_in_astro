@@ -13,7 +13,7 @@ const Content = () => {
   const searchQuery = search.query.toLowerCase();
 
   // Utility function to safely truncate content
-  const truncateContent = (content, maxLength = 50) => {
+  const truncateContent = (content, maxLength = 30) => {
     if (!content) return 'No content';
     
     let contentString;
@@ -46,7 +46,7 @@ const Content = () => {
   return (
     <div className="h-full max-h-full overflow-y-auto dark:bg-neutral-900 dark:text-neutral-100">
       {/* Content List */}
-      <div className="space-y-1">
+      <div className="space-y-1 overflow-hidden">
         {filteredContent.length === 0 ? (
           <p className="text-sm text-gray-500 dark:text-neutral-500 text-center p-2">
             {searchQuery 
@@ -65,25 +65,26 @@ const Content = () => {
                 className={`
                   flex flex-col p-1 border-b 
                   hover:bg-gray-100 dark:hover:bg-neutral-800
+                  max-h-20 overflow-hidden
                 `}
               >
                 {/* Content Preview */}
                 <div 
                   onClick={() => handleContentSelect(card.hash)}
-                  className="cursor-pointer text-sm mb-1 dark:text-neutral-100 truncate"
+                  className="cursor-pointer text-sm mb-1 dark:text-neutral-100 break-words whitespace-normal max-h-10 overflow-hidden text-ellipsis"
                 >
                   {contentPreview}
                 </div>
 
                 {/* Metadata and Actions */}
                 <div className="flex justify-between items-center text-xs">
-                  <div className="text-gray-500 dark:text-neutral-500 truncate">
+                  <div className="text-gray-500 dark:text-neutral-500 truncate max-w-[50%]">
                     Created: {new Date(card.createdAt).toLocaleString()}
                   </div>
                   <div>
                     <button 
                       onClick={() => handleContentDelete(card.hash)}
-                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
                     >
                       Delete
                     </button>

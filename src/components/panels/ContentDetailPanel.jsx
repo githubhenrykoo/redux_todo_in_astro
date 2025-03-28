@@ -96,17 +96,17 @@ export default function ContentDetailPanel() {
     : formatContent(selectedContentItem?.content);
 
   return (
-    <div className="flex flex-col h-full max-h-full bg-background">
+    <div className="flex flex-col h-full max-h-full bg-background overflow-hidden">
       {/* Fixed Header */}
       <div className="flex-none flex justify-between items-center px-3 py-2 bg-muted border-b border-neutral-200 dark:border-neutral-800">
-        <h2 className="text-base font-semibold text-foreground">
+        <h2 className="text-base font-semibold text-foreground truncate max-w-[60%]">
           {isEditing ? 'Push New Content' : 'Content Details'}
         </h2>
-        <div className="flex gap-1">
+        <div className="flex gap-1 overflow-x-auto max-w-[40%]">
           {!isEditing && (
             <button
               onClick={handleNewClick}
-              className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap"
             >
               New
             </button>
@@ -115,13 +115,13 @@ export default function ContentDetailPanel() {
             <>
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                className="px-2 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors whitespace-nowrap"
               >
                 Edit
               </button>
               <button
                 onClick={handleDelete}
-                className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors whitespace-nowrap"
               >
                 Delete
               </button>
@@ -131,13 +131,13 @@ export default function ContentDetailPanel() {
             <>
               <button
                 onClick={handleCancel}
-                className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors whitespace-nowrap"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors whitespace-nowrap"
               >
                 Save
               </button>
@@ -147,17 +147,19 @@ export default function ContentDetailPanel() {
       </div>
 
       {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-auto">
-        <ContentEditor
-          content={displayContent || ''}
-          onChange={handleContentChange}
-          onSave={isEditing ? handleSubmit : undefined}
-          title={isEditing ? 'Edit Content' : 'Content Viewer'}
-          isReadOnly={!isEditing}
-          showLineNumbers={true}
-          language="Plain Text"
-          className="h-full"
-        />
+      <div className="flex-1 overflow-auto p-2">
+        <div className="w-full h-full max-w-full">
+          <ContentEditor
+            content={displayContent || ''}
+            onChange={handleContentChange}
+            onSave={isEditing ? handleSubmit : undefined}
+            title={isEditing ? 'Edit Content' : 'Content Viewer'}
+            isReadOnly={!isEditing}
+            showLineNumbers={true}
+            language="Plain Text"
+            className="w-full h-full"
+          />
+        </div>
       </div>
     </div>
   );

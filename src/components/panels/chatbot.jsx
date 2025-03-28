@@ -251,7 +251,7 @@ Command:
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
         </div>
-        <div className="text-center flex-grow">ChatBot - MCP Server with Ollama Integration</div>
+        <div className="text-center flex-grow">ChatBot - MCP</div>
         <button
           onClick={toggleWordSelect}
           className={`mr-2 px-2 py-1 text-xs rounded ${

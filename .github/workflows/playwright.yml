@@ -40,9 +40,12 @@ jobs:
           libcairo2 \
           libasound2t64 || true
     
+    - name: Kill existing processes on port 4322
+      run: |
+        sudo lsof -ti:4322 | xargs sudo kill -9 || true
+    
     - name: Install dependencies
       run: |
-        # Use install instead of ci to update lock file with current package.json
         npm install --no-fund --no-audit
         npm install -D @playwright/test
         npx playwright install --with-deps chromium
@@ -59,9 +62,10 @@ jobs:
     
     - name: Start dev server in background
       run: |
-        npm run start & 
-        sleep 15
+        npx astro dev --port 4322 & 
+        sleep 20
         echo "Dev server started in background"
+        lsof -i:4322
     
     - name: Run Playwright tests
       run: |

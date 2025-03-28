@@ -174,7 +174,16 @@ const ChatbotPanel = ({ className = '' }) => {
     inputRef.current?.focus();
   };
   
-  // In the return statement, update the message content div to include the selection handler
+  // Add this with other state declarations at the top
+  const [isWordSelectEnabled, setIsWordSelectEnabled] = useState(true);
+  
+  // Add this near the handleModelChange function
+  const toggleWordSelect = () => {
+    setIsWordSelectEnabled(prev => !prev);
+  };
+  
+  // Update the header section in the return statement
+  // In the return statement, wrap the elements in a parent div
   return (
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
@@ -184,6 +193,16 @@ const ChatbotPanel = ({ className = '' }) => {
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
         </div>
         <div className="text-center flex-grow">ChatBot - MCP Server with Ollama Integration</div>
+        <button
+          onClick={toggleWordSelect}
+          className={`mr-2 px-2 py-1 text-xs rounded ${
+            isWordSelectEnabled 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-gray-600 hover:bg-gray-700'
+          }`}
+        >
+          Word Select: {isWordSelectEnabled ? 'On' : 'Off'}
+        </button>
         <select 
           value={selectedModel}
           onChange={handleModelChange}
@@ -235,6 +254,7 @@ const ChatbotPanel = ({ className = '' }) => {
               <div 
                 className="whitespace-pre-wrap"
                 onMouseUp={() => {
+                  if (!isWordSelectEnabled) return;
                   const selection = window.getSelection().toString().trim();
                   if (selection) {
                     setInput(prev => prev + (prev ? ' ' : '') + selection);
@@ -246,8 +266,8 @@ const ChatbotPanel = ({ className = '' }) => {
                   message.content.split(' ').map((word, i) => (
                     <React.Fragment key={i}>
                       <span 
-                        className="cursor-pointer hover:text-yellow-400 transition-colors"
-                        onClick={() => handleMentionClick(word)}
+                        className={`${isWordSelectEnabled ? 'cursor-pointer hover:text-yellow-400' : ''} transition-colors`}
+                        onClick={() => isWordSelectEnabled && handleMentionClick(word)}
                       >
                         {word}
                       </span>

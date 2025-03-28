@@ -44,3 +44,8 @@ src/tests/data
 test-results
 
 tests/data
+
+# Playwright
+/playwright-report/
+/test-results/
+/tests/data/

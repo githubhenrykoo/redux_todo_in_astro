@@ -12,7 +12,7 @@ const ChatbotPanel = ({ className = '' }) => {
 Command:
 - "read the testing.txt", "show contents of testing.txt"
 - "list files in downloads"
-- "where am i
+- "where am i"
 - "make directory projects"
 - "delete file test.txt"`
     }

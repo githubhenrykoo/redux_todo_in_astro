@@ -27,11 +27,7 @@
             "visible": true
         },
         "middle": {
-<<<<<<< HEAD
             "type": "chatbot",
-=======
-            "type": "ContentDetailPanel",
->>>>>>> d780d3f (new report format)
             "size": 40,
             "minSize": 20,
             "visible": true

@@ -31,10 +31,12 @@ export default defineConfig({
   },
   
   webServer: {
-    command: 'npm run start',
+    command: process.env.CI 
+      ? 'npx astro dev --port 4322' 
+      : 'npm run start',
     url: 'http://localhost:4322',
-    timeout: 180 * 1000, 
-    reuseExistingServer: false, 
+    timeout: 180 * 1000, // 3 minutes
+    reuseExistingServer: true,
     stdout: 'pipe',
     stderr: 'pipe',
     env: {

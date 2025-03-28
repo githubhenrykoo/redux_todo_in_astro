@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 const ChatbotPanel = ({ className = '' }) => {
+  // Add this with other state declarations
+  const [mentions, setMentions] = useState([]);
+  
   const [messages, setMessages] = useState([
     { role: 'system', content: 'How can I help?' }
   ]);
@@ -159,6 +162,12 @@ const ChatbotPanel = ({ className = '' }) => {
     setSelectedModel(e.target.value);
   };
 
+  // Add this after other function declarations
+  const handleMentionClick = (word) => {
+    setInput(prev => prev + (prev ? ' ' : '') + word);
+    inputRef.current?.focus();
+  };
+
   return (
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
@@ -222,7 +231,21 @@ const ChatbotPanel = ({ className = '' }) => {
               } ${message.isThinking ? 'animate-pulse' : ''}`}
             >
               <div className="whitespace-pre-wrap">
-                {message.content}
+                {message.role === 'assistant' && !message.isThinking ? (
+                  message.content.split(' ').map((word, i) => (
+                    <React.Fragment key={i}>
+                      <span 
+                        className="cursor-pointer hover:text-yellow-400 transition-colors"
+                        onClick={() => handleMentionClick(word)}
+                      >
+                        {word}
+                      </span>
+                      {' '}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  message.content
+                )}
               </div>
               {message.role !== 'user' && message.role !== 'system' && message.role !== 'error' && (
                 <div className="text-xs text-gray-400 mt-1">

@@ -207,20 +207,20 @@ export const DatabaseRetrievePanel: React.FC = () => {
   return (
     <div className="flex flex-col h-full max-h-full bg-background">
       {/* Header Section */}
-      <div className="flex-none p-4 border-b border-neutral-200 dark:border-neutral-800">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <form onSubmit={handleSearch} className="flex-1">
-            <div className="flex gap-2">
+      <div className="flex-none p-3 border-b border-neutral-200 dark:border-neutral-800">
+        <div className="flex flex-col gap-2">
+          <form onSubmit={handleSearch} className="w-full">
+            <div className="flex flex-wrap gap-2">
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search by content..."
-                className="flex-1 px-3 py-1 border rounded text-sm"
+                className="flex-1 min-w-0 px-3 py-1 border rounded text-sm"
               />
               <button
                 type="submit"
-                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm whitespace-nowrap"
                 disabled={loading}
               >
                 Search
@@ -228,18 +228,18 @@ export const DatabaseRetrievePanel: React.FC = () => {
             </div>
           </form>
 
-          <form onSubmit={handleHashLookup} className="flex-1">
-            <div className="flex gap-2">
+          <form onSubmit={handleHashLookup} className="w-full">
+            <div className="flex flex-wrap gap-2">
               <input
                 type="text"
                 value={hashValue}
                 onChange={(e) => setHashValue(e.target.value)}
                 placeholder="Lookup by hash..."
-                className="flex-1 px-3 py-1 border rounded text-sm"
+                className="flex-1 min-w-0 px-3 py-1 border rounded text-sm"
               />
               <button
                 type="submit"
-                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm whitespace-nowrap"
                 disabled={loading}
               >
                 Lookup

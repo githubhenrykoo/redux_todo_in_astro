@@ -19,7 +19,15 @@ export default defineConfig({
       : 'http://localhost:4321',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    headless: true, 
+    headless: true,
+    viewport: { width: 1280, height: 720 },
+    launchOptions: {
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'
+      ]
+    }
   },
   
   webServer: {

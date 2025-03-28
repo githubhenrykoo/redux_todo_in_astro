@@ -12,6 +12,22 @@ const Content = () => {
   const contentCards = Object.values(cards);
   const searchQuery = search.query.toLowerCase();
 
+  // Utility function to safely truncate content
+  const truncateContent = (content, maxLength = 50) => {
+    if (!content) return 'No content';
+    
+    let contentString;
+    if (typeof content === 'object') {
+      contentString = JSON.stringify(content);
+    } else {
+      contentString = String(content);
+    }
+    
+    return contentString.length > maxLength 
+      ? contentString.substring(0, maxLength) + '...'
+      : contentString;
+  };
+
   // Filter content based on search query if it exists
   const filteredContent = searchQuery
     ? contentCards.filter(card => 
@@ -28,11 +44,11 @@ const Content = () => {
   };
 
   return (
-    <div className="space-y-4 dark:bg-neutral-900 dark:text-neutral-100">
+    <div className="h-full max-h-full overflow-y-auto dark:bg-neutral-900 dark:text-neutral-100">
       {/* Content List */}
-      <div className="space-y-2">
+      <div className="space-y-1">
         {filteredContent.length === 0 ? (
-          <p className="text-gray-500 dark:text-neutral-500 text-center">
+          <p className="text-sm text-gray-500 dark:text-neutral-500 text-center p-2">
             {searchQuery 
               ? `No content matches "${search.query}"` 
               : 'No content available'}
@@ -41,42 +57,30 @@ const Content = () => {
           filteredContent.map(card => {
             if (!card) return null;
             
-            // Convert content to a string safely
-            const contentPreview = (() => {
-              if (!card.content) return 'No content';
-              
-              let contentString;
-              if (typeof card.content === 'object') {
-                contentString = JSON.stringify(card.content);
-              } else {
-                contentString = String(card.content);
-              }
-              
-              return contentString.substring(0, 200);
-            })();
+            const contentPreview = truncateContent(card.content);
 
             return (
               <div 
                 key={card.hash} 
                 className={`
-                  flex flex-col p-2 border rounded 
+                  flex flex-col p-1 border-b 
                   hover:bg-gray-100 dark:hover:bg-neutral-800
                 `}
               >
                 {/* Content Preview */}
                 <div 
                   onClick={() => handleContentSelect(card.hash)}
-                  className="cursor-pointer mb-2 dark:text-neutral-100"
+                  className="cursor-pointer text-sm mb-1 dark:text-neutral-100 truncate"
                 >
-                  {contentPreview}...
+                  {contentPreview}
                 </div>
 
                 {/* Metadata and Actions */}
-                <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-500 dark:text-neutral-500">
+                <div className="flex justify-between items-center text-xs">
+                  <div className="text-gray-500 dark:text-neutral-500 truncate">
                     Created: {new Date(card.createdAt).toLocaleString()}
                   </div>
-                  <div className="space-x-2">
+                  <div>
                     <button 
                       onClick={() => handleContentDelete(card.hash)}
                       className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"

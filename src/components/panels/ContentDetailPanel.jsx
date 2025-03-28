@@ -96,32 +96,32 @@ export default function ContentDetailPanel() {
     : formatContent(selectedContentItem?.content);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full max-h-full bg-background">
       {/* Fixed Header */}
-      <div className="flex-shrink-0 flex justify-between items-center px-4 py-2 bg-gray-100 border-b">
-        <h2 className="text-lg font-semibold text-gray-700">
+      <div className="flex-none flex justify-between items-center px-3 py-2 bg-muted border-b border-neutral-200 dark:border-neutral-800">
+        <h2 className="text-base font-semibold text-foreground">
           {isEditing ? 'Push New Content' : 'Content Details'}
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           {!isEditing && (
             <button
               onClick={handleNewClick}
-              className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
-              Push New Content
+              New
             </button>
           )}
           {selectedContentItem && !isEditing && (
             <>
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-4 py-1 text-sm bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+                className="px-3 py-1 text-xs bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
               >
                 Edit
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
               >
                 Delete
               </button>
@@ -131,13 +131,13 @@ export default function ContentDetailPanel() {
             <>
               <button
                 onClick={handleCancel}
-                className="px-4 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                className="px-3 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-4 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
                 Save
               </button>

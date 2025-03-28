@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@astrojs/react": "latest",
+    "@astrojs/vercel": "^8.1.3",
     "@radix-ui/react-dialog": "^1.1.4",
     "@react-spring/web": "^9.7.3",
     "@reduxjs/toolkit": "^2.6.1",

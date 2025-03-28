@@ -1,0 +1,12 @@
+---
+import ResizablePanelsSlot from '../layouts/resizablepanelsslot.astro';
+import DemoRightPanel from '@/components/panels/DemoRightPanel.astro';
+import DemoMainPanel from '@/components/panels/DemoMainPanel.astro';
+import DemoLeftPanel from '@/components/panels/DemoLeftPanel.astro';
+---
+
+<ResizablePanelsSlot>
+    <DemoRightPanel slot="right"/>
+    <DemoMainPanel slot="left"/>
+    <DemoLeftPanel slot="middle"/>
+</ResizablePanelsSlot>

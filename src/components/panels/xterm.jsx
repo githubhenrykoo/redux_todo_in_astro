@@ -198,7 +198,7 @@ const XtermPanel = ({ className = '' }) => {
           // Set custom prompt to use username
           ws.send(JSON.stringify({
             type: 'input',
-            data: 'export PS1="$(whoami)$ "\r'
+            data: 'export PS1="\\[\\e[32m\\]$(whoami)\\[\\e[0m\\]$ "\r'
           }));
         }
       };

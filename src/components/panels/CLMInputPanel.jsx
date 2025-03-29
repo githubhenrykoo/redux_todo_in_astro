@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DimensionNavigation from './clm/DimensionNavigation';
 import SaveButton from './clm/SaveButton';
 import AbstractSpecification from './clm/AbstractSpecification';
@@ -35,16 +35,105 @@ const CLMInputPanel = () => {
     const [activeDimension, setActiveDimension] = useState('abstractSpecification');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
+    const [currentClmHash, setCurrentClmHash] = useState(null);
+    const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+    const [lastUpdated, setLastUpdated] = useState(null);
 
-    // Handle input changes
-    const handleInputChange = (dimension, section, value) => {
-        setClmData(prev => ({
-            ...prev,
-            [dimension]: {
-                ...prev[dimension],
-                [section]: value
+    // Debounce function for auto-updates
+    const debounce = (func, delay) => {
+        let timeoutId;
+        return (...args) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => func(...args), delay);
+        };
+    };
+
+    // Auto-update a specific dimension
+    const updateDimension = async (dimension, content) => {
+        if (!currentClmHash || !autoSaveEnabled) return;
+        
+        try {
+            const response = await fetch('/api/update-clm', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    clmHash: currentClmHash,
+                    dimension,
+                    content
+                })
+            });
+
+            if (!response.ok) {
+                console.error('Error auto-updating CLM dimension:', dimension);
+                return;
             }
-        }));
+
+            const result = await response.json();
+            setCurrentClmHash(result.newClmHash);
+            setLastUpdated(new Date().toISOString());
+            console.log(`${dimension} auto-updated successfully with hash: ${result.dimensionHash.substring(0, 10)}...`);
+        } catch (error) {
+            console.error('Error in auto-update:', error);
+        }
+    };
+
+    // Debounced update function
+    const debouncedUpdate = useCallback(
+        debounce((dimension, content) => {
+            updateDimension(dimension, content);
+        }, 2000),
+        [currentClmHash, autoSaveEnabled]
+    );
+
+    // Handle input changes with auto-update
+    const handleInputChange = (dimension, section, value) => {
+        // Update local state
+        setClmData(prev => {
+            const updatedData = {
+                ...prev,
+                [dimension]: {
+                    ...prev[dimension],
+                    [section]: value
+                }
+            };
+            
+            // If we have a CLM hash, auto-update this dimension
+            if (currentClmHash && autoSaveEnabled) {
+                // Generate YAML for this dimension
+                const yamlContent = generateYamlPreview(dimension, updatedData);
+                debouncedUpdate(dimension, yamlContent);
+            }
+            
+            return updatedData;
+        });
+    };
+
+    // Utility function to generate YAML preview with optional custom data
+    const generateYamlPreview = (dimension, data = clmData) => {
+        switch(dimension) {
+            case 'abstractSpecification':
+                return `dimension_type: "abstract_specification"
+context: "${data.abstractSpecification.context.replace(/"/g, '\\"')}"
+goal: "${data.abstractSpecification.goal.replace(/"/g, '\\"')}"
+success_criteria: "${data.abstractSpecification.successCriteria.replace(/"/g, '\\"')}"`;
+            
+            case 'concreteImplementation':
+                return `dimension_type: "concrete_implementation"
+inputs: "${data.concreteImplementation.inputs.replace(/"/g, '\\"')}"
+activities: "${data.concreteImplementation.activities.replace(/"/g, '\\"')}"
+outputs: "${data.concreteImplementation.outputs.replace(/"/g, '\\"')}"`;
+            
+            case 'balancedExpectations':
+                return `dimension_type: "balanced_expectations"
+practical_boundaries: "${data.balancedExpectations.practicalBoundaries.replace(/"/g, '\\"')}"
+evaluation_metrics: "${data.balancedExpectations.evaluationMetrics.replace(/"/g, '\\"')}"
+feedback_loops: "${data.balancedExpectations.feedbackLoops.replace(/"/g, '\\"')}"`;
+            
+            default:
+                return '';
+        }
     };
 
     // Handle form submission
@@ -74,8 +163,8 @@ dimensions:
   concrete_implementation: "${await generateHash(concreteImplementationYaml)}"
   balanced_expectations: "${await generateHash(balancedExpectationsYaml)}"`;
 
-            // Store in database
-            const response = await fetch('/api/store', {
+            // Store in database using the new store-clm endpoint
+            const response = await fetch('/api/store-clm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -91,16 +180,24 @@ dimensions:
                         }
                     },
                     timestamp: new Date().toISOString(),
-                    format: 'clm'
+                    format: 'yaml'
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to save CLM data');
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save CLM data');
             }
 
             const result = await response.json();
-            setSaveMessage({ type: 'success', text: 'CLM data saved successfully!' });
+            // Store the CLM hash for future updates
+            setCurrentClmHash(result.clmHash);
+            setLastUpdated(new Date().toISOString());
+            
+            setSaveMessage({ 
+                type: 'success', 
+                text: `CLM data saved successfully! Hash: ${result.clmHash.substring(0, 10)}...` 
+            });
             
         } catch (error) {
             console.error('Error saving CLM data:', error);
@@ -108,6 +205,11 @@ dimensions:
         } finally {
             setIsSaving(false);
         }
+    };
+
+    // Toggle auto-save feature
+    const toggleAutoSave = () => {
+        setAutoSaveEnabled(prev => !prev);
     };
 
     // Utility function to generate SHA-256 hash (implementation that works in both browser and Node.js)
@@ -176,32 +278,6 @@ dimensions:
         return 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // Utility function to generate YAML preview
-    const generateYamlPreview = (dimension) => {
-        switch(dimension) {
-            case 'abstractSpecification':
-                return `dimension_type: "abstract_specification"
-context: "${clmData.abstractSpecification.context.replace(/"/g, '\\"')}"
-goal: "${clmData.abstractSpecification.goal.replace(/"/g, '\\"')}"
-success_criteria: "${clmData.abstractSpecification.successCriteria.replace(/"/g, '\\"')}"`;
-            
-            case 'concreteImplementation':
-                return `dimension_type: "concrete_implementation"
-inputs: "${clmData.concreteImplementation.inputs.replace(/"/g, '\\"')}"
-activities: "${clmData.concreteImplementation.activities.replace(/"/g, '\\"')}"
-outputs: "${clmData.concreteImplementation.outputs.replace(/"/g, '\\"')}"`;
-            
-            case 'balancedExpectations':
-                return `dimension_type: "balanced_expectations"
-practical_boundaries: "${clmData.balancedExpectations.practicalBoundaries.replace(/"/g, '\\"')}"
-evaluation_metrics: "${clmData.balancedExpectations.evaluationMetrics.replace(/"/g, '\\"')}"
-feedback_loops: "${clmData.balancedExpectations.feedbackLoops.replace(/"/g, '\\"')}"`;
-            
-            default:
-                return '';
-        }
-    };
-
     // Render appropriate content based on active dimension
     const renderDimensionContent = () => {
         switch(activeDimension) {
@@ -257,6 +333,42 @@ feedback_loops: "${clmData.balancedExpectations.feedbackLoops.replace(/"/g, '\\"
                             : 'bg-red-100 text-red-800'
                     }`}>
                         {saveMessage.text}
+                    </div>
+                )}
+
+                {/* Auto-save Status */}
+                {currentClmHash && (
+                    <div className="flex justify-between items-center mb-4 text-sm">
+                        <div className="flex items-center">
+                            <span className="text-gray-600 mr-2">Auto-save:</span>
+                            <div className="relative inline-block w-10 mr-2 align-middle select-none">
+                                <input 
+                                    type="checkbox" 
+                                    name="toggle" 
+                                    id="auto-save-toggle" 
+                                    checked={autoSaveEnabled}
+                                    onChange={toggleAutoSave}
+                                    className="absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer focus:outline-none transition-transform duration-200 ease-in"
+                                    style={{
+                                        transform: autoSaveEnabled ? 'translateX(100%)' : 'translateX(0)',
+                                        borderColor: autoSaveEnabled ? '#48BB78' : '#F56565'
+                                    }}
+                                />
+                                <label 
+                                    htmlFor="auto-save-toggle" 
+                                    className="block overflow-hidden h-6 rounded-full cursor-pointer"
+                                    style={{ backgroundColor: autoSaveEnabled ? '#9AE6B4' : '#FED7D7' }}
+                                ></label>
+                            </div>
+                            <span className={autoSaveEnabled ? 'text-green-600' : 'text-red-600'}>
+                                {autoSaveEnabled ? 'Enabled' : 'Disabled'}
+                            </span>
+                        </div>
+                        {lastUpdated && (
+                            <div className="text-gray-600">
+                                Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                            </div>
+                        )}
                     </div>
                 )}
 

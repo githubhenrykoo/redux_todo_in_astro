@@ -1,60 +1,74 @@
 import React, { useState } from 'react';
 
 const CLMInputPanel = () => {
+    // State structure following the three dimension MCards approach
     const [clmData, setClmData] = useState({
+        // Abstract Specification dimension
         abstractSpecification: {
             context: '',
             goal: '',
             successCriteria: ''
         },
+        // Concrete Implementation dimension
         concreteImplementation: {
             inputs: '',
             activities: '',
             outputs: ''
         },
+        // Balanced Expectations dimension
         balancedExpectations: {
-            practicalBoundariesAndConstraints: '',
-            evaluationDataAndPerformanceMetrics: '',
-            feedbackLoopsAndValidation: ''
+            practicalBoundaries: '',
+            evaluationMetrics: '',
+            feedbackLoops: ''
         }
     });
     
-    const [activeSection, setActiveSection] = useState('abstractSpecification');
+    // Track which dimension is currently active in the UI
+    const [activeDimension, setActiveDimension] = useState('abstractSpecification');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState(null);
 
     // Handle input changes
-    const handleInputChange = (section, subsection, value) => {
-        if (subsection) {
-            setClmData(prev => ({
-                ...prev,
-                [section]: {
-                    ...prev[section],
-                    [subsection]: value
-                }
-            }));
-        } else {
-            setClmData(prev => ({
-                ...prev,
+    const handleInputChange = (dimension, section, value) => {
+        setClmData(prev => ({
+            ...prev,
+            [dimension]: {
+                ...prev[dimension],
                 [section]: value
-            }));
-        }
+            }
+        }));
     };
 
-    // Handle form submission
+    // Handle form submission - to be implemented later
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSaving(true);
         setSaveMessage(null);
 
         try {
-            // Convert CLM data to the expected format for storage
-            const formattedClmData = {
-                title: 'CLM Document',
-                content: JSON.stringify(clmData),
-                timestamp: new Date().toISOString(),
-                format: 'clm'
-            };
+            // Generate YAML-formatted content for each dimension MCard
+            const abstractSpecificationYaml = `dimension_type: "abstract_specification"
+context: "${clmData.abstractSpecification.context.replace(/"/g, '\\"')}"
+goal: "${clmData.abstractSpecification.goal.replace(/"/g, '\\"')}"
+success_criteria: "${clmData.abstractSpecification.successCriteria.replace(/"/g, '\\"')}"`;
+
+            const concreteImplementationYaml = `dimension_type: "concrete_implementation"
+inputs: "${clmData.concreteImplementation.inputs.replace(/"/g, '\\"')}"
+activities: "${clmData.concreteImplementation.activities.replace(/"/g, '\\"')}"
+outputs: "${clmData.concreteImplementation.outputs.replace(/"/g, '\\"')}"`;
+
+            const balancedExpectationsYaml = `dimension_type: "balanced_expectations"
+practical_boundaries: "${clmData.balancedExpectations.practicalBoundaries.replace(/"/g, '\\"')}"
+evaluation_metrics: "${clmData.balancedExpectations.evaluationMetrics.replace(/"/g, '\\"')}"
+feedback_loops: "${clmData.balancedExpectations.feedbackLoops.replace(/"/g, '\\"')}"`;
+
+            // Prepare the root CLM MCard YAML
+            const rootClmYaml = `title: "CLM Document"
+created: "${new Date().toISOString()}"
+dimensions:
+  abstract_specification: "${await generateHash(abstractSpecificationYaml)}"
+  concrete_implementation: "${await generateHash(concreteImplementationYaml)}"
+  balanced_expectations: "${await generateHash(balancedExpectationsYaml)}"`;
 
             // Store in database
             const response = await fetch('/api/store', {
@@ -62,7 +76,19 @@ const CLMInputPanel = () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(formattedClmData)
+                body: JSON.stringify({
+                    title: 'CLM Document',
+                    content: {
+                        rootClm: rootClmYaml,
+                        dimensions: {
+                            abstractSpecification: abstractSpecificationYaml,
+                            concreteImplementation: concreteImplementationYaml,
+                            balancedExpectations: balancedExpectationsYaml
+                        }
+                    },
+                    timestamp: new Date().toISOString(),
+                    format: 'clm'
+                })
             });
 
             if (!response.ok) {
@@ -78,34 +104,96 @@ const CLMInputPanel = () => {
         } finally {
             setIsSaving(false);
         }
+
+        // Utility function to generate SHA-256 hash (mock implementation)
+        async function generateHash(content) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(content);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+    };
+
+    // Utility function to generate YAML preview
+    const generateYamlPreview = (dimension) => {
+        switch(dimension) {
+            case 'abstractSpecification':
+                return `dimension_type: "abstract_specification"
+context: "${clmData.abstractSpecification.context.replace(/"/g, '\\"')}"
+goal: "${clmData.abstractSpecification.goal.replace(/"/g, '\\"')}"
+success_criteria: "${clmData.abstractSpecification.successCriteria.replace(/"/g, '\\"')}"`;
+            
+            case 'concreteImplementation':
+                return `dimension_type: "concrete_implementation"
+inputs: "${clmData.concreteImplementation.inputs.replace(/"/g, '\\"')}"
+activities: "${clmData.concreteImplementation.activities.replace(/"/g, '\\"')}"
+outputs: "${clmData.concreteImplementation.outputs.replace(/"/g, '\\"')}"`;
+            
+            case 'balancedExpectations':
+                return `dimension_type: "balanced_expectations"
+practical_boundaries: "${clmData.balancedExpectations.practicalBoundaries.replace(/"/g, '\\"')}"
+evaluation_metrics: "${clmData.balancedExpectations.evaluationMetrics.replace(/"/g, '\\"')}"
+feedback_loops: "${clmData.balancedExpectations.feedbackLoops.replace(/"/g, '\\"')}"`;
+            
+            default:
+                return '';
+        }
     };
 
     return (
         <div className="h-full bg-white overflow-y-auto p-6">
             <div className="max-w-3xl mx-auto space-y-8">
-                {/* Section Navigation */}
-                <div className="flex space-x-4 border-b pb-4">
-                    {[
-                        { key: 'abstractSpecification', label: 'Abstract Specification' },
-                        { key: 'concreteImplementation', label: 'Concrete Implementation' },
-                        { key: 'balancedExpectations', label: 'Balanced Expectations' }
-                    ].map(section => (
-                        <button
-                            key={section.key}
-                            className={`px-4 py-2 rounded-lg transition-colors ${
-                                activeSection === section.key 
-                                    ? 'bg-blue-500 text-white' 
-                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                            }`}
-                            onClick={() => setActiveSection(section.key)}
-                        >
-                            {section.label}
-                        </button>
-                    ))}
+                {/* Dimension Navigation and Save Button Container */}
+                <div className="flex justify-between items-center border-b pb-4">
+                    {/* Dimension Navigation Buttons */}
+                    <div className="flex space-x-4">
+                        {[
+                            { key: 'abstractSpecification', label: 'Abstract Specification' },
+                            { key: 'concreteImplementation', label: 'Concrete Implementation' },
+                            { key: 'balancedExpectations', label: 'Balanced Expectations' }
+                        ].map(dimension => (
+                            <button
+                                key={dimension.key}
+                                className={`px-4 py-2 rounded-lg transition-colors ${
+                                    activeDimension === dimension.key 
+                                        ? 'bg-blue-500 text-white' 
+                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                                }`}
+                                onClick={() => setActiveDimension(dimension.key)}
+                            >
+                                {dimension.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Save Button */}
+                    <button
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            isSaving
+                                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                        }`}
+                        onClick={handleSubmit}
+                        disabled={isSaving}
+                    >
+                        {isSaving ? 'Saving...' : 'Save'}
+                    </button>
                 </div>
 
-                {/* Abstract Specification Section */}
-                {activeSection === 'abstractSpecification' && (
+                {/* Save Message */}
+                {saveMessage && (
+                    <div className={`p-3 rounded text-sm text-center ${
+                        saveMessage.type === 'success' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                    }`}>
+                        {saveMessage.text}
+                    </div>
+                )}
+
+                {/* Abstract Specification Dimension */}
+                {activeDimension === 'abstractSpecification' && (
                     <div className="space-y-6">
                         <h2 className="text-2xl font-bold">Abstract Specification</h2>
                         
@@ -138,11 +226,18 @@ const CLMInputPanel = () => {
                                 onChange={(e) => handleInputChange('abstractSpecification', 'successCriteria', e.target.value)}
                             />
                         </div>
+                        
+                        <div>
+                            <h3 className="text-lg font-bold">YAML Preview</h3>
+                            <pre className="p-3 rounded-lg bg-slate-100 text-sm">
+                                {generateYamlPreview('abstractSpecification')}
+                            </pre>
+                        </div>
                     </div>
                 )}
 
-                {/* Concrete Implementation Section */}
-                {activeSection === 'concreteImplementation' && (
+                {/* Concrete Implementation Dimension */}
+                {activeDimension === 'concreteImplementation' && (
                     <div className="space-y-6">
                         <h2 className="text-2xl font-bold">Concrete Implementation</h2>
                         
@@ -150,7 +245,7 @@ const CLMInputPanel = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">Inputs</label>
                             <textarea 
                                 className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="List the inputs required for this implementation..."
+                                placeholder="Describe the data sources and command parameters..."
                                 value={clmData.concreteImplementation.inputs}
                                 onChange={(e) => handleInputChange('concreteImplementation', 'inputs', e.target.value)}
                             />
@@ -160,7 +255,7 @@ const CLMInputPanel = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">Activities</label>
                             <textarea 
                                 className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Describe the activities involved in this implementation..."
+                                placeholder="Define the executable functions and processing logic..."
                                 value={clmData.concreteImplementation.activities}
                                 onChange={(e) => handleInputChange('concreteImplementation', 'activities', e.target.value)}
                             />
@@ -170,75 +265,64 @@ const CLMInputPanel = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">Outputs</label>
                             <textarea 
                                 className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Define the expected outputs of this implementation..."
+                                placeholder="Specify the response formats and presentation templates..."
                                 value={clmData.concreteImplementation.outputs}
                                 onChange={(e) => handleInputChange('concreteImplementation', 'outputs', e.target.value)}
                             />
                         </div>
+                        
+                        <div>
+                            <h3 className="text-lg font-bold">YAML Preview</h3>
+                            <pre className="p-3 rounded-lg bg-slate-100 text-sm">
+                                {generateYamlPreview('concreteImplementation')}
+                            </pre>
+                        </div>
                     </div>
                 )}
 
-                {/* Balanced Expectations Section */}
-                {activeSection === 'balancedExpectations' && (
+                {/* Balanced Expectations Dimension */}
+                {activeDimension === 'balancedExpectations' && (
                     <div className="space-y-6">
                         <h2 className="text-2xl font-bold">Balanced Expectations</h2>
                         
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Practical Boundaries and Constraints</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Practical Boundaries</label>
                             <textarea 
                                 className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Describe available resources, external constraints, potential risks, and the boundaries of your expectations..."
-                                value={clmData.balancedExpectations.practicalBoundariesAndConstraints}
-                                onChange={(e) => handleInputChange('balancedExpectations', 'practicalBoundariesAndConstraints', e.target.value)}
+                                placeholder="Define system constraints and error handling strategies..."
+                                value={clmData.balancedExpectations.practicalBoundaries}
+                                onChange={(e) => handleInputChange('balancedExpectations', 'practicalBoundaries', e.target.value)}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Evaluation Data and Performance Metrics</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Evaluation Metrics</label>
                             <textarea 
                                 className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Describe the empirical data, performance metrics, and assessment criteria that will be used to evaluate success..."
-                                value={clmData.balancedExpectations.evaluationDataAndPerformanceMetrics}
-                                onChange={(e) => handleInputChange('balancedExpectations', 'evaluationDataAndPerformanceMetrics', e.target.value)}
+                                placeholder="Specify performance indicators and monitoring thresholds..."
+                                value={clmData.balancedExpectations.evaluationMetrics}
+                                onChange={(e) => handleInputChange('balancedExpectations', 'evaluationMetrics', e.target.value)}
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Feedback Loops and Validation</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Feedback Loops</label>
                             <textarea 
                                 className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Describe how empirical data and outcomes will be used to refine and validate the system, including feedback mechanisms and continuous improvement approaches..."
-                                value={clmData.balancedExpectations.feedbackLoopsAndValidation}
-                                onChange={(e) => handleInputChange('balancedExpectations', 'feedbackLoopsAndValidation', e.target.value)}
+                                placeholder="Define user feedback channels and continuous improvement processes..."
+                                value={clmData.balancedExpectations.feedbackLoops}
+                                onChange={(e) => handleInputChange('balancedExpectations', 'feedbackLoops', e.target.value)}
                             />
+                        </div>
+                        
+                        <div>
+                            <h3 className="text-lg font-bold">YAML Preview</h3>
+                            <pre className="p-3 rounded-lg bg-slate-100 text-sm">
+                                {generateYamlPreview('balancedExpectations')}
+                            </pre>
                         </div>
                     </div>
                 )}
-
-                {/* Save Button */}
-                <div className="mt-8">
-                    <button
-                        className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                            isSaving
-                                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
-                        }`}
-                        onClick={handleSubmit}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? 'Saving...' : 'Save CLM Document'}
-                    </button>
-                    
-                    {saveMessage && (
-                        <div className={`mt-4 p-3 rounded text-sm ${
-                            saveMessage.type === 'success' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                        }`}>
-                            {saveMessage.text}
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
     );

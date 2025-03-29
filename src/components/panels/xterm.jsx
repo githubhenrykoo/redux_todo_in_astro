@@ -1,177 +1,297 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+// Client-side only component
 const XtermPanel = ({ className = '' }) => {
-  const [output, setOutput] = useState([
-    { text: 'Terminal', type: 'header' },
-    { text: 'Connecting to terminal server...', type: 'info' }
-  ]);
-  const [input, setInput] = useState('');
+  // Remove unused state variables
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
-  const [commandHistory, setCommandHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [xtermLoaded, setXtermLoaded] = useState(false);
   
+  const terminalRef = useRef(null);
+  const xtermRef = useRef(null);
+  const fitAddonRef = useRef(null);
   const socketRef = useRef(null);
-  const outputRef = useRef(null);
-  const inputRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
+  const mountedRef = useRef(false);
 
+  // Load xterm.js dynamically on client side
   useEffect(() => {
-    // Connect to WebSocket server
-    connectToServer();
-
+    // Set mounted flag
+    mountedRef.current = true;
+    
+    // Skip if not in browser
+    if (typeof window === 'undefined') return;
+    
+    // Create a simple terminal first to show something is working
+    const createSimpleTerminal = () => {
+      setXtermLoaded(true);
+      
+      // Load CSS first
+      import('xterm/css/xterm.css').catch(err => {
+        console.error('Failed to load xterm CSS:', err);
+      });
+      
+      // Wait for DOM to be ready
+      setTimeout(initializeTerminal, 300);
+    };
+    
+    // Wait for DOM to be ready
+    const initializeTerminal = async () => {
+      if (!mountedRef.current) return;
+      
+      try {
+        // Check if terminal container exists
+        if (!terminalRef.current) {
+          console.log('Terminal container not ready, retrying in 100ms');
+          setTimeout(initializeTerminal, 100);
+          return;
+        }
+        
+        console.log('Loading xterm modules...');
+        
+        // Import modules
+        const xtermModule = await import('xterm');
+        const fitAddonModule = await import('xterm-addon-fit');
+        
+        if (!mountedRef.current) return;
+        
+        console.log('Initializing terminal...');
+        
+        // Initialize terminal
+        const Terminal = xtermModule.Terminal;
+        const FitAddon = fitAddonModule.FitAddon;
+        
+        const terminal = new Terminal({
+          cursorBlink: true,
+          theme: {
+            background: '#1e1e1e',
+            foreground: '#f0f0f0',
+          },
+          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+          fontSize: 14,
+          lineHeight: 1.2,
+          convertEol: true,
+        });
+        
+        const fitAddon = new FitAddon();
+        terminal.loadAddon(fitAddon);
+        
+        xtermRef.current = terminal;
+        fitAddonRef.current = fitAddon;
+        
+        // Open terminal in the container
+        console.log('Opening terminal...');
+        terminal.open(terminalRef.current);
+        
+        // Fit terminal immediately
+        try {
+          fitAddon.fit();
+        } catch (e) {
+          console.error('Error fitting terminal:', e);
+        }
+        
+        // Write initial message
+        terminal.writeln('Terminal initialized');
+        terminal.writeln('\x1b[34mConnecting to terminal server...\x1b[0m');
+        
+        // Set up terminal input handling
+        terminal.onData(data => {
+          if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({ 
+              type: 'input', 
+              data: data 
+            }));
+          }
+        });
+        
+        // Connect to WebSocket server
+        connectToServer();
+        
+        // Handle window resize
+        const handleResize = () => {
+          if (!mountedRef.current) return;
+          if (fitAddonRef.current) {
+            try {
+              fitAddonRef.current.fit();
+              
+              // Send terminal size to server
+              if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && xtermRef.current) {
+                const { cols, rows } = xtermRef.current;
+                socketRef.current.send(JSON.stringify({ 
+                  type: 'resize', 
+                  cols, 
+                  rows 
+                }));
+              }
+            } catch (e) {
+              console.error('Error during resize:', e);
+            }
+          }
+        };
+        
+        window.addEventListener('resize', handleResize);
+        
+        // Force a resize after a short delay
+        setTimeout(handleResize, 500);
+        
+      } catch (err) {
+        console.error('Failed to initialize terminal:', err);
+        setError('Failed to initialize terminal: ' + err.message);
+      }
+    };
+    
+    // Start with a simple terminal first
+    createSimpleTerminal();
+    
+    // Cleanup function
     return () => {
-      // Clean up WebSocket connection
+      mountedRef.current = false;
+      
       if (socketRef.current) {
         socketRef.current.close();
       }
+      
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+      }
+      
+      if (xtermRef.current) {
+        try {
+          xtermRef.current.dispose();
+        } catch (err) {
+          console.error('Error disposing terminal:', err);
+        }
       }
     };
   }, []);
 
-  useEffect(() => {
-    // Scroll to bottom when output changes
-    if (outputRef.current) {
-      outputRef.current.scrollTop = outputRef.current.scrollHeight;
-    }
-  }, [output]);
-
   const connectToServer = () => {
+    if (!mountedRef.current) return;
+    
     try {
       // Clear any existing reconnect timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
 
+      console.log('Connecting to WebSocket server...');
       const ws = new WebSocket('ws://localhost:3001');
       socketRef.current = ws;
 
       ws.onopen = () => {
+        if (!mountedRef.current) return;
+        console.log('WebSocket connected');
         setIsConnected(true);
         setError(null);
-        setOutput(prev => [
-          ...prev,
-          { text: 'Connected to terminal server', type: 'success' }
-        ]);
-      };
-
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'output') {
-          // Process terminal output
-          const lines = message.data.split('\n');
-          lines.forEach(line => {
-            if (line.trim()) {
-              setOutput(prev => [...prev, { 
-                text: line, 
-                type: 'terminal'
-              }]);
-            }
-          });
+        
+        if (xtermRef.current) {
+          xtermRef.current.writeln('\x1b[32mConnected to terminal server\x1b[0m');
+          
+          // Send initial terminal size
+          const { cols, rows } = xtermRef.current;
+          ws.send(JSON.stringify({ 
+            type: 'resize', 
+            cols, 
+            rows 
+          }));
         }
       };
 
-      ws.onerror = () => {
+      ws.onmessage = (event) => {
+        if (!mountedRef.current) return;
+        
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === 'output' && xtermRef.current) {
+            xtermRef.current.write(message.data);
+          }
+        } catch (err) {
+          console.error('Error processing message:', err);
+        }
+      };
+
+      ws.onerror = (error) => {
+        if (!mountedRef.current) return;
+        console.error('WebSocket error:', error);
         setIsConnected(false);
         setError('Failed to connect to terminal server. Make sure the server is running.');
-        setOutput(prev => [
-          ...prev,
-          { text: 'Error: Failed to connect to terminal server', type: 'error' },
-          { text: 'Make sure the server is running at ws://localhost:3001', type: 'error' },
-          { text: 'Attempting to reconnect in 5 seconds...', type: 'info' }
-        ]);
+        
+        if (xtermRef.current) {
+          xtermRef.current.writeln('\x1b[31mError: Failed to connect to terminal server\x1b[0m');
+          xtermRef.current.writeln('\x1b[31mMake sure the server is running at ws://localhost:3001\x1b[0m');
+          xtermRef.current.writeln('\x1b[34mAttempting to reconnect in 5 seconds...\x1b[0m');
+        }
         
         // Set up reconnection
         reconnectTimeoutRef.current = setTimeout(() => {
-          setOutput(prev => [...prev, { text: 'Attempting to reconnect...', type: 'info' }]);
+          if (!mountedRef.current) return;
+          if (xtermRef.current) {
+            xtermRef.current.writeln('\x1b[34mAttempting to reconnect...\x1b[0m');
+          }
           connectToServer();
         }, 5000);
       };
 
       ws.onclose = () => {
+        if (!mountedRef.current) return;
+        console.log('WebSocket closed');
         setIsConnected(false);
-        setOutput(prev => [
-          ...prev,
-          { text: 'Disconnected from terminal server', type: 'error' },
-          { text: 'Attempting to reconnect in 5 seconds...', type: 'info' }
-        ]);
+        
+        if (xtermRef.current) {
+          xtermRef.current.writeln('\x1b[31mDisconnected from terminal server\x1b[0m');
+          xtermRef.current.writeln('\x1b[34mAttempting to reconnect in 5 seconds...\x1b[0m');
+        }
         
         // Set up reconnection
         reconnectTimeoutRef.current = setTimeout(() => {
-          setOutput(prev => [...prev, { text: 'Attempting to reconnect...', type: 'info' }]);
+          if (!mountedRef.current) return;
+          if (xtermRef.current) {
+            xtermRef.current.writeln('\x1b[34mAttempting to reconnect...\x1b[0m');
+          }
           connectToServer();
         }, 5000);
       };
     } catch (err) {
+      if (!mountedRef.current) return;
       console.error('Terminal connection error:', err);
       setError(`Terminal connection error: ${err.message}`);
       
       // Set up reconnection
       reconnectTimeoutRef.current = setTimeout(() => {
-        setOutput(prev => [...prev, { text: 'Attempting to reconnect...', type: 'info' }]);
+        if (!mountedRef.current) return;
+        if (xtermRef.current) {
+          xtermRef.current.writeln('\x1b[34mAttempting to reconnect...\x1b[0m');
+        }
         connectToServer();
       }, 5000);
     }
   };
 
-  const handleInputChange = (e) => {
-    setInput(e.target.value);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      sendCommand();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      navigateHistory(-1);
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      navigateHistory(1);
-    }
-  };
-
-  const navigateHistory = (direction) => {
-    if (commandHistory.length === 0) return;
-    
-    const newIndex = historyIndex + direction;
-    
-    if (newIndex >= -1 && newIndex < commandHistory.length) {
-      setHistoryIndex(newIndex);
-      if (newIndex === -1) {
-        setInput('');
-      } else {
-        setInput(commandHistory[commandHistory.length - 1 - newIndex]);
-      }
-    }
-  };
-
-  const sendCommand = () => {
-    if (!input.trim() || !isConnected) return;
-
-    // Add command to history
-    setCommandHistory(prev => [...prev, input]);
-    setHistoryIndex(-1);
-
-    // Add command to output
-    setOutput(prev => [...prev, { text: `$ ${input}`, type: 'command' }]);
-
-    // Send command to server
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ 
-        type: 'input', 
-        data: input + '\n' 
-      }));
-    }
-
-    // Clear input
-    setInput('');
-  };
-
   const clearTerminal = () => {
-    setOutput([{ text: 'Terminal cleared', type: 'info' }]);
+    if (xtermRef.current) {
+      xtermRef.current.clear();
+      xtermRef.current.writeln('Terminal cleared');
+    }
   };
+
+  // Render a fallback UI while xterm is loading
+  if (!xtermLoaded) {
+    return (
+      <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 font-mono ${className}`}>
+        <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
+          <div className="flex space-x-2 mr-4">
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+          </div>
+          <div className="text-center flex-grow">Terminal</div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-gray-400">Loading terminal...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 font-mono ${className}`}>
@@ -203,44 +323,14 @@ const XtermPanel = ({ className = '' }) => {
       )}
       
       <div 
-        ref={outputRef}
-        className="flex-1 p-2 overflow-y-auto"
-      >
-        {output.map((line, index) => (
-          <div 
-            key={index} 
-            className={`mb-1 ${
-              line.type === 'error' ? 'text-red-400' : 
-              line.type === 'info' ? 'text-blue-400' : 
-              line.type === 'success' ? 'text-green-400' :
-              line.type === 'command' ? 'text-yellow-400 font-bold' :
-              line.type === 'header' ? 'text-white font-bold text-lg mb-2' :
-              'text-gray-200'
-            }`}
-          >
-            {line.text}
-          </div>
-        ))}
-      </div>
-      
-      <div className="p-2 border-t border-gray-700 flex items-center">
-        <span className="text-green-400 mr-2">$</span>
-        <input
-          ref={inputRef}
-          type="text"
-          value={input}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          className="flex-grow bg-transparent outline-none text-white"
-          placeholder={isConnected ? "Enter command..." : "Connecting..."}
-          disabled={!isConnected}
-          autoFocus
-        />
-      </div>
+        ref={terminalRef}
+        className="flex-1 p-0 overflow-hidden"
+        style={{ height: 'calc(100% - 80px)' }}
+      />
       
       <div className="p-1 bg-gray-800 text-xs text-gray-500 flex justify-between">
         <span>{isConnected ? "Connected" : "Disconnected"}</span>
-        <span>Use ↑↓ for history</span>
+        <span>xterm.js terminal</span>
       </div>
     </div>
   );

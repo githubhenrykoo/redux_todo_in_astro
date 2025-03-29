@@ -1,13 +1,48 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Provider, useSelector } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { store } from '../store';
+
+// Map of panel types to their components
+const panelComponents = {
+  // Other components can be added here
+};
+
+// Create a client-only wrapper for xterm
+const ClientOnly = ({ children, fallback = <div>Loading...</div> }) => {
+  const [mounted, setMounted] = React.useState(false);
+  
+  React.useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+  
+  return mounted ? children : fallback;
+};
 
 const PanelContent = () => {
   const { panels } = useSelector(state => state.panellayout);
   if (!panels) return <div>Loading panels...</div>;
 
   const renderPanel = (config) => {
+    // Special handling for xterm
+    if (config.type === 'xterm') {
+      return (
+        <ClientOnly fallback={<div className="flex items-center justify-center h-full">Loading terminal...</div>}>
+          <Suspense fallback={<div className="flex items-center justify-center h-full">Initializing terminal...</div>}>
+            {React.createElement(React.lazy(() => import('../components/panels/xterm.jsx')))}
+          </Suspense>
+        </ClientOnly>
+      );
+    }
+    
+    // First check if we have a direct component mapping
+    if (panelComponents[config.type]) {
+      const Component = panelComponents[config.type];
+      return <Component />;
+    }
+    
+    // Otherwise try dynamic import
     const Component = React.lazy(() => 
       // Try both .tsx and .jsx extensions using Promise.any
       Promise.any([

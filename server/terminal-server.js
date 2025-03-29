@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const { spawn } = require('child_process');
 const path = require('path');
 const cors = require('cors');
+const pty = require('node-pty');
 
 // Create express app and HTTP server
 const app = express();
@@ -17,29 +18,25 @@ const wss = new WebSocket.Server({ server });
 wss.on('connection', (ws) => {
   console.log('Client connected');
   
-  // Create shell process
+  // Use node-pty to create a pseudo-terminal
   const shell = process.platform === 'win32' ? 'powershell.exe' : 'bash';
-  const shellProcess = spawn(shell, [], {
+  const ptyProcess = pty.spawn(shell, [], {
+    name: 'xterm-color',
+    cols: 80,
+    rows: 30,
     cwd: process.env.HOME,
-    env: process.env,
-    shell: true
-  });
-
-  // Handle data from shell process
-  shellProcess.stdout.on('data', (data) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ 
-        type: 'output', 
-        data: data.toString() 
-      }));
+    env: {
+      ...process.env,
+      TERM: 'xterm-256color' // Important for TUI apps like Lazygit
     }
   });
 
-  shellProcess.stderr.on('data', (data) => {
+  // Handle data from pty process
+  ptyProcess.onData(data => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ 
         type: 'output', 
-        data: data.toString() 
+        data: data 
       }));
     }
   });
@@ -47,29 +44,35 @@ wss.on('connection', (ws) => {
   // Handle messages from client
   ws.on('message', (message) => {
     try {
-      const parsedMessage = JSON.parse(message);
+      const data = JSON.parse(message);
       
-      if (parsedMessage.type === 'input' && parsedMessage.data) {
-        shellProcess.stdin.write(parsedMessage.data);
+      if (data.type === 'input') {
+        // Send input directly to the pty process
+        ptyProcess.write(data.data);
+      } else if (data.type === 'resize') {
+        // Handle terminal resize events
+        if (data.cols && data.rows) {
+          ptyProcess.resize(data.cols, data.rows);
+        }
       }
     } catch (err) {
-      console.error('Error handling message:', err);
+      console.error('Error processing message:', err);
     }
   });
 
   // Handle client disconnect
   ws.on('close', () => {
     console.log('Client disconnected');
-    shellProcess.kill();
+    ptyProcess.kill();
   });
 
   // Handle process exit
-  shellProcess.on('exit', (code) => {
-    console.log(`Shell process exited with code ${code}`);
+  ptyProcess.onExit(({ exitCode, signal }) => {
+    console.log(`Terminal process exited with code ${exitCode} and signal ${signal}`);
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ 
         type: 'output', 
-        data: `\nProcess exited with code ${code}. Reconnecting...\n` 
+        data: `\nProcess exited with code ${exitCode}. Reconnecting...\n` 
       }));
     }
   });

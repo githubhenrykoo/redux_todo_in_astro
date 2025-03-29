@@ -1,8 +1,8 @@
 import React from 'react';
-import YamlPreview from './YamlPreview';
+import JsonPreview from './JsonPreview';
 
 // Base component for dimension panels
-const DimensionPanel = ({ title, fields, data, onChange, yamlPreview }) => {
+const DimensionPanel = ({ title, fields, data, onChange, jsonData }) => {
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-bold">{title}</h2>
@@ -19,7 +19,7 @@ const DimensionPanel = ({ title, fields, data, onChange, yamlPreview }) => {
                 </div>
             ))}
             
-            <YamlPreview yamlContent={yamlPreview} />
+            <JsonPreview jsonData={jsonData} />
         </div>
     );
 };

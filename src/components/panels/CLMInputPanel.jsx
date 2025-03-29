@@ -101,38 +101,44 @@ const CLMInputPanel = () => {
             
             // If we have a CLM hash, auto-update this dimension
             if (currentClmHash && autoSaveEnabled) {
-                // Generate YAML for this dimension
-                const yamlContent = generateYamlPreview(dimension, updatedData);
-                debouncedUpdate(dimension, yamlContent);
+                // Generate JSON for this dimension
+                const jsonContent = generateJsonData(dimension, updatedData);
+                debouncedUpdate(dimension, jsonContent);
             }
             
             return updatedData;
         });
     };
 
-    // Utility function to generate YAML preview with optional custom data
-    const generateYamlPreview = (dimension, data = clmData) => {
+    // Utility function to generate JSON data with optional custom data
+    const generateJsonData = (dimension, data = clmData) => {
         switch(dimension) {
             case 'abstractSpecification':
-                return `dimension_type: "abstract_specification"
-context: "${data.abstractSpecification.context.replace(/"/g, '\\"')}"
-goal: "${data.abstractSpecification.goal.replace(/"/g, '\\"')}"
-success_criteria: "${data.abstractSpecification.successCriteria.replace(/"/g, '\\"')}"`;
+                return {
+                    dimension_type: "abstract_specification",
+                    context: data.abstractSpecification.context,
+                    goal: data.abstractSpecification.goal,
+                    success_criteria: data.abstractSpecification.successCriteria
+                };
             
             case 'concreteImplementation':
-                return `dimension_type: "concrete_implementation"
-inputs: "${data.concreteImplementation.inputs.replace(/"/g, '\\"')}"
-activities: "${data.concreteImplementation.activities.replace(/"/g, '\\"')}"
-outputs: "${data.concreteImplementation.outputs.replace(/"/g, '\\"')}"`;
+                return {
+                    dimension_type: "concrete_implementation",
+                    inputs: data.concreteImplementation.inputs,
+                    activities: data.concreteImplementation.activities,
+                    outputs: data.concreteImplementation.outputs
+                };
             
             case 'balancedExpectations':
-                return `dimension_type: "balanced_expectations"
-practical_boundaries: "${data.balancedExpectations.practicalBoundaries.replace(/"/g, '\\"')}"
-evaluation_metrics: "${data.balancedExpectations.evaluationMetrics.replace(/"/g, '\\"')}"
-feedback_loops: "${data.balancedExpectations.feedbackLoops.replace(/"/g, '\\"')}"`;
+                return {
+                    dimension_type: "balanced_expectations",
+                    practical_boundaries: data.balancedExpectations.practicalBoundaries,
+                    evaluation_metrics: data.balancedExpectations.evaluationMetrics,
+                    feedback_loops: data.balancedExpectations.feedbackLoops
+                };
             
             default:
-                return '';
+                return {};
         }
     };
 
@@ -150,18 +156,20 @@ feedback_loops: "${data.balancedExpectations.feedbackLoops.replace(/"/g, '\\"')}
         }
 
         try {
-            // Generate YAML-formatted content for each dimension MCard
-            const abstractSpecificationYaml = generateYamlPreview('abstractSpecification');
-            const concreteImplementationYaml = generateYamlPreview('concreteImplementation');
-            const balancedExpectationsYaml = generateYamlPreview('balancedExpectations');
+            // Generate JSON-formatted content for each dimension MCard
+            const abstractSpecificationJson = generateJsonData('abstractSpecification');
+            const concreteImplementationJson = generateJsonData('concreteImplementation');
+            const balancedExpectationsJson = generateJsonData('balancedExpectations');
 
-            // Prepare the root CLM MCard YAML
-            const rootClmYaml = `title: "${documentTitle.replace(/"/g, '\\"')}"
-created: "${new Date().toISOString()}"
-dimensions:
-  abstract_specification: "${await generateHash(abstractSpecificationYaml)}"
-  concrete_implementation: "${await generateHash(concreteImplementationYaml)}"
-  balanced_expectations: "${await generateHash(balancedExpectationsYaml)}"`;
+            // Prepare the root CLM MCard JSON
+            const rootClmJson = {
+                title: documentTitle,
+                dimensions: {
+                    abstract_specification: abstractSpecificationJson,
+                    concrete_implementation: concreteImplementationJson,
+                    balanced_expectations: balancedExpectationsJson
+                }
+            };
 
             // Store in database using the new store-clm endpoint
             const response = await fetch('/api/store-clm', {
@@ -171,16 +179,7 @@ dimensions:
                 },
                 body: JSON.stringify({
                     title: documentTitle,
-                    content: {
-                        rootClm: rootClmYaml,
-                        dimensions: {
-                            abstractSpecification: abstractSpecificationYaml,
-                            concreteImplementation: concreteImplementationYaml,
-                            balancedExpectations: balancedExpectationsYaml
-                        }
-                    },
-                    timestamp: new Date().toISOString(),
-                    format: 'yaml'
+                    content: rootClmJson
                 })
             });
 
@@ -286,7 +285,7 @@ dimensions:
                     <AbstractSpecification 
                         data={clmData.abstractSpecification}
                         onChange={handleInputChange}
-                        generateYamlPreview={generateYamlPreview}
+                        generateJsonData={generateJsonData}
                     />
                 );
             case 'concreteImplementation':
@@ -294,7 +293,7 @@ dimensions:
                     <ConcreteImplementation 
                         data={clmData.concreteImplementation}
                         onChange={handleInputChange}
-                        generateYamlPreview={generateYamlPreview}
+                        generateJsonData={generateJsonData}
                     />
                 );
             case 'balancedExpectations':
@@ -302,7 +301,7 @@ dimensions:
                     <BalancedExpectations 
                         data={clmData.balancedExpectations}
                         onChange={handleInputChange}
-                        generateYamlPreview={generateYamlPreview}
+                        generateJsonData={generateJsonData}
                     />
                 );
             default:

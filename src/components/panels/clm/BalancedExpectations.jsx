@@ -1,7 +1,7 @@
 import React from 'react';
 import DimensionPanel from './DimensionPanel';
 
-const BalancedExpectations = ({ data, onChange, generateYamlPreview }) => {
+const BalancedExpectations = ({ data, onChange, generateJsonData }) => {
     const fields = [
         {
             key: 'practicalBoundaries',
@@ -30,7 +30,7 @@ const BalancedExpectations = ({ data, onChange, generateYamlPreview }) => {
             fields={fields}
             data={data}
             onChange={handleChange}
-            yamlPreview={generateYamlPreview('balancedExpectations')}
+            jsonData={generateJsonData('balancedExpectations')}
         />
     );
 };

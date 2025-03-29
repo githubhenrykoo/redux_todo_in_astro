@@ -8,6 +8,13 @@ import { MCard } from '../../content/model/mcard.js';
 type CLMDimension = 'abstractSpecification' | 'concreteImplementation' | 'balancedExpectations';
 type DimensionHashes = Record<CLMDimension, string | null>;
 
+// Map between JSON dimension keys and CLM dimension names
+const dimensionMappings = {
+  'abstractSpecification': 'abstract_specification',
+  'concreteImplementation': 'concrete_implementation',
+  'balancedExpectations': 'balanced_expectations'
+};
+
 /**
  * API endpoint to update a CLM dimension by hash
  */
@@ -62,19 +69,9 @@ export const POST: APIRoute = async ({ request }) => {
     // Get the content of the CLM metadata card
     const clmMetadata = clmMetadataCard.content;
     
-    // Create a new dimension card with updated content
-    const updatedDimensionCard = new MCard(data.content);
-    const dimensionHash = cardCollection.add(updatedDimensionCard);
-    console.log(`Updated ${data.dimension} dimension card with hash:`, dimensionHash);
-    
-    // Update the CLM metadata card with the new dimension hash
-    const updatedDimensionHashes = { ...clmMetadata.dimensions };
-    
-    // Type-safe dimension assignment
+    // Validate dimension name
     const dimension = data.dimension as CLMDimension;
-    if (dimension in updatedDimensionHashes) {
-      updatedDimensionHashes[dimension] = dimensionHash;
-    } else {
+    if (!(dimension in dimensionMappings)) {
       return new Response(
         JSON.stringify({ 
           error: `Invalid dimension: ${data.dimension}`, 
@@ -87,12 +84,22 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
     
+    // Create a new dimension card with updated content
+    // The content should be a JSON object
+    const updatedDimensionCard = new MCard(data.content);
+    const dimensionHash = cardCollection.add(updatedDimensionCard);
+    console.log(`Updated ${data.dimension} dimension card with hash:`, dimensionHash);
+    
+    // Update the CLM metadata card with the new dimension hash
+    const updatedDimensionHashes = { ...clmMetadata.dimensions };
+    
+    // Update the specific dimension hash
+    updatedDimensionHashes[dimension] = dimensionHash;
+    
     // Create an updated metadata card
     const updatedMetadata = {
       ...clmMetadata,
-      dimensions: updatedDimensionHashes,
-      lastUpdated: updatedTimestamp,
-      __stateTimestamp: updatedTimestamp
+      dimensions: updatedDimensionHashes
     };
     
     // Store the updated metadata card

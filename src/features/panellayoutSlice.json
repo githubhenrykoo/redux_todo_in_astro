@@ -21,7 +21,7 @@
     },
     "todo_layout": {
         "left": {
-            "type": "SearchAndTodos",
+            "type": "codeeditor",
             "size": 30,
             "minSize": 20,
             "visible": true

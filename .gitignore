@@ -45,6 +45,9 @@ test-results
 
 tests/data
 
+# Vercel build output
+.vercel
+
 # Playwright
 /playwright-report/
 /test-results/

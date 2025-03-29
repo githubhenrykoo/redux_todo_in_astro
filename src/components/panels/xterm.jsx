@@ -83,6 +83,8 @@ const XtermPanel = ({ className = '' }) => {
         console.log('Opening terminal...');
         terminal.open(terminalRef.current);
         
+        terminal.element.style.padding = "10px";
+
         // Fit terminal immediately
         try {
           fitAddon.fit();

@@ -31,5 +31,8 @@
   },
   "chatbot": {
     "component": "../components/panels/chatbot.jsx"
+  },
+  "CLMInputPanel": {
+    "component": "../components/panels/CLMInputPanel.jsx"
   }
 }

@@ -32,6 +32,9 @@
   "chatbot": {
     "component": "../components/panels/chatbot.jsx"
   },
+  "codeeditor": {
+    "component": "../components/panels/codeeditor.jsx"
+  },
   "CLMInputPanel": {
     "component": "../components/panels/CLMInputPanel.jsx"
   }

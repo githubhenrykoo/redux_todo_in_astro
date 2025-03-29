@@ -27,13 +27,13 @@
             "visible": true
         },
         "middle": {
-            "type": "chatbot",
+            "type": "xterm",
             "size": 40,
             "minSize": 20,
             "visible": true
         },
         "right": {
-            "type": "xterm",
+            "type": "chatbot",
             "size": 30,
             "minSize": 20,
             "visible": true

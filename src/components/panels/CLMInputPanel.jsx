@@ -1,6 +1,14 @@
 import React, { useState } from 'react';
+import DimensionNavigation from './clm/DimensionNavigation';
+import SaveButton from './clm/SaveButton';
+import AbstractSpecification from './clm/AbstractSpecification';
+import ConcreteImplementation from './clm/ConcreteImplementation';
+import BalancedExpectations from './clm/BalancedExpectations';
 
 const CLMInputPanel = () => {
+    // Title state
+    const [documentTitle, setDocumentTitle] = useState('');
+
     // State structure following the three dimension MCards approach
     const [clmData, setClmData] = useState({
         // Abstract Specification dimension
@@ -39,31 +47,27 @@ const CLMInputPanel = () => {
         }));
     };
 
-    // Handle form submission - to be implemented later
+    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSaving(true);
         setSaveMessage(null);
 
+        // Validate title
+        if (!documentTitle.trim()) {
+            setSaveMessage({ type: 'error', text: 'Please enter a document title' });
+            setIsSaving(false);
+            return;
+        }
+
         try {
             // Generate YAML-formatted content for each dimension MCard
-            const abstractSpecificationYaml = `dimension_type: "abstract_specification"
-context: "${clmData.abstractSpecification.context.replace(/"/g, '\\"')}"
-goal: "${clmData.abstractSpecification.goal.replace(/"/g, '\\"')}"
-success_criteria: "${clmData.abstractSpecification.successCriteria.replace(/"/g, '\\"')}"`;
-
-            const concreteImplementationYaml = `dimension_type: "concrete_implementation"
-inputs: "${clmData.concreteImplementation.inputs.replace(/"/g, '\\"')}"
-activities: "${clmData.concreteImplementation.activities.replace(/"/g, '\\"')}"
-outputs: "${clmData.concreteImplementation.outputs.replace(/"/g, '\\"')}"`;
-
-            const balancedExpectationsYaml = `dimension_type: "balanced_expectations"
-practical_boundaries: "${clmData.balancedExpectations.practicalBoundaries.replace(/"/g, '\\"')}"
-evaluation_metrics: "${clmData.balancedExpectations.evaluationMetrics.replace(/"/g, '\\"')}"
-feedback_loops: "${clmData.balancedExpectations.feedbackLoops.replace(/"/g, '\\"')}"`;
+            const abstractSpecificationYaml = generateYamlPreview('abstractSpecification');
+            const concreteImplementationYaml = generateYamlPreview('concreteImplementation');
+            const balancedExpectationsYaml = generateYamlPreview('balancedExpectations');
 
             // Prepare the root CLM MCard YAML
-            const rootClmYaml = `title: "CLM Document"
+            const rootClmYaml = `title: "${documentTitle.replace(/"/g, '\\"')}"
 created: "${new Date().toISOString()}"
 dimensions:
   abstract_specification: "${await generateHash(abstractSpecificationYaml)}"
@@ -77,7 +81,7 @@ dimensions:
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    title: 'CLM Document',
+                    title: documentTitle,
                     content: {
                         rootClm: rootClmYaml,
                         dimensions: {
@@ -104,16 +108,73 @@ dimensions:
         } finally {
             setIsSaving(false);
         }
-
-        // Utility function to generate SHA-256 hash (mock implementation)
-        async function generateHash(content) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(content);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
     };
+
+    // Utility function to generate SHA-256 hash (implementation that works in both browser and Node.js)
+    async function generateHash(content) {
+        // Cross-environment compatible TextEncoder
+        const getTextEncoder = () => {
+            // Browser environment
+            if (typeof window !== 'undefined' && window.TextEncoder) {
+                return new window.TextEncoder();
+            }
+            
+            // Node.js environment
+            if (typeof TextEncoder !== 'undefined') {
+                return new TextEncoder();
+            }
+            
+            // Fallback implementation for environments without TextEncoder
+            return {
+                encode: (str) => {
+                    const utf8 = [];
+                    for (let i = 0; i < str.length; i++) {
+                        let charcode = str.charCodeAt(i);
+                        if (charcode < 0x80) utf8.push(charcode);
+                        else if (charcode < 0x800) {
+                            utf8.push(0xc0 | (charcode >> 6), 
+                                      0x80 | (charcode & 0x3f));
+                        }
+                        else if (charcode < 0xd800 || charcode >= 0xe000) {
+                            utf8.push(0xe0 | (charcode >> 12), 
+                                      0x80 | ((charcode>>6) & 0x3f), 
+                                      0x80 | (charcode & 0x3f));
+                        }
+                        else {
+                            i++;
+                            charcode = 0x10000 + (((charcode & 0x3ff) << 10)
+                                      | (str.charCodeAt(i) & 0x3ff));
+                            utf8.push(0xf0 | (charcode >>18), 
+                                      0x80 | ((charcode>>12) & 0x3f), 
+                                      0x80 | ((charcode>>6) & 0x3f), 
+                                      0x80 | (charcode & 0x3f));
+                        }
+                    }
+                    return new Uint8Array(utf8);
+                }
+            };
+        };
+
+        const encoder = getTextEncoder();
+        const data = encoder.encode(content);
+        
+        // Use the appropriate crypto API based on environment
+        let hashBuffer;
+        
+        if (typeof window !== 'undefined' && window.crypto) {
+            // Browser environment
+            hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+        } else if (typeof crypto !== 'undefined') {
+            // Node.js environment or modern browser
+            hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        } else {
+            // Fallback - in real implementation would use a JS-based SHA-256
+            throw new Error('Crypto API not available');
+        }
+        
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
 
     // Utility function to generate YAML preview
     const generateYamlPreview = (dimension) => {
@@ -141,44 +202,51 @@ feedback_loops: "${clmData.balancedExpectations.feedbackLoops.replace(/"/g, '\\"
         }
     };
 
+    // Render appropriate content based on active dimension
+    const renderDimensionContent = () => {
+        switch(activeDimension) {
+            case 'abstractSpecification':
+                return (
+                    <AbstractSpecification 
+                        data={clmData.abstractSpecification}
+                        onChange={handleInputChange}
+                        generateYamlPreview={generateYamlPreview}
+                    />
+                );
+            case 'concreteImplementation':
+                return (
+                    <ConcreteImplementation 
+                        data={clmData.concreteImplementation}
+                        onChange={handleInputChange}
+                        generateYamlPreview={generateYamlPreview}
+                    />
+                );
+            case 'balancedExpectations':
+                return (
+                    <BalancedExpectations 
+                        data={clmData.balancedExpectations}
+                        onChange={handleInputChange}
+                        generateYamlPreview={generateYamlPreview}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
         <div className="h-full bg-white overflow-y-auto p-6">
             <div className="max-w-3xl mx-auto space-y-8">
-                {/* Dimension Navigation and Save Button Container */}
+                {/* Header with Navigation and Save Button */}
                 <div className="flex justify-between items-center border-b pb-4">
-                    {/* Dimension Navigation Buttons */}
-                    <div className="flex space-x-4">
-                        {[
-                            { key: 'abstractSpecification', label: 'Abstract Specification' },
-                            { key: 'concreteImplementation', label: 'Concrete Implementation' },
-                            { key: 'balancedExpectations', label: 'Balanced Expectations' }
-                        ].map(dimension => (
-                            <button
-                                key={dimension.key}
-                                className={`px-4 py-2 rounded-lg transition-colors ${
-                                    activeDimension === dimension.key 
-                                        ? 'bg-blue-500 text-white' 
-                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                                }`}
-                                onClick={() => setActiveDimension(dimension.key)}
-                            >
-                                {dimension.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Save Button */}
-                    <button
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                            isSaving
-                                ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                                : 'bg-blue-500 hover:bg-blue-600 text-white'
-                        }`}
-                        onClick={handleSubmit}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? 'Saving...' : 'Save'}
-                    </button>
+                    <DimensionNavigation 
+                        activeDimension={activeDimension} 
+                        onDimensionChange={setActiveDimension} 
+                    />
+                    <SaveButton 
+                        onSave={handleSubmit} 
+                        isSaving={isSaving} 
+                    />
                 </div>
 
                 {/* Save Message */}
@@ -192,137 +260,21 @@ feedback_loops: "${clmData.balancedExpectations.feedbackLoops.replace(/"/g, '\\"
                     </div>
                 )}
 
-                {/* Abstract Specification Dimension */}
-                {activeDimension === 'abstractSpecification' && (
-                    <div className="space-y-6">
-                        <h2 className="text-2xl font-bold">Abstract Specification</h2>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Context</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Describe the context of this Cubical Logic Model..."
-                                value={clmData.abstractSpecification.context}
-                                onChange={(e) => handleInputChange('abstractSpecification', 'context', e.target.value)}
-                            />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Goal</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Define the primary goal of this model..."
-                                value={clmData.abstractSpecification.goal}
-                                onChange={(e) => handleInputChange('abstractSpecification', 'goal', e.target.value)}
-                            />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Success Criteria</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="List the success criteria for this model..."
-                                value={clmData.abstractSpecification.successCriteria}
-                                onChange={(e) => handleInputChange('abstractSpecification', 'successCriteria', e.target.value)}
-                            />
-                        </div>
-                        
-                        <div>
-                            <h3 className="text-lg font-bold">YAML Preview</h3>
-                            <pre className="p-3 rounded-lg bg-slate-100 text-sm">
-                                {generateYamlPreview('abstractSpecification')}
-                            </pre>
-                        </div>
-                    </div>
-                )}
+                {/* Title Input Field */}
+                <div className="mb-6">
+                    <label className="block text-lg font-semibold text-gray-700 mb-2" htmlFor="title">Cubical Logic Model Title</label>
+                    <input 
+                        id="title" 
+                        type="text" 
+                        value={documentTitle} 
+                        onChange={(e) => setDocumentTitle(e.target.value)} 
+                        placeholder="Enter a title for your CLM document..."
+                        className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-base"
+                    />
+                </div>
 
-                {/* Concrete Implementation Dimension */}
-                {activeDimension === 'concreteImplementation' && (
-                    <div className="space-y-6">
-                        <h2 className="text-2xl font-bold">Concrete Implementation</h2>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Inputs</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Describe the data sources and command parameters..."
-                                value={clmData.concreteImplementation.inputs}
-                                onChange={(e) => handleInputChange('concreteImplementation', 'inputs', e.target.value)}
-                            />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Activities</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Define the executable functions and processing logic..."
-                                value={clmData.concreteImplementation.activities}
-                                onChange={(e) => handleInputChange('concreteImplementation', 'activities', e.target.value)}
-                            />
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Outputs</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Specify the response formats and presentation templates..."
-                                value={clmData.concreteImplementation.outputs}
-                                onChange={(e) => handleInputChange('concreteImplementation', 'outputs', e.target.value)}
-                            />
-                        </div>
-                        
-                        <div>
-                            <h3 className="text-lg font-bold">YAML Preview</h3>
-                            <pre className="p-3 rounded-lg bg-slate-100 text-sm">
-                                {generateYamlPreview('concreteImplementation')}
-                            </pre>
-                        </div>
-                    </div>
-                )}
-
-                {/* Balanced Expectations Dimension */}
-                {activeDimension === 'balancedExpectations' && (
-                    <div className="space-y-6">
-                        <h2 className="text-2xl font-bold">Balanced Expectations</h2>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Practical Boundaries</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Define system constraints and error handling strategies..."
-                                value={clmData.balancedExpectations.practicalBoundaries}
-                                onChange={(e) => handleInputChange('balancedExpectations', 'practicalBoundaries', e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Evaluation Metrics</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Specify performance indicators and monitoring thresholds..."
-                                value={clmData.balancedExpectations.evaluationMetrics}
-                                onChange={(e) => handleInputChange('balancedExpectations', 'evaluationMetrics', e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Feedback Loops</label>
-                            <textarea 
-                                className="w-full h-40 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                placeholder="Define user feedback channels and continuous improvement processes..."
-                                value={clmData.balancedExpectations.feedbackLoops}
-                                onChange={(e) => handleInputChange('balancedExpectations', 'feedbackLoops', e.target.value)}
-                            />
-                        </div>
-                        
-                        <div>
-                            <h3 className="text-lg font-bold">YAML Preview</h3>
-                            <pre className="p-3 rounded-lg bg-slate-100 text-sm">
-                                {generateYamlPreview('balancedExpectations')}
-                            </pre>
-                        </div>
-                    </div>
-                )}
+                {/* Active Dimension Content */}
+                {renderDimensionContent()}
             </div>
         </div>
     );

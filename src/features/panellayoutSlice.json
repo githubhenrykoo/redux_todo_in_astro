@@ -38,5 +38,25 @@
             "minSize": 20,
             "visible": true
         }
+    },
+    "clm_layout": {
+        "left": {
+            "type": "SearchAndContent",
+            "size": 33,
+            "minSize": 20,
+            "visible": true
+        },
+        "middle": {
+            "type": "CLMInputPanel", 
+            "size": 34,
+            "minSize": 20,
+            "visible": true
+        },
+        "right": {
+            "type": "DatabaseRetrievePanel",
+            "size": 33,
+            "minSize": 20,
+            "visible": true
+        }
     }
 }

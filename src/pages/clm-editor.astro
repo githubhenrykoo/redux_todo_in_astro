@@ -1,0 +1,35 @@
+---
+import DefaultLayout from '../layouts/DefaultLayout.astro';
+import { store } from '../store';
+
+// Update active panel configuration to show CLM Input Panel
+const updatePanelLayout = () => {
+  const state = store.getState();
+  const currentPanels = state.panellayout.panels || {};
+  
+  // Set CLM panel as the main panel
+  return {
+    ...currentPanels,
+    middle: {
+      type: 'CLMInputPanel',
+      size: 60,
+      minSize: 30
+    }
+  };
+};
+
+// Update the store
+store.dispatch({
+  type: 'panellayout/updatePanels',
+  payload: updatePanelLayout()
+});
+---
+
+<DefaultLayout title="CLM Editor - Cubical Logic Model" />
+
+<script>
+  // Add any client-side JavaScript needed for the CLM editor page
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('CLM Editor page loaded');
+  });
+</script>

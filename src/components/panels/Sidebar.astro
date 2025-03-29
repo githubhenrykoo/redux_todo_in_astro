@@ -1,6 +1,8 @@
 ---
 import { cn } from '../../lib/utils';
-import { FaCode, FaSearch, FaBug, FaTerminal, FaCog } from 'react-icons/fa';
+import { FaCode, FaSearch, FaBug, FaTerminal, FaCog, FaCube } from 'react-icons/fa';
+import { store } from '../../store';
+import { changeLayout } from '../../features/panellayoutSlice';
 
 interface Props {
   class?: string;
@@ -34,6 +36,16 @@ const { class: className, ...props } = Astro.props;
       >
         <FaTerminal className="text-lg text-muted-foreground" />
       </button>
+      <button
+        id="clmLayoutBtn"
+        title="Cubical Logic Model Editor"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <FaCube className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          CLM Editor
+        </span>
+      </button>
     </div>
     <div>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
@@ -50,16 +62,19 @@ const { class: className, ...props } = Astro.props;
   // Get button elements
   const todoLayoutBtn = document.getElementById('todoLayoutBtn');
   const generateLayoutBtn = document.getElementById('generateLayoutBtn');
+  const clmLayoutBtn = document.getElementById('clmLayoutBtn');
 
   // Add click handlers
   todoLayoutBtn?.addEventListener('click', () => {
     store.dispatch(changeLayout('todo_layout'));
-    updateActiveButton('todo_layout');
   });
 
   generateLayoutBtn?.addEventListener('click', () => {
     store.dispatch(changeLayout('generate_layout'));
-    updateActiveButton('generate_layout');
+  });
+
+  clmLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('clm_layout'));
   });
 
   // Function to update active button styles
@@ -67,8 +82,12 @@ const { class: className, ...props } = Astro.props;
     // Remove active styles from all buttons
     todoLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     generateLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    clmLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+
+    // Reset icon colors
     todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     generateLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    clmLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
     if (layout === 'todo_layout') {
@@ -77,6 +96,9 @@ const { class: className, ...props } = Astro.props;
     } else if (layout === 'generate_layout') {
       generateLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       generateLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (layout === 'clm_layout') {
+      clmLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      clmLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     }
   }
 
@@ -86,6 +108,7 @@ const { class: className, ...props } = Astro.props;
     // Look at the panel configuration to determine which layout is active
     const panels = state.panellayout.panels || { right: { type: 'TodoPanel' } };
     if (panels.right.type === 'GeneratePanel') return 'generate_layout';
+    if (panels.right.type === 'CLMInputPanel') return 'clm_layout';
     return 'todo_layout';
   };
 

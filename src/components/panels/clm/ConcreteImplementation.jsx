@@ -1,7 +1,7 @@
 import React from 'react';
 import DimensionPanel from './DimensionPanel';
 
-const ConcreteImplementation = ({ data, onChange, generateYamlPreview }) => {
+const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
     const fields = [
         {
             key: 'inputs',
@@ -30,7 +30,7 @@ const ConcreteImplementation = ({ data, onChange, generateYamlPreview }) => {
             fields={fields}
             data={data}
             onChange={handleChange}
-            yamlPreview={generateYamlPreview('concreteImplementation')}
+            jsonData={generateJsonData('concreteImplementation')}
         />
     );
 };

@@ -9,6 +9,15 @@ import { encodeText } from '../../utils/textEncoderPolyfill.js';
 type CLMDimension = 'abstractSpecification' | 'concreteImplementation' | 'balancedExpectations';
 type DimensionContent = Record<CLMDimension, string>;
 type DimensionHashes = Record<CLMDimension, string | null>;
+type CLMContent = {
+  title: string;
+  created: string;
+  dimensions: {
+    abstract_specification: any;
+    concrete_implementation: any;
+    balanced_expectations: any;
+  };
+};
 
 /**
  * API endpoint to store CLM data as a MCard
@@ -39,10 +48,8 @@ export const POST: APIRoute = async ({ request }) => {
     const engine = getStoreEngine();
     const cardCollection = new CardCollection(engine);
     
-    // Store the root CLM card
-    const rootClmCard = new MCard(data.content.rootClm);
-    const rootClmHash = cardCollection.add(rootClmCard);
-    console.log('Root CLM card stored with hash:', rootClmHash);
+    // Extract the dimensions from the content
+    const dimensionContent = data.content.dimensions;
     
     // Store the dimension cards
     const dimensionHashes: DimensionHashes = {
@@ -51,26 +58,30 @@ export const POST: APIRoute = async ({ request }) => {
       balancedExpectations: null
     };
     
-    // Type-safe way to handle dimensions
-    for (const [dimensionKey, content] of Object.entries(data.content.dimensions)) {
-      const dimension = dimensionKey as CLMDimension;
-      if (dimension in dimensionHashes) {
-        const dimensionCard = new MCard(content);
-        const dimensionHash = cardCollection.add(dimensionCard);
-        dimensionHashes[dimension] = dimensionHash;
-        console.log(`${dimension} dimension card stored with hash:`, dimensionHash);
-      }
+    // Create and store individual dimension cards
+    if (dimensionContent.abstract_specification) {
+      const abstractCard = new MCard(dimensionContent.abstract_specification);
+      dimensionHashes.abstractSpecification = cardCollection.add(abstractCard);
+      console.log('Abstract Specification dimension card stored with hash:', dimensionHashes.abstractSpecification);
     }
     
-    // Create a metadata card to represent the entire CLM structure
+    if (dimensionContent.concrete_implementation) {
+      const concreteCard = new MCard(dimensionContent.concrete_implementation);
+      dimensionHashes.concreteImplementation = cardCollection.add(concreteCard);
+      console.log('Concrete Implementation dimension card stored with hash:', dimensionHashes.concreteImplementation);
+    }
+    
+    if (dimensionContent.balanced_expectations) {
+      const balancedCard = new MCard(dimensionContent.balanced_expectations);
+      dimensionHashes.balancedExpectations = cardCollection.add(balancedCard);
+      console.log('Balanced Expectations dimension card stored with hash:', dimensionHashes.balancedExpectations);
+    }
+    
+    // Create the metadata card to represent the entire CLM structure
+    // Simplified metadata with only essential fields
     const metadataCard = new MCard({
       title: data.title,
-      type: 'clm',
-      timestamp: data.timestamp || new Date().toISOString(),
-      format: data.format || 'yaml',
-      rootHash: rootClmHash,
-      dimensions: dimensionHashes,
-      __stateTimestamp: new Date().toISOString()
+      dimensions: dimensionHashes
     });
     
     const metadataHash = cardCollection.add(metadataCard);
@@ -81,9 +92,7 @@ export const POST: APIRoute = async ({ request }) => {
       JSON.stringify({ 
         success: true, 
         clmHash: metadataHash,
-        rootHash: rootClmHash,
         dimensionHashes,
-        timestamp: new Date().toISOString(),
         title: data.title
       }),
       { 

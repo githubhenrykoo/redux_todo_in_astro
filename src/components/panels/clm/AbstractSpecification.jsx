@@ -1,7 +1,7 @@
 import React from 'react';
 import DimensionPanel from './DimensionPanel';
 
-const AbstractSpecification = ({ data, onChange, generateYamlPreview }) => {
+const AbstractSpecification = ({ data, onChange, generateJsonData }) => {
     const fields = [
         {
             key: 'context',
@@ -30,7 +30,7 @@ const AbstractSpecification = ({ data, onChange, generateYamlPreview }) => {
             fields={fields}
             data={data}
             onChange={handleChange}
-            yamlPreview={generateYamlPreview('abstractSpecification')}
+            jsonData={generateJsonData('abstractSpecification')}
         />
     );
 };

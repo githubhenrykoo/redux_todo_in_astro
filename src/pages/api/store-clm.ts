@@ -28,13 +28,35 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     // Get the request body
     const data = await request.json();
-    console.log('Received CLM data to store:', { title: data.title, format: data.format });
+    console.log('Received CLM data to store:', { 
+      title: data.title, 
+      format: data.format,
+      contentKeys: data.content ? Object.keys(data.content) : 'No content',
+      dimensionKeys: data.content?.dimensions ? Object.keys(data.content.dimensions) : 'No dimensions'
+    });
     
-    // Validate required fields
-    if (!data.title || !data.content) {
+    // Validate required fields with more detailed checks
+    if (!data.title) {
       return new Response(
         JSON.stringify({ 
-          error: 'Invalid request. Title and content are required.', 
+          error: 'Invalid request. Title is required.', 
+          timestamp: new Date().toISOString() 
+        }),
+        { 
+          status: 400, 
+          headers: { 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (!data.content || !data.content.dimensions) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid request. Content and dimensions are required.', 
+          details: {
+            contentExists: !!data.content,
+            dimensionsExists: !!data.content?.dimensions
+          },
           timestamp: new Date().toISOString() 
         }),
         { 

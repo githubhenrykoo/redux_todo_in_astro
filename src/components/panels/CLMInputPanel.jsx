@@ -4,6 +4,7 @@ import SaveButton from './clm/SaveButton';
 import AbstractSpecification from './clm/AbstractSpecification';
 import ConcreteImplementation from './clm/ConcreteImplementation';
 import BalancedExpectations from './clm/BalancedExpectations';
+import CubicalLogicModel from './clm/CubicalLogicModel';
 
 const CLMInputPanel = () => {
     // Title state
@@ -28,6 +29,24 @@ const CLMInputPanel = () => {
             practicalBoundaries: '',
             evaluationMetrics: '',
             feedbackLoops: ''
+        },
+        // Cubical Logic Model dimension
+        cubicalLogicModel: {
+            abstractSpecification: {
+                context: '',
+                goal: '',
+                successCriteria: ''
+            },
+            concreteImplementation: {
+                inputs: '',
+                activities: '',
+                outputs: ''
+            },
+            balancedExpectations: {
+                practicalBoundaries: '',
+                evaluationMetrics: '',
+                feedbackLoops: ''
+            }
         }
     });
     
@@ -87,27 +106,35 @@ const CLMInputPanel = () => {
         [currentClmHash, autoSaveEnabled]
     );
 
-    // Handle input changes with auto-update
-    const handleInputChange = (dimension, section, value) => {
-        // Update local state
-        setClmData(prev => {
-            const updatedData = {
-                ...prev,
+    // Handle input changes for all dimensions
+    const handleInputChange = (dimension, section, field, value) => {
+        if (dimension === 'cubicalLogicModel') {
+            // Handle nested structure for Cubical Logic Model
+            setClmData(prevState => ({
+                ...prevState,
                 [dimension]: {
-                    ...prev[dimension],
-                    [section]: value
+                    ...prevState[dimension],
+                    [section]: {
+                        ...prevState[dimension][section],
+                        [field]: value
+                    }
                 }
-            };
-            
-            // If we have a CLM hash, auto-update this dimension
-            if (currentClmHash && autoSaveEnabled) {
-                // Generate JSON for this dimension
-                const jsonContent = generateJsonData(dimension, updatedData);
-                debouncedUpdate(dimension, jsonContent);
-            }
-            
-            return updatedData;
-        });
+            }));
+        } else {
+            // Handle flat structure for other dimensions
+            setClmData(prevState => ({
+                ...prevState,
+                [dimension]: {
+                    ...prevState[dimension],
+                    [field]: value
+                }
+            }));
+        }
+
+        // Trigger auto-save if enabled
+        if (autoSaveEnabled && currentClmHash) {
+            debouncedUpdate(dimension, generateJsonData(dimension));
+        }
     };
 
     // Utility function to generate JSON data with optional custom data
@@ -137,6 +164,26 @@ const CLMInputPanel = () => {
                     feedback_loops: data.balancedExpectations.feedbackLoops
                 };
             
+            case 'cubicalLogicModel':
+                return {
+                    dimension_type: "cubical_logic_model",
+                    abstract_specification: {
+                        context: data.cubicalLogicModel.abstractSpecification.context,
+                        goal: data.cubicalLogicModel.abstractSpecification.goal,
+                        success_criteria: data.cubicalLogicModel.abstractSpecification.successCriteria
+                    },
+                    concrete_implementation: {
+                        inputs: data.cubicalLogicModel.concreteImplementation.inputs,
+                        activities: data.cubicalLogicModel.concreteImplementation.activities,
+                        outputs: data.cubicalLogicModel.concreteImplementation.outputs
+                    },
+                    balanced_expectations: {
+                        practical_boundaries: data.cubicalLogicModel.balancedExpectations.practicalBoundaries,
+                        evaluation_metrics: data.cubicalLogicModel.balancedExpectations.evaluationMetrics,
+                        feedback_loops: data.cubicalLogicModel.balancedExpectations.feedbackLoops
+                    }
+                };
+            
             default:
                 return {};
         }
@@ -160,14 +207,17 @@ const CLMInputPanel = () => {
             const abstractSpecificationJson = generateJsonData('abstractSpecification');
             const concreteImplementationJson = generateJsonData('concreteImplementation');
             const balancedExpectationsJson = generateJsonData('balancedExpectations');
+            const cubicalLogicModelJson = generateJsonData('cubicalLogicModel');
 
             // Prepare the root CLM MCard JSON
             const rootClmJson = {
                 title: documentTitle,
-                dimensions: {
-                    abstract_specification: abstractSpecificationJson,
-                    concrete_implementation: concreteImplementationJson,
-                    balanced_expectations: balancedExpectationsJson
+                content: {
+                    dimensions: {
+                        abstract_specification: abstractSpecificationJson,
+                        concrete_implementation: concreteImplementationJson,
+                        balanced_expectations: balancedExpectationsJson
+                    }
                 }
             };
 
@@ -200,7 +250,16 @@ const CLMInputPanel = () => {
             
         } catch (error) {
             console.error('Error saving CLM data:', error);
-            setSaveMessage({ type: 'error', text: error.message || 'Failed to save CLM data' });
+            console.log('Detailed error data:', {
+                title: documentTitle,
+                abstractSpecification: generateJsonData('abstractSpecification'),
+                concreteImplementation: generateJsonData('concreteImplementation'),
+                balancedExpectations: generateJsonData('balancedExpectations')
+            });
+            setSaveMessage({ 
+                type: 'error', 
+                text: `Failed to save CLM data: ${error.message || 'Unknown error'}` 
+            });
         } finally {
             setIsSaving(false);
         }
@@ -304,6 +363,14 @@ const CLMInputPanel = () => {
                         generateJsonData={generateJsonData}
                     />
                 );
+            case 'cubicalLogicModel':
+                return (
+                    <CubicalLogicModel 
+                        data={clmData.cubicalLogicModel}
+                        onChange={handleInputChange}
+                        generateJsonData={generateJsonData}
+                    />
+                );
             default:
                 return null;
         }
@@ -314,10 +381,32 @@ const CLMInputPanel = () => {
             <div className="max-w-3xl mx-auto space-y-8">
                 {/* Header with Navigation and Save Button */}
                 <div className="flex justify-between items-center border-b pb-4">
-                    <DimensionNavigation 
-                        activeDimension={activeDimension} 
-                        onDimensionChange={setActiveDimension} 
-                    />
+                    <div className="tabs">
+                        <button 
+                            className={activeDimension === 'abstractSpecification' ? 'active' : ''} 
+                            onClick={() => setActiveDimension('abstractSpecification')}
+                        >
+                            Abstract Specification
+                        </button>
+                        <button 
+                            className={activeDimension === 'concreteImplementation' ? 'active' : ''} 
+                            onClick={() => setActiveDimension('concreteImplementation')}
+                        >
+                            Concrete Implementation
+                        </button>
+                        <button 
+                            className={activeDimension === 'balancedExpectations' ? 'active' : ''} 
+                            onClick={() => setActiveDimension('balancedExpectations')}
+                        >
+                            Balanced Expectations
+                        </button>
+                        <button 
+                            className={activeDimension === 'cubicalLogicModel' ? 'active' : ''} 
+                            onClick={() => setActiveDimension('cubicalLogicModel')}
+                        >
+                            Cubical Logic Model
+                        </button>
+                    </div>
                     <SaveButton 
                         onSave={handleSubmit} 
                         isSaving={isSaving} 

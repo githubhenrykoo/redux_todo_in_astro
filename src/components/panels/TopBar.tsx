@@ -91,20 +91,22 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         return;
       }
       
-      console.log('Saving state to backend...', {
-        panelLayout: state.panellayout?.panels ? Object.keys(state.panellayout.panels) : 'none',
+      console.log('Making state snapshot at:', new Date().toISOString(), {
         themeMode: state.theme?.mode || 'unknown',
         todoCount: state.todos?.items?.length || 0
       });
       
       // Actually make the API request
-      console.log('Making POST request to /api/store-card');
-      const response = await fetch('/api/store-card', {
+      console.log('Making POST request to /api/card-collection');
+      const response = await fetch('/api/card-collection', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: stateJson,
+        body: JSON.stringify({
+          action: 'add',
+          card: JSON.parse(stateJson)
+        }),
       });
       
       if (!response.ok) {

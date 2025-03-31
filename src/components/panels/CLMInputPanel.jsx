@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import DimensionNavigation from './clm/DimensionNavigation';
 import SaveButton from './clm/SaveButton';
 import AbstractSpecification from './clm/AbstractSpecification';
 import ConcreteImplementation from './clm/ConcreteImplementation';
@@ -72,6 +71,16 @@ const CLMInputPanel = () => {
         if (!currentClmHash || !autoSaveEnabled) return;
         
         try {
+            // Create dimension update payload
+            const dimensionUpdate = {
+                parent_hash: currentClmHash,
+                dimension: dimension,
+                type: 'clm_dimension_update',
+                timestamp: new Date().toISOString(),
+                // Include the content directly
+                ...content
+            };
+
             // Use the card-collection API with action=add to update the dimension
             const response = await fetch('/api/card-collection', {
                 method: 'POST',
@@ -81,19 +90,18 @@ const CLMInputPanel = () => {
                 body: JSON.stringify({
                     action: 'add',
                     card: {
-                        parent_hash: currentClmHash,
-                        content: content,
-                        metadata: {
-                            dimension: dimension,
-                            type: 'clm_dimension_update',
-                            timestamp: new Date().toISOString()
-                        }
+                        content: dimensionUpdate
                     }
                 })
             });
 
             if (!response.ok) {
-                console.error('Error auto-updating CLM dimension:', dimension);
+                const errorText = await response.text();
+                console.error('Error auto-updating CLM dimension:', {
+                    dimension,
+                    status: response.status,
+                    error: errorText
+                });
                 return;
             }
 
@@ -224,12 +232,12 @@ const CLMInputPanel = () => {
             // Prepare the root CLM MCard JSON
             const rootClmJson = {
                 title: documentTitle,
-                content: {
-                    dimensions: {
-                        abstract_specification: abstractSpecificationJson,
-                        concrete_implementation: concreteImplementationJson,
-                        balanced_expectations: balancedExpectationsJson
-                    }
+                type: 'clm_document',
+                created_at: new Date().toISOString(),
+                dimensions: {
+                    abstract_specification: abstractSpecificationJson,
+                    concrete_implementation: concreteImplementationJson,
+                    balanced_expectations: balancedExpectationsJson
                 }
             };
 
@@ -242,19 +250,31 @@ const CLMInputPanel = () => {
                 body: JSON.stringify({
                     action: 'add',
                     card: {
-                        content: rootClmJson,
-                        metadata: {
-                            type: 'clm_document',
-                            title: documentTitle,
-                            created_at: new Date().toISOString()
-                        }
+                        content: rootClmJson
                     }
                 })
             });
 
+            // Improved error handling to diagnose issues
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to save CLM data');
+                const errorText = await response.text();
+                console.error('Server response error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    responseText: errorText
+                });
+                
+                let errorMessage;
+                try {
+                    // Try to parse the error as JSON
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.error || 'Failed to save CLM data';
+                } catch (e) {
+                    // If it's not valid JSON (like HTML), provide a more helpful error
+                    errorMessage = `Server error (${response.status}): The API endpoint may not exist or returned HTML instead of JSON`;
+                }
+                
+                throw new Error(errorMessage);
             }
 
             const result = await response.json();

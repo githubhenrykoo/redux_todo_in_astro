@@ -48,6 +48,16 @@ const initialTheme = store.getState().theme?.mode || 'light';
 
 <script>
 	import { store } from '../store';
+	import { initServiceWorkerManager } from '../utils/serviceWorkerManager';
+
+	// Initialize service worker manager to handle API endpoint redirection
+	document.addEventListener('DOMContentLoaded', async () => {
+		// Check and update service worker if needed
+		const updated = await initServiceWorkerManager();
+		if (updated) {
+			console.log('Service worker updated. Old API endpoints will now redirect properly.');
+		}
+	});
 
 	// Apply initial theme
 	const initialTheme = store.getState().theme?.mode || 'light';

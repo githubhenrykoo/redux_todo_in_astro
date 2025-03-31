@@ -10,6 +10,8 @@ interface CardData {
 interface CardResponse {
   error?: string;
   serverTimestamp?: string;
+  success?: boolean;
+  card?: CardData;
 }
 
 export const CardViewer: React.FC = () => {
@@ -36,23 +38,32 @@ export const CardViewer: React.FC = () => {
 
     try {
       console.log('Fetching card with hash:', hash);
-      const response = await fetch(`/api/get-card?hash=${encodeURIComponent(hash)}`);
-      const data: CardResponse & CardData = await response.json();
+      const response = await fetch(`/api/card-collection?action=get&hash=${encodeURIComponent(hash)}`);
+      const data: CardResponse = await response.json();
       console.log('Card fetch response:', data);
 
       if (response.ok && !data.error) {
-        setCard(data);
-        setServerTimestamp(data.serverTimestamp || null);
-        
-        // Extract available sections from the content
-        if (data.content) {
-          const sections = Object.keys(data.content);
-          setAvailableSections(sections);
+        // For the new API, the card data is nested under a 'card' property when successful
+        if (data.success && data.card) {
+          setCard(data.card);
+          setServerTimestamp(data.serverTimestamp || null);
           
-          // Set default selected section
-          if (sections.length > 0) {
-            setSelectedSection(sections[0]);
+          // Extract available sections from the content
+          if (data.card.content) {
+            const sections = Object.keys(data.card.content);
+            setAvailableSections(sections);
+            
+            // Select the first section by default if available
+            if (sections.length > 0) {
+              setSelectedSection(sections[0]);
+            }
+          } else {
+            setAvailableSections([]);
+            setSelectedSection(null);
           }
+        } else {
+          // Handle case where API returns success:false but HTTP status is 200
+          setError(data.error || 'Card not found');
         }
       } else {
         setError(data.error || 'Failed to retrieve card');

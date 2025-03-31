@@ -359,12 +359,10 @@ const XtermPanel = ({ className = '' }) => {
         // Re-initialize the prompt
         setTimeout(() => {
           if (xtermRef.current && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-            xtermRef.current.writeln('\x1b[32mTerminal clear\x1b[0m');
             
             // Set custom prompt to use username again
             socketRef.current.send(JSON.stringify({
-              type: 'input',
-              data: 'export PS1="\\[\\e[32m\\]$(whoami)\\[\\e[0m\\]$ "\r'
+              type: 'input'
             }));
           }
         }, 100);

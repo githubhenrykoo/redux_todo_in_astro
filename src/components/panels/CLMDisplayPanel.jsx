@@ -199,7 +199,6 @@ const CLMDisplayPanel = () => {
             <h2 className="clm-title">{rootClm?.title || 'Cubical Logic Model'}</h2>
             
             <div className="clm-metadata">
-                <p><strong>Created:</strong> {rootClm?.createdAt && new Date(rootClm.createdAt).toLocaleString()}</p>
                 <p><strong>CLM Hash:</strong> <code>{selectedHash?.substring(0, 10) || 'N/A'}...</code></p>
             </div>
             

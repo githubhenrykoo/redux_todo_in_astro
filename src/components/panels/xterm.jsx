@@ -96,7 +96,6 @@ const XtermPanel = ({ className = '' }) => {
         // Write initial message
         terminal.writeln('Terminal initialized');
         terminal.writeln('\x1b[34mConnecting to terminal server...\x1b[0m');
-        terminal.writeln('\x1b[32mTip: Click the "Lazygit" button to launch the Git interface\x1b[0m');
         
         // Set up terminal input handling
         terminal.onData(data => {
@@ -304,8 +303,75 @@ const XtermPanel = ({ className = '' }) => {
 
   const clearTerminal = () => {
     if (xtermRef.current) {
-      xtermRef.current.clear();
-      xtermRef.current.writeln('Terminal cleared');
+      // If Lazygit is active, we need to terminate it first
+      if (isLazygitActive && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        // Send escape key and q to exit Lazygit
+        socketRef.current.send(JSON.stringify({
+          type: 'input',
+          data: '\u001b' // Escape key
+        }));
+        
+        // Small delay to ensure escape is processed
+        setTimeout(() => {
+          socketRef.current.send(JSON.stringify({
+            type: 'input',
+            data: 'q' // Quit Lazygit
+          }));
+          
+          // Wait for Lazygit to exit before clearing
+          setTimeout(() => {
+            performClear();
+          }, 300);
+        }, 100);
+        
+        // Update state
+        setIsLazygitActive(false);
+      } else {
+        // If Lazygit is not active, clear immediately
+        performClear();
+      }
+    }
+  };
+  
+  // Helper function to perform the actual terminal clearing
+  const performClear = () => {
+    if (!xtermRef.current) return;
+    
+    // Clear the terminal display
+    xtermRef.current.clear();
+    
+    // Reset terminal state
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      // Kill any running processes and clear the terminal
+      socketRef.current.send(JSON.stringify({
+        type: 'input',
+        data: '\u0003' // Ctrl+C to interrupt any running process
+      }));
+      
+      // Small delay to ensure Ctrl+C is processed
+      setTimeout(() => {
+        // Send clear and reset commands
+        socketRef.current.send(JSON.stringify({
+          type: 'input',
+          data: 'clear && reset\r'
+        }));
+        
+        // Re-initialize the prompt
+        setTimeout(() => {
+          if (xtermRef.current && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            xtermRef.current.writeln('\x1b[32mTerminal clear\x1b[0m');
+            
+            // Set custom prompt to use username again
+            socketRef.current.send(JSON.stringify({
+              type: 'input',
+              data: 'export PS1="\\[\\e[32m\\]$(whoami)\\[\\e[0m\\]$ "\r'
+            }));
+          }
+        }, 100);
+      }, 100);
+    } else {
+      // If not connected, just show a message
+      xtermRef.current.writeln('\x1b[32mTerminal cleared\x1b[0m');
     }
   };
 

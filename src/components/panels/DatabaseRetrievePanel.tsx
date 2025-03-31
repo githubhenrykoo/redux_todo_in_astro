@@ -36,12 +36,56 @@ export const DatabaseRetrievePanel: React.FC = () => {
   const [hashValue, setHashValue] = useState('');
   const [selectedCardHash, setSelectedCardHash] = useState<string | null>(null);
 
-  // Function to fetch cards
+  // Function to fetch card by hash
+  const fetchCardByHash = async (hash: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Make the API request using the card-collection GET endpoint
+      const response = await fetch(`/api/card-collection?action=get&hash=${hash}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch card');
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.card) {
+        // Format the response to match PageData interface
+        setCards({
+          items: [data.card],
+          total_items: 1,
+          page_number: 1,
+          page_size: 1,
+          has_next: false,
+          has_previous: false,
+          total_pages: 1,
+          next_page: null,
+          previous_page: null,
+          retrievalMethod: 'hash'
+        });
+        
+        // Clear selected card when fetching new cards
+        setSelectedCardHash(null);
+      } else {
+        throw new Error(data.error || 'Card not found');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      console.error('Error fetching card by hash:', err);
+      setCards(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to fetch cards (page or search)
   const fetchCards = async (params: {
     page?: number;
     pageSize?: number;
     search?: string;
-    hash?: string;
   }) => {
     try {
       setLoading(true);
@@ -49,12 +93,12 @@ export const DatabaseRetrievePanel: React.FC = () => {
 
       // Build the query parameters
       const queryParams = new URLSearchParams();
+      // Using the existing /api/retrieve endpoint for pagination and search
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
       if (params.search) queryParams.append('search', params.search);
-      if (params.hash) queryParams.append('hash', params.hash);
 
-      // Make the API request
+      // Make the API request to the original retrieve endpoint
       const response = await fetch(`/api/retrieve?${queryParams.toString()}`);
 
       if (!response.ok) {
@@ -63,6 +107,8 @@ export const DatabaseRetrievePanel: React.FC = () => {
       }
 
       const data = await response.json();
+      
+      // The retrieve endpoint returns PageData directly
       setCards(data);
       
       // Clear selected card when fetching new cards
@@ -70,6 +116,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       console.error('Error fetching cards:', err);
+      setCards(null);
     } finally {
       setLoading(false);
     }
@@ -93,7 +140,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
   const handleHashLookup = (e: React.FormEvent) => {
     e.preventDefault();
     if (hashValue) {
-      fetchCards({ hash: hashValue });
+      fetchCardByHash(hashValue);
     }
   };
 

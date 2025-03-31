@@ -212,28 +212,92 @@ const CLMInputPanel = () => {
         }
 
         try {
-            // Generate JSON-formatted content for each dimension MCard according to CLM_for_CLM_Mcard.md spec
+            // Step 1: Generate JSON-formatted content for each dimension MCard
             const abstractSpecificationJson = generateJsonData('abstractSpecification');
             const concreteImplementationJson = generateJsonData('concreteImplementation');
             const balancedExpectationsJson = generateJsonData('balancedExpectations');
 
-            // Prepare the root CLM MCard JSON structure 
-            // Following the hierarchical structure defined in CLM_for_CLM_Mcard.md
+            // Step 2: Store each dimension as its own MCard to get hash references
+            // First, save Abstract Specification dimension
+            console.log("Saving Abstract Specification dimension...");
+            const abstractSpecResponse = await fetch('/api/card-collection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'add',
+                    card: {
+                        content: abstractSpecificationJson
+                    }
+                })
+            });
+            
+            if (!abstractSpecResponse.ok) {
+                throw new Error(`Failed to save Abstract Specification: ${abstractSpecResponse.status}`);
+            }
+            const abstractSpecResult = await abstractSpecResponse.json();
+            const abstractSpecHash = abstractSpecResult.hash;
+            
+            // Next, save Concrete Implementation dimension
+            console.log("Saving Concrete Implementation dimension...");
+            const concreteImplResponse = await fetch('/api/card-collection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'add',
+                    card: {
+                        content: concreteImplementationJson
+                    }
+                })
+            });
+            
+            if (!concreteImplResponse.ok) {
+                throw new Error(`Failed to save Concrete Implementation: ${concreteImplResponse.status}`);
+            }
+            const concreteImplResult = await concreteImplResponse.json();
+            const concreteImplHash = concreteImplResult.hash;
+            
+            // Finally, save Balanced Expectations dimension
+            console.log("Saving Balanced Expectations dimension...");
+            const balancedExpResponse = await fetch('/api/card-collection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: 'add',
+                    card: {
+                        content: balancedExpectationsJson
+                    }
+                })
+            });
+            
+            if (!balancedExpResponse.ok) {
+                throw new Error(`Failed to save Balanced Expectations: ${balancedExpResponse.status}`);
+            }
+            const balancedExpResult = await balancedExpResponse.json();
+            const balancedExpHash = balancedExpResult.hash;
+
+            // Step 3: Create the root CLM MCard with references to the dimension hashes
+            console.log("Creating root CLM with dimension hash references...");
             const rootClmJson = {
                 title: documentTitle,
                 createdAt: new Date().toISOString(),
                 type: 'clm_document',
-                // In a full implementation, this would use actual hash references
-                // But for now we'll include the full content
+                // Reference dimensions by their hash values according to the CLM_for_CLM_Mcard.md spec
                 dimensions: {
-                    abstractSpecification: abstractSpecificationJson,
-                    concreteImplementation: concreteImplementationJson,
-                    balancedExpectations: balancedExpectationsJson
+                    abstractSpecification: abstractSpecHash,
+                    concreteImplementation: concreteImplHash,
+                    balancedExpectations: balancedExpHash
                 }
             };
 
-            // Store in database using the card-collection API endpoint
-            const response = await fetch('/api/card-collection', {
+            // Step 4: Store the root CLM MCard
+            console.log("Saving root CLM...");
+            const rootClmResponse = await fetch('/api/card-collection', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -247,11 +311,11 @@ const CLMInputPanel = () => {
             });
 
             // Improved error handling to diagnose issues
-            if (!response.ok) {
-                const errorText = await response.text();
+            if (!rootClmResponse.ok) {
+                const errorText = await rootClmResponse.text();
                 console.error('Server response error:', {
-                    status: response.status,
-                    statusText: response.statusText,
+                    status: rootClmResponse.status,
+                    statusText: rootClmResponse.statusText,
                     responseText: errorText
                 });
                 
@@ -262,13 +326,13 @@ const CLMInputPanel = () => {
                     errorMessage = errorData.error || 'Failed to save CLM data';
                 } catch (e) {
                     // If it's not valid JSON (like HTML), provide a more helpful error
-                    errorMessage = `Server error (${response.status}): The API endpoint may not exist or returned HTML instead of JSON`;
+                    errorMessage = `Server error (${rootClmResponse.status}): The API endpoint may not exist or returned HTML instead of JSON`;
                 }
                 
                 throw new Error(errorMessage);
             }
 
-            const result = await response.json();
+            const result = await rootClmResponse.json();
             
             if (result.success) {
                 // Store the CLM hash for future updates

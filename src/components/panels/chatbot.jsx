@@ -260,7 +260,7 @@ Command:
               : 'bg-gray-600 hover:bg-gray-700'
           }`}
         >
-          Word Select: {isWordSelectEnabled ? 'On' : 'Off'}
+          Word Select
         </button>
         <select 
           value={selectedModel}

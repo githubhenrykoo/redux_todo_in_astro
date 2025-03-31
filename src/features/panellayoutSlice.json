@@ -41,13 +41,13 @@
     },
     "clm_layout": {
         "left": {
-            "type": "CLMDisplayPanel",
+            "type": "ContentDetailPanel",
             "size": 33,
             "minSize": 20,
             "visible": true
         },
         "middle": {
-            "type": "ContentDetailPanel", 
+            "type": "CLMInputPanel", 
             "size": 34,
             "minSize": 20,
             "visible": true

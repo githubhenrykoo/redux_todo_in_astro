@@ -23,7 +23,12 @@ const CLMDisplayPanel = () => {
     const rootClm = useMemo(() => {
         // Find the card by hash
         const selectedCard = selectedHash ? cards[selectedHash] : null;
-        return selectedCard ? selectedCard.content : null;
+        if (selectedCard && selectedCard.content) {
+            // Filter out createdAt if it exists in the content
+            const { createdAt, ...filteredContent } = selectedCard.content;
+            return filteredContent;
+        }
+        return null;
     }, [cards, selectedHash]);
 
     // Load dimensions when root CLM changes
@@ -137,7 +142,9 @@ const CLMDisplayPanel = () => {
         // If it's an object (parsed JSON), stringify it for display
         if (typeof content === 'object') {
             try {
-                return JSON.stringify(content, null, 2);
+                // Filter out createdAt if it exists
+                const { createdAt, ...filteredContent } = content;
+                return JSON.stringify(filteredContent, null, 2);
             } catch (e) {
                 console.error('Error stringifying content:', e);
             }

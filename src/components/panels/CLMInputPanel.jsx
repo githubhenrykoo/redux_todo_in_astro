@@ -285,7 +285,6 @@ const CLMInputPanel = () => {
             console.log("Creating root CLM with dimension hash references...");
             const rootClmJson = {
                 title: documentTitle,
-                createdAt: new Date().toISOString(),
                 type: 'clm_document',
                 // Reference dimensions by their hash values according to the CLM_for_CLM_Mcard.md spec
                 dimensions: {

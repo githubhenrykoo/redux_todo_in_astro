@@ -78,9 +78,6 @@ const Content = () => {
 
                 {/* Metadata and Actions */}
                 <div className="flex justify-between items-center text-xs">
-                  <div className="text-gray-500 dark:text-neutral-500 truncate max-w-[50%]">
-                    Created: {new Date(card.createdAt).toLocaleString()}
-                  </div>
                   <div>
                     <button 
                       onClick={() => handleContentDelete(card.hash)}

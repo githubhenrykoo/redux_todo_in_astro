@@ -402,7 +402,7 @@ const XtermPanel = ({ className = '' }) => {
             onClick={launchLazygit}
             className={`px-2 py-1 text-xs ${isLazygitActive 
               ? 'bg-green-700 hover:bg-green-600' 
-              : 'bg-blue-700 hover:bg-blue-600'} rounded`}
+              : 'bg-gray-700 hover:bg-gray-600'} rounded`}
             disabled={!isConnected}
           >
             {isLazygitActive ? 'Lazygit Active' : 'Launch Lazygit'}

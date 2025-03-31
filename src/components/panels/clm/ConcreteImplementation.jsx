@@ -2,6 +2,9 @@ import React from 'react';
 import DimensionPanel from './DimensionPanel';
 
 const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
+    console.log("ConcreteImplementation rendered with data:", data);
+    
+    // Define fields according to CLM_for_CLM_Mcard.md spec
     const fields = [
         {
             key: 'inputs',
@@ -20,17 +23,36 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
         }
     ];
 
+    // Add dimensionType to local data before passing to parent
     const handleChange = (key, value) => {
-        onChange('concreteImplementation', key, value);
+        console.log(`ConcreteImplementation handleChange: ${key} = "${value}"`);
+        // Important: DO NOT include section parameter for dimension components
+        onChange('concreteImplementation', null, key, value);
+    };
+
+    // Build the dimension data with proper structure - directly return object
+    const getDimensionData = () => {
+        if (!data) {
+            console.warn("No data provided to ConcreteImplementation");
+            return { dimensionType: "concreteImplementation" };
+        }
+
+        // Create a clean object for JSON preview
+        return {
+            dimensionType: "concreteImplementation",
+            inputs: data.inputs || "",
+            activities: data.activities || "",
+            outputs: data.outputs || ""
+        };
     };
 
     return (
         <DimensionPanel
             title="Concrete Implementation"
             fields={fields}
-            data={data}
+            data={data || {}}
             onChange={handleChange}
-            jsonData={generateJsonData('concreteImplementation')}
+            jsonData={getDimensionData()}
         />
     );
 };

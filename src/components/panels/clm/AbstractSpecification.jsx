@@ -2,6 +2,9 @@ import React from 'react';
 import DimensionPanel from './DimensionPanel';
 
 const AbstractSpecification = ({ data, onChange, generateJsonData }) => {
+    console.log("AbstractSpecification rendered with data:", data);
+    
+    // Define fields according to CLM_for_CLM_Mcard.md spec
     const fields = [
         {
             key: 'context',
@@ -20,17 +23,36 @@ const AbstractSpecification = ({ data, onChange, generateJsonData }) => {
         }
     ];
 
+    // Add dimensionType to local data before passing to parent
     const handleChange = (key, value) => {
-        onChange('abstractSpecification', key, value);
+        console.log(`AbstractSpecification handleChange: ${key} = "${value}"`);
+        // Important: DO NOT include section parameter for dimension components
+        onChange('abstractSpecification', null, key, value);
+    };
+
+    // Build the dimension data with proper structure - directly return object
+    const getDimensionData = () => {
+        if (!data) {
+            console.warn("No data provided to AbstractSpecification");
+            return { dimensionType: "abstractSpecification" };
+        }
+
+        // Create a clean object for JSON preview
+        return {
+            dimensionType: "abstractSpecification",
+            context: data.context || "",
+            goal: data.goal || "",
+            successCriteria: data.successCriteria || ""
+        };
     };
 
     return (
         <DimensionPanel
             title="Abstract Specification"
             fields={fields}
-            data={data}
+            data={data || {}}
             onChange={handleChange}
-            jsonData={generateJsonData('abstractSpecification')}
+            jsonData={getDimensionData()}
         />
     );
 };

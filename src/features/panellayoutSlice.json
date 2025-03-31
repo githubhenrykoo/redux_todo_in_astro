@@ -7,7 +7,7 @@
             "visible": true
         },
         "middle": {
-            "type": "ContentDetailPanel", 
+            "type": "CLMDisplayPanel", 
             "size": 40,
             "minSize": 20,
             "visible": true
@@ -47,7 +47,7 @@
             "visible": true
         },
         "middle": {
-            "type": "CLMInputPanel", 
+            "type": "ContentDetailPanel", 
             "size": 34,
             "minSize": 20,
             "visible": true

@@ -460,7 +460,7 @@ const XtermPanel = ({ className = '' }) => {
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
         </div>
-        <div className="text-center flex-grow">Terminal {isLazygitActive ? '- Lazygit Active' : ''}</div>
+        <div className="text-center flex-grow">Terminal</div>
         <div className="flex space-x-2">
           <button 
             onClick={launchLazygit}
@@ -469,7 +469,7 @@ const XtermPanel = ({ className = '' }) => {
               : 'bg-gray-700 hover:bg-gray-600'} rounded`}
             disabled={!isConnected}
           >
-            {isLazygitActive ? 'Lazygit Active' : 'Launch Lazygit'}
+            Lazygit
           </button>
           <button 
             onClick={clearTerminal}

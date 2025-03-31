@@ -7,7 +7,6 @@ const generateHash = () => `content_${Math.random().toString(36).substr(2, 9)}`;
 const createContentCard = (content, relationships = {}) => ({
   hash: generateHash(),
   content,
-  createdAt: new Date().toISOString(),
   metadata: {},
   relationships: {
     parentHash: null,
@@ -138,7 +137,6 @@ export const contentSlice = createSlice({
       state.cards[hash] = {
         hash,
         content,
-        createdAt: new Date().toISOString(),
         metadata,
         relationships: {
           parentHash: relationships?.parentHash || null,

@@ -6,6 +6,7 @@ const XtermPanel = ({ className = '' }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
   const [xtermLoaded, setXtermLoaded] = useState(false);
+  const [isLazygitActive, setIsLazygitActive] = useState(false);
   
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
@@ -95,6 +96,7 @@ const XtermPanel = ({ className = '' }) => {
         // Write initial message
         terminal.writeln('Terminal initialized');
         terminal.writeln('\x1b[34mConnecting to terminal server...\x1b[0m');
+        terminal.writeln('\x1b[32mTip: Click the "Lazygit" button to launch the Git interface\x1b[0m');
         
         // Set up terminal input handling
         terminal.onData(data => {
@@ -135,6 +137,31 @@ const XtermPanel = ({ className = '' }) => {
         
         // Force a resize after a short delay
         setTimeout(handleResize, 500);
+        
+        // Add resize observer for container size changes
+        const resizeObserver = new ResizeObserver(() => {
+          if (fitAddonRef.current && mountedRef.current) {
+            try {
+              fitAddonRef.current.fit();
+              
+              // Send terminal size to server
+              if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && xtermRef.current) {
+                const { cols, rows } = xtermRef.current;
+                socketRef.current.send(JSON.stringify({ 
+                  type: 'resize', 
+                  cols, 
+                  rows 
+                }));
+              }
+            } catch (e) {
+              console.error('Error during container resize:', e);
+            }
+          }
+        });
+        
+        if (terminalRef.current) {
+          resizeObserver.observe(terminalRef.current);
+        }
         
       } catch (err) {
         console.error('Failed to initialize terminal:', err);
@@ -282,6 +309,66 @@ const XtermPanel = ({ className = '' }) => {
     }
   };
 
+  const launchLazygit = () => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && xtermRef.current) {
+      // First ensure terminal is properly sized
+      if (fitAddonRef.current) {
+        try {
+          fitAddonRef.current.fit();
+          const { cols, rows } = xtermRef.current;
+          socketRef.current.send(JSON.stringify({ 
+            type: 'resize', 
+            cols, 
+            rows 
+          }));
+        } catch (e) {
+          console.error('Error fitting terminal before lazygit:', e);
+        }
+      }
+      
+      // Send command to launch lazygit
+      socketRef.current.send(JSON.stringify({
+        type: 'input',
+        data: 'lazygit\r'
+      }));
+      
+      setIsLazygitActive(true);
+      
+      // Add message about exiting
+      if (xtermRef.current) {
+        xtermRef.current.writeln('\x1b[33mLaunching Lazygit...\x1b[0m');
+        xtermRef.current.writeln('\x1b[33mPress "q" to quit Lazygit when finished\x1b[0m');
+      }
+    } else {
+      setError('Cannot launch Lazygit: Terminal not connected');
+    }
+  };
+
+  // Handle Lazygit exit detection
+  useEffect(() => {
+    if (!isLazygitActive) return;
+    
+    const checkForLazygitExit = (e) => {
+      // Check for 'q' key press which might indicate exiting Lazygit
+      if (e.key === 'q' && isLazygitActive) {
+        // We don't immediately set to false as the user might be typing 'q' in another context
+        // Instead, we'll check after a short delay if we're back at the prompt
+        setTimeout(() => {
+          if (xtermRef.current) {
+            // This is a simple heuristic - we assume we're back at the prompt if Lazygit has exited
+            setIsLazygitActive(false);
+          }
+        }, 500);
+      }
+    };
+    
+    window.addEventListener('keydown', checkForLazygitExit);
+    
+    return () => {
+      window.removeEventListener('keydown', checkForLazygitExit);
+    };
+  }, [isLazygitActive]);
+
   // Render a fallback UI while xterm is loading
   if (!xtermLoaded) {
     return (
@@ -309,13 +396,24 @@ const XtermPanel = ({ className = '' }) => {
           <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
           <div className="w-3 h-3 rounded-full bg-green-500"></div>
         </div>
-        <div className="text-center flex-grow">Terminal</div>
-        <button 
-          onClick={clearTerminal}
-          className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
-        >
-          Clear
-        </button>
+        <div className="text-center flex-grow">Terminal {isLazygitActive ? '- Lazygit Active' : ''}</div>
+        <div className="flex space-x-2">
+          <button 
+            onClick={launchLazygit}
+            className={`px-2 py-1 text-xs ${isLazygitActive 
+              ? 'bg-green-700 hover:bg-green-600' 
+              : 'bg-blue-700 hover:bg-blue-600'} rounded`}
+            disabled={!isConnected}
+          >
+            {isLazygitActive ? 'Lazygit Active' : 'Launch Lazygit'}
+          </button>
+          <button 
+            onClick={clearTerminal}
+            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+          >
+            Clear
+          </button>
+        </div>
       </div>
       
       {error && (
@@ -338,7 +436,7 @@ const XtermPanel = ({ className = '' }) => {
       
       <div className="p-1 bg-gray-800 text-xs text-gray-500 flex justify-between">
         <span>{isConnected ? "Connected" : "Disconnected"}</span>
-        <span>xterm.js terminal</span>
+        <span>xterm.js terminal {isLazygitActive ? '- Lazygit Running' : ''}</span>
       </div>
     </div>
   );

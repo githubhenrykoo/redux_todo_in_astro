@@ -1,8 +1,11 @@
 import React from 'react';
 
-const JsonPreview = ({ data, title = "JSON Preview" }) => {
+const JsonPreview = ({ data, jsonData, title = "JSON Preview" }) => {
+    // Use either data or jsonData prop, for backward compatibility
+    const dataToRender = data || jsonData || {};
+    
     // Format JSON with indentation for better readability
-    const formattedJson = JSON.stringify(data, null, 2);
+    const formattedJson = JSON.stringify(dataToRender, null, 2);
     
     return (
         <div className="json-preview-container">

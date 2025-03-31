@@ -3,7 +3,6 @@ import SaveButton from './clm/SaveButton';
 import AbstractSpecification from './clm/AbstractSpecification';
 import ConcreteImplementation from './clm/ConcreteImplementation';
 import BalancedExpectations from './clm/BalancedExpectations';
-import CubicalLogicModel from './clm/CubicalLogicModel';
 
 const CLMInputPanel = () => {
     // Title state
@@ -28,24 +27,6 @@ const CLMInputPanel = () => {
             practicalBoundaries: '',
             evaluationMetrics: '',
             feedbackLoops: ''
-        },
-        // Cubical Logic Model dimension
-        cubicalLogicModel: {
-            abstractSpecification: {
-                context: '',
-                goal: '',
-                successCriteria: ''
-            },
-            concreteImplementation: {
-                inputs: '',
-                activities: '',
-                outputs: ''
-            },
-            balancedExpectations: {
-                practicalBoundaries: '',
-                evaluationMetrics: '',
-                feedbackLoops: ''
-            }
         }
     });
     
@@ -66,20 +47,22 @@ const CLMInputPanel = () => {
         };
     };
 
-    // Auto-update a specific dimension
-    const updateDimension = async (dimension, content) => {
+    // Auto-update a specific dimension - defined using useCallback to memoize
+    const updateDimension = useCallback(async (dimension, content) => {
         if (!currentClmHash || !autoSaveEnabled) return;
         
         try {
-            // Create dimension update payload
+            // Create dimension update payload following CLM_for_CLM_Mcard.md structure
             const dimensionUpdate = {
-                parent_hash: currentClmHash,
+                parentHash: currentClmHash,
                 dimension: dimension,
                 type: 'clm_dimension_update',
                 timestamp: new Date().toISOString(),
-                // Include the content directly
-                ...content
+                // Include the dimension content with proper structure
+                content: content  // This already has the correct dimensionType field from generateJsonData
             };
+
+            console.log(`Starting update for ${dimension} dimension`);
 
             // Use the card-collection API with action=add to update the dimension
             const response = await fetch('/api/card-collection', {
@@ -116,44 +99,70 @@ const CLMInputPanel = () => {
         } catch (error) {
             console.error('Error in auto-update:', error);
         }
-    };
+    }, [currentClmHash, autoSaveEnabled]);
 
-    // Debounced update function
-    const debouncedUpdate = useCallback(
-        debounce((dimension, content) => {
-            updateDimension(dimension, content);
-        }, 2000),
-        [currentClmHash, autoSaveEnabled]
-    );
-
+    // Create debounced function outside of useCallback to avoid circular dependencies
+    const debouncedUpdateFn = debounce((updateFn, dimension, content) => {
+        console.log(`Debounced update for ${dimension} dimension triggered`);
+        updateFn(dimension, content);
+    }, 2000);
+    
     // Handle input changes for all dimensions
     const handleInputChange = (dimension, section, field, value) => {
-        if (dimension === 'cubicalLogicModel') {
-            // Handle nested structure for Cubical Logic Model
-            setClmData(prevState => ({
-                ...prevState,
-                [dimension]: {
-                    ...prevState[dimension],
-                    [section]: {
-                        ...prevState[dimension][section],
-                        [field]: value
-                    }
-                }
-            }));
-        } else {
-            // Handle flat structure for other dimensions
-            setClmData(prevState => ({
-                ...prevState,
-                [dimension]: {
-                    ...prevState[dimension],
-                    [field]: value
-                }
-            }));
+        console.log(`CLMInputPanel handleInputChange called:`, {
+            dimension, section, field, value
+        });
+
+        // If field is undefined but value is, then we're receiving params in a different order
+        // This happens when dimension components call handleInputChange(dimension, null, key, value)
+        if (value === undefined && field !== undefined) {
+            // Rearrange parameters to account for dimension components' call pattern
+            value = field;
+            field = section;
+            section = null;
         }
 
-        // Trigger auto-save if enabled
+        console.log(`After parameter normalization:`, {
+            dimension, section, field, value
+        });
+
+        // Update local state first
+        if (section) {
+            // This handles nested structures (legacy format)
+            setClmData(prevState => {
+                console.log("Updating with section:", { dimension, section, field, value });
+                return {
+                    ...prevState,
+                    [dimension]: {
+                        ...prevState[dimension],
+                        [section]: {
+                            ...prevState[dimension][section],
+                            [field]: value
+                        }
+                    }
+                };
+            });
+        } else {
+            // This handles direct field updates from dimension components
+            setClmData(prevState => {
+                console.log("Updating directly:", { dimension, field, value });
+                return {
+                    ...prevState,
+                    [dimension]: {
+                        ...prevState[dimension],
+                        [field]: value
+                    }
+                };
+            });
+        }
+
+        // Trigger auto-save if enabled, but don't block input
         if (autoSaveEnabled && currentClmHash) {
-            debouncedUpdate(dimension, generateJsonData(dimension));
+            // Use a setTimeout to avoid blocking the UI thread during state updates
+            setTimeout(() => {
+                const jsonData = generateJsonData(dimension);
+                debouncedUpdateFn(updateDimension, dimension, jsonData);
+            }, 0);
         }
     };
 
@@ -162,15 +171,15 @@ const CLMInputPanel = () => {
         switch(dimension) {
             case 'abstractSpecification':
                 return {
-                    dimension_type: "abstract_specification",
+                    dimensionType: "abstractSpecification",
                     context: data.abstractSpecification.context,
                     goal: data.abstractSpecification.goal,
-                    success_criteria: data.abstractSpecification.successCriteria
+                    successCriteria: data.abstractSpecification.successCriteria
                 };
             
             case 'concreteImplementation':
                 return {
-                    dimension_type: "concrete_implementation",
+                    dimensionType: "concreteImplementation",
                     inputs: data.concreteImplementation.inputs,
                     activities: data.concreteImplementation.activities,
                     outputs: data.concreteImplementation.outputs
@@ -178,30 +187,10 @@ const CLMInputPanel = () => {
             
             case 'balancedExpectations':
                 return {
-                    dimension_type: "balanced_expectations",
-                    practical_boundaries: data.balancedExpectations.practicalBoundaries,
-                    evaluation_metrics: data.balancedExpectations.evaluationMetrics,
-                    feedback_loops: data.balancedExpectations.feedbackLoops
-                };
-            
-            case 'cubicalLogicModel':
-                return {
-                    dimension_type: "cubical_logic_model",
-                    abstract_specification: {
-                        context: data.cubicalLogicModel.abstractSpecification.context,
-                        goal: data.cubicalLogicModel.abstractSpecification.goal,
-                        success_criteria: data.cubicalLogicModel.abstractSpecification.successCriteria
-                    },
-                    concrete_implementation: {
-                        inputs: data.cubicalLogicModel.concreteImplementation.inputs,
-                        activities: data.cubicalLogicModel.concreteImplementation.activities,
-                        outputs: data.cubicalLogicModel.concreteImplementation.outputs
-                    },
-                    balanced_expectations: {
-                        practical_boundaries: data.cubicalLogicModel.balancedExpectations.practicalBoundaries,
-                        evaluation_metrics: data.cubicalLogicModel.balancedExpectations.evaluationMetrics,
-                        feedback_loops: data.cubicalLogicModel.balancedExpectations.feedbackLoops
-                    }
+                    dimensionType: "balancedExpectations",
+                    practicalBoundaries: data.balancedExpectations.practicalBoundaries,
+                    evaluationMetrics: data.balancedExpectations.evaluationMetrics,
+                    feedbackLoops: data.balancedExpectations.feedbackLoops
                 };
             
             default:
@@ -223,21 +212,23 @@ const CLMInputPanel = () => {
         }
 
         try {
-            // Generate JSON-formatted content for each dimension MCard
+            // Generate JSON-formatted content for each dimension MCard according to CLM_for_CLM_Mcard.md spec
             const abstractSpecificationJson = generateJsonData('abstractSpecification');
             const concreteImplementationJson = generateJsonData('concreteImplementation');
             const balancedExpectationsJson = generateJsonData('balancedExpectations');
-            const cubicalLogicModelJson = generateJsonData('cubicalLogicModel');
 
-            // Prepare the root CLM MCard JSON
+            // Prepare the root CLM MCard JSON structure 
+            // Following the hierarchical structure defined in CLM_for_CLM_Mcard.md
             const rootClmJson = {
                 title: documentTitle,
+                createdAt: new Date().toISOString(),
                 type: 'clm_document',
-                created_at: new Date().toISOString(),
+                // In a full implementation, this would use actual hash references
+                // But for now we'll include the full content
                 dimensions: {
-                    abstract_specification: abstractSpecificationJson,
-                    concrete_implementation: concreteImplementationJson,
-                    balanced_expectations: balancedExpectationsJson
+                    abstractSpecification: abstractSpecificationJson,
+                    concreteImplementation: concreteImplementationJson,
+                    balancedExpectations: balancedExpectationsJson
                 }
             };
 
@@ -407,48 +398,38 @@ const CLMInputPanel = () => {
                         generateJsonData={generateJsonData}
                     />
                 );
-            case 'cubicalLogicModel':
-                return (
-                    <CubicalLogicModel 
-                        data={clmData.cubicalLogicModel}
-                        onChange={handleInputChange}
-                        generateJsonData={generateJsonData}
-                    />
-                );
             default:
                 return null;
         }
     };
 
+    useEffect(() => {
+        // Make sure this function is updated when dependencies change
+    }, [updateDimension]);
+
     return (
         <div className="h-full bg-white overflow-y-auto p-6">
             <div className="max-w-3xl mx-auto space-y-8">
                 {/* Header with Navigation and Save Button */}
-                <div className="flex justify-between items-center border-b pb-4">
-                    <div className="tabs">
+                <div className="flex flex-col md:flex-row justify-between items-center border-b pb-4">
+                    <div className="tabs w-full md:w-auto mb-4 md:mb-0">
                         <button 
-                            className={activeDimension === 'abstractSpecification' ? 'active' : ''} 
+                            className={`px-4 py-2 rounded-md mr-2 ${activeDimension === 'abstractSpecification' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}
                             onClick={() => setActiveDimension('abstractSpecification')}
                         >
                             Abstract Specification
                         </button>
                         <button 
-                            className={activeDimension === 'concreteImplementation' ? 'active' : ''} 
+                            className={`px-4 py-2 rounded-md mr-2 ${activeDimension === 'concreteImplementation' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}
                             onClick={() => setActiveDimension('concreteImplementation')}
                         >
                             Concrete Implementation
                         </button>
                         <button 
-                            className={activeDimension === 'balancedExpectations' ? 'active' : ''} 
+                            className={`px-4 py-2 rounded-md ${activeDimension === 'balancedExpectations' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}
                             onClick={() => setActiveDimension('balancedExpectations')}
                         >
                             Balanced Expectations
-                        </button>
-                        <button 
-                            className={activeDimension === 'cubicalLogicModel' ? 'active' : ''} 
-                            onClick={() => setActiveDimension('cubicalLogicModel')}
-                        >
-                            Cubical Logic Model
                         </button>
                     </div>
                     <SaveButton 

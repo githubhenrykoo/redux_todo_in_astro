@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { MCard, MCardFromData } from '../../content/model/mcard.js';
 import { CardCollection } from '../../content/model/card-collection.js';
+import { SQLiteEngine } from '../../engine/sqlite_engine.js';
 import { getStoreEngine } from '../../utils/storeAdapter.js';
 import { encodeText } from '../../utils/textEncoderPolyfill.js';
 import { SafeBuffer } from '../../utils/bufferPolyfill.js';

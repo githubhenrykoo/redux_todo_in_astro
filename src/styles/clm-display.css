@@ -1,0 +1,140 @@
+.clm-display-panel {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.clm-title {
+    font-size: 1.8rem;
+    margin-bottom: 16px;
+    color: #1a202c;
+    text-align: center;
+}
+
+.clm-metadata {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    color: #4a5568;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 10px;
+}
+
+.clm-display-loading, 
+.clm-display-error {
+    padding: 40px;
+    text-align: center;
+    background-color: #f7fafc;
+    border-radius: 8px;
+    color: #4a5568;
+    font-size: 1.1rem;
+}
+
+.clm-display-error {
+    color: #e53e3e;
+    border: 1px solid #fed7d7;
+    background-color: #fff5f5;
+}
+
+.clm-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.clm-table th,
+.clm-table td {
+    border: 1px solid #cbd5e0;
+    padding: 12px;
+    vertical-align: top;
+}
+
+.clm-table th {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    text-align: left;
+    position: relative;
+}
+
+.clm-table th a {
+    color: #63b3ed;
+    text-decoration: none;
+}
+
+.clm-table th a:hover {
+    text-decoration: underline;
+}
+
+.dimension-hash {
+    position: absolute;
+    right: 10px;
+    font-size: 0.7rem;
+    color: #a0aec0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.clm-dimension-hashes {
+    margin-top: 30px;
+    padding: 16px;
+    background-color: #edf2f7;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.clm-dimension-hashes h3 {
+    margin-top: 0;
+    color: #4a5568;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+}
+
+.clm-dimension-hashes ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.clm-dimension-hashes li {
+    margin-bottom: 8px;
+}
+
+.clm-dimension-hashes code {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    word-break: break-all;
+}
+
+.clm-table td {
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .clm-metadata {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .clm-table th,
+    .clm-table td {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+    
+    .dimension-hash {
+        position: static;
+        display: block;
+        text-align: right;
+        transform: none;
+        margin-top: 4px;
+    }
+}

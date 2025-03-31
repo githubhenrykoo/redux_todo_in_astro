@@ -37,5 +37,8 @@
   },
   "CLMInputPanel": {
     "component": "../components/panels/CLMInputPanel.jsx"
+  },
+  "CLMDisplayPanel": {
+    "component": "../components/panels/CLMDisplayPanel.jsx"
   }
 }

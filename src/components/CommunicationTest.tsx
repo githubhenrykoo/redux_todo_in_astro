@@ -60,12 +60,15 @@ export const CommunicationTest: React.FC = () => {
       const stringified = JSON.stringify(simplePayload);
       console.log('Payload JSON string length:', stringified.length);
       
-      const response = await fetch('/api/submit', {
+      const response = await fetch('/api/card-collection', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json'
         },
-        body: stringified
+        body: JSON.stringify({
+          action: 'add',
+          card: simplePayload
+        })
       });
 
       console.log('Response status:', response.status);

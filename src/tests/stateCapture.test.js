@@ -188,14 +188,14 @@ async function main() {
     // Enable request capturing for debugging auto-save API calls
     page.on('request', request => {
       const url = request.url();
-      if (url.includes('/api/store-card')) {
+      if (url.includes('/api/card-collection')) {
         console.log('💾 Detected auto-save request to:', url);
       }
     });
     
     page.on('response', async response => {
       const url = response.url();
-      if (url.includes('/api/store-card')) {
+      if (url.includes('/api/card-collection')) {
         console.log(`💾 Auto-save response: ${response.status()} ${response.statusText()}`);
         try {
           const responseBody = await response.json();

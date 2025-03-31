@@ -72,15 +72,23 @@ const CLMInputPanel = () => {
         if (!currentClmHash || !autoSaveEnabled) return;
         
         try {
-            const response = await fetch('/api/update-clm', {
+            // Use the card-collection API with action=add to update the dimension
+            const response = await fetch('/api/card-collection', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    clmHash: currentClmHash,
-                    dimension,
-                    content
+                    action: 'add',
+                    card: {
+                        parent_hash: currentClmHash,
+                        content: content,
+                        metadata: {
+                            dimension: dimension,
+                            type: 'clm_dimension_update',
+                            timestamp: new Date().toISOString()
+                        }
+                    }
                 })
             });
 
@@ -90,9 +98,13 @@ const CLMInputPanel = () => {
             }
 
             const result = await response.json();
-            setCurrentClmHash(result.newClmHash);
-            setLastUpdated(new Date().toISOString());
-            console.log(`${dimension} auto-updated successfully with hash: ${result.dimensionHash.substring(0, 10)}...`);
+            if (result.success) {
+                setCurrentClmHash(result.hash);
+                setLastUpdated(new Date().toISOString());
+                console.log(`${dimension} auto-updated successfully with hash: ${result.hash.substring(0, 10)}...`);
+            } else {
+                console.error('Failed to auto-update:', result.error);
+            }
         } catch (error) {
             console.error('Error in auto-update:', error);
         }
@@ -221,15 +233,22 @@ const CLMInputPanel = () => {
                 }
             };
 
-            // Store in database using the new store-clm endpoint
-            const response = await fetch('/api/store-clm', {
+            // Store in database using the card-collection API endpoint
+            const response = await fetch('/api/card-collection', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    title: documentTitle,
-                    content: rootClmJson
+                    action: 'add',
+                    card: {
+                        content: rootClmJson,
+                        metadata: {
+                            type: 'clm_document',
+                            title: documentTitle,
+                            created_at: new Date().toISOString()
+                        }
+                    }
                 })
             });
 
@@ -239,14 +258,19 @@ const CLMInputPanel = () => {
             }
 
             const result = await response.json();
-            // Store the CLM hash for future updates
-            setCurrentClmHash(result.clmHash);
-            setLastUpdated(new Date().toISOString());
             
-            setSaveMessage({ 
-                type: 'success', 
-                text: `CLM data saved successfully! Hash: ${result.clmHash.substring(0, 10)}...` 
-            });
+            if (result.success) {
+                // Store the CLM hash for future updates
+                setCurrentClmHash(result.hash);
+                setLastUpdated(new Date().toISOString());
+                
+                setSaveMessage({ 
+                    type: 'success', 
+                    text: `CLM data saved successfully! Hash: ${result.hash.substring(0, 10)}...` 
+                });
+            } else {
+                throw new Error(result.error || 'Failed to save CLM data');
+            }
             
         } catch (error) {
             console.error('Error saving CLM data:', error);

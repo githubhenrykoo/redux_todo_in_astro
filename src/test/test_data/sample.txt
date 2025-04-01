@@ -1,0 +1,4 @@
+This is a sample text file.
+It contains multiple lines
+of plain text data
+for testing purposes.

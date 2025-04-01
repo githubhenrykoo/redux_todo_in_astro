@@ -1,0 +1,10 @@
+digraph TestGraph {
+  node [shape=box];
+  A [label="ContentType"];
+  B [label="Detection"];
+  C [label="Validation"];
+  
+  A -> B;
+  B -> C;
+  C -> A [label="Tests"];
+}

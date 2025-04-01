@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+  <item id="1">
+    <name>Test XML</name>
+    <value>This is an XML test file</value>
+  </item>
+</root>

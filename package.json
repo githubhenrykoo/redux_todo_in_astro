@@ -16,7 +16,10 @@
     "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
     "test:state": "node src/tests/stateCapture.test.js",
     "test:interpreter": "jest src/content/model/interpreter.test.ts",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e:debug": "playwright test --debug",
+    "test:setup-db": "node src/test/setup-test-db.js",
+    "test:content-detector": "jest src/test/content_type_detector.test.js",
+    "test:content-detector:coverage": "jest src/test/content_type_detector.test.js --coverage"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",

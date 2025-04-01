@@ -1,0 +1,6 @@
+graph TD
+    A[Start] --> B{Is it a test?}
+    B -- Yes --> C[Test ContentTypeInterpreter]
+    B -- No --> D[Use ContentTypeInterpreter]
+    C --> E[End]
+    D --> E

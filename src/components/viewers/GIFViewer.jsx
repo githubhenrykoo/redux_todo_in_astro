@@ -8,48 +8,154 @@ export const GIFViewer = ({ content, contentType }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [gifSource, setGifSource] = useState(null);
+  const [textContent, setTextContent] = useState(null); // For fallback text display
   
   // Process the content and set the appropriate state
   useEffect(() => {
     const processContent = () => {
-      // If content is already a data URL or external URL
-      if (typeof content === 'string' && 
-          (content.startsWith('data:') || content.startsWith('http'))) {
-        setGifSource(content);
-        return;
-      }
-      
-      // If content is a Uint8Array or ArrayBuffer, convert to base64
-      if (content instanceof Uint8Array || content instanceof ArrayBuffer) {
-        try {
-          const array = content instanceof ArrayBuffer ? new Uint8Array(content) : content;
-          const bytes = Array.from(array).map(byte => String.fromCharCode(byte)).join('');
-          const base64 = btoa(bytes);
-          setGifSource(`data:image/gif;base64,${base64}`);
-          return;
-        } catch (e) {
-          setError("Unable to display GIF: Error converting binary data");
+      try {
+        console.log("GIFViewer processing content:", typeof content, content instanceof Uint8Array);
+        
+        // Handle the Node.js Buffer JSON format when it's an object: {"type":"Buffer","data":[...]}
+        if (typeof content === 'object' && content !== null && 
+            content.type === 'Buffer' && Array.isArray(content.data)) {
+          try {
+            console.log("GIFViewer: Detected Node.js Buffer JSON format as object", content.data.length);
+            const array = new Uint8Array(content.data);
+            const bytes = Array.from(array).map(byte => String.fromCharCode(byte)).join('');
+            const base64 = typeof window !== 'undefined' ? window.btoa(bytes) : Buffer.from(bytes).toString('base64');
+            setGifSource(`data:image/gif;base64,${base64}`);
+            return;
+          } catch (e) {
+            console.error("Error processing Buffer JSON format:", e);
+            setError("Unable to display GIF: Error processing Buffer data");
+            return;
+          }
+        }
+        
+        // Handle the Buffer JSON format when it's a string: '{"type":"Buffer","data":[...]}'
+        if (typeof content === 'string' && content.includes('"type":"Buffer"') && content.includes('"data":[')) {
+          try {
+            console.log("GIFViewer: Detected Node.js Buffer JSON format as string");
+            const bufferObj = JSON.parse(content);
+            if (bufferObj && bufferObj.type === 'Buffer' && Array.isArray(bufferObj.data)) {
+              const array = new Uint8Array(bufferObj.data);
+              const bytes = Array.from(array).map(byte => String.fromCharCode(byte)).join('');
+              const base64 = typeof window !== 'undefined' ? window.btoa(bytes) : Buffer.from(bytes).toString('base64');
+              setGifSource(`data:image/gif;base64,${base64}`);
+              return;
+            }
+          } catch (e) {
+            console.error("Error parsing Buffer JSON string:", e);
+            // Don't return here, try other approaches or fallback to text display
+          }
+        }
+        
+        // If content is already a data URL or external URL
+        if (typeof content === 'string' && 
+            (content.startsWith('data:') || content.startsWith('http'))) {
+          setGifSource(content);
           return;
         }
-      }
-      
-      // If it's a string that's not a URL, it might be base64 without the prefix
-      if (typeof content === 'string') {
-        try {
-          // Test if it's valid base64
-          btoa(atob(content));
-          setGifSource(`data:image/gif;base64,${content}`);
-          return;
-        } catch (e) {
-          setError("Unable to display GIF: Invalid format");
+        
+        // If content is a Uint8Array or ArrayBuffer, convert to base64
+        if (content instanceof Uint8Array || content instanceof ArrayBuffer || 
+            (content && typeof content === 'object' && content.buffer instanceof ArrayBuffer)) {
+          try {
+            // Ensure we have a Uint8Array to work with
+            let array;
+            if (content instanceof ArrayBuffer) {
+              array = new Uint8Array(content);
+            } else if (content instanceof Uint8Array) {
+              array = content;
+            } else if (content.buffer instanceof ArrayBuffer) {
+              // Handle array-like objects with buffer property
+              array = new Uint8Array(content.buffer);
+            }
+            
+            // Convert to base64
+            let base64;
+            if (typeof window !== 'undefined' && window.btoa) {
+              // Browser environment
+              const bytes = Array.from(array).map(byte => String.fromCharCode(byte)).join('');
+              base64 = window.btoa(bytes);
+            } else {
+              // Node.js environment
+              base64 = Buffer.from(array).toString('base64');
+            }
+            
+            setGifSource(`data:image/gif;base64,${base64}`);
+            return;
+          } catch (e) {
+            console.error("Error converting binary data:", e);
+            setError("Unable to display GIF: Error converting binary data");
+            return;
+          }
+        }
+        
+        // Handle JSON data that might contain binary data as an array
+        if (typeof content === 'object' && Array.isArray(content)) {
+          try {
+            const array = new Uint8Array(content);
+            const bytes = Array.from(array).map(byte => String.fromCharCode(byte)).join('');
+            const base64 = typeof window !== 'undefined' ? window.btoa(bytes) : Buffer.from(bytes).toString('base64');
+            setGifSource(`data:image/gif;base64,${base64}`);
+            return;
+          } catch (e) {
+            console.error("Error processing array data:", e);
+            setError("Unable to display GIF: Error processing array data");
+            return;
+          }
+        }
+        
+        // If it's a string that's not a URL, it might be base64 without the prefix
+        if (typeof content === 'string') {
+          try {
+            // Test if it's valid base64
+            const isBase64 = /^[A-Za-z0-9+/=]+$/.test(content.trim());
+            if (isBase64) {
+              setGifSource(`data:image/gif;base64,${content}`);
+              return;
+            } else {
+              // If it's not valid base64 but it's a string, we'll show it as text
+              // This handles cases where content-type doesn't match actual content
+              console.log("Content is not valid base64, will display as text");
+              setTextContent(content);
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            console.error("Invalid string content:", e);
+            // Still display as text even if we have an error
+            if (typeof content === 'string') {
+              setTextContent(content);
+              setIsLoading(false);
+              return;
+            }
+            setError("Unable to display GIF: Invalid format");
+            return;
+          }
+        }
+        
+        console.error("Unsupported content format:", typeof content, content);
+        setError("Unable to display GIF: Unsupported format");
+      } catch (err) {
+        console.error("GIFViewer processing error:", err);
+        // Last resort fallback - if content is a string, display it as text
+        if (typeof content === 'string') {
+          setTextContent(content);
+          setIsLoading(false);
           return;
         }
+        setError(`Unable to display GIF: ${err.message || 'Unknown error'}`);
       }
-      
-      setError("Unable to display GIF: Unsupported format");
     };
     
-    processContent();
+    if (content) {
+      processContent();
+    } else {
+      setError("No content provided");
+    }
   }, [content]); // Only re-run when content changes
   
   // Format file size for display
@@ -67,7 +173,26 @@ export const GIFViewer = ({ content, contentType }) => {
       return content.byteLength;
     } else if (content instanceof Uint8Array) {
       return content.byteLength;
+    } else if (content && typeof content === 'object' && content.buffer instanceof ArrayBuffer) {
+      return content.byteLength || content.length;
+    } else if (Array.isArray(content)) {
+      return content.length;
+    } else if (typeof content === 'object' && content !== null && 
+               content.type === 'Buffer' && Array.isArray(content.data)) {
+      return content.data.length;
     } else if (typeof content === 'string') {
+      // Check if it's a Buffer JSON string
+      if (content.includes('"type":"Buffer"') && content.includes('"data":[')) {
+        try {
+          const bufferObj = JSON.parse(content);
+          if (bufferObj && bufferObj.type === 'Buffer' && Array.isArray(bufferObj.data)) {
+            return bufferObj.data.length;
+          }
+        } catch (e) {
+          // Ignore parsing errors for size calculation
+        }
+      }
+      
       // For base64 encoded data
       if (content.startsWith('data:')) {
         const base64Content = content.split(',')[1];
@@ -77,6 +202,25 @@ export const GIFViewer = ({ content, contentType }) => {
     } 
     return null;
   }, [content]);
+  
+  // Display text content if we have it (fallback display)
+  if (textContent) {
+    return (
+      <div className="flex flex-col h-full p-4 bg-gray-50 overflow-auto">
+        <div className="text-amber-600 text-center mb-4">
+          <div className="text-3xl mb-2">⚠️</div>
+          <p className="font-medium">Content has image/gif type but appears to be text</p>
+          <p className="text-sm text-gray-600 mt-1">Displaying as text instead</p>
+          {size && <p className="text-sm text-gray-600">Size: {formatFileSize(size)}</p>}
+        </div>
+        <div className="bg-white border border-gray-200 rounded-md p-4 overflow-auto font-mono text-sm whitespace-pre-wrap">
+          {textContent.length > 5000 
+            ? textContent.substring(0, 5000) + '... (content truncated for display)'
+            : textContent}
+        </div>
+      </div>
+    );
+  }
   
   if (error) {
     return (
@@ -119,9 +263,10 @@ export const GIFViewer = ({ content, contentType }) => {
           alt="Animated GIF"
           className="max-w-full object-contain"
           onLoad={() => setIsLoading(false)}
-          onError={() => {
+          onError={(e) => {
+            console.error("GIF load error:", e);
             setIsLoading(false);
-            setError("Failed to load GIF");
+            setError("Failed to load GIF: Image data may be corrupted");
           }}
         />
       </div>

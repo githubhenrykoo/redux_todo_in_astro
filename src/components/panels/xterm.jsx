@@ -452,23 +452,7 @@ const XtermPanel = ({ className = '' }) => {
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 font-mono ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
         <div className="text-center flex-grow">Terminal</div>
-        <div className="flex space-x-2">
-          <button 
-            onClick={launchLazygit}
-            className={`px-2 py-1 text-xs ${isLazygitActive 
-              ? 'bg-green-700 hover:bg-green-600' 
-              : 'bg-gray-700 hover:bg-gray-600'} rounded`}
-            disabled={!isConnected}
-          >
-            Lazygit
-          </button>
-          <button 
-            onClick={clearTerminal}
-            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
-          >
-            Clear
-          </button>
-        </div>
+        {/* Removed Lazygit and Clear buttons */}
       </div>
       
       {error && (

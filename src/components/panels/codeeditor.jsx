@@ -342,13 +342,6 @@ const CodeEditorPanel = ({ className = '' }) => {
             </button>
           </>
         )}
-        
-        <button
-          onClick={toggleTheme}
-          className={`px-2 py-1 text-xs rounded ${theme === 'dark' ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
-        >
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </button>
       </div>
       
       <div className="flex flex-1">

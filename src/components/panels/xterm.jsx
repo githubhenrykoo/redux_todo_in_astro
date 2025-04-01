@@ -438,6 +438,7 @@ const XtermPanel = ({ className = '' }) => {
     return (
       <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 font-mono ${className}`}>
         <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
+
           <div className="text-center flex-grow">Terminal</div>
         </div>
         <div className="flex-1 flex items-center justify-center">

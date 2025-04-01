@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { ContentTypeInterpreter } from '../../content/model/interpreter';
-import { MCardFromData } from '../../content/model/mcard';
 import { useDispatch } from 'react-redux';
 import { importCardFromDatabase, selectContent } from '../../features/contentSlice';
 
@@ -18,7 +16,11 @@ interface PageData {
   retrievalMethod?: string;
 }
 
-// Interface to better represent the content type
+interface MCardFromData {
+  hash: string;
+  g_time: string;
+}
+
 interface ContentType {
   mimeType?: string;
   extension?: string;
@@ -43,7 +45,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
       setError(null);
 
       // Make the API request using the card-collection GET endpoint
-      const response = await fetch(`/api/card-collection?action=get&hash=${hash}`);
+      const response = await fetch(`/api/card-collection?action=get&hash=${hash}&minimal=true`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -97,6 +99,9 @@ export const DatabaseRetrievePanel: React.FC = () => {
       if (params.page) queryParams.append('page', params.page.toString());
       if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
       if (params.search) queryParams.append('search', params.search);
+      
+      // Add minimal flag to retrieve only hash and g_time
+      queryParams.append('minimal', 'true');
 
       // Make the API request to the original retrieve endpoint
       const response = await fetch(`/api/retrieve?${queryParams.toString()}`);
@@ -158,10 +163,10 @@ export const DatabaseRetrievePanel: React.FC = () => {
   const handleSelectCard = (card: MCardFromData) => {
     setSelectedCardHash(card.hash);
     
-    // Import the card to Redux store
+    // Import only the hash to Redux store
     dispatch(importCardFromDatabase({ 
       hash: card.hash,
-      content: card.content,
+      content: null,
       metadata: {},
       relationships: {
         parentHash: null,
@@ -192,36 +197,6 @@ export const DatabaseRetrievePanel: React.FC = () => {
     } catch (e) {
       return 'N/A';
     }
-  };
-
-  // Helper function to get timestamp from card
-  const getCardTimestamp = (card: MCardFromData) => {
-    // Try g_time first (if it exists and is valid)
-    if (card.g_time) {
-      return card.g_time;
-    }
-    
-    // Try to extract timestamp from content if it's a JSON object
-    if (typeof card.content === 'object' && card.content !== null) {
-      // Look for __stateTimestamp in the content object
-      if (card.content.__stateTimestamp) {
-        return card.content.__stateTimestamp;
-      }
-    }
-    
-    // If content is a string, try to parse it as JSON to find timestamp
-    if (typeof card.content === 'string') {
-      try {
-        const parsedContent = JSON.parse(card.content);
-        if (parsedContent.__stateTimestamp) {
-          return parsedContent.__stateTimestamp;
-        }
-      } catch (e) {
-        // Not valid JSON, ignore
-      }
-    }
-    
-    return null;
   };
 
   // Sliding pagination function
@@ -371,17 +346,15 @@ export const DatabaseRetrievePanel: React.FC = () => {
                   onClick={() => handleSelectCard(card)}
                 >
                   <div className="flex justify-between mb-1">
-                    <span className="font-medium text-blue-600 text-sm">
+                    <span 
+                      className="font-medium text-blue-600 text-sm truncate max-w-[150px]"
+                      title={card.hash}
+                    >
                       {card.hash.substring(0, 8)}...
                     </span>
-                    <span className="text-gray-500 text-xs">
-                      {formatDate(getCardTimestamp(card))}
+                    <span className="text-gray-500 text-xs ml-2 whitespace-nowrap">
+                      {card.g_time}
                     </span>
-                  </div>
-                  <div className="text-gray-700 text-sm truncate">
-                    {typeof card.content === 'object'
-                      ? '{...}'
-                      : String(card.content).substring(0, 60)}
                   </div>
                 </div>
               ))}

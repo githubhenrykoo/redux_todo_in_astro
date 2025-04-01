@@ -1,5 +1,7 @@
 import React from 'react';
 import { Card } from './Card';
+import { useDispatch } from 'react-redux';
+import { updateContentType } from '../../../features/selectedItemSlice';
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) {
@@ -24,6 +26,7 @@ interface MCardFromData {
   hash: string;
   g_time: string;
   content?: any;
+  contentType?: any;
 }
 
 interface PageData {
@@ -46,6 +49,18 @@ export const CardList: React.FC<CardListProps> = ({
   onSelectCard,
   loading
 }) => {
+  const dispatch = useDispatch();
+  
+  // Handler for content type detection/correction
+  const handleContentTypeDetected = (hash: string, contentType: any) => {
+    console.log(`CardList - Content type detected for ${hash}:`, contentType);
+    
+    // Only update the content type if this is the selected card
+    if (hash === selectedCardHash) {
+      dispatch(updateContentType({ contentType }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-4">
@@ -81,6 +96,7 @@ export const CardList: React.FC<CardListProps> = ({
             card={card}
             isSelected={selectedCardHash === card.hash}
             onSelect={onSelectCard}
+            onContentTypeDetected={handleContentTypeDetected}
           />
         ))}
       </div>

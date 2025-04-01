@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { importCardFromDatabase, selectContent } from '../../features/contentSlice';
 
+// Import our new components
+import { SearchBar } from './database/SearchBar';
+import { HashLookup } from './database/HashLookup';
+import { ControlBar } from './database/ControlBar';
+import { CardList } from './database/CardList';
+import { Pagination } from './database/Pagination';
+
 interface PageData {
   items: MCardFromData[];
   total_items: number;
@@ -19,12 +26,6 @@ interface PageData {
 interface MCardFromData {
   hash: string;
   g_time: string;
-}
-
-interface ContentType {
-  mimeType?: string;
-  extension?: string;
-  isValid?: boolean;
 }
 
 export const DatabaseRetrievePanel: React.FC = () => {
@@ -179,51 +180,21 @@ export const DatabaseRetrievePanel: React.FC = () => {
     dispatch(selectContent(card.hash));
   };
 
-  // Helper function to format date
-  const formatDate = (dateString: string | null | undefined) => {
-    if (!dateString) {
-      return 'N/A';
-    }
-    
-    try {
-      const date = new Date(dateString);
-      
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        return 'N/A';
-      }
-      
-      return date.toLocaleString();
-    } catch (e) {
-      return 'N/A';
-    }
+  // Handle reset
+  const handleReset = () => {
+    setSearchTerm('');
+    setHashValue('');
+    setPage(1);
+    fetchCards({ page: 1, pageSize });
   };
 
-  // Sliding pagination function
-  const getSlidingPageNumbers = (currentPage: number, totalPages: number, windowSize: number = 5) => {
-    // Ensure window size is odd for symmetry
-    const adjustedWindowSize = windowSize % 2 === 0 ? windowSize + 1 : windowSize;
-    const halfWindow = Math.floor(adjustedWindowSize / 2);
-
-    let startPage = Math.max(1, currentPage - halfWindow);
-    let endPage = Math.min(totalPages, startPage + adjustedWindowSize - 1);
-
-    // Adjust start page if we're near the end
-    if (endPage === totalPages) {
-      startPage = Math.max(1, totalPages - adjustedWindowSize + 1);
+  // Handle page size change
+  const handlePageSizeChange = (newSize: number) => {
+    if (searchTerm) {
+      fetchCards({ search: searchTerm, page: 1, pageSize: newSize });
+    } else {
+      fetchCards({ page: 1, pageSize: newSize });
     }
-
-    // Create an array of page numbers to display
-    const pages = [];
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    return {
-      pages,
-      showStartEllipsis: startPage > 1,
-      showEndEllipsis: endPage < totalPages
-    };
   };
 
   return (
@@ -231,85 +202,29 @@ export const DatabaseRetrievePanel: React.FC = () => {
       {/* Header Section */}
       <div className="flex-none p-3 border-b border-neutral-200 dark:border-neutral-800">
         <div className="flex flex-col gap-2">
-          <form onSubmit={handleSearch} className="w-full">
-            <div className="flex flex-wrap gap-2">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by content..."
-                className="flex-1 min-w-0 px-3 py-1 border rounded text-sm"
-              />
-              <button
-                type="submit"
-                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm whitespace-nowrap"
-                disabled={loading}
-              >
-                Search
-              </button>
-            </div>
-          </form>
-
-          <form onSubmit={handleHashLookup} className="w-full">
-            <div className="flex flex-wrap gap-2">
-              <input
-                type="text"
-                value={hashValue}
-                onChange={(e) => setHashValue(e.target.value)}
-                placeholder="Lookup by hash..."
-                className="flex-1 min-w-0 px-3 py-1 border rounded text-sm"
-              />
-              <button
-                type="submit"
-                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm whitespace-nowrap"
-                disabled={loading}
-              >
-                Lookup
-              </button>
-            </div>
-          </form>
+          <SearchBar 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            onSearch={handleSearch}
+            loading={loading}
+          />
+          <HashLookup 
+            hashValue={hashValue}
+            setHashValue={setHashValue}
+            onLookup={handleHashLookup}
+            loading={loading}
+          />
         </div>
       </div>
 
       {/* Controls Section */}
-      <div className="flex-none flex items-center justify-between p-2 border-b border-neutral-200 dark:border-neutral-800">
-        <button
-          onClick={() => {
-            setSearchTerm('');
-            setHashValue('');
-            setPage(1);
-            fetchCards({ page: 1, pageSize });
-          }}
-          className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-          disabled={loading}
-        >
-          Reset
-        </button>
-        
-        <div className="flex items-center">
-          <span className="mr-2 text-sm">Items:</span>
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              const newSize = Number(e.target.value);
-              setPageSize(newSize);
-              setPage(1);
-              
-              if (searchTerm) {
-                fetchCards({ search: searchTerm, page: 1, pageSize: newSize });
-              } else {
-                fetchCards({ page: 1, pageSize: newSize });
-              }
-            }}
-            className="px-2 py-1 border rounded text-sm"
-          >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-        </div>
-      </div>
+      <ControlBar 
+        onReset={handleReset}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        onPageSizeChange={handlePageSizeChange}
+        loading={loading}
+      />
 
       {/* Error Display */}
       {error && (
@@ -320,95 +235,23 @@ export const DatabaseRetrievePanel: React.FC = () => {
 
       {/* Card List with Overflow */}
       <div className="flex-1 overflow-y-auto">
-        {loading && (
-          <div className="flex justify-center p-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+        <CardList 
+          cards={cards}
+          selectedCardHash={selectedCardHash}
+          onSelectCard={handleSelectCard}
+          loading={loading}
+        />
+        
+        {cards && cards.total_pages > 1 && (
+          <div className="pb-4">
+            <Pagination
+              currentPage={page}
+              totalPages={cards.total_pages}
+              hasNext={cards.has_next}
+              hasPrevious={cards.has_previous}
+              onPageChange={handlePageChange}
+            />
           </div>
-        )}
-
-        {cards && cards.items.length > 0 ? (
-          <div className="p-4">
-            {/* Results Summary */}
-            <div className="mb-2">
-              <p className="text-sm text-gray-700">
-                {cards.retrievalMethod === 'hash'
-                  ? 'Card found by hash'
-                  : `Showing ${cards.items.length} of ${cards.total_items} cards`}
-                {cards.serverTimestamp && ` (as of ${formatDate(cards.serverTimestamp)})`}
-              </p>
-            </div>
-
-            <div className="space-y-2 mb-4">
-              {cards.items.map((card) => (
-                <div
-                  key={card.hash}
-                  className={`border rounded p-3 cursor-pointer hover:bg-gray-50 ${selectedCardHash === card.hash ? 'bg-blue-50 border-blue-300' : ''}`}
-                  onClick={() => handleSelectCard(card)}
-                >
-                  <div className="flex justify-between mb-1">
-                    <span 
-                      className="font-medium text-blue-600 text-sm truncate max-w-[150px]"
-                      title={card.hash}
-                    >
-                      {card.hash.substring(0, 8)}...
-                    </span>
-                    <span className="text-gray-500 text-xs ml-2 whitespace-nowrap">
-                      {card.g_time}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {cards.total_pages > 1 && (
-              <div className="flex justify-center items-center gap-1 text-sm">
-                <button
-                  onClick={() => handlePageChange(page - 1)}
-                  disabled={!cards.has_previous}
-                  className={`px-2 py-1 rounded ${
-                    cards.has_previous
-                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  Prev
-                </button>
-
-                {getSlidingPageNumbers(page, cards.total_pages, 3).pages.map((pageNumber) => (
-                  <button
-                    key={pageNumber}
-                    onClick={() => handlePageChange(pageNumber)}
-                    className={`px-2 py-1 rounded ${
-                      pageNumber === page
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                    }`}
-                  >
-                    {pageNumber}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() => handlePageChange(page + 1)}
-                  disabled={!cards.has_next}
-                  className={`px-2 py-1 rounded ${
-                    cards.has_next
-                      ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          !loading && (
-            <div className="text-center text-gray-500 p-4">
-              {cards ? 'No cards found' : 'Enter search terms or fetch cards'}
-            </div>
-          )
         )}
       </div>
     </div>

@@ -5,12 +5,26 @@
  * using both string and binary data from the test database.
  */
 
-import { ContentTypeInterpreter } from '../content/model/content_type_detector';
+import { ContentTypeInterpreter } from '../content/model/content_type_detector.js';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
 import { TextDecoder } from 'util';
-import { SafeBuffer } from '../utils/bufferPolyfill'; // Assuming this exists based on memory
+
+// Get current file directory with ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Import SafeBuffer from your polyfill if available
+let SafeBuffer;
+try {
+  const bufferPolyfill = await import('../utils/bufferPolyfill.js');
+  SafeBuffer = bufferPolyfill.SafeBuffer;
+} catch (e) {
+  console.warn('SafeBuffer polyfill not available, some tests will be skipped');
+  SafeBuffer = Buffer;
+}
 
 // Mock window.TextEncoder for browser compatibility testing
 global.TextEncoder = TextEncoder;

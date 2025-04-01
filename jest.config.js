@@ -6,7 +6,9 @@ export default {
   },
   testMatch: [
     '**/__tests__/**/*.ts?(x)', 
-    '**/?(*.)+(spec|test).ts?(x)'
+    '**/?(*.)+(spec|test).ts?(x)',
+    '**/__tests__/**/*.js?(x)', 
+    '**/?(*.)+(spec|test).js?(x)'
   ],
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
   moduleNameMapper: {

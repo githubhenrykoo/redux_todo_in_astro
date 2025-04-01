@@ -1,7 +1,12 @@
 // Setup test database for ContentTypeInterpreter tests
-const fs = require('fs');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import sqlite3 from 'sqlite3';
+
+// Get current file directory with ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Create test_data directory if it doesn't exist
 const testDataDir = path.join(__dirname, 'test_data');

@@ -45,7 +45,14 @@ const EXTENSION_MAP = {
   'application/x-sqlite3': 'db',
   'image/djvu': 'djvu',
   'application/x-parquet': 'parquet',
-  'text/vnd.graphviz': 'dot'
+  'text/vnd.graphviz': 'dot',
+  'text/html': 'html',
+  'text/css': 'css',
+  'application/javascript': 'js',
+  'application/sql': 'sql',
+  'text/markdown': 'md',
+  'application/yaml': 'yml',
+  'text/csv': 'csv'
 };
 
 function startsWith(content, signature) {
@@ -98,6 +105,98 @@ function detectContentType(content) {
         extension: 'puml', 
         isValid: true 
       };
+    }
+    
+    // HTML detection
+    if (/<(!DOCTYPE|html|body|head|div|script|style)[^>]*>/i.test(trimmedContent)) {
+      return { 
+        mimeType: 'text/html', 
+        extension: 'html', 
+        isValid: true 
+      };
+    }
+    
+    // CSS detection
+    if (/^(\s*@import|\s*[a-z\.\#\-\_][^{]+\s*\{)/i.test(trimmedContent) && 
+        /\{[^\}]*\}/i.test(trimmedContent)) {
+      return { 
+        mimeType: 'text/css', 
+        extension: 'css', 
+        isValid: true 
+      };
+    }
+    
+    // JavaScript detection
+    if (/(function|const|let|var|import|export|class|if|return|=>\s*\{|async)[\s\n]/i.test(trimmedContent) &&
+        (content.includes('{') && content.includes('}'))) {
+      return { 
+        mimeType: 'application/javascript', 
+        extension: 'js', 
+        isValid: true 
+      };
+    }
+    
+    // SQL detection
+    if (/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TABLE|FROM|WHERE|AND|OR|JOIN)\b/i.test(trimmedContent) &&
+        /\b(SELECT|INSERT|CREATE)\b.*\b(FROM|INTO|TABLE)\b/i.test(trimmedContent)) {
+      return { 
+        mimeType: 'application/sql', 
+        extension: 'sql', 
+        isValid: true 
+      };
+    }
+    
+    // Markdown detection
+    if ((/^#\s+.+$/m.test(trimmedContent) || 
+         /^==+$|^--+$/m.test(trimmedContent) ||
+         /^\*\s+.+$/m.test(trimmedContent) ||
+         /^>\s+.+$/m.test(trimmedContent)) &&
+        !/^<[\w\s="':\/\-\.]+>$/.test(trimmedContent.split('\n')[0])) {
+      return { 
+        mimeType: 'text/markdown', 
+        extension: 'md', 
+        isValid: true 
+      };
+    }
+    
+    // YAML detection
+    if (/^---(\s*)$/m.test(trimmedContent) || 
+        /^(\s*)[\w-]+:(\s+)[^\s]/.test(trimmedContent) &&
+        !trimmedContent.includes('{') && !trimmedContent.includes('}')) {
+      return { 
+        mimeType: 'application/yaml', 
+        extension: 'yml', 
+        isValid: true 
+      };
+    }
+    
+    // SVG detection
+    if (/<svg(\s+)[^>]*>/i.test(trimmedContent) && /<\/svg>/i.test(trimmedContent)) {
+      return { 
+        mimeType: 'image/svg+xml', 
+        extension: 'svg', 
+        isValid: true 
+      };
+    }
+    
+    // CSV detection
+    if (/^[^,\n"]*,[^,\n"]*,[^,\n"]*/.test(trimmedContent) || 
+        /^"[^"]*","[^"]*","[^"]*"/.test(trimmedContent)) {
+      // Verify it has multiple lines with similar comma patterns
+      const lines = trimmedContent.split('\n');
+      if (lines.length > 1) {
+        const commaCount = (lines[0].match(/,/g) || []).length;
+        // Most lines should have similar number of commas
+        if (lines.slice(1).filter(line => 
+          line.trim() && (line.match(/,/g) || []).length === commaCount
+        ).length > 0) {
+          return { 
+            mimeType: 'text/csv', 
+            extension: 'csv', 
+            isValid: true 
+          };
+        }
+      }
     }
     
     // JSON detection

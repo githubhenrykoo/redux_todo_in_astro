@@ -12,6 +12,7 @@ import searchReducer from './features/searchSlice';
 import systemReducer from './features/systemSlice';
 import todoReducer from './features/todoSlice';
 import resizeableReducer from './features/resizeableSlice';
+import selectedItemReducer from './features/selectedItemSlice';
 
 const store = configureStore({
   reducer: {
@@ -29,6 +30,7 @@ const store = configureStore({
     panellayout: panellayoutReducer,
     activePanel: activePanelReducer,
     resizeable: resizeableReducer,
+    selectedItem: selectedItemReducer,
   },
   middleware: (getDefaultMiddleware) => 
     getDefaultMiddleware({

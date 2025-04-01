@@ -5,6 +5,7 @@ import { getStoreEngine } from '../../utils/storeAdapter.js';
 import { SafeBuffer } from '../../utils/bufferPolyfill.js';
 import { DEFAULT_PAGE_SIZE } from '../../config/config_constants.js';
 import logger from '../../services/logger.js';
+import ContentTypeInterpreter from '../../content/model/content_type_detector.js';
 
 /**
  * Unified API for CardCollection operations

@@ -2,6 +2,7 @@ import { MCardFromData } from '../content/model/mcard.js';
 import { Page } from '../content/model/card-collection.js';
 import { DEFAULT_PAGE_SIZE, CARDS_DB_PATH } from '../config/config_constants.js';
 import { MCARD_TABLE_SCHEMA, TRIGGERS } from '../models/database_schemas.js';
+import ContentTypeInterpreter from '../content/model/content_type_detector.js';
 import path from 'path';
 import Database from 'better-sqlite3';
 import fs from 'fs';
@@ -277,9 +278,6 @@ class SQLiteEngine {
       // Detect content type BEFORE any transformations
       const isBlob = row.content instanceof Buffer || row.content instanceof Uint8Array;
       const contentForDetection = row.content;
-      
-      // Import ContentTypeInterpreter if not already imported at top of file
-      const ContentTypeInterpreter = require('../content/model/content_type_detector.js').default;
       
       // Detect content type from the raw content
       const contentType = ContentTypeInterpreter.detectContentType(contentForDetection);

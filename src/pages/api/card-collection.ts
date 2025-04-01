@@ -50,6 +50,14 @@ export const GET: APIRoute = async ({ request }) => {
           );
         }
         
+        console.log('card-collection API - Card retrieved:', {
+          hash: card.hash,
+          g_time: card.g_time,
+          contentType: card.contentType,
+          isBuffer: card.content instanceof Buffer,
+          contentLength: card.content ? (typeof card.content === 'string' ? card.content.length : card.content.length) : 0
+        });
+        
         // Return card data
         return new Response(
           JSON.stringify({
@@ -58,7 +66,8 @@ export const GET: APIRoute = async ({ request }) => {
               hash: card.hash,
               content: card.content,
               hash_algorithm: card.hash_algorithm,
-              timestamp: card.g_time || new Date().toISOString()
+              timestamp: card.g_time || new Date().toISOString(),
+              contentType: card.contentType || null
             },
             serverTimestamp: new Date().toISOString()
           }),

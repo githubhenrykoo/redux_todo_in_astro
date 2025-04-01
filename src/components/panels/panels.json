@@ -40,5 +40,8 @@
   },
   "CLMDisplayPanel": {
     "component": "../components/panels/CLMDisplayPanel.jsx"
+  },
+  "ContentViewerPanel": {
+    "component": "../components/panels/ContentViewerPanel.jsx"
   }
 }

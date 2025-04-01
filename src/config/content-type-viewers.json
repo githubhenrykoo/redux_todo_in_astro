@@ -63,6 +63,32 @@
       "fallback": "BinaryViewer.jsx"
     },
     
+    "audio/wav": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "audio/wave": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "audio/x-wav": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "audio/mpeg": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "audio/mp3": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    
     "text/html": {
       "component": "../components/viewers/CodeViewer",
       "priority": 100,

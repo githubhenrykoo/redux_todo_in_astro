@@ -8,6 +8,56 @@ import logger from '../../services/logger.js';
 import ContentTypeInterpreter from '../../content/model/content_type_detector.js';
 
 /**
+ * Processes card content based on content type to return in the most appropriate format
+ * Text formats are returned as plain strings, binary formats as base64
+ */
+function processCardContent(content: any, contentType: string | null): any {
+  // If no content, return as is
+  if (!content) return content;
+  
+  // Handle Buffer JSON format
+  if (typeof content === 'object' && content !== null && content.type === 'Buffer' && Array.isArray(content.data)) {
+    // Create a Uint8Array from the buffer data
+    const array = new Uint8Array(content.data);
+    
+    // If it's a text-based content type, return as string
+    if (contentType && (
+      contentType.startsWith('text/') || 
+      contentType === 'application/json' ||
+      contentType === 'application/javascript' ||
+      contentType === 'application/xml' ||
+      contentType === 'application/yaml'
+    )) {
+      try {
+        // Convert to string using TextDecoder
+        return new TextDecoder().decode(array);
+      } catch (e) {
+        logger.error('Error decoding text content:', e);
+        // If string conversion fails, fallback to base64
+      }
+    }
+    
+    // For binary content types or text conversion failures, return as base64
+    try {
+      // Convert to base64 - fix for TypeScript type issues
+      const base64 = SafeBuffer.from(Array.from(array)).toString('base64');
+      return {
+        type: 'base64',
+        data: base64,
+        originalType: contentType || 'application/octet-stream'
+      };
+    } catch (e) {
+      logger.error('Error converting to base64:', e);
+      // If all conversions fail, return original buffer format
+      return content;
+    }
+  }
+  
+  // If content is already a string, return as is
+  return content;
+}
+
+/**
  * Unified API for CardCollection operations
  * Supports: add, get, delete, getPage, searchByContent
  */
@@ -51,24 +101,39 @@ export const GET: APIRoute = async ({ request }) => {
           );
         }
         
+        // Get content type
+        let contentTypeInfo = null;
+        if (card.contentType) {
+          contentTypeInfo = card.contentType;
+        } else {
+          // Detect content type if not already available
+          contentTypeInfo = ContentTypeInterpreter.detectContentType(card.content);
+        }
+        
+        // Process content based on content type
+        const processedContent = processCardContent(card.content, contentTypeInfo?.mimeType || null);
+        
         console.log('card-collection API - Card retrieved:', {
           hash: card.hash,
           g_time: card.g_time,
-          contentType: card.contentType,
-          isBuffer: card.content instanceof Buffer,
-          contentLength: card.content ? (typeof card.content === 'string' ? card.content.length : card.content.length) : 0
+          contentType: contentTypeInfo,
+          contentFormat: processedContent && typeof processedContent === 'object' && processedContent.type === 'base64' 
+            ? 'base64' 
+            : typeof processedContent,
+          contentLength: processedContent ? (typeof processedContent === 'string' ? processedContent.length : 
+            (processedContent.data ? processedContent.data.length : 0)) : 0
         });
         
-        // Return card data
+        // Return card data with processed content
         return new Response(
           JSON.stringify({
             success: true,
             card: {
               hash: card.hash,
-              content: card.content,
+              content: processedContent,
               hash_algorithm: card.hash_algorithm,
               timestamp: card.g_time || new Date().toISOString(),
-              contentType: card.contentType || null
+              contentType: contentTypeInfo
             },
             serverTimestamp: new Date().toISOString()
           }),

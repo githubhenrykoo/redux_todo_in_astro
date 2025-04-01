@@ -6,7 +6,11 @@ const SIGNATURES = new Map([
   [new Uint8Array([0x42, 0x4D]), 'image/bmp'],
   [new Uint8Array([0x00, 0x00, 0x01, 0x00]), 'image/x-icon'],
   [new Uint8Array([0x00, 0x00, 0x02, 0x00]), 'image/x-icon'],
-  [new Uint8Array([0x52, 0x49, 0x46, 0x46]), 'image/webp'],
+  // Fix: RIFF header needs more specific checking
+  // Because WAV file starts with RIFF and also WEBP could start with RIFF
+  [new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x41, 0x56, 0x45]), 'audio/wav'],
+  [new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]), 'image/webp'],
+  // More specific webp signatures
   [new Uint8Array([0x57, 0x45, 0x42, 0x50]), 'image/webp'],
   [new Uint8Array([0x25, 0x50, 0x44, 0x46]), 'application/pdf'],
   [new Uint8Array([0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]), 'application/msword'],
@@ -60,7 +64,10 @@ const EXTENSION_MAP = {
   'text/csv': 'csv',
   'text/tab-separated-values': 'tsv',
   'video/quicktime': 'mov',
-  'video/mp4': 'mp4'
+  'video/mp4': 'mp4',
+  'audio/wav': 'wav',
+  'audio/wave': 'wav',
+  'audio/x-wav': 'wav'
 };
 
 function startsWith(content, signature) {
@@ -111,7 +118,18 @@ function detectContentType(content) {
       content.type === 'Buffer' && Array.isArray(content.data)) {
     console.log("Detected Buffer JSON format, extracting content");
     
-    // First check for binary content type using signatures
+    // First check for special RIFF formats (WAV vs WEBP)
+    const riffFormat = detectRiffFormat(content);
+    if (riffFormat) {
+      console.log("Detected RIFF format:", riffFormat);
+      return { 
+        mimeType: riffFormat, 
+        extension: getExtension(riffFormat), 
+        isValid: true 
+      };
+    }
+    
+    // Then check for other binary content types using signatures
     try {
       const array = new Uint8Array(content.data);
       // Check first few bytes for common binary formats
@@ -151,6 +169,16 @@ function detectContentType(content) {
         return { 
           mimeType: 'text/tab-separated-values', 
           extension: 'tsv', 
+          isValid: true 
+        };
+      }
+      
+      // Check if it's plain text
+      if (isPlainText(extractedText)) {
+        console.log("Detected plain text content in Buffer");
+        return { 
+          mimeType: 'text/plain', 
+          extension: 'txt', 
           isValid: true 
         };
       }
@@ -198,7 +226,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // Graphviz detection
     if (/^(digraph|graph)\s+\w+\s*{/.test(trimmedContent)) {
       return { 
@@ -207,7 +235,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // PlantUML detection
     if (/^@startuml/.test(trimmedContent) && /@enduml/m.test(trimmedContent)) {
       return { 
@@ -216,7 +244,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // HTML detection
     if (/<(!DOCTYPE|html|body|head|div|script|style)[^>]*>/i.test(trimmedContent)) {
       return { 
@@ -225,7 +253,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // CSS detection
     if (/^(\s*@import|\s*[a-z\.\#\-\_][^{]+\s*\{)/i.test(trimmedContent) && 
         /\{[^\}]*\}/i.test(trimmedContent)) {
@@ -235,7 +263,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // JavaScript detection
     if (/(function|const|let|var|import|export|class|if|return|=>\s*\{|async)[\s\n]/i.test(trimmedContent) &&
         (content.includes('{') && content.includes('}'))) {
@@ -245,7 +273,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // SQL detection
     if (/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TABLE|FROM|WHERE|AND|OR|JOIN)\b/i.test(trimmedContent) &&
         /\b(SELECT|INSERT|CREATE)\b.*\b(FROM|INTO|TABLE)\b/i.test(trimmedContent)) {
@@ -255,7 +283,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // Markdown detection
     if ((/^#\s+.+$/m.test(trimmedContent) || 
          /^==+$|^--+$/m.test(trimmedContent) ||
@@ -268,7 +296,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // YAML detection
     if (/^---(\s*)$/m.test(trimmedContent) || 
         /^(\s*)[\w-]+:(\s+)[^\s]/.test(trimmedContent) &&
@@ -279,7 +307,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // SVG detection
     if (/<svg(\s+)[^>]*>/i.test(trimmedContent) && /<\/svg>/i.test(trimmedContent)) {
       return { 
@@ -288,7 +316,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // JSON detection
     if (/^\{[\s\S]*\}$/.test(trimmedContent) || /^\[[\s\S]*\]$/.test(trimmedContent)) {
       try {
@@ -318,7 +346,7 @@ function detectContentType(content) {
         };
       }
     }
-    
+
     // Check for stringified JavaScript objects (Redux state)
     if (trimmedContent.includes('"cards"') || 
         trimmedContent.includes('"state"') || 
@@ -342,7 +370,7 @@ function detectContentType(content) {
         };
       }
     }
-    
+
     // XML detection
     if (/^<\?xml[\s\S]*\?>[\s\S]*<\w+[\s\S]*>[\s\S]*<\/\w+>$/.test(trimmedContent)) {
       return { 
@@ -351,7 +379,7 @@ function detectContentType(content) {
         isValid: true 
       };
     }
-    
+
     // Plain text
     return { 
       mimeType: 'text/plain', 
@@ -406,10 +434,7 @@ function validateContent(content) {
     // JSON validation
     if (/^\{[\s\S]*\}$/.test(content) || /^\[[\s\S]*\]$/.test(content)) {
       try {
-        const parsed = JSON.parse(content);
-        if (parsed === null || typeof parsed !== 'object') {
-          throw new Error('Invalid JSON content');
-        }
+        JSON.parse(content);
         return true;
       } catch {
         throw new Error('Invalid JSON content');
@@ -562,6 +587,64 @@ function isTSVContent(content) {
   }
   
   return false;
+}
+
+/**
+ * Special case detection for RIFF formats (WAV vs WEBP)
+ */
+function detectRiffFormat(content) {
+  // Check for RIFF header first
+  if (typeof content === 'object' && content !== null) {
+    // For Uint8Array or Buffer
+    if (content instanceof Uint8Array || (content.buffer instanceof ArrayBuffer)) {
+      // Make sure we have enough bytes
+      if (content.length < 12) return null;
+      
+      // Check for RIFF header
+      if (content[0] === 0x52 && content[1] === 0x49 && content[2] === 0x46 && content[3] === 0x46) {
+        // Check for WAVE format
+        if (content[8] === 0x57 && content[9] === 0x41 && content[10] === 0x56 && content[11] === 0x45) {
+          return 'audio/wav';
+        }
+        // Check for WEBP format
+        else if (content[8] === 0x57 && content[9] === 0x45 && content[10] === 0x42 && content[11] === 0x50) {
+          return 'image/webp';
+        }
+      }
+    }
+    // For Buffer JSON format
+    else if (content.type === 'Buffer' && Array.isArray(content.data) && content.data.length >= 12) {
+      // Check for RIFF header
+      if (content.data[0] === 0x52 && content.data[1] === 0x49 && 
+          content.data[2] === 0x46 && content.data[3] === 0x46) {
+        // Check for WAVE format
+        if (content.data[8] === 0x57 && content.data[9] === 0x41 && 
+            content.data[10] === 0x56 && content.data[11] === 0x45) {
+          return 'audio/wav';
+        }
+        // Check for WEBP format
+        else if (content.data[8] === 0x57 && content.data[9] === 0x45 && 
+                content.data[10] === 0x42 && content.data[11] === 0x50) {
+          return 'image/webp';
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Checks if content appears to be plain text
+ */
+function isPlainText(content) {
+  if (!content || typeof content !== 'string') return false;
+  
+  // Check if it's mostly printable ASCII characters
+  const nonPrintableCount = (content.match(/[^\x20-\x7E\r\n\t]/g) || []).length;
+  const textLength = content.length;
+  
+  // If more than 95% of characters are printable, it's likely text
+  return textLength > 0 && (nonPrintableCount / textLength) < 0.05;
 }
 
 export { ContentTypeInterpreter as default };

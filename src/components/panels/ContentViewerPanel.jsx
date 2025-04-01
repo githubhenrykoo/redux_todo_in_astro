@@ -11,6 +11,10 @@ export default function ContentViewerPanel() {
   // Use the new selectedItem state
   const selectedItem = useSelector(state => state.selectedItem);
   
+  // For debugging
+  console.log("ContentViewerPanel - selectedItem state:", selectedItem);
+  console.log("ContentViewerPanel - contentType:", selectedItem.metadata.contentType);
+  
   // Always show the initial state details
   return (
     <div className="h-full flex flex-col">
@@ -49,14 +53,38 @@ export default function ContentViewerPanel() {
           <ContentViewer 
             content={selectedItem.content}
             contentType={{
-              mimeType: selectedItem.metadata?.contentType || 'application/octet-stream',
-              extension: selectedItem.metadata?.contentType 
-                ? selectedItem.metadata.contentType.split('/').pop() 
-                : 'bin'
+              mimeType: getFullMimeType(selectedItem.metadata.contentType),
+              extension: selectedItem.metadata.contentType,
+              originalType: selectedItem.metadata.contentType
             }}
           />
         )}
       </div>
     </div>
   );
+}
+
+// Helper function to convert simplified content type to full MIME type
+function getFullMimeType(simpleType) {
+  if (!simpleType || simpleType === "null") return 'application/octet-stream';
+  
+  // Map common extensions to MIME types
+  const mimeMap = {
+    'json': 'application/json',
+    'js': 'application/javascript',
+    'txt': 'text/plain',
+    'html': 'text/html',
+    'css': 'text/css',
+    'svg': 'image/svg+xml',
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'pdf': 'application/pdf',
+    'csv': 'text/csv',
+    'xml': 'application/xml',
+    'md': 'text/markdown'
+  };
+  
+  return mimeMap[simpleType] || `application/${simpleType}`;
 }

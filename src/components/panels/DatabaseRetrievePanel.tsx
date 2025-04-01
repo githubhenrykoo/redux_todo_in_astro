@@ -172,6 +172,17 @@ export const DatabaseRetrievePanel: React.FC = () => {
   const handleSelectCard = (card: MCardFromData) => {
     setSelectedCardHash(card.hash);
     
+    // Log the card details to see what's actually available
+    console.log("Selected card:", card);
+    console.log("Content type from card:", card.contentType);
+    
+    // Determine the simple content type
+    const simpleType = card.contentType?.extension || 
+                      getSimpleContentType(card.contentType?.mimeType) || 
+                      "txt";
+    
+    console.log("Simple content type determined:", simpleType);
+    
     // Import only the hash to Redux store
     dispatch(importCardFromDatabase({ 
       hash: card.hash,
@@ -191,7 +202,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
     dispatch(selectItem({
       item: card.content,
       hash: card.hash,
-      contentType: card.contentType?.mimeType || "application/json",
+      contentType: simpleType,
       gtime: card.g_time
     }));
     
@@ -214,17 +225,48 @@ export const DatabaseRetrievePanel: React.FC = () => {
       const data = await response.json();
       
       if (data.success && data.card) {
+        console.log("Fetched card details:", data.card);
+        
+        // Determine the simple content type
+        const simpleType = data.card.contentType?.extension || 
+                          getSimpleContentType(data.card.contentType?.mimeType) || 
+                          "txt";
+        
+        console.log("Simple content type for fetched card:", simpleType);
+        
         // Update the selectedItem with the full content and metadata
         dispatch(selectItem({
           item: data.card.content,
           hash: data.card.hash,
-          contentType: data.card.contentType?.mimeType || "application/json",
+          contentType: simpleType,
           gtime: data.card.g_time
         }));
       }
     } catch (err) {
       console.error('Error fetching card details:', err);
     }
+  };
+
+  // Helper function to extract a simple content type from MIME type
+  const getSimpleContentType = (mimeType?: string): string | null => {
+    if (!mimeType) return null;
+    
+    // Extract the subtype from the MIME type
+    const parts = mimeType.split('/');
+    if (parts.length < 2) return null;
+    
+    const subtype = parts[1];
+    
+    // Handle special cases
+    if (subtype.includes('json')) return 'json';
+    if (subtype.includes('javascript')) return 'js';
+    if (subtype === 'plain') return 'txt';
+    if (subtype === 'html') return 'html';
+    if (subtype === 'css') return 'css';
+    if (subtype === 'svg+xml') return 'svg';
+    
+    // Return the subtype as-is for common formats (gif, png, jpg, etc.)
+    return subtype;
   };
 
   // Handle reset

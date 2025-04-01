@@ -55,3 +55,7 @@ tests/data
 
 public/data/cards.db-shm
 public/data/cards.db-wal
+public/data/cards.db
+
+# Database files
+# public/data/cards.db

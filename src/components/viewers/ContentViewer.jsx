@@ -1,19 +1,28 @@
 // src/components/viewers/ContentViewer.jsx
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import contentViewerConfig from '../../config/content-type-viewers.json';
 
-// Get configuration from the JSON file
-const { CONTENT_VIEWERS, CONTENT_TYPE_OVERRIDE_RULES } = contentViewerConfig;
+// Import all viewer components statically
+// When a new viewer is added, it needs to be imported here
+import DefaultViewer from './DefaultViewer';
+import BinaryViewer from './BinaryViewer';
+import TextViewer from './TextViewer';
+import GIFViewer from './GIFViewer';
+import JPGViewer from './JPGViewer';
+import PNGViewer from './PNGViewer';
 
-// Fallback component while the real viewer is loading
-const ViewerLoading = () => (
-  <div className="h-full w-full flex items-center justify-center">
-    <div className="animate-pulse text-gray-400">Loading viewer...</div>
-  </div>
-);
+// Component map to avoid dynamic imports that Vite can't handle
+const COMPONENT_MAP = {
+  'BinaryViewer.jsx': BinaryViewer,
+  'TextViewer.jsx': TextViewer,
+  'GIFViewer.jsx': GIFViewer,
+  'JPGViewer.jsx': JPGViewer,
+  'PNGViewer.jsx': PNGViewer,
+  // Add other components as they are created
+};
 
-// Default viewer when no appropriate viewer is found
-const DefaultViewer = ({ content, contentType }) => (
+// Create a DefaultViewer component
+const DefaultViewerComponent = ({ content, contentType }) => (
   <div className="p-4 bg-gray-100 rounded h-full overflow-auto">
     <div className="text-sm font-mono text-gray-800 whitespace-pre-wrap">
       {typeof content === 'string' 
@@ -23,13 +32,18 @@ const DefaultViewer = ({ content, contentType }) => (
   </div>
 );
 
+// Fallback component while the real viewer is loading
+const ViewerLoading = () => (
+  <div className="h-full w-full flex items-center justify-center">
+    <div className="animate-pulse text-gray-400">Loading viewer...</div>
+  </div>
+);
+
 // Helper function to test content against override rules
 const testContentTypeOverride = (content) => {
   if (!content) return null;
   
   for (const rule of CONTENT_TYPE_OVERRIDE_RULES) {
-    // Since we can't store functions in JSON, we use eval to convert string test to function
-    // This is generally not recommended for security reasons, but in this controlled environment it's acceptable
     try {
       // For Redux state detection
       if (rule.description === "Detect Redux state format to use specialized viewer") {
@@ -51,12 +65,28 @@ const testContentTypeOverride = (content) => {
   return null;
 };
 
+// Get configuration from the JSON file
+const { CONTENT_VIEWERS, CONTENT_TYPE_OVERRIDE_RULES } = contentViewerConfig;
+
+// Helper function to get component name from full path
+const getComponentNameFromPath = (path) => {
+  if (!path) return null;
+  // Extract just the file name from the path
+  const parts = path.split('/');
+  return parts[parts.length - 1];
+};
+
 export const ContentViewer = ({ content, contentType }) => {
   const [Viewer, setViewer] = useState(null);
   const [viewerProps, setViewerProps] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   useEffect(() => {
-    if (!content) return;
+    if (!content) {
+      setIsLoading(false);
+      return;
+    }
     
     // Get the original MIME type
     let mimeType = contentType?.mimeType || 'application/octet-stream';
@@ -78,73 +108,64 @@ export const ContentViewer = ({ content, contentType }) => {
     if (!viewerConfig) {
       // Fallback to default viewer
       console.log(`ContentViewer - No viewer found for ${mimeType}, using default viewer`);
-      setViewer(() => DefaultViewer);
+      setViewer(() => DefaultViewerComponent);
+      setIsLoading(false);
       return;
     }
     
-    // Import the viewer component
-    try {
-      console.log(`ContentViewer - Loading viewer for ${mimeType}: ${viewerConfig.component}`);
-      
-      // For simplicity in this initial implementation, we'll use a direct mapping instead of dynamic imports
-      // This will be replaced with proper dynamic imports in a production version
-      let ViewerComponent;
-      
-      switch(viewerConfig.component) {
-        case '../components/viewers/JSONViewer':
-          // When we add more viewers, we'll handle them here
-          import('./JSONViewer').then(module => {
-            setViewer(() => module.default || module.JSONViewer);
-            setViewerProps(viewerConfig.options || {});
-          }).catch(error => {
-            console.error(`Error loading JSONViewer:`, error);
-            setViewer(() => DefaultViewer);
-          });
-          break;
-        case '../components/viewers/ReduxStateViewer':
-          import('./ReduxStateViewer').then(module => {
-            setViewer(() => module.default || module.ReduxStateViewer);
-            setViewerProps(viewerConfig.options || {});
-          }).catch(error => {
-            console.error(`Error loading ReduxStateViewer:`, error);
-            setViewer(() => DefaultViewer);
-          });
-          break;
-        case '../components/viewers/TextViewer':
-          import('./TextViewer').then(module => {
-            setViewer(() => module.default || module.TextViewer);
-            setViewerProps(viewerConfig.options || {});
-          }).catch(error => {
-            console.error(`Error loading TextViewer:`, error);
-            setViewer(() => DefaultViewer);
-          });
-          break;
-        case '../components/viewers/BinaryViewer':
-          import('./BinaryViewer').then(module => {
-            setViewer(() => module.default || module.BinaryViewer);
-            setViewerProps(viewerConfig.options || {});
-          }).catch(error => {
-            console.error(`Error loading BinaryViewer:`, error);
-            setViewer(() => DefaultViewer);
-          });
-          break;
-        // Add cases for other viewers as they are implemented
-        default:
-          console.log(`ContentViewer - Viewer component not yet implemented: ${viewerConfig.component}`);
-          setViewer(() => DefaultViewer);
-      }
-    } catch (error) {
-      console.error(`Error loading viewer for ${mimeType}:`, error);
-      setViewer(() => DefaultViewer);
+    // Get the component name from the path
+    const componentName = getComponentNameFromPath(viewerConfig.component);
+    if (!componentName) {
+      console.error(`Invalid component path: ${viewerConfig.component}`);
+      setViewer(() => DefaultViewerComponent);
+      setIsLoading(false);
+      return;
     }
+    
+    // Set props from config
+    setViewerProps(viewerConfig.options || {});
+    
+    // Get the viewer component from the component map
+    const ViewerComponent = COMPONENT_MAP[componentName];
+    
+    if (ViewerComponent) {
+      console.log(`Successfully loaded component: ${componentName}`);
+      setViewer(() => ViewerComponent);
+      setIsLoading(false);
+    } else {
+      console.error(`Component not found in map: ${componentName}`);
+      // If the component has a fallback specified in the config, try that
+      if (viewerConfig.fallback && COMPONENT_MAP[viewerConfig.fallback]) {
+        console.log(`Using fallback component: ${viewerConfig.fallback}`);
+        setViewer(() => COMPONENT_MAP[viewerConfig.fallback]);
+      } else {
+        setViewer(() => DefaultViewerComponent);
+      }
+      setIsLoading(false);
+    }
+    
   }, [content, contentType]);
   
   if (!content) {
     return <div className="p-4 text-gray-500">No content to display</div>;
   }
   
-  if (!Viewer) {
+  if (isLoading) {
     return <ViewerLoading />;
+  }
+  
+  if (error) {
+    return (
+      <div className="p-4 text-red-500">
+        <p className="font-medium">{error}</p>
+        <p className="text-sm mt-2">Using default viewer instead.</p>
+        <DefaultViewerComponent content={content} contentType={contentType} />
+      </div>
+    );
+  }
+  
+  if (!Viewer) {
+    return <DefaultViewerComponent content={content} contentType={contentType} />;
   }
   
   return (

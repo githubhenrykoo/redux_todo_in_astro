@@ -14,22 +14,23 @@
     },
     
     "image/jpeg": {
-      "component": "../components/viewers/ImageViewer",
+      "component": "JPGViewer.jsx",
       "priority": 100
     },
     "image/png": {
-      "component": "../components/viewers/ImageViewer",
-      "priority": 100
+      "component": "PNGViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
     },
     "image/gif": {
-      "component": "../components/viewers/ImageViewer",
+      "component": "GIFViewer.jsx",
       "priority": 100
     },
     "image/svg+xml": {
-      "component": "../components/viewers/SVGViewer",
-      "priority": 100
+      "component": "SVGViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
     },
-    
     "text/html": {
       "component": "../components/viewers/CodeViewer",
       "priority": 100,

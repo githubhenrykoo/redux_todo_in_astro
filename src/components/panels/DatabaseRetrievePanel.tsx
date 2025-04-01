@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { importCardFromDatabase, selectContent } from '../../features/contentSlice';
 import { selectItem } from '../../features/selectedItemSlice';
+import { detectContentType } from '../../utils/bufferContentHelper';
 
 // Import our new components
 import { SearchBar } from './database/SearchBar';
@@ -176,12 +177,24 @@ export const DatabaseRetrievePanel: React.FC = () => {
     console.log("Selected card:", card);
     console.log("Content type from card:", card.contentType);
     
-    // Determine the simple content type
-    const simpleType = card.contentType?.extension || 
-                      getSimpleContentType(card.contentType?.mimeType) || 
-                      "txt";
+    // Try to detect content type from the actual content if available
+    let simpleType = card.contentType?.extension;
     
-    console.log("Simple content type determined:", simpleType);
+    if (card.content) {
+      // Use content-based detection if available
+      const detectedType = detectContentType(card.content);
+      if (detectedType) {
+        console.log("Content-based type detection:", detectedType);
+        simpleType = detectedType;
+      }
+    }
+    
+    // Fall back to metadata if needed
+    if (!simpleType) {
+      simpleType = getSimpleContentType(card.contentType?.mimeType) || "txt";
+    }
+    
+    console.log("Final content type determined:", simpleType);
     
     // Import only the hash to Redux store
     dispatch(importCardFromDatabase({ 
@@ -227,12 +240,26 @@ export const DatabaseRetrievePanel: React.FC = () => {
       if (data.success && data.card) {
         console.log("Fetched card details:", data.card);
         
-        // Determine the simple content type
-        const simpleType = data.card.contentType?.extension || 
-                          getSimpleContentType(data.card.contentType?.mimeType) || 
-                          "txt";
+        // Try to detect content type from the actual content
+        let simpleType;
         
-        console.log("Simple content type for fetched card:", simpleType);
+        if (data.card.content) {
+          // Use content-based detection
+          const detectedType = detectContentType(data.card.content);
+          if (detectedType) {
+            simpleType = detectedType;
+            console.log("Content-based type detection for fetched card:", detectedType);
+          }
+        }
+        
+        // Fall back to metadata if needed
+        if (!simpleType) {
+          simpleType = data.card.contentType?.extension || 
+                      getSimpleContentType(data.card.contentType?.mimeType) || 
+                      "txt";
+        }
+        
+        console.log("Final content type for fetched card:", simpleType);
         
         // Update the selectedItem with the full content and metadata
         dispatch(selectItem({
@@ -251,22 +278,62 @@ export const DatabaseRetrievePanel: React.FC = () => {
   const getSimpleContentType = (mimeType?: string): string | null => {
     if (!mimeType) return null;
     
+    // Log the MIME type for debugging
+    console.log("Detecting content type from MIME:", mimeType);
+    
     // Extract the subtype from the MIME type
     const parts = mimeType.split('/');
     if (parts.length < 2) return null;
     
+    const type = parts[0];
     const subtype = parts[1];
     
-    // Handle special cases
-    if (subtype.includes('json')) return 'json';
-    if (subtype.includes('javascript')) return 'js';
-    if (subtype === 'plain') return 'txt';
-    if (subtype === 'html') return 'html';
-    if (subtype === 'css') return 'css';
-    if (subtype === 'svg+xml') return 'svg';
+    // Handle text types
+    if (type === 'text') {
+      // Specific text subtypes
+      if (subtype === 'plain') return 'txt';
+      if (subtype === 'csv') return 'csv';
+      if (subtype === 'tab-separated-values') return 'tsv';
+      if (subtype === 'markdown' || subtype === 'x-markdown') return 'md';
+      if (subtype === 'html') return 'html';
+      if (subtype === 'css') return 'css';
+      
+      // Default for other text types is txt
+      return 'txt';
+    }
     
-    // Return the subtype as-is for common formats (gif, png, jpg, etc.)
-    return subtype;
+    // Handle application types
+    if (type === 'application') {
+      if (subtype.includes('json')) return 'json';
+      if (subtype.includes('javascript')) return 'js';
+      if (subtype === 'pdf') return 'pdf';
+      if (subtype === 'xml') return 'xml';
+      if (subtype === 'yaml' || subtype === 'x-yaml') return 'yaml';
+      if (subtype === 'octet-stream') {
+        // For octet-stream, we need to analyze the content for better detection
+        // This is done in the ContentViewerPanel
+        return 'bin';
+      }
+      
+      // Don't return "data" as a type - use something more specific
+      if (subtype === 'data') return 'bin';
+    }
+    
+    // Handle image types
+    if (type === 'image') {
+      if (subtype === 'svg+xml') return 'svg';
+      // For other image types, use the subtype
+      return subtype;
+    }
+    
+    // Avoid generic "data" type 
+    if (subtype === 'data' || subtype === 'octet-stream') {
+      return 'bin';
+    }
+    
+    // Analyze content based on the supplied extension if available
+    console.log("Using subtype as fallback:", subtype);
+    return subtype || 'bin';
   };
 
   // Handle reset

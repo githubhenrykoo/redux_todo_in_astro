@@ -7,9 +7,15 @@ interface CardProps {
     hash: string;
     g_time: string;
     content?: any;
+    contentType?: {
+      mimeType: string;
+      extension: string;
+      isBlob: boolean;
+      isValid: boolean;
+    };
   };
   isSelected: boolean;
-  onSelect: (card: { hash: string; g_time: string; content?: any }) => void;
+  onSelect: (card: { hash: string; g_time: string; content?: any; contentType?: any }) => void;
 }
 
 // Helper function for detecting Redux state data
@@ -33,7 +39,20 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect }) => {
   }>({});
 
   useEffect(() => {
-    // Set default content type based on hash patterns
+    // If we have explicit contentType information from the API, use it
+    if (card.contentType) {
+      console.log('Card component - Using explicit content type from API:', card.contentType);
+      console.log('Card component - Card content type:', typeof card.content);
+      console.log('Card component - Card content preview:', 
+        typeof card.content === 'string' 
+          ? card.content.substring(0, 50) 
+          : (card.content && typeof card.content === 'object' ? 'Object: ' + Object.keys(card.content).join(', ') : 'Non-string, non-object')
+      );
+      setContentType(card.contentType);
+      return;
+    }
+    
+    // Set default content type based on hash patterns if no explicit type and no content
     const setDefaultContentType = () => {
       // Default to Redux JSON state for most cards based on our SQLite data
       if (card.hash.startsWith('1') || card.hash.startsWith('2') || 

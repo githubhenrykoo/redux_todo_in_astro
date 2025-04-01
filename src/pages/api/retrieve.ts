@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { SQLiteEngine } from '../../engine/sqlite_engine.js';
 import { CardCollection } from '../../content/model/card-collection.js';
+import ContentTypeInterpreter from '../../content/model/content_type_detector.js';
 
 interface RetrieverParams {
   hashValue?: string;
@@ -79,8 +80,44 @@ export const GET: APIRoute = async ({ request }) => {
       ...result,
       serverTimestamp: new Date().toISOString(),
       retrievalMethod: params.hashValue ? 'hash' : 
-                       params.searchTerm ? 'search' : 'all'
+                      params.searchTerm ? 'search' : 'all'
     };
+
+    // For search and pagination results, ensure that each item in items array has contentType
+    if (responseData.items && Array.isArray(responseData.items)) {
+      // Map over the items to ensure each has contentType information
+      responseData.items = responseData.items.map((item: any) => {
+        // If item already has contentType, keep it
+        if (item.contentType) {
+          return item;
+        }
+        
+        // If no contentType, detect it now
+        try {
+          // Check if content is a Buffer/Uint8Array
+          const isBlob = item.content instanceof Buffer || item.content instanceof Uint8Array;
+          
+          // Detect content type using the original content
+          const contentType = ContentTypeInterpreter.detectContentType(item.content);
+          
+          // Add isBlob flag to the contentType object
+          const enhancedContentType = {
+            ...contentType,
+            isBlob: isBlob
+          };
+          
+          // Return the updated item with contentType
+          return {
+            ...item,
+            contentType: enhancedContentType
+          };
+        } catch (error) {
+          console.error('Error detecting content type:', error);
+          // Return the original item if detection fails
+          return item;
+        }
+      });
+    }
 
     return new Response(
       JSON.stringify(responseData),

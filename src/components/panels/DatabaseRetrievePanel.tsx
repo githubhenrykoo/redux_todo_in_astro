@@ -27,6 +27,12 @@ interface MCardFromData {
   hash: string;
   g_time: string;
   content?: any;
+  contentType?: {
+    mimeType: string;
+    extension: string;
+    isBlob: boolean;
+    isValid: boolean;
+  };
 }
 
 export const DatabaseRetrievePanel: React.FC = () => {

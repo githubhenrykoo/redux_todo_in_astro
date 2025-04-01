@@ -253,7 +253,7 @@ class SQLiteEngine {
       
       // Query the database for the card
       const stmt = this.connection.conn.prepare(
-        'SELECT hash, content, g_time FROM card WHERE hash = ?'
+        'SELECT hash, content, g_time, typeof(content) as content_type FROM card WHERE hash = ?'
       );
       
       const row = stmt.get(String(hash));
@@ -263,9 +263,35 @@ class SQLiteEngine {
         return null;
       }
       
-      // Parse content if it's a JSON string
+      console.log(`SQLiteEngine.get - Raw content typeof:`, row.content_type);
+      console.log(`SQLiteEngine.get - JS typeof:`, typeof row.content);
+      console.log(`SQLiteEngine.get - Is Buffer:`, row.content instanceof Buffer);
+      console.log(`SQLiteEngine.get - Content length:`, row.content ? row.content.length : 0);
+      
+      if (row.content instanceof Buffer) {
+        console.log(`SQLiteEngine.get - Buffer content first 20 bytes:`, row.content.slice(0, 20).toString('hex'));
+      } else if (typeof row.content === 'string') {
+        console.log(`SQLiteEngine.get - String content first 50 chars:`, row.content.substring(0, 50));
+      }
+      
+      // Detect content type BEFORE any transformations
+      const isBlob = row.content instanceof Buffer || row.content instanceof Uint8Array;
+      const contentForDetection = row.content;
+      
+      // Import ContentTypeInterpreter if not already imported at top of file
+      const ContentTypeInterpreter = require('../content/model/content_type_detector.js').default;
+      
+      // Detect content type from the raw content
+      const contentType = ContentTypeInterpreter.detectContentType(contentForDetection);
+      
+      console.log(`SQLiteEngine.get - Detected contentType:`, contentType);
+      
+      // Add isBlob flag to contentType object
+      contentType.isBlob = isBlob;
+      
+      // Parse content if it's a JSON string - but only if not detected as another type
       let content = row.content;
-      if (typeof content === 'string') {
+      if (typeof content === 'string' && contentType.mimeType === 'application/json') {
         try {
           // Check if the string is a JSON object
           if (content.startsWith('{') || content.startsWith('[')) {
@@ -284,7 +310,8 @@ class SQLiteEngine {
       return {
         hash: row.hash,
         content: content,
-        g_time: row.g_time
+        g_time: row.g_time,
+        contentType: contentType  // Add content type information to the response
       };
     } catch (error) {
       console.error('Error retrieving card:', error);

@@ -52,3 +52,6 @@ tests/data
 /playwright-report/
 /test-results/
 /tests/data/
+
+public/data/cards.db-shm
+public/data/cards.db-wal

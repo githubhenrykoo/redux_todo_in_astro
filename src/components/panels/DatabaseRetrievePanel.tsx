@@ -174,38 +174,27 @@ export const DatabaseRetrievePanel: React.FC = () => {
     
     // Log the card details to see what's actually available
     console.log("Selected card:", card);
-    console.log("Content type from card:", card.contentType);
     
-    // Determine the simple content type
-    const simpleType = card.contentType?.extension || 
-                      getSimpleContentType(card.contentType?.mimeType) || 
-                      "txt";
+    // Get content type directly from server response
+    const serverContentType = card.contentType;
+    console.log("Server-provided content type:", serverContentType);
     
-    console.log("Simple content type determined:", simpleType);
+    // Extract a simple content type string for the UI
+    const simpleType = serverContentType?.extension || 
+                       (serverContentType?.mimeType ? getSimpleContentType(serverContentType.mimeType) : null) || 
+                       "txt";
     
-    // Process the content based on its format
+    console.log("Using content type:", simpleType);
+    
+    // Process the content based on its format - server has already processed it
     let processedContent = card.content;
     
-    // Check if content is in base64 format from API
-    if (card.content && typeof card.content === 'object' && card.content.type === 'base64') {
-      console.log("Content is in base64 format, original type:", card.content.originalType);
-      // Keep as is - components will handle base64 format
-      processedContent = card.content;
-    } else if (card.content && typeof card.content === 'object' && card.content.type === 'Buffer') {
-      // For backward compatibility, if we still get Buffer JSON format
-      console.log("Content is in Buffer JSON format");
-      processedContent = card.content;
-    } else {
-      // String or other format, keep as is
-      console.log("Content is in format:", typeof card.content);
-    }
-    
-    // Import only the hash to Redux store
+    // Import the card to Redux store
     dispatch(importCardFromDatabase({ 
       hash: card.hash,
       content: processedContent,
       metadata: {
-        contentType: card.contentType
+        contentType: serverContentType
       },
       relationships: {
         parentHash: null,
@@ -246,12 +235,15 @@ export const DatabaseRetrievePanel: React.FC = () => {
       if (data.success && data.card) {
         console.log("Fetched card details:", data.card);
         
-        // Determine the simple content type
-        const simpleType = data.card.contentType?.extension || 
-                          getSimpleContentType(data.card.contentType?.mimeType) || 
-                          "txt";
+        // Get content type directly from server response
+        const serverContentType = data.card.contentType;
         
-        console.log("Simple content type for fetched card:", simpleType);
+        // Extract a simple content type string for the UI
+        const simpleType = serverContentType?.extension || 
+                           (serverContentType?.mimeType ? getSimpleContentType(serverContentType.mimeType) : null) || 
+                           "txt";
+        
+        console.log("Using server-provided content type:", simpleType);
         
         // Update the selectedItem with the full content and metadata
         dispatch(selectItem({

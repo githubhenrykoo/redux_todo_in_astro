@@ -5,11 +5,11 @@
       "priority": 100
     },
     "application/json": {
-      "component": "../components/viewers/JSONViewer",
+      "component": "JSONViewer.jsx",
       "priority": 100
     },
     "application/xml": {
-      "component": "../components/viewers/XMLViewer",
+      "component": "XMLViewer.jsx",
       "priority": 100
     },
     
@@ -32,71 +32,71 @@
       "fallback": "BinaryViewer.jsx"
     },
     "text/html": {
-      "component": "../components/viewers/CodeViewer",
+      "component": "HTMLViewer.jsx",
       "priority": 100,
       "options": { "language": "html" }
     },
     "text/css": {
-      "component": "../components/viewers/CodeViewer",
+      "component": "CSSViewer.jsx",
       "priority": 100,
       "options": { "language": "css" }
     },
     "application/javascript": {
-      "component": "../components/viewers/CodeViewer",
+      "component": "JSViewer.jsx",
       "priority": 100,
       "options": { "language": "javascript" }
     },
     "application/sql": {
-      "component": "../components/viewers/CodeViewer",
+      "component": "SQLViewer.jsx",
       "priority": 100,
       "options": { "language": "sql" }
     },
     "text/markdown": {
-      "component": "../components/viewers/MarkdownViewer",
+      "component": "MarkdownViewer.jsx",
       "priority": 100
     },
     "application/yaml": {
-      "component": "../components/viewers/CodeViewer",
+      "component": "YAMLViewer.jsx",
       "priority": 100,
       "options": { "language": "yaml" }
     },
     
     "text/csv": {
-      "component": "../components/viewers/DataTableViewer",
+      "component": "CSVViewer.jsx",
       "priority": 100,
       "options": { "delimiter": "," }
     },
     "text/tab-separated-values": {
-      "component": "../components/viewers/DataTableViewer",
+      "component": "TSVViewer.jsx",
       "priority": 100,
       "options": { "delimiter": "\t" }
     },
     
     "text/x-mermaid": {
-      "component": "../components/viewers/MermaidViewer",
+      "component": "MermaidViewer.jsx",
       "priority": 100
     },
     "text/x-plantuml": {
-      "component": "../components/viewers/PlantUMLViewer",
+      "component": "PlantUMLViewer.jsx",
       "priority": 100
     },
     "text/vnd.graphviz": {
-      "component": "../components/viewers/GraphvizViewer",
+      "component": "GraphvizViewer.jsx",
       "priority": 100
     },
     
     "text/plain": {
-      "component": "../components/viewers/TextViewer",
+      "component": "TextViewer.jsx",
       "priority": 10
     },
     
     "application/redux-state": {
-      "component": "../components/viewers/ReduxStateViewer",
+      "component": "ReduxStateViewer.jsx",
       "priority": 200
     },
     
     "application/octet-stream": {
-      "component": "../components/viewers/BinaryViewer",
+      "component": "BinaryViewer.jsx",
       "priority": 1
     }
   },

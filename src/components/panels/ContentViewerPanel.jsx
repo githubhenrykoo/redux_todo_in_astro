@@ -17,9 +17,9 @@ export default function ContentViewerPanel() {
   
   // Always show the initial state details
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col w-full overflow-hidden">
       {/* Metadata Display Section */}
-      <div className="p-2 border-b bg-gray-100">
+      <div className="p-2 border-b bg-gray-100 shrink-0">
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
             <span className="font-semibold">Hash:</span> 
@@ -42,7 +42,7 @@ export default function ContentViewerPanel() {
         </div>
       </div>
       
-      {/* Content Viewer Section - Added text wrapping */}
+      {/* Content Viewer Section with stricter overflow constraints */}
       <div className="flex-1 overflow-auto p-4 w-full">
         {selectedItem.selectedItem === null ? (
           <div className="text-center text-gray-500">
@@ -50,7 +50,7 @@ export default function ContentViewerPanel() {
             <p className="text-sm">Choose an item to view its details</p>
           </div>
         ) : (
-          <div className="break-words whitespace-normal overflow-x-auto w-full">
+          <div className="break-all whitespace-normal overflow-hidden w-full max-w-full">
             <ContentViewer 
               content={selectedItem.content}
               contentType={{

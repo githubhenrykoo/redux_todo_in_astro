@@ -68,9 +68,8 @@ const XtermPanel = ({ className = '' }) => {
             background: '#1e1e1e',
             foreground: '#f0f0f0',
           },
-          fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-          fontSize: 14,
-          lineHeight: 1.2,
+          fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", "Source Code Pro", Menlo, Monaco, "Courier New", monospace',
+          fontSize: 12,
           convertEol: true,
         });
         

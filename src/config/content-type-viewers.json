@@ -5,11 +5,11 @@
       "priority": 100
     },
     "application/json": {
-      "component": "JSONViewer.jsx",
+      "component": "../components/viewers/JSONViewer",
       "priority": 100
     },
     "application/xml": {
-      "component": "XMLViewer.jsx",
+      "component": "../components/viewers/XMLViewer",
       "priority": 100
     },
     
@@ -31,72 +31,104 @@
       "priority": 100,
       "fallback": "BinaryViewer.jsx"
     },
+    
+    "video/quicktime": {
+      "component": "MOVViewer.jsx",
+      "priority": 100,
+      "fallback": "VideoViewer.jsx"
+    },
+    "video/mp4": {
+      "component": "VideoViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "video/webm": {
+      "component": "VideoViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "video/x-msvideo": {
+      "component": "VideoViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "video/x-matroska": {
+      "component": "VideoViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "video/mpeg": {
+      "component": "VideoViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    
     "text/html": {
-      "component": "HTMLViewer.jsx",
+      "component": "../components/viewers/CodeViewer",
       "priority": 100,
       "options": { "language": "html" }
     },
     "text/css": {
-      "component": "CSSViewer.jsx",
+      "component": "../components/viewers/CodeViewer",
       "priority": 100,
       "options": { "language": "css" }
     },
     "application/javascript": {
-      "component": "JSViewer.jsx",
+      "component": "../components/viewers/CodeViewer",
       "priority": 100,
       "options": { "language": "javascript" }
     },
     "application/sql": {
-      "component": "SQLViewer.jsx",
+      "component": "../components/viewers/CodeViewer",
       "priority": 100,
       "options": { "language": "sql" }
     },
     "text/markdown": {
-      "component": "MarkdownViewer.jsx",
+      "component": "../components/viewers/MarkdownViewer",
       "priority": 100
     },
     "application/yaml": {
-      "component": "YAMLViewer.jsx",
+      "component": "../components/viewers/CodeViewer",
       "priority": 100,
       "options": { "language": "yaml" }
     },
     
     "text/csv": {
-      "component": "CSVViewer.jsx",
+      "component": "../components/viewers/DataTableViewer",
       "priority": 100,
       "options": { "delimiter": "," }
     },
     "text/tab-separated-values": {
-      "component": "TSVViewer.jsx",
+      "component": "../components/viewers/DataTableViewer",
       "priority": 100,
       "options": { "delimiter": "\t" }
     },
     
     "text/x-mermaid": {
-      "component": "MermaidViewer.jsx",
+      "component": "../components/viewers/MermaidViewer",
       "priority": 100
     },
     "text/x-plantuml": {
-      "component": "PlantUMLViewer.jsx",
+      "component": "../components/viewers/PlantUMLViewer",
       "priority": 100
     },
     "text/vnd.graphviz": {
-      "component": "GraphvizViewer.jsx",
+      "component": "../components/viewers/GraphvizViewer",
       "priority": 100
     },
     
     "text/plain": {
-      "component": "TextViewer.jsx",
+      "component": "../components/viewers/TextViewer",
       "priority": 10
     },
     
     "application/redux-state": {
-      "component": "ReduxStateViewer.jsx",
+      "component": "../components/viewers/ReduxStateViewer",
       "priority": 200
     },
     
     "application/octet-stream": {
-      "component": "BinaryViewer.jsx",
+      "component": "../components/viewers/BinaryViewer",
       "priority": 1
     }
   },

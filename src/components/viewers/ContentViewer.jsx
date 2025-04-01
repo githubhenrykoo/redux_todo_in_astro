@@ -11,9 +11,8 @@ import GIFViewer from './GIFViewer';
 import JPGViewer from './JPGViewer';
 import PNGViewer from './PNGViewer';
 import PDFViewer from './PDFViewer';
-import DataTableViewer from './DataTableViewer';
-import ImageViewer from './ImageViewer';
-import ReduxStateViewer from './ReduxStateViewer';
+import VideoViewer from './VideoViewer';
+import MOVViewer from './MOVViewer';
 
 // Component map to avoid dynamic imports that Vite can't handle
 const COMPONENT_MAP = {
@@ -23,9 +22,8 @@ const COMPONENT_MAP = {
   'JPGViewer.jsx': JPGViewer,
   'PNGViewer.jsx': PNGViewer,
   'PDFViewer.jsx': PDFViewer,
-  'DataTableViewer.jsx': DataTableViewer,
-  'ImageViewer.jsx': ImageViewer,
-  'ReduxStateViewer.jsx': ReduxStateViewer,
+  'VideoViewer.jsx': VideoViewer,
+  'MOVViewer.jsx': MOVViewer,
   // Add other components as they are created
 };
 

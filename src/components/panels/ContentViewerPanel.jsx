@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import ContentViewer from '../viewers/ContentViewer';
-import { detectContentType, getMimeType, convertBufferToString } from '../../utils/bufferContentHelper';
 
 /**
  * A panel that displays content using the appropriate viewer based on content type
@@ -11,29 +10,10 @@ import { detectContentType, getMimeType, convertBufferToString } from '../../uti
 export default function ContentViewerPanel() {
   // Use the new selectedItem state
   const selectedItem = useSelector(state => state.selectedItem);
-  const [detectedType, setDetectedType] = useState(null);
   
   // For debugging
   console.log("ContentViewerPanel - selectedItem state:", selectedItem);
   console.log("ContentViewerPanel - contentType:", selectedItem.metadata.contentType);
-  
-  // Detect content type from actual content if possible
-  useEffect(() => {
-    if (selectedItem.content) {
-      // Try to analyze the content to determine its type
-      const detectedContentType = detectContentType(selectedItem.content);
-      console.log("Auto-detected content type:", detectedContentType);
-      
-      if (detectedContentType) {
-        setDetectedType(detectedContentType);
-      } else {
-        // Fall back to the metadata content type
-        setDetectedType(selectedItem.metadata.contentType);
-      }
-    } else {
-      setDetectedType(selectedItem.metadata.contentType);
-    }
-  }, [selectedItem.content, selectedItem.metadata.contentType]);
   
   // Always show the initial state details
   return (
@@ -50,10 +30,7 @@ export default function ContentViewerPanel() {
           <div>
             <span className="font-semibold">Content Type:</span> 
             <span className="ml-2 text-gray-500">
-              {detectedType || selectedItem.metadata.contentType}
-              {detectedType !== selectedItem.metadata.contentType && 
-                detectedType && selectedItem.metadata.contentType && 
-                ` (detected from ${selectedItem.metadata.contentType})`}
+              {selectedItem.metadata.contentType}
             </span>
           </div>
           <div>
@@ -77,8 +54,8 @@ export default function ContentViewerPanel() {
             <ContentViewer 
               content={selectedItem.content}
               contentType={{
-                mimeType: getMimeType(detectedType || selectedItem.metadata.contentType),
-                extension: detectedType || selectedItem.metadata.contentType
+                mimeType: getFullMimeType(selectedItem.metadata.contentType),
+                extension: selectedItem.metadata.contentType
               }}
             />
           </div>
@@ -86,4 +63,37 @@ export default function ContentViewerPanel() {
       </div>
     </div>
   );
+}
+
+// Helper function to convert simplified content type to full MIME type
+function getFullMimeType(simpleType) {
+  if (!simpleType || simpleType === "null") return 'application/octet-stream';
+  
+  // Map common extensions to MIME types
+  const mimeMap = {
+    'json': 'application/json',
+    'js': 'application/javascript',
+    'txt': 'text/plain',
+    'html': 'text/html',
+    'css': 'text/css',
+    'svg': 'image/svg+xml',
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'pdf': 'application/pdf',
+    'csv': 'text/csv',
+    'xml': 'application/xml',
+    'md': 'text/markdown',
+    // Add video formats
+    'mov': 'video/quicktime',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'avi': 'video/x-msvideo',
+    'mkv': 'video/x-matroska',
+    'mpeg': 'video/mpeg',
+    'mpg': 'video/mpeg'
+  };
+  
+  return mimeMap[simpleType] || `application/${simpleType}`;
 }

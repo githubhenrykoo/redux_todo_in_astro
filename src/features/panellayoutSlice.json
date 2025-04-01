@@ -1,7 +1,7 @@
 {
     "generate_layout": {
         "left": {
-            "type": "SearchAndContent",
+            "type": "DatabaseRetrievePanel",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -13,7 +13,7 @@
             "visible": true
         },
         "right": {
-            "type": "DatabaseRetrievePanel",
+            "type": "SearchAndContent",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -41,7 +41,7 @@
     },
     "clm_layout": {
         "left": {
-            "type": "ContentDetailPanel",
+            "type": "DatabaseRetrievePanel",
             "size": 33,
             "minSize": 20,
             "visible": true
@@ -53,7 +53,7 @@
             "visible": true
         },
         "right": {
-            "type": "DatabaseRetrievePanel",
+            "type": "ContentDetailPanel",
             "size": 33,
             "minSize": 20,
             "visible": true

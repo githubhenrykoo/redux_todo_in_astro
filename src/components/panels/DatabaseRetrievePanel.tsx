@@ -26,6 +26,7 @@ interface PageData {
 interface MCardFromData {
   hash: string;
   g_time: string;
+  content?: any;
 }
 
 export const DatabaseRetrievePanel: React.FC = () => {
@@ -45,8 +46,8 @@ export const DatabaseRetrievePanel: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Make the API request using the card-collection GET endpoint
-      const response = await fetch(`/api/card-collection?action=get&hash=${hash}&minimal=true`);
+      // Make the API request using the card-collection GET endpoint with contentType=true to get enough info for content type detection
+      const response = await fetch(`/api/card-collection?action=get&hash=${hash}&contentType=true`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -101,8 +102,8 @@ export const DatabaseRetrievePanel: React.FC = () => {
       if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
       if (params.search) queryParams.append('search', params.search);
       
-      // Add minimal flag to retrieve only hash and g_time
-      queryParams.append('minimal', 'true');
+      // Add contentType flag to retrieve enough info for content type detection
+      queryParams.append('contentType', 'true');
 
       // Make the API request to the original retrieve endpoint
       const response = await fetch(`/api/retrieve?${queryParams.toString()}`);

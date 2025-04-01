@@ -23,6 +23,7 @@ const formatDate = (dateString: string | null | undefined): string => {
 interface MCardFromData {
   hash: string;
   g_time: string;
+  content?: any;
 }
 
 interface PageData {

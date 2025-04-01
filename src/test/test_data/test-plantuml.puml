@@ -1,0 +1,16 @@
+@startuml
+class ContentTypeInterpreter {
+  +detectBySignature()
+  +detectContentType()
+  +validateContent()
+  +getExtension()
+}
+
+interface TestCase {
+  content: any
+  expectedType: string
+  expectedExtension: string
+}
+
+ContentTypeInterpreter --> TestCase: tests
+@enduml

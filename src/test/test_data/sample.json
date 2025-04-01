@@ -1,0 +1,15 @@
+{
+  "name": "Test Object",
+  "properties": {
+    "color": "blue",
+    "size": 100,
+    "nested": {
+      "array": [
+        1,
+        2,
+        3
+      ],
+      "boolean": true
+    }
+  }
+}

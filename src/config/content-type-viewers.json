@@ -1,0 +1,110 @@
+{
+  "CONTENT_VIEWERS": {
+    "application/pdf": {
+      "component": "../components/viewers/PDFViewer",
+      "priority": 100
+    },
+    "application/json": {
+      "component": "../components/viewers/JSONViewer",
+      "priority": 100
+    },
+    "application/xml": {
+      "component": "../components/viewers/XMLViewer",
+      "priority": 100
+    },
+    
+    "image/jpeg": {
+      "component": "../components/viewers/ImageViewer",
+      "priority": 100
+    },
+    "image/png": {
+      "component": "../components/viewers/ImageViewer",
+      "priority": 100
+    },
+    "image/gif": {
+      "component": "../components/viewers/ImageViewer",
+      "priority": 100
+    },
+    "image/svg+xml": {
+      "component": "../components/viewers/SVGViewer",
+      "priority": 100
+    },
+    
+    "text/html": {
+      "component": "../components/viewers/CodeViewer",
+      "priority": 100,
+      "options": { "language": "html" }
+    },
+    "text/css": {
+      "component": "../components/viewers/CodeViewer",
+      "priority": 100,
+      "options": { "language": "css" }
+    },
+    "application/javascript": {
+      "component": "../components/viewers/CodeViewer",
+      "priority": 100,
+      "options": { "language": "javascript" }
+    },
+    "application/sql": {
+      "component": "../components/viewers/CodeViewer",
+      "priority": 100,
+      "options": { "language": "sql" }
+    },
+    "text/markdown": {
+      "component": "../components/viewers/MarkdownViewer",
+      "priority": 100
+    },
+    "application/yaml": {
+      "component": "../components/viewers/CodeViewer",
+      "priority": 100,
+      "options": { "language": "yaml" }
+    },
+    
+    "text/csv": {
+      "component": "../components/viewers/DataTableViewer",
+      "priority": 100,
+      "options": { "delimiter": "," }
+    },
+    "text/tab-separated-values": {
+      "component": "../components/viewers/DataTableViewer",
+      "priority": 100,
+      "options": { "delimiter": "\t" }
+    },
+    
+    "text/x-mermaid": {
+      "component": "../components/viewers/MermaidViewer",
+      "priority": 100
+    },
+    "text/x-plantuml": {
+      "component": "../components/viewers/PlantUMLViewer",
+      "priority": 100
+    },
+    "text/vnd.graphviz": {
+      "component": "../components/viewers/GraphvizViewer",
+      "priority": 100
+    },
+    
+    "text/plain": {
+      "component": "../components/viewers/TextViewer",
+      "priority": 10
+    },
+    
+    "application/redux-state": {
+      "component": "../components/viewers/ReduxStateViewer",
+      "priority": 200
+    },
+    
+    "application/octet-stream": {
+      "component": "../components/viewers/BinaryViewer",
+      "priority": 1
+    }
+  },
+  
+  "CONTENT_TYPE_OVERRIDE_RULES": [
+    {
+      "description": "Detect Redux state format to use specialized viewer",
+      "test": "typeof content === 'object' && content !== null && (content.cards || content.state || content.todos || content.clm || content.selectedHash !== undefined)",
+      "mimeType": "application/redux-state"
+    }
+  ]
+}

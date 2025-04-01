@@ -52,7 +52,8 @@ const EXTENSION_MAP = {
   'application/sql': 'sql',
   'text/markdown': 'md',
   'application/yaml': 'yml',
-  'text/csv': 'csv'
+  'text/csv': 'csv',
+  'text/tab-separated-values': 'tsv'
 };
 
 function startsWith(content, signature) {
@@ -187,20 +188,60 @@ function detectContentType(content) {
       if (lines.length > 1) {
         const commaCount = (lines[0].match(/,/g) || []).length;
         // Most lines should have similar number of commas
-        if (lines.slice(1).filter(line => 
-          line.trim() && (line.match(/,/g) || []).length === commaCount
-        ).length > 0) {
+        let validCSVLines = 0;
+        for (let i = 0; i < Math.min(lines.length, 10); i++) { // Check first 10 lines max
+          const line = lines[i].trim();
+          if (line && (line.match(/,/g) || []).length === commaCount) {
+            validCSVLines++;
+          }
+        }
+        
+        // If we have at least 2 valid CSV lines, or more than 50% of lines match the pattern for small files
+        if (validCSVLines >= 2 || (validCSVLines / Math.min(lines.length, 10) >= 0.5)) {
           return { 
             mimeType: 'text/csv', 
             extension: 'csv', 
             isValid: true 
           };
         }
+      } else if (commaCount >= 2) {
+        // Single line with at least 3 values is likely a CSV header
+        return { 
+          mimeType: 'text/csv', 
+          extension: 'csv', 
+          isValid: true 
+        };
+      }
+    }
+    
+    // TSV detection
+    if (/^[^\t\n"]*\t[^\t\n"]*\t[^\t\n"]*/.test(trimmedContent)) {
+      const lines = trimmedContent.split('\n');
+      if (lines.length > 1) {
+        const tabCount = (lines[0].match(/\t/g) || []).length;
+        if (tabCount >= 2) {
+          // Check a few lines to confirm tab pattern consistency
+          let validTSVLines = 0;
+          for (let i = 0; i < Math.min(lines.length, 10); i++) {
+            const line = lines[i].trim();
+            if (line && (line.match(/\t/g) || []).length === tabCount) {
+              validTSVLines++;
+            }
+          }
+          
+          if (validTSVLines >= 2) {
+            return { 
+              mimeType: 'text/tab-separated-values', 
+              extension: 'tsv', 
+              isValid: true 
+            };
+          }
+        }
       }
     }
     
     // JSON detection
-    if (/^\{[\s\S]*\}$/.test(trimmedContent)) {
+    if (/^\{[\s\S]*\}$/.test(trimmedContent) || /^\[[\s\S]*\]$/.test(trimmedContent)) {
       try {
         JSON.parse(trimmedContent);
         return { 
@@ -209,9 +250,45 @@ function detectContentType(content) {
           isValid: true 
         };
       } catch {
+        // If it looks like JSON but fails to parse, it's still likely intended as JSON
+        if ((trimmedContent.includes('{') && trimmedContent.includes('}')) ||
+            (trimmedContent.includes('[') && trimmedContent.includes(']'))) {
+          if (trimmedContent.includes('"') && 
+              (trimmedContent.includes(':') || trimmedContent.includes(','))) {
+            return { 
+              mimeType: 'application/json', 
+              extension: 'json', 
+              isValid: false  // Mark as invalid since it doesn't parse
+            };
+          }
+        }
         return { 
           mimeType: 'text/plain', 
           extension: 'txt', 
+          isValid: false 
+        };
+      }
+    }
+    
+    // Check for stringified JavaScript objects (Redux state)
+    if (trimmedContent.includes('"cards"') || 
+        trimmedContent.includes('"state"') || 
+        trimmedContent.includes('"todos"') ||
+        trimmedContent.includes('"clm"')) {
+      try {
+        const parsed = JSON.parse(trimmedContent);
+        if (typeof parsed === 'object' && parsed !== null) {
+          return { 
+            mimeType: 'application/json', 
+            extension: 'json', 
+            isValid: true 
+          };
+        }
+      } catch {
+        // If it includes Redux-specific keys, it's likely JSON even if it doesn't parse
+        return { 
+          mimeType: 'application/json', 
+          extension: 'json', 
           isValid: false 
         };
       }
@@ -278,7 +355,7 @@ function validateContent(content) {
     }
 
     // JSON validation
-    if (/^\{[\s\S]*\}$/.test(content)) {
+    if (/^\{[\s\S]*\}$/.test(content) || /^\[[\s\S]*\]$/.test(content)) {
       try {
         const parsed = JSON.parse(content);
         if (parsed === null || typeof parsed !== 'object') {

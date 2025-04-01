@@ -36,6 +36,7 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect }) => {
     mimeType?: string;
     extension?: string;
     isValid?: boolean;
+    isBlob?: boolean;
   }>({});
 
   useEffect(() => {
@@ -48,6 +49,22 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect }) => {
           ? card.content.substring(0, 50) 
           : (card.content && typeof card.content === 'object' ? 'Object: ' + Object.keys(card.content).join(', ') : 'Non-string, non-object')
       );
+      
+      // Only look for specific Redux state objects - removing the generic object detection
+      if (typeof card.content === 'object' && card.content !== null && 
+          (card.content.cards || card.content.state || card.content.todos || 
+          card.content.clm || card.content.selectedHash !== undefined)) {
+        console.log('Card component - Redux state object detected, setting type to application/json');
+        setContentType({
+          mimeType: 'application/json',
+          extension: 'json',
+          isValid: true,
+          isBlob: false
+        });
+        return;
+      }
+      
+      // Use the content type provided by the API
       setContentType(card.contentType);
       return;
     }

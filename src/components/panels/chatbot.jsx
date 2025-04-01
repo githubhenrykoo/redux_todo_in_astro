@@ -247,7 +247,16 @@ Command:
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
         <div className="text-center flex-grow">ChatBot - MCP</div>
-        {/* Word Select button removed */}
+        <button
+          onClick={toggleWordSelect}
+          className={`mr-2 px-2 py-1 text-xs rounded ${
+            isWordSelectEnabled 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-gray-600 hover:bg-gray-700'
+          }`}
+        >
+          Word Select
+        </button>
         <select 
           value={selectedModel}
           onChange={handleModelChange}

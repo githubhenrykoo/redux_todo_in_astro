@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import ContentViewer from '../viewers/ContentViewer';
 
@@ -8,16 +8,10 @@ import ContentViewer from '../viewers/ContentViewer';
  * A panel that displays content using the appropriate viewer based on content type
  */
 export default function ContentViewerPanel() {
-  // Use specific selectors that only return needed parts of state
-  const selectedHash = useSelector(state => state?.content?.selectedHash);
-  const cardsMap = useSelector(state => state?.content?.cards || {});
+  // Use the new selectedItem state
+  const selectedItem = useSelector(state => state.selectedItem);
   
-  // Get the selected content item
-  const selectedContentItem = selectedHash && cardsMap 
-    ? Object.values(cardsMap).find(c => c && c.hash === selectedHash) || null
-    : null;
-  
-  if (!selectedContentItem) {
+  if (!selectedItem || !selectedItem.selectedItem) {
     return (
       <div className="h-full flex items-center justify-center text-gray-500">
         Select content to view details
@@ -25,23 +19,48 @@ export default function ContentViewerPanel() {
     );
   }
   
+  // Format timestamp for better readability
+  const formatTimestamp = (timestamp) => {
+    return timestamp 
+      ? new Date(timestamp).toLocaleString() 
+      : 'Unknown time';
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <div className="p-2 border-b flex justify-between items-center">
-        <h3 className="text-sm font-semibold truncate">
-          {selectedContentItem.title || selectedContentItem.hash}
-        </h3>
-        <span className="text-xs text-gray-500">
-          {selectedContentItem.contentType?.mimeType || 'Unknown type'}
-        </span>
+      {/* Metadata Display Section */}
+      <div className="p-2 border-b bg-gray-100">
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <span className="font-semibold">Hash:</span> 
+            <span className="ml-2 truncate">
+              {selectedItem.metadata.hash || 'N/A'}
+            </span>
+          </div>
+          <div>
+            <span className="font-semibold">Content Type:</span> 
+            <span className="ml-2">
+              {selectedItem.metadata.contentType || 'Unknown'}
+            </span>
+          </div>
+          <div>
+            <span className="font-semibold">Timestamp:</span> 
+            <span className="ml-2">
+              {formatTimestamp(selectedItem.metadata.gtime)}
+            </span>
+          </div>
+        </div>
       </div>
       
+      {/* Content Viewer Section */}
       <div className="flex-1 overflow-hidden">
         <ContentViewer 
-          content={selectedContentItem.content}
-          contentType={selectedContentItem.contentType || {
-            mimeType: selectedContentItem.mimeType || 'application/json',
-            extension: selectedContentItem.extension
+          content={selectedItem.content}
+          contentType={{
+            mimeType: selectedItem.metadata.contentType || 'application/octet-stream',
+            extension: selectedItem.metadata.contentType 
+              ? selectedItem.metadata.contentType.split('/').pop() 
+              : 'bin'
           }}
         />
       </div>

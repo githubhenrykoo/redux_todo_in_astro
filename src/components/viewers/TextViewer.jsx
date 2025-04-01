@@ -1,6 +1,5 @@
 // src/components/viewers/TextViewer.jsx
 import React from 'react';
-import { SafeBuffer } from '../../utils/bufferPolyfill.js';
 
 /**
  * A viewer for plain text content that handles various formats:
@@ -9,22 +8,22 @@ import { SafeBuffer } from '../../utils/bufferPolyfill.js';
  * - Buffer JSON format (for backward compatibility)
  */
 export const TextViewer = ({ content }) => {
-  // Process content based on format
-  let textContent;
+  let textContent = '';
   
+  // First, check if we already have a plain string (from server-side processing)
   if (typeof content === 'string') {
-    // Direct string format - already text
     textContent = content;
   } 
+  // If we get a Buffer JSON format, decode it
   else if (content && typeof content === 'object') {
     if (content.type === 'base64' && content.data) {
-      // New base64 format from API
+      // Base64 format from API
       try {
-        // Decode base64 to text
-        const bytes = atob(content.data);
-        const array = new Uint8Array(bytes.length);
-        for (let i = 0; i < bytes.length; i++) {
-          array[i] = bytes.charCodeAt(i);
+        // Convert base64 to string
+        const binary = atob(content.data);
+        const array = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          array[i] = binary.charCodeAt(i);
         }
         textContent = new TextDecoder().decode(array);
       } catch (e) {
@@ -53,10 +52,8 @@ export const TextViewer = ({ content }) => {
   }
   
   return (
-    <div className="p-4 font-mono text-sm overflow-auto h-full bg-gray-50 rounded">
-      <pre className="whitespace-pre-wrap break-words">
-        {textContent}
-      </pre>
+    <div className="whitespace-pre-wrap font-mono text-sm p-2 overflow-auto max-h-full">
+      {textContent}
     </div>
   );
 };

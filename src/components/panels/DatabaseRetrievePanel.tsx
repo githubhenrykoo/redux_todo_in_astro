@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { importCardFromDatabase, selectContent } from '../../features/contentSlice';
+import { selectItem } from '../../features/selectedItemSlice';
 
 // Import our new components
 import { SearchBar } from './database/SearchBar';
@@ -185,6 +186,45 @@ export const DatabaseRetrievePanel: React.FC = () => {
     
     // Select the card in Redux
     dispatch(selectContent(card.hash));
+    
+    // Update the selectedItem state with card details
+    dispatch(selectItem({
+      item: card.content,
+      hash: card.hash,
+      contentType: card.contentType?.mimeType || "application/json",
+      gtime: card.g_time
+    }));
+    
+    // If we don't have the content yet, fetch the full card to get content and details
+    if (!card.content) {
+      fetchCardDetails(card.hash);
+    }
+  };
+  
+  // Function to fetch the full card details 
+  const fetchCardDetails = async (hash: string) => {
+    try {
+      // Use the card-collection API to get full card details
+      const response = await fetch(`/api/card-collection?action=get&hash=${hash}&full=true`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch card details');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.card) {
+        // Update the selectedItem with the full content and metadata
+        dispatch(selectItem({
+          item: data.card.content,
+          hash: data.card.hash,
+          contentType: data.card.contentType?.mimeType || "application/json",
+          gtime: data.card.g_time
+        }));
+      }
+    } catch (err) {
+      console.error('Error fetching card details:', err);
+    }
   };
 
   // Handle reset

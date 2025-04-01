@@ -15,10 +15,22 @@ function processCardContent(content: any, contentType: string | null): any {
   // If no content, return as is
   if (!content) return content;
   
+  console.log(`Processing content of type ${contentType}, content format:`, typeof content);
+  
   // Handle Buffer JSON format
   if (typeof content === 'object' && content !== null && content.type === 'Buffer' && Array.isArray(content.data)) {
     // Create a Uint8Array from the buffer data
     const array = new Uint8Array(content.data);
+    
+    // Check for WAV signatures before any other processing
+    if (content.data.length > 12 && 
+        content.data[0] === 0x52 && content.data[1] === 0x49 && 
+        content.data[2] === 0x46 && content.data[3] === 0x46 &&
+        content.data[8] === 0x57 && content.data[9] === 0x41 && 
+        content.data[10] === 0x56 && content.data[11] === 0x45) {
+      console.log('Detected WAV file by signature!');
+      contentType = 'audio/wav';
+    }
     
     // If it's a text-based content type, return as string
     if (contentType && (
@@ -30,7 +42,9 @@ function processCardContent(content: any, contentType: string | null): any {
     )) {
       try {
         // Convert to string using TextDecoder
-        return new TextDecoder().decode(array);
+        const text = new TextDecoder().decode(array);
+        console.log(`Decoded text content (first 50 chars): ${text.substring(0, 50)}...`);
+        return text;
       } catch (e) {
         logger.error('Error decoding text content:', e);
         // If string conversion fails, fallback to base64
@@ -102,12 +116,14 @@ export const GET: APIRoute = async ({ request }) => {
         }
         
         // Get content type
-        let contentTypeInfo = null;
+        let contentTypeInfo: any = null;
         if (card.contentType) {
           contentTypeInfo = card.contentType;
+          console.log('Using existing content type:', contentTypeInfo);
         } else {
           // Detect content type if not already available
           contentTypeInfo = ContentTypeInterpreter.detectContentType(card.content);
+          console.log('Detected content type:', contentTypeInfo);
         }
         
         // Process content based on content type

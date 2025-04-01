@@ -39,7 +39,7 @@ export const GET: APIRoute = async ({ request }) => {
           );
         }
         
-        const card = cardCollection.get(hash);
+        const card = cardCollection.get(hash as string);
         
         if (!card) {
           return new Response(
@@ -187,8 +187,61 @@ export const GET: APIRoute = async ({ request }) => {
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const data = await request.json();
-    const action = data.action;
+    let action;
+    let cardData;
+    
+    // Check content type to determine how to process the request
+    const contentType = request.headers.get('Content-Type') || '';
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData for binary uploads
+      const formData = await request.formData();
+      action = formData.get('action')?.toString();
+      
+      if (action === 'add') {
+        const file = formData.get('file');
+        const metadataStr = formData.get('metadata')?.toString();
+        
+        if (!file || !(file instanceof Blob)) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'File data is required',
+              timestamp: new Date().toISOString()
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        if (!metadataStr) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'File metadata is required',
+              timestamp: new Date().toISOString()
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const metadata = JSON.parse(metadataStr);
+        const { fileName, mimeType, size } = metadata;
+        
+        // Convert file to ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // Create the content object - use SafeBuffer for binary data to ensure compatibility
+        cardData = {
+          content: SafeBuffer.from(new Uint8Array(arrayBuffer)), // Convert ArrayBuffer to SafeBuffer for proper binary handling
+          hash_algorithm: 'sha256'
+        };
+      }
+    } else {
+      // Handle JSON data
+      const data = await request.json();
+      action = data.action;
+      cardData = data.card;
+    }
     
     // Initialize engine and card collection
     const engine = getStoreEngine();
@@ -198,7 +251,7 @@ export const POST: APIRoute = async ({ request }) => {
     
     switch (action) {
       case 'add': {
-        if (!data.card || typeof data.card !== 'object') {
+        if (!cardData || typeof cardData !== 'object') {
           return new Response(
             JSON.stringify({
               success: false,
@@ -210,7 +263,7 @@ export const POST: APIRoute = async ({ request }) => {
         }
         
         // Extract content and hash_algorithm
-        const { content, hash_algorithm } = data.card;
+        const { content, hash_algorithm } = cardData;
         
         if (content === undefined) {
           return new Response(
@@ -224,8 +277,11 @@ export const POST: APIRoute = async ({ request }) => {
         }
         
         try {
-          // Create a new MCard
-          const card = new MCard(content, hash_algorithm);
+          // Create a new MCard with proper type assertions
+          const card = new MCard(
+            content as string | Buffer | Record<string, any>,
+            (hash_algorithm as string) || undefined
+          );
           
           // Add to collection
           const hash = cardCollection.add(card);
@@ -278,14 +334,14 @@ export const POST: APIRoute = async ({ request }) => {
 };
 
 export const DELETE: APIRoute = async ({ request }) => {
-  const url = new URL(request.url);
-  const action = url.searchParams.get('action');
-  
-  // Initialize engine and card collection
-  const engine = getStoreEngine();
-  const cardCollection = new CardCollection(engine);
-  
   try {
+    const data = await request.json() as { action: string, hash: string };
+    const action = data.action;
+    
+    // Initialize engine and card collection
+    const engine = getStoreEngine();
+    const cardCollection = new CardCollection(engine);
+    
     logger.debug(`CardCollection API: Processing DELETE request with action: ${action}`);
     
     if (action !== 'delete') {
@@ -299,7 +355,7 @@ export const DELETE: APIRoute = async ({ request }) => {
       );
     }
     
-    const hash = url.searchParams.get('hash');
+    const hash = data.hash;
     
     if (!hash) {
       return new Response(
@@ -312,40 +368,28 @@ export const DELETE: APIRoute = async ({ request }) => {
       );
     }
     
-    // Check if the card exists first
-    const card = cardCollection.get(hash);
-    if (!card) {
+    try {
+      // Delete from collection
+      cardCollection.delete(hash as string);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          timestamp: new Date().toISOString()
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error deleting card';
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Card not found',
+          error: errorMessage,
           timestamp: new Date().toISOString()
         }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    
-    // Delete the card
-    const result = cardCollection.delete(hash);
-    
-    if (!result) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Failed to delete card',
-          timestamp: new Date().toISOString()
-        }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        timestamp: new Date().toISOString()
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
   } catch (error) {
     logger.error('Error in CardCollection DELETE API:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);

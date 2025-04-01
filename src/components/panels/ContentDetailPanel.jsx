@@ -82,8 +82,15 @@ export default function ContentDetailPanel() {
 
   const handleSubmit = () => {
     if (editContent) {
-      // Store the raw content directly without metadata wrapping
-      dispatch(addContent(editContent));
+      // Use the direct API endpoint for files/binary data instead of going through Redux
+      // This bypasses the filtering in TopBar component
+      if (fileInfo && fileInfo.data) {
+        // For file uploads, use direct API call to bypass Redux serialization
+        saveBinaryContentDirectly(fileInfo.data, fileInfo);
+      } else {
+        // For text content, use normal Redux flow
+        dispatch(addContent(editContent));
+      }
       setEditContent('');
       setFileInfo(null);
       setIsEditing(false);
@@ -140,19 +147,29 @@ export default function ContentDetailPanel() {
     try {
       setFileError('');
       
-      // Store just the raw file data without additional processing
-      const fileData = await readFileAsDataURL(file);
+      // Read as binary data (ArrayBuffer)
+      const binaryData = await readFileAsBinary(file);
       
-      // Store basic info for UI display only (not saved to MCard)
+      // Create a blob URL for preview purposes only
+      const blobUrl = URL.createObjectURL(new Blob([binaryData], {type: file.type}));
+      
       setFileInfo({
         name: file.name,
         type: file.type,
         size: file.size,
-        data: fileData
+        data: binaryData,     // Store binary data
+        previewUrl: blobUrl   // Use for UI preview
       });
       
-      // Set the raw file data as the content
-      setEditContent(fileData);
+      // For editing purposes, show metadata only
+      setEditContent(JSON.stringify({
+        type: 'media',
+        fileName: file.name,
+        mimeType: file.type,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+        dataPreview: `[${formatFileSize(file.size)} binary data]`
+      }, null, 2));
       setIsEditing(true);
     } catch (error) {
       console.error('Error reading file:', error);
@@ -200,6 +217,62 @@ export default function ContentDetailPanel() {
       reader.onerror = (error) => reject(new Error('Error reading media file'));
       reader.readAsDataURL(file);
     });
+  };
+
+  // Function to read file as ArrayBuffer (native binary format)
+  const readFileAsBinary = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => resolve(event.target.result);
+      reader.onerror = (error) => reject(new Error('Error reading binary file'));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  // Direct API function for saving binary content
+  const saveBinaryContentDirectly = async (binaryData, fileMetadata) => {
+    try {
+      // Create form data to properly send binary content
+      const formData = new FormData();
+      const blob = new Blob([binaryData], {type: fileMetadata.type});
+      
+      formData.append('action', 'add');
+      formData.append('file', blob, fileMetadata.name);
+      formData.append('metadata', JSON.stringify({
+        fileName: fileMetadata.name,
+        mimeType: fileMetadata.type,
+        size: fileMetadata.size
+      }));
+      
+      const response = await fetch('/api/card-collection', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save content: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // If successful, add reference to Redux so it shows in the UI
+      if (result.success && result.hash) {
+        // Store reference with metadata for display
+        dispatch(addContent({
+          type: 'media',
+          fileName: fileMetadata.name,
+          mimeType: fileMetadata.type,
+          size: fileMetadata.size,
+          hash: result.hash,
+          contentReference: result.hash,
+          // Add preview URL for images
+          previewUrl: fileMetadata.previewUrl || null
+        }));
+      }
+    } catch (error) {
+      console.error('Error saving binary content:', error);
+      setFileError(`Failed to save content: ${error.message}`);
+    }
   };
 
   // Determine if we're displaying a media preview
@@ -348,14 +421,14 @@ export default function ContentDetailPanel() {
             {/* Display based on media type */}
             {fileInfo?.type?.startsWith('image/') || selectedContentItem?.content?.mimeType?.startsWith('image/') ? (
               <img 
-                src={fileInfo?.data || selectedContentItem?.content?.data} 
+                src={fileInfo?.previewUrl || fileInfo?.data || selectedContentItem?.content?.previewUrl || selectedContentItem?.content?.data} 
                 alt={fileInfo?.name || selectedContentItem?.content?.fileName || "Image preview"}
                 className="max-w-full max-h-[400px] object-contain mb-2"
               />
             ) : fileInfo?.type?.startsWith('video/') || selectedContentItem?.content?.mimeType?.startsWith('video/') ? (
               <video 
                 controls
-                src={fileInfo?.data || selectedContentItem?.content?.data}
+                src={fileInfo?.previewUrl || fileInfo?.data || selectedContentItem?.content?.previewUrl || selectedContentItem?.content?.data}
                 className="max-w-full max-h-[400px] mb-2"
               >
                 Your browser does not support the video tag.
@@ -363,7 +436,7 @@ export default function ContentDetailPanel() {
             ) : fileInfo?.type?.startsWith('audio/') || selectedContentItem?.content?.mimeType?.startsWith('audio/') ? (
               <audio 
                 controls
-                src={fileInfo?.data || selectedContentItem?.content?.data}
+                src={fileInfo?.previewUrl || fileInfo?.data || selectedContentItem?.content?.previewUrl || selectedContentItem?.content?.data}
                 className="w-full mb-2"
               >
                 Your browser does not support the audio tag.
@@ -373,7 +446,7 @@ export default function ContentDetailPanel() {
                 <div className="text-4xl mb-2">📄</div>
                 <p>PDF file: {fileInfo?.name || selectedContentItem?.content?.fileName}</p>
                 <a 
-                  href={fileInfo?.data || selectedContentItem?.content?.data} 
+                  href={fileInfo?.previewUrl || fileInfo?.data || selectedContentItem?.content?.previewUrl || selectedContentItem?.content?.data} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-500 underline mt-2 inline-block"

@@ -76,7 +76,34 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
   const saveState = async (state: any, force = false) => {
     try {
       setSaving(true);
-      const stateJson = JSON.stringify(state);
+      
+      // Filter out binary data from content
+      const filteredState = {...state};
+      
+      // Filter binary data from content cards
+      if (filteredState.content?.cards) {
+        filteredState.content = {
+          ...filteredState.content,
+          cards: Object.entries(filteredState.content.cards).reduce((filtered: any, [key, card]: [string, any]) => {
+            // Skip cards with binary data
+            const content = card?.content;
+            
+            // Check if content is a data URL or appears to be binary data
+            if (typeof content === 'string' && 
+                (content.startsWith('data:') || 
+                content.length > 10000)) {
+              // Skip this card when serializing for server storage
+              return filtered;
+            }
+            
+            // Include this card
+            filtered[key] = card;
+            return filtered;
+          }, {})
+        };
+      }
+      
+      const stateJson = JSON.stringify(filteredState);
       
       console.log('saveState called', {
         stateJsonLength: stateJson.length,
@@ -92,8 +119,8 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
       
       console.log('Making state snapshot at:', new Date().toISOString(), {
-        themeMode: state.theme?.mode || 'unknown',
-        todoCount: state.todos?.items?.length || 0
+        themeMode: filteredState.theme?.mode || 'unknown',
+        todoCount: filteredState.todos?.items?.length || 0
       });
       
       // Actually make the API request

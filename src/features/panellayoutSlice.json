@@ -13,7 +13,7 @@
             "visible": true
         },
         "right": {
-            "type": "SearchAndContent",
+            "type": "ContentViewerPanel",
             "size": 30,
             "minSize": 20,
             "visible": true

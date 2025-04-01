@@ -42,22 +42,23 @@ export default function ContentViewerPanel() {
         </div>
       </div>
       
-      {/* Content Viewer Section */}
-      <div className="flex-1 overflow-hidden flex items-center justify-center text-gray-500">
+      {/* Content Viewer Section - Added text wrapping */}
+      <div className="flex-1 overflow-auto p-4 w-full">
         {selectedItem.selectedItem === null ? (
-          <div className="text-center">
+          <div className="text-center text-gray-500">
             <p className="text-lg mb-2">No Content Selected</p>
             <p className="text-sm">Choose an item to view its details</p>
           </div>
         ) : (
-          <ContentViewer 
-            content={selectedItem.content}
-            contentType={{
-              mimeType: getFullMimeType(selectedItem.metadata.contentType),
-              extension: selectedItem.metadata.contentType,
-              originalType: selectedItem.metadata.contentType
-            }}
-          />
+          <div className="break-words whitespace-normal overflow-x-auto w-full">
+            <ContentViewer 
+              content={selectedItem.content}
+              contentType={{
+                mimeType: getFullMimeType(selectedItem.metadata.contentType),
+                extension: selectedItem.metadata.contentType
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

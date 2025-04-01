@@ -1,7 +1,7 @@
 {
   "CONTENT_VIEWERS": {
     "application/pdf": {
-      "component": "../components/viewers/PDFViewer",
+      "component": "PDFViewer.jsx",
       "priority": 100
     },
     "application/json": {

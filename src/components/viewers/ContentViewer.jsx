@@ -10,6 +10,7 @@ import TextViewer from './TextViewer';
 import GIFViewer from './GIFViewer';
 import JPGViewer from './JPGViewer';
 import PNGViewer from './PNGViewer';
+import PDFViewer from './PDFViewer';
 
 // Component map to avoid dynamic imports that Vite can't handle
 const COMPONENT_MAP = {
@@ -18,6 +19,7 @@ const COMPONENT_MAP = {
   'GIFViewer.jsx': GIFViewer,
   'JPGViewer.jsx': JPGViewer,
   'PNGViewer.jsx': PNGViewer,
+  'PDFViewer.jsx': PDFViewer,
   // Add other components as they are created
 };
 

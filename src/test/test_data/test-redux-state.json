@@ -1,0 +1,14 @@
+{
+  "state": {
+    "todos": [
+      {"id": 1, "text": "Test content detection", "completed": false},
+      {"id": 2, "text": "Implement file type icons", "completed": true},
+      {"id": 3, "text": "Write unit tests", "completed": false}
+    ],
+    "filters": {
+      "status": "all",
+      "colors": []
+    },
+    "loading": false
+  }
+}

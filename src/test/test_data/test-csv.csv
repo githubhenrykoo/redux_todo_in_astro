@@ -1,0 +1,5 @@
+id,name,value,description
+1,Item 1,100,"This is item 1 for testing"
+2,Item 2,200,"Content type detection test"
+3,Item 3,300,"CSV format test"
+4,Item 4,400,"File type icon test"

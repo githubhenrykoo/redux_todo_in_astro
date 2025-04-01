@@ -183,11 +183,30 @@ export const DatabaseRetrievePanel: React.FC = () => {
     
     console.log("Simple content type determined:", simpleType);
     
+    // Process the content based on its format
+    let processedContent = card.content;
+    
+    // Check if content is in base64 format from API
+    if (card.content && typeof card.content === 'object' && card.content.type === 'base64') {
+      console.log("Content is in base64 format, original type:", card.content.originalType);
+      // Keep as is - components will handle base64 format
+      processedContent = card.content;
+    } else if (card.content && typeof card.content === 'object' && card.content.type === 'Buffer') {
+      // For backward compatibility, if we still get Buffer JSON format
+      console.log("Content is in Buffer JSON format");
+      processedContent = card.content;
+    } else {
+      // String or other format, keep as is
+      console.log("Content is in format:", typeof card.content);
+    }
+    
     // Import only the hash to Redux store
     dispatch(importCardFromDatabase({ 
       hash: card.hash,
-      content: null,
-      metadata: {},
+      content: processedContent,
+      metadata: {
+        contentType: card.contentType
+      },
       relationships: {
         parentHash: null,
         childHashes: [],
@@ -200,7 +219,7 @@ export const DatabaseRetrievePanel: React.FC = () => {
     
     // Update the selectedItem state with card details
     dispatch(selectItem({
-      item: card.content,
+      item: processedContent,
       hash: card.hash,
       contentType: simpleType,
       gtime: card.g_time

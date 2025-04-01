@@ -85,14 +85,21 @@ function getFullMimeType(simpleType) {
     'csv': 'text/csv',
     'xml': 'application/xml',
     'md': 'text/markdown',
-    // Add video formats
+    // Video formats
     'mov': 'video/quicktime',
     'mp4': 'video/mp4',
     'webm': 'video/webm',
     'avi': 'video/x-msvideo',
     'mkv': 'video/x-matroska',
     'mpeg': 'video/mpeg',
-    'mpg': 'video/mpeg'
+    'mpg': 'video/mpeg',
+    // Audio formats
+    'wav': 'audio/wav',
+    'wave': 'audio/wave',
+    'mp3': 'audio/mpeg',
+    'ogg': 'audio/ogg',
+    'aac': 'audio/aac',
+    'flac': 'audio/flac'
   };
   
   return mimeMap[simpleType] || `application/${simpleType}`;

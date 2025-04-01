@@ -13,6 +13,7 @@ import PNGViewer from './PNGViewer';
 import PDFViewer from './PDFViewer';
 import VideoViewer from './VideoViewer';
 import MOVViewer from './MOVViewer';
+import AudioViewer from './AudioViewer';
 
 // Component map to avoid dynamic imports that Vite can't handle
 const COMPONENT_MAP = {
@@ -24,6 +25,7 @@ const COMPONENT_MAP = {
   'PDFViewer.jsx': PDFViewer,
   'VideoViewer.jsx': VideoViewer,
   'MOVViewer.jsx': MOVViewer,
+  'AudioViewer.jsx': AudioViewer,
   // Add other components as they are created
 };
 

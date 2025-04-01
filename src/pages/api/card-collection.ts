@@ -1,9 +1,7 @@
 import type { APIRoute } from 'astro';
-import { MCard, MCardFromData } from '../../content/model/mcard.js';
+import { MCard} from '../../content/model/mcard.js';
 import { CardCollection } from '../../content/model/card-collection.js';
-import { SQLiteEngine } from '../../engine/sqlite_engine.js';
 import { getStoreEngine } from '../../utils/storeAdapter.js';
-import { encodeText } from '../../utils/textEncoderPolyfill.js';
 import { SafeBuffer } from '../../utils/bufferPolyfill.js';
 import { DEFAULT_PAGE_SIZE } from '../../config/config_constants.js';
 import logger from '../../services/logger.js';
@@ -108,7 +106,7 @@ export const GET: APIRoute = async ({ request }) => {
           );
         } catch (error) {
           // This catches cases where page number is beyond total pages
-          const errorMessage = error instanceof Error ? error.message : 'Invalid pagination parameters';
+          const errorMessage = error instanceof Error ? error.message : String(error as any);
           return new Response(
             JSON.stringify({
               success: false,
@@ -148,7 +146,7 @@ export const GET: APIRoute = async ({ request }) => {
             { status: 200, headers: { 'Content-Type': 'application/json' } }
           );
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Error searching for content';
+          const errorMessage = error instanceof Error ? error.message : String(error as any);
           return new Response(
             JSON.stringify({
               success: false,
@@ -172,7 +170,7 @@ export const GET: APIRoute = async ({ request }) => {
     }
   } catch (error) {
     logger.error('Error in CardCollection GET API:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error as any);
     return new Response(
       JSON.stringify({
         success: false,
@@ -296,7 +294,7 @@ export const POST: APIRoute = async ({ request }) => {
             { status: 200, headers: { 'Content-Type': 'application/json' } }
           );
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Error adding card';
+          const errorMessage = error instanceof Error ? error.message : String(error as any);
           return new Response(
             JSON.stringify({
               success: false,
@@ -320,7 +318,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
   } catch (error) {
     logger.error('Error in CardCollection POST API:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error as any);
     return new Response(
       JSON.stringify({
         success: false,
@@ -380,7 +378,7 @@ export const DELETE: APIRoute = async ({ request }) => {
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error deleting card';
+      const errorMessage = error instanceof Error ? error.message : String(error as any);
       return new Response(
         JSON.stringify({
           success: false,
@@ -392,7 +390,7 @@ export const DELETE: APIRoute = async ({ request }) => {
     }
   } catch (error) {
     logger.error('Error in CardCollection DELETE API:', error);
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = error instanceof Error ? error.message : String(error as any);
     return new Response(
       JSON.stringify({
         success: false,

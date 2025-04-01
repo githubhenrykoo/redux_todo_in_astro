@@ -246,11 +246,6 @@ Command:
   return (
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
-        <div className="flex space-x-2 mr-4">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-        </div>
         <div className="text-center flex-grow">ChatBot - MCP</div>
         <button
           onClick={toggleWordSelect}

@@ -295,11 +295,6 @@ const CodeEditorPanel = ({ className = '' }) => {
   return (
     <div className={`h-full w-full flex flex-col ${theme === 'dark' ? 'bg-gray-900 text-gray-200' : 'bg-white text-gray-800'} ${className}`}>
       <div className={`p-2 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-300'} border-b flex items-center`}>
-        <div className="flex space-x-2 mr-4">
-          <div className="w-3 h-3 rounded-full bg-red-500"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-          <div className="w-3 h-3 rounded-full bg-green-500"></div>
-        </div>
         
         <input
           type="text"

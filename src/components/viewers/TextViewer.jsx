@@ -1,43 +1,24 @@
 // src/components/viewers/TextViewer.jsx
-import React, { useState, useEffect } from 'react';
-import { convertBufferToString } from '../../utils/bufferContentHelper';
+import React from 'react';
 
 /**
- * Viewer component that displays text content with syntax highlighting
+ * A simple viewer for plain text content
  */
-export default function TextViewer({ content, contentType }) {
-  const [textContent, setTextContent] = useState('');
-  const [error, setError] = useState(null);
+export const TextViewer = ({ content }) => {
+  // Ensure content is a string
+  const textContent = typeof content === 'string'
+    ? content
+    : typeof content === 'object'
+      ? JSON.stringify(content, null, 2)
+      : String(content);
   
-  // Process content on component mount or when content changes
-  useEffect(() => {
-    try {
-      console.log("TextViewer received content:", typeof content);
-      
-      // Convert any type of content to string using our utility
-      const processedContent = convertBufferToString(content);
-      
-      if (processedContent) {
-        setTextContent(processedContent);
-        setError(null);
-      } else {
-        setTextContent('');
-        setError('Failed to process content');
-      }
-    } catch (err) {
-      console.error("Error in TextViewer:", err);
-      setTextContent('');
-      setError(`Error processing content: ${err.message}`);
-    }
-  }, [content]);
-
-  if (error) {
-    return <div className="text-red-600 p-4">{error}</div>;
-  }
-
   return (
-    <div className="font-mono whitespace-pre-wrap break-all text-sm overflow-auto max-w-full">
-      {textContent || 'No content available'}
+    <div className="p-4 font-mono text-sm overflow-auto h-full bg-gray-50 rounded">
+      <pre className="whitespace-pre-wrap break-words">
+        {textContent}
+      </pre>
     </div>
   );
-}
+};
+
+export default TextViewer;

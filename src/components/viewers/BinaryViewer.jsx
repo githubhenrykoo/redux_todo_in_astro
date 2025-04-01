@@ -2,105 +2,73 @@
 import React from 'react';
 
 /**
- * A viewer for binary content that displays file size and hex preview
+ * A viewer for binary data that can't be directly displayed
  */
-export const BinaryViewer = ({ content }) => {
-  // Get the size of the content
+export const BinaryViewer = ({ content, contentType }) => {
+  // Format file size for display
+  const formatFileSize = (bytes) => {
+    if (!bytes && bytes !== 0) return 'Unknown size';
+    if (bytes < 1024) return bytes + ' bytes';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+    else if (bytes < 1073741824) return (bytes / 1048576).toFixed(2) + ' MB';
+    else return (bytes / 1073741824).toFixed(2) + ' GB';
+  };
+  
+  // Get size from binary content
   const getContentSize = () => {
-    if (!content) return 0;
-    
-    // Handle Node.js Buffer JSON format
-    if (typeof content === 'object' && content !== null && 
-        content.type === 'Buffer' && Array.isArray(content.data)) {
-      return content.data.length;
-    }
-    
-    // Handle regular string
-    if (typeof content === 'string') {
-      return content.length;
-    }
-    
-    // Handle array buffers and typed arrays
-    if (content instanceof ArrayBuffer || 
-        content instanceof Uint8Array || 
-        content instanceof Int8Array) {
+    if (content instanceof ArrayBuffer) {
       return content.byteLength;
-    }
-    
-    // Fallback: convert to string and get length
-    return String(content).length;
+    } else if (content instanceof Uint8Array) {
+      return content.byteLength;
+    } else if (typeof content === 'string') {
+      // For base64 encoded data
+      if (content.startsWith('data:')) {
+        const base64Content = content.split(',')[1];
+        return Math.ceil(base64Content.length * 0.75); // Approximate size
+      }
+      return new TextEncoder().encode(content).length;
+    } 
+    return null;
   };
-
-  // Convert binary data to a hex string for preview
-  const getHexPreview = () => {
-    if (!content) return '';
-    
-    try {
-      let bytes;
-      
-      // Handle Node.js Buffer JSON format
-      if (typeof content === 'object' && content !== null && 
-          content.type === 'Buffer' && Array.isArray(content.data)) {
-        bytes = new Uint8Array(content.data);
-      }
-      // Handle typed arrays
-      else if (content instanceof Uint8Array || content instanceof Int8Array) {
-        bytes = content;
-      }
-      // Handle ArrayBuffer
-      else if (content instanceof ArrayBuffer) {
-        bytes = new Uint8Array(content);
-      }
-      // Handle string by converting to array of char codes
-      else if (typeof content === 'string') {
-        bytes = new Uint8Array(content.split('').map(c => c.charCodeAt(0)));
-      }
-      // Fallback
-      else {
-        return 'Unable to generate hex preview';
-      }
-      
-      // Generate hex representation (limit to first 500 bytes)
-      const maxBytes = Math.min(bytes.length, 500);
-      const hexChunks = [];
-      
-      for (let i = 0; i < maxBytes; i++) {
-        // Convert to hex and pad with leading zero if needed
-        hexChunks.push(bytes[i].toString(16).padStart(2, '0'));
-        
-        // Add space every 2 bytes (1 hex pair)
-        if (i % 2 === 1) hexChunks.push(' ');
-        
-        // Add newline every 16 bytes (8 hex pairs)
-        if (i % 16 === 15) hexChunks.push('\n');
-      }
-      
-      return hexChunks.join('');
-    } catch (e) {
-      console.error('Error generating hex preview:', e);
-      return 'Error generating hex preview';
-    }
-  };
-
+  
+  // Try to get some info about the content
   const size = getContentSize();
-  const hexPreview = getHexPreview();
-
+  const mimeType = contentType?.mimeType || 'application/octet-stream';
+  const extension = contentType?.extension || '';
+  
+  // Handle content that has link/URL
+  const hasDownloadLink = typeof content === 'string' && 
+    (content.startsWith('data:') || content.startsWith('http'));
+  
   return (
-    <div className="p-4 font-mono text-sm overflow-auto max-h-full bg-gray-50 rounded">
-      <div className="mb-4">
-        <span className="font-bold">Binary Data</span>
-        <span className="ml-2 text-gray-500">({size} bytes)</span>
-      </div>
-      
-      <div className="border border-gray-200 p-2 rounded bg-white">
-        <pre className="whitespace-pre-wrap break-all text-xs">
-          {hexPreview}
-          {size > 500 && (
-            <div className="mt-2 text-gray-500 italic">
-              ... {size - 500} more bytes not shown
-            </div>
-          )}
-        </pre>
+    <div className="h-full flex flex-col items-center justify-center p-4 bg-gray-50 rounded">
+      <div className="text-center">
+        <div className="text-6xl mb-4">📁</div>
+        <h3 className="text-xl font-medium mb-2">Binary Content</h3>
+        
+        <div className="text-sm text-gray-600 mb-4">
+          <p><strong>Type:</strong> {mimeType}</p>
+          {extension && <p><strong>Extension:</strong> {extension}</p>}
+          <p><strong>Size:</strong> {formatFileSize(size)}</p>
+        </div>
+        
+        {hasDownloadLink && (
+          <a 
+            href={content}
+            download={`download${extension ? '.' + extension : ''}`}
+            className="inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Download File
+          </a>
+        )}
+        
+        {!hasDownloadLink && (
+          <p className="text-gray-500">
+            This binary content cannot be displayed directly in the browser.
+          </p>
+        )}
       </div>
     </div>
   );

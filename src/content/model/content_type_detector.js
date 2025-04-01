@@ -21,7 +21,12 @@ const SIGNATURES = new Map([
   [new Uint8Array([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]), 'application/x-7z-compressed'],
   [new Uint8Array([0x53, 0x51, 0x4C, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6F, 0x72, 0x6D, 0x61, 0x74, 0x20, 0x33, 0x00]), 'application/x-sqlite3'],
   [new Uint8Array([0x41, 0x54, 0x26, 0x54, 0x46, 0x4F, 0x52, 0x4D]), 'image/djvu'],
-  [new Uint8Array([0x50, 0x41, 0x52, 0x31]), 'application/x-parquet']
+  [new Uint8Array([0x50, 0x41, 0x52, 0x31]), 'application/x-parquet'],
+  [new Uint8Array([0x66, 0x74, 0x79, 0x70, 0x71, 0x74, 0x20, 0x20]), 'video/quicktime'],
+  [new Uint8Array([0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70]), 'video/quicktime'],
+  [new Uint8Array([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70]), 'video/quicktime'],
+  [new Uint8Array([0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32]), 'video/mp4'],
+  [new Uint8Array([0x00, 0x00, 0x00, 0x1C, 0x66, 0x74, 0x79, 0x70, 0x6D, 0x70, 0x34, 0x32]), 'video/mp4']
 ]);
 
 const MERMAID_KEYWORDS = [
@@ -53,7 +58,9 @@ const EXTENSION_MAP = {
   'text/markdown': 'md',
   'application/yaml': 'yml',
   'text/csv': 'csv',
-  'text/tab-separated-values': 'tsv'
+  'text/tab-separated-values': 'tsv',
+  'video/quicktime': 'mov',
+  'video/mp4': 'mp4'
 };
 
 function startsWith(content, signature) {
@@ -71,6 +78,27 @@ function detectBySignature(content) {
     : 'application/octet-stream';
 }
 
+/**
+ * Extracts content from Buffer JSON format
+ * @param {object} content - Content that might be in Buffer JSON format 
+ * @returns {string|null} Decoded string or null if not a Buffer format
+ */
+function extractBufferContent(content) {
+  // Check if it's in the Buffer JSON format
+  if (typeof content === 'object' && content !== null && 
+      content.type === 'Buffer' && Array.isArray(content.data)) {
+    try {
+      // Convert to Uint8Array and decode
+      const array = new Uint8Array(content.data);
+      return new TextDecoder().decode(array);
+    } catch (e) {
+      console.error("Failed to decode Buffer data:", e);
+      return null;
+    }
+  }
+  return null;
+}
+
 function detectContentType(content) {
   if (!content) return { 
     mimeType: 'application/octet-stream', 
@@ -78,8 +106,89 @@ function detectContentType(content) {
     isValid: false 
   };
 
+  // Handle Buffer JSON format
+  if (typeof content === 'object' && content !== null && 
+      content.type === 'Buffer' && Array.isArray(content.data)) {
+    console.log("Detected Buffer JSON format, extracting content");
+    
+    // First check for binary content type using signatures
+    try {
+      const array = new Uint8Array(content.data);
+      // Check first few bytes for common binary formats
+      const mimeType = detectBySignature(array);
+      
+      // If it's a known binary format, return it directly
+      if (mimeType !== 'application/octet-stream') {
+        console.log("Detected binary format from Buffer:", mimeType);
+        return { 
+          mimeType, 
+          extension: getExtension(mimeType), 
+          isValid: true 
+        };
+      }
+    } catch (e) {
+      console.error("Error checking binary signature:", e);
+    }
+    
+    // Convert buffer to text for text-based format detection
+    const extractedText = extractBufferContent(content);
+    if (extractedText) {
+      console.log("Extracted text from Buffer:", extractedText.substring(0, 100) + "...");
+      
+      // Check if it's CSV (simpler check before full parsing)
+      if (isCSVContent(extractedText)) {
+        console.log("Detected CSV content in Buffer");
+        return { 
+          mimeType: 'text/csv', 
+          extension: 'csv', 
+          isValid: true 
+        };
+      }
+      
+      // Check if it's TSV
+      if (isTSVContent(extractedText)) {
+        console.log("Detected TSV content in Buffer");
+        return { 
+          mimeType: 'text/tab-separated-values', 
+          extension: 'tsv', 
+          isValid: true 
+        };
+      }
+      
+      // Recursively call detector with the extracted content
+      return detectContentType(extractedText);
+    }
+    
+    // If we can't extract text, treat as binary
+    const array = new Uint8Array(content.data);
+    const mimeType = detectBySignature(array);
+    return { 
+      mimeType, 
+      extension: getExtension(mimeType), 
+      isValid: mimeType !== 'application/octet-stream'
+    };
+  }
+
   if (typeof content === 'string') {
     const trimmedContent = content.trim();
+    
+    // Check if it's CSV first (simple check before complex parsing)
+    if (isCSVContent(content)) {
+      return { 
+        mimeType: 'text/csv', 
+        extension: 'csv', 
+        isValid: true 
+      };
+    }
+    
+    // Check if it's TSV
+    if (isTSVContent(content)) {
+      return { 
+        mimeType: 'text/tab-separated-values', 
+        extension: 'tsv', 
+        isValid: true 
+      };
+    }
     
     // Mermaid detection (more specific)
     if (/^graph\s+[A-Z]+/.test(trimmedContent)) {
@@ -178,66 +287,6 @@ function detectContentType(content) {
         extension: 'svg', 
         isValid: true 
       };
-    }
-    
-    // CSV detection
-    if (/^[^,\n"]*,[^,\n"]*,[^,\n"]*/.test(trimmedContent) || 
-        /^"[^"]*","[^"]*","[^"]*"/.test(trimmedContent)) {
-      // Verify it has multiple lines with similar comma patterns
-      const lines = trimmedContent.split('\n');
-      if (lines.length > 1) {
-        const commaCount = (lines[0].match(/,/g) || []).length;
-        // Most lines should have similar number of commas
-        let validCSVLines = 0;
-        for (let i = 0; i < Math.min(lines.length, 10); i++) { // Check first 10 lines max
-          const line = lines[i].trim();
-          if (line && (line.match(/,/g) || []).length === commaCount) {
-            validCSVLines++;
-          }
-        }
-        
-        // If we have at least 2 valid CSV lines, or more than 50% of lines match the pattern for small files
-        if (validCSVLines >= 2 || (validCSVLines / Math.min(lines.length, 10) >= 0.5)) {
-          return { 
-            mimeType: 'text/csv', 
-            extension: 'csv', 
-            isValid: true 
-          };
-        }
-      } else if (commaCount >= 2) {
-        // Single line with at least 3 values is likely a CSV header
-        return { 
-          mimeType: 'text/csv', 
-          extension: 'csv', 
-          isValid: true 
-        };
-      }
-    }
-    
-    // TSV detection
-    if (/^[^\t\n"]*\t[^\t\n"]*\t[^\t\n"]*/.test(trimmedContent)) {
-      const lines = trimmedContent.split('\n');
-      if (lines.length > 1) {
-        const tabCount = (lines[0].match(/\t/g) || []).length;
-        if (tabCount >= 2) {
-          // Check a few lines to confirm tab pattern consistency
-          let validTSVLines = 0;
-          for (let i = 0; i < Math.min(lines.length, 10); i++) {
-            const line = lines[i].trim();
-            if (line && (line.match(/\t/g) || []).length === tabCount) {
-              validTSVLines++;
-            }
-          }
-          
-          if (validTSVLines >= 2) {
-            return { 
-              mimeType: 'text/tab-separated-values', 
-              extension: 'tsv', 
-              isValid: true 
-            };
-          }
-        }
-      }
     }
     
     // JSON detection
@@ -426,6 +475,93 @@ function validateContent(content) {
 
 function getExtension(mimeType) {
   return EXTENSION_MAP[mimeType] || '';
+}
+
+/**
+ * Helper function to detect CSV content
+ * More reliable than regex-only detection
+ */
+function isCSVContent(content) {
+  if (!content || typeof content !== 'string') return false;
+  
+  // Quick check for obvious CSV indicators
+  if (!content.includes(',')) return false;
+  
+  const lines = content.split(/\r?\n/).filter(line => line.trim());
+  if (lines.length === 0) return false;
+  
+  // Need at least one line with a comma
+  const commaLines = lines.filter(line => line.includes(','));
+  if (commaLines.length === 0) return false;
+  
+  // For single-line content, check if it has at least 2 commas (3 values)
+  if (lines.length === 1) {
+    return (lines[0].match(/,/g) || []).length >= 2;
+  }
+  
+  // For multi-line content, check consistency across lines
+  const firstLineCommas = (lines[0].match(/,/g) || []).length;
+  
+  // If first line has commas, check at least 50% of other lines have similar comma count
+  if (firstLineCommas > 0) {
+    let similarLines = 0;
+    
+    for (let i = 1; i < Math.min(lines.length, 10); i++) {
+      const commaCount = (lines[i].match(/,/g) || []).length;
+      // Allow some variation in comma count
+      if (Math.abs(commaCount - firstLineCommas) <= 1) {
+        similarLines++;
+      }
+    }
+    
+    // If at least 50% of lines have similar comma patterns, it's likely CSV
+    return similarLines / Math.min(lines.length - 1, 9) >= 0.5;
+  }
+  
+  return false;
+}
+
+/**
+ * Helper function to detect TSV content
+ */
+function isTSVContent(content) {
+  if (!content || typeof content !== 'string') return false;
+  
+  // Quick check for obvious TSV indicators
+  if (!content.includes('\t')) return false;
+  
+  const lines = content.split(/\r?\n/).filter(line => line.trim());
+  if (lines.length === 0) return false;
+  
+  // Need at least one line with a tab
+  const tabLines = lines.filter(line => line.includes('\t'));
+  if (tabLines.length === 0) return false;
+  
+  // For single-line content, check if it has at least 1 tab (2 values)
+  if (lines.length === 1) {
+    return (lines[0].match(/\t/g) || []).length >= 1;
+  }
+  
+  // For multi-line content, check consistency across lines
+  const firstLineTabs = (lines[0].match(/\t/g) || []).length;
+  
+  // If first line has tabs, check at least 50% of other lines have similar tab count
+  if (firstLineTabs > 0) {
+    let similarLines = 0;
+    
+    for (let i = 1; i < Math.min(lines.length, 10); i++) {
+      const tabCount = (lines[i].match(/\t/g) || []).length;
+      // Allow some variation in tab count
+      if (Math.abs(tabCount - firstLineTabs) <= 1) {
+        similarLines++;
+      }
+    }
+    
+    // If at least 50% of lines have similar tab patterns, it's likely TSV
+    return similarLines / Math.min(lines.length - 1, 9) >= 0.5;
+  }
+  
+  return false;
 }
 
 export { ContentTypeInterpreter as default };

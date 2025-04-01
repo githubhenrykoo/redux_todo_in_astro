@@ -3,9 +3,9 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   selectedItem: null,
   metadata: {
-    hash: null,
-    contentType: null,
-    gtime: null
+    hash: "null",
+    contentType: "null",
+    gtime: "null"
   },
   content: null
 };
@@ -18,8 +18,8 @@ const selectedItemSlice = createSlice({
     selectItem: (state, action) => {
       const { 
         item, 
-        hash = null, 
-        contentType = null, 
+        hash = "null", 
+        contentType = "null", 
         gtime = new Date().toISOString() 
       } = action.payload;
 
@@ -45,9 +45,9 @@ const selectedItemSlice = createSlice({
     clearSelectedItem: (state) => {
       state.selectedItem = null;
       state.metadata = {
-        hash: null,
-        contentType: null,
-        gtime: null
+        hash: "null",
+        contentType: "null",
+        gtime: "null"
       };
       state.content = null;
     }

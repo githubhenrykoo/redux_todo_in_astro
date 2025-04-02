@@ -56,6 +56,8 @@ import fs from 'fs';
     await page.keyboard.type(char);
     await page.waitForTimeout(200); // 200ms delay between each character
   }
+
+  await page.waitForTimeout(1000);
   
   // Take a screenshot after typing the command
   const typedScreenshot: string = path.join(screenshotsDir, `terminal-typed-${new Date().toISOString().replace(/:/g, '-')}.png`);

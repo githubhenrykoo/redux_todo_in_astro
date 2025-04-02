@@ -15,6 +15,16 @@ import fs from 'fs';
   
   // Navigate to your app
   await page.goto('http://localhost:4321');
+
+  // Wait for the page to load
+  await page.waitForTimeout(2000);
+  
+  // Step 1: Click on the code editor button in the sidebar
+  console.log('Clicking on code editor button...');
+  await page.click('#todoLayoutBtn');
+
+  // Wait for the page to load
+  await page.waitForTimeout(2000);
   
   // Wait for the chatbot to be fully loaded
   await page.waitForSelector('textarea[placeholder="Type your message here..."]', { timeout: 10000 });
@@ -27,10 +37,17 @@ import fs from 'fs';
   // Focus the input field
   await page.click('textarea[placeholder="Type your message here..."]');
   
-  // Type the first command to create testing.txt
-  await page.keyboard.type('$echo "testing" >> testing.txt');
+  // Type the first command to create testing.txt character by character
+  const createCommand = '$echo "testing" >> testing.txt';
+  console.log('Typing create file command slowly...');
+  
+  for (const char of createCommand) {
+    await page.keyboard.type(char);
+    await page.waitForTimeout(150); // 150ms delay between each character
+  }
   
   // Send the command
+  await page.waitForTimeout(500); // Pause before pressing Enter
   await page.keyboard.press('Enter');
   
   // Wait for the command to execute
@@ -46,11 +63,20 @@ import fs from 'fs';
   await page.screenshot({ path: screenshot1Path });
   console.log(`Screenshot after creating file saved to: ${screenshot1Path}`);
   
-  // Type the second command to read testing.txt
+  await page.waitForTimeout(1000);
+
+  // Type the second command to read testing.txt character by character
   await page.click('textarea[placeholder="Type your message here..."]');
-  await page.keyboard.type('$cat testing.txt');
+  const readCommand = '$cat testing.txt';
+  console.log('Typing read file command slowly...');
+  
+  for (const char of readCommand) {
+    await page.keyboard.type(char);
+    await page.waitForTimeout(150); // 150ms delay between each character
+  }
   
   // Send the command
+  await page.waitForTimeout(500); // Pause before pressing Enter
   await page.keyboard.press('Enter');
   
   // Wait for the command to execute
@@ -61,11 +87,20 @@ import fs from 'fs';
   await page.screenshot({ path: screenshot2Path });
   console.log(`Screenshot after reading file saved to: ${screenshot2Path}`);
   
-  // Type the third command to delete testing.txt
+  await page.waitForTimeout(1000);
+
+  // Type the third command to delete testing.txt character by character
   await page.click('textarea[placeholder="Type your message here..."]');
-  await page.keyboard.type('$rm testing.txt');
+  const deleteCommand = '$rm testing.txt';
+  console.log('Typing delete file command slowly...');
+  
+  for (const char of deleteCommand) {
+    await page.keyboard.type(char);
+    await page.waitForTimeout(150); // 150ms delay between each character
+  }
   
   // Send the command
+  await page.waitForTimeout(500); // Pause before pressing Enter
   await page.keyboard.press('Enter');
   
   // Wait for the command to execute
@@ -76,6 +111,8 @@ import fs from 'fs';
   await page.screenshot({ path: screenshot3Path });
   console.log(`Screenshot after deleting file saved to: ${screenshot3Path}`);
   
+  await page.waitForTimeout(1000);
+
   console.log('Commands executed successfully');
   
   // Keep the browser open for a moment to see the results

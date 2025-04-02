@@ -281,6 +281,20 @@ export default function ContentDetailPanel() {
       const formData = new FormData();
       const blob = new Blob([binaryData], {type: fileMetadata.type});
       
+      // For image types, create a preview data URL
+      let previewUrl = null;
+      if (fileMetadata.type.startsWith('image/')) {
+        try {
+          // Convert ArrayBuffer to base64 for preview
+          const array = new Uint8Array(binaryData);
+          const base64 = btoa(String.fromCharCode.apply(null, Array.from(array)));
+          previewUrl = `data:${fileMetadata.type};base64,${base64}`;
+          console.log("Created image preview URL for display");
+        } catch (error) {
+          console.error("Error creating image preview:", error);
+        }
+      }
+      
       formData.append('action', 'add');
       formData.append('file', blob, fileMetadata.name);
       formData.append('metadata', JSON.stringify({
@@ -302,17 +316,85 @@ export default function ContentDetailPanel() {
       
       // If successful, add reference to Redux so it shows in the UI
       if (result.success && result.hash) {
-        // Store reference with metadata for display
-        dispatch(addContent({
-          type: 'media',
-          fileName: fileMetadata.name,
-          mimeType: fileMetadata.type,
-          size: fileMetadata.size,
-          hash: result.hash,
-          contentReference: result.hash,
-          // Add preview URL for images
-          previewUrl: fileMetadata.previewUrl || null
-        }));
+        // For images and text files, we need to properly format the content
+        // to ensure it can be displayed correctly
+        let contentToStore;
+        
+        // For images, store as Buffer format with additional preview URL
+        if (fileMetadata.type.startsWith('image/')) {
+          // Store both the buffer data and a preview URL
+          contentToStore = {
+            type: 'media',
+            fileName: fileMetadata.name,
+            mimeType: fileMetadata.type,
+            size: fileMetadata.size,
+            hash: result.hash,
+            contentReference: result.hash,
+            // Convert ArrayBuffer to Buffer JSON format for consistent handling
+            content: {
+              type: 'Buffer',
+              data: Array.from(new Uint8Array(binaryData))
+            },
+            // Include preview URL for immediate display
+            previewUrl: previewUrl
+          };
+        } 
+        // For text files, decode and store as string
+        else if (fileMetadata.type === 'text/plain' || 
+                fileMetadata.type === 'text/markdown' ||
+                fileMetadata.type === 'application/json' ||
+                fileMetadata.type === 'text/csv') {
+          try {
+            const textContent = new TextDecoder().decode(new Uint8Array(binaryData));
+            contentToStore = {
+              type: 'media',
+              fileName: fileMetadata.name,
+              mimeType: fileMetadata.type,
+              size: fileMetadata.size,
+              hash: result.hash,
+              contentReference: result.hash,
+              // Store actual text content
+              content: textContent
+            };
+          } catch (error) {
+            console.error("Error decoding text content:", error);
+            contentToStore = {
+              type: 'media',
+              fileName: fileMetadata.name,
+              mimeType: fileMetadata.type,
+              size: fileMetadata.size,
+              hash: result.hash,
+              contentReference: result.hash,
+              // Fallback to Buffer format
+              content: {
+                type: 'Buffer',
+                data: Array.from(new Uint8Array(binaryData))
+              }
+            };
+          }
+        }
+        // For other binary formats
+        else {
+          contentToStore = {
+            type: 'media',
+            fileName: fileMetadata.name,
+            mimeType: fileMetadata.type,
+            size: fileMetadata.size,
+            hash: result.hash,
+            contentReference: result.hash,
+            // Store as Buffer JSON format
+            content: {
+              type: 'Buffer',
+              data: Array.from(new Uint8Array(binaryData))
+            }
+          };
+        }
+        
+        // Dispatch to Redux store
+        dispatch(addContent(contentToStore));
+        
+        console.log("Successfully saved content with hash:", result.hash);
+        console.log("Content type:", fileMetadata.type);
       }
     } catch (error) {
       console.error('Error saving binary content:', error);

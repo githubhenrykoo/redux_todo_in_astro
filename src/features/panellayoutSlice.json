@@ -78,6 +78,25 @@
             "minSize": 30,
             "visible": true
         }
+    },
+    "mqtt_dashboard_layout": {
+        "left": {
+            "type": "FileTablePanel",
+            "size": 0,
+            "minSize": 0,
+            "visible": false
+        },
+        "middle": {
+            "type": "SimpleMQTTDashboardPanel", 
+            "size": 100,
+            "minSize": 100,
+            "visible": true
+        },
+        "right": {
+            "type": "ContentDetailPanel",
+            "size": 0,
+            "minSize": 0,
+            "visible": false
+        }
     }
-    
 }

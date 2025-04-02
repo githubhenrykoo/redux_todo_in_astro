@@ -69,37 +69,38 @@ export const CardList: React.FC<CardListProps> = ({
     );
   }
 
-  if (!cards || cards.items.length === 0) {
-    return (
-      <div className="text-center text-gray-500 p-4">
-        {cards ? 'No cards found' : 'Enter search terms or fetch cards'}
-      </div>
-    );
-  }
-
   return (
     <div className="p-4">
-      {/* Results Summary */}
-      <div className="mb-2">
-        <p className="text-sm text-gray-700">
-          {cards.retrievalMethod === 'hash'
-            ? 'Card found by hash'
-            : `Showing ${cards.items.length} of ${cards.total_items} cards`}
-          {cards.serverTimestamp && ` (as of ${formatDate(cards.serverTimestamp)})`}
-        </p>
-      </div>
-
-      <div className="space-y-2 mb-4">
-        {cards.items.map((card) => (
-          <Card
-            key={card.hash}
-            card={card}
-            isSelected={selectedCardHash === card.hash}
-            onSelect={onSelectCard}
-            onContentTypeDetected={handleContentTypeDetected}
-          />
-        ))}
-      </div>
+      {!cards || cards.items.length === 0 ? (
+        <div className="text-gray-500 text-center py-8">No cards available.</div>
+      ) : (
+        <>
+          <p className="text-sm text-gray-500 mb-4">
+            {cards.retrievalMethod === 'hash'
+              ? 'Card found by hash'
+              : `Showing ${cards.items.length} of ${cards.total_items} cards`}
+            {cards.serverTimestamp && ` (as of ${formatDate(cards.serverTimestamp)})`}
+          </p>
+          
+          <div className="grid grid-cols-1 gap-4">
+            {cards.items.map((card) => (
+              <Card
+                key={card.hash}
+                card={card}
+                isSelected={selectedCardHash === card.hash}
+                onSelect={onSelectCard}
+                onContentTypeDetected={handleContentTypeDetected}
+              />
+            ))}
+          </div>
+        </>
+      )}
+      
+      {loading && (
+        <div className="flex justify-center mt-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
     </div>
   );
 };

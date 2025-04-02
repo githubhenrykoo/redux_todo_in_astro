@@ -32,6 +32,41 @@ const isReduxStateData = (content: any): boolean => {
          content.includes('"redux"');
 };
 
+// TextPreview component for displaying text content
+const TextPreview: React.FC<{ content: any, maxLength?: number }> = ({ content, maxLength = 100 }) => {
+  let displayText = '';
+  
+  try {
+    // Handle Buffer JSON format
+    if (typeof content === 'object' && content?.type === 'Buffer' && Array.isArray(content?.data)) {
+      const array = new Uint8Array(content.data);
+      displayText = new TextDecoder().decode(array);
+    } 
+    // Handle plain text
+    else if (typeof content === 'string') {
+      displayText = content;
+    }
+    // Handle other objects
+    else if (content !== null && typeof content === 'object') {
+      displayText = JSON.stringify(content, null, 2);
+    }
+    // Handle other types
+    else if (content !== null && content !== undefined) {
+      displayText = String(content);
+    }
+  } catch (error) {
+    console.error("Error in TextPreview:", error);
+    displayText = "Error previewing content";
+  }
+  
+  // Truncate if needed
+  if (displayText.length > maxLength) {
+    displayText = displayText.substring(0, maxLength) + '...';
+  }
+  
+  return <pre className="whitespace-pre-wrap break-words text-xs font-mono">{displayText || 'No content'}</pre>;
+};
+
 export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onContentTypeDetected }) => {
   const [contentType, setContentType] = useState<{
     mimeType?: string;
@@ -217,45 +252,44 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onConten
 
   const truncatedHash = card.hash.substring(0, 8);
 
-  // Helper component to render text preview for Buffer JSON content
-  const TextPreview = ({ content }: { content: any }) => {
-    try {
-      // Convert Buffer JSON to text and display the first few lines
-      const array = new Uint8Array(content.data);
-      const text = new TextDecoder().decode(array);
-      const lines = text.split('\n').slice(0, 3); // Show up to 3 lines
-      
-      return (
-        <div className="text-preview">
-          {lines.map((line, i) => (
-            <div key={i} className="preview-line">{line}</div>
-          ))}
-          {text.split('\n').length > 3 && <div className="preview-more">...</div>}
-        </div>
-      );
-    } catch (e) {
-      return <div className="preview-error">Cannot preview content</div>;
-    }
-  };
-
   return (
-    <div className="card-component" onClick={handleClick}>
-      <div className="card-header">
-        {isSelected ? <p className="selected-indicator">✓</p> : null}
-        <p className="card-hash">{truncatedHash}...</p>
-        <p className="card-type">{getFileTypeLabel(contentType?.mimeType)}</p>
-        <p className="card-timestamp">{card.g_time}</p>
-      </div>
-      
-      {/* If item is selected, render a preview based on content type */}
-      {(isSelected && card.content && 
-          contentType?.mimeType === 'application/octet-stream' && 
-          typeof card.content === 'object' &&
-          card.content.type === 'Buffer') ? (
-        <div className="content-preview">
-          <TextPreview content={card.content} />
+    <div
+      className={`
+        mb-4 p-3
+        bg-white dark:bg-gray-800 
+        border-2 border-gray-200 dark:border-gray-700 
+        rounded-lg shadow-md 
+        ${isSelected ? 'ring-2 ring-blue-500 border-blue-500' : ''}
+      `}
+      onClick={() => onSelect(card)}
+    >
+      <div className="flex items-center">
+        {/* File Type Icon */}
+        <div className="flex-shrink-0 mr-3">
+          <FileTypeIcon
+            mimeType={contentType?.mimeType}
+            extension={contentType?.extension}
+            size={24}
+          />
         </div>
-      ) : null}
+
+        <div className="flex flex-col">
+          {/* Hash */}
+          <div className="text-md font-medium mb-1">
+            {card.hash.substring(0, 8)}...
+          </div>
+          
+          {/* File Type */}
+          <div className="text-sm text-gray-700 dark:text-gray-300 mb-1">
+            {getFileTypeLabel(contentType?.mimeType)}
+          </div>
+          
+          {/* Timestamp - display as plain string with no formatting */}
+          <div className="text-xs text-gray-500">
+            {card.g_time || 'No timestamp'}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

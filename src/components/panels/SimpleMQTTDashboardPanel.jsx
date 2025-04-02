@@ -1,21 +1,48 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import {
+  setConnectionStatus,
+  setCurrentTemp,
+  setVoltage,
+  setCurrent,
+  setPower,
+  setKwh,
+  setPowerFactor,
+  addTemperatureDataPoint,
+  setLedStatus,
+  setLastMessage,
+  addPublishedMessage
+} from '../../store/mqttSlice';
+
+// Import components
+import PublishedMessages from '../PublishedMessages';
 
 /**
  * Simple MQTT Dashboard Panel that uses the browser's window object to load MQTT
  * and avoids issues with server-side rendering
  */
 const SimpleMQTTDashboardPanel = () => {
-  // State hooks for all dashboard values
-  const [connectionStatus, setConnectionStatus] = useState('Waiting for MQTT library...');
-  const [currentTemp, setCurrentTemp] = useState('--');
-  const [voltage, setVoltage] = useState('--');
-  const [current, setCurrent] = useState('--');
-  const [power, setPower] = useState('--');
-  const [kwh, setKwh] = useState('--');
-  const [powerFactor, setPowerFactor] = useState('--');
+  // Local state for input field
   const [customText, setCustomText] = useState('');
+  
+  // Get Redux dispatch function
+  const dispatch = useDispatch();
+  
+  // Get MQTT state from Redux with fallback values
+  const mqttState = useSelector(state => state.mqtt) || {};
+  const {
+    connectionStatus = 'Waiting for MQTT library...',
+    currentTemp = '--',
+    voltage = '--',
+    current = '--',
+    power = '--',
+    kwh = '--',
+    powerFactor = '--',
+    temperatureHistory = { labels: [], data: [] },
+    ledStatus = 'off'
+  } = mqttState;
   
   // References for Chart.js canvas and MQTT client
   const chartCanvasRef = useRef(null);
@@ -38,26 +65,16 @@ const SimpleMQTTDashboardPanel = () => {
   useEffect(() => {
     let mqttClient = null;
     let chartInstance = null;
-    const tempData = {
-      labels: [],
-      datasets: [{
-        label: 'Temperature (°C)',
-        data: [],
-        fill: false,
-        borderColor: '#03dac5',
-        tension: 0.3
-      }]
-    };
     
     const initializeDashboard = async () => {
       try {
         // Load required scripts
-        setConnectionStatus('Loading required libraries...');
+        dispatch(setConnectionStatus('Loading required libraries...'));
         await Promise.all([
           loadScript('https://unpkg.com/mqtt/dist/mqtt.min.js'),
           loadScript('https://cdn.jsdelivr.net/npm/chart.js')
         ]);
-        setConnectionStatus('Libraries loaded, connecting to broker...');
+        dispatch(setConnectionStatus('Libraries loaded, connecting to broker...'));
         
         // Connect to MQTT broker when scripts are loaded
         if (window.mqtt) {
@@ -76,7 +93,7 @@ const SimpleMQTTDashboardPanel = () => {
           
           mqttClient.on('connect', () => {
             console.log("Connected to MQTT broker!");
-            setConnectionStatus('✅ Connected to MQTT Broker');
+            dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
             
             // Subscribe to topics
             mqttClient.subscribe('sensor/temperature');
@@ -93,7 +110,7 @@ const SimpleMQTTDashboardPanel = () => {
           
           mqttClient.on('error', (err) => {
             console.error('MQTT Connection Error:', err);
-            setConnectionStatus('❌ MQTT Connection Error: ' + err.message);
+            dispatch(setConnectionStatus('❌ MQTT Connection Error: ' + err.message));
           });
           
           mqttClient.on('message', (topic, message) => {
@@ -101,34 +118,40 @@ const SimpleMQTTDashboardPanel = () => {
             const now = new Date().toLocaleTimeString();
             console.log(`MQTT message received on topic ${topic}: ${msg}`);
             
+            // Store last message in Redux
+            dispatch(setLastMessage({ topic, message: msg }));
+            
             // Handle different topics
             if (topic === 'sensor/temperature') {
-              const suhu = parseFloat(msg);
-              setCurrentTemp(suhu);
-              
-              // Update chart
-              if (chartInstanceRef.current) {
-                tempData.labels.push(now);
-                tempData.datasets[0].data.push(suhu);
-                
-                // Keep only last 20 data points
-                if (tempData.labels.length > 20) {
-                  tempData.labels.shift();
-                  tempData.datasets[0].data.shift();
+              try {
+                const suhu = parseFloat(msg);
+                if (!isNaN(suhu)) {
+                  console.log(`Updating temperature to: ${suhu}°C`);
+                  dispatch(setCurrentTemp(suhu));
+                  
+                  // Add temperature data point to history
+                  dispatch(addTemperatureDataPoint({ label: now, value: suhu }));
+                  
+                  // Update chart
+                  if (chartInstanceRef.current) {
+                    chartInstanceRef.current.update();
+                  }
+                } else {
+                  console.error('Received invalid temperature value:', msg);
                 }
-                
-                chartInstanceRef.current.update();
+              } catch (error) {
+                console.error('Error processing temperature data:', error);
               }
             }
             
-            if (topic === 'sensor/tegangan') setVoltage(msg);
-            if (topic === 'sensor/arus') setCurrent(msg);
-            if (topic === 'sensor/daya') setPower(msg);
-            if (topic === 'sensor/kwh') setKwh(msg);
-            if (topic === 'sensor/pf') setPowerFactor(msg);
+            if (topic === 'sensor/tegangan') dispatch(setVoltage(msg));
+            if (topic === 'sensor/arus') dispatch(setCurrent(msg));
+            if (topic === 'sensor/daya') dispatch(setPower(msg));
+            if (topic === 'sensor/kwh') dispatch(setKwh(msg));
+            if (topic === 'sensor/pf') dispatch(setPowerFactor(msg));
           });
         } else {
-          setConnectionStatus('❌ MQTT library not found');
+          dispatch(setConnectionStatus('❌ MQTT library not found'));
           console.error('MQTT library not loaded properly');
         }
         
@@ -138,7 +161,16 @@ const SimpleMQTTDashboardPanel = () => {
           
           chartInstance = new window.Chart(ctx, {
             type: 'line',
-            data: tempData,
+            data: {
+              labels: temperatureHistory.labels,
+              datasets: [{
+                label: 'Temperature (°C)',
+                data: temperatureHistory.data,
+                fill: false,
+                borderColor: '#03dac5',
+                tension: 0.3
+              }]
+            },
             options: {
               responsive: true,
               maintainAspectRatio: false,
@@ -169,7 +201,7 @@ const SimpleMQTTDashboardPanel = () => {
         }
       } catch (error) {
         console.error('Error initializing dashboard:', error);
-        setConnectionStatus('❌ Error initializing dashboard: ' + error.message);
+        dispatch(setConnectionStatus('❌ Error initializing dashboard: ' + error.message));
       }
     };
     
@@ -188,16 +220,34 @@ const SimpleMQTTDashboardPanel = () => {
         chartInstanceRef.current.destroy();
       }
     };
-  }, []);
+  }, [dispatch]);
+  
+  // Update chart when temperature history changes
+  useEffect(() => {
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.data.labels = temperatureHistory.labels;
+      chartInstanceRef.current.data.datasets[0].data = temperatureHistory.data;
+      chartInstanceRef.current.update();
+    }
+  }, [temperatureHistory]);
   
   // MQTT control functions
   const toggleLED = (state) => {
     if (mqttClientRef.current) {
       console.log(`Publishing LED state: ${state}`);
       mqttClientRef.current.publish('control/led', state);
+      
+      // Record the published message in Redux
+      dispatch(addPublishedMessage({
+        topic: 'control/led',
+        message: state,
+        timestamp: new Date().toISOString()
+      }));
+      
+      dispatch(setLedStatus(state === '1' ? 'on' : 'off'));
     } else {
       console.warn('MQTT client not initialized yet');
-      setConnectionStatus('⚠️ MQTT client not ready, try again in a moment');
+      dispatch(setConnectionStatus('⚠️ MQTT client not ready, try again in a moment'));
     }
   };
   
@@ -205,10 +255,18 @@ const SimpleMQTTDashboardPanel = () => {
     if (mqttClientRef.current && customText.trim() !== '') {
       console.log(`Publishing text: ${customText}`);
       mqttClientRef.current.publish('control/tulisan', customText);
+      
+      // Record the published message in Redux
+      dispatch(addPublishedMessage({
+        topic: 'control/tulisan',
+        message: customText,
+        timestamp: new Date().toISOString()
+      }));
+      
       setCustomText('');
     } else if (!mqttClientRef.current) {
       console.warn('MQTT client not initialized yet');
-      setConnectionStatus('⚠️ MQTT client not ready, try again in a moment');
+      dispatch(setConnectionStatus('⚠️ MQTT client not ready, try again in a moment'));
     }
   };
   
@@ -230,7 +288,10 @@ const SimpleMQTTDashboardPanel = () => {
       </div>
       
       <p className="text-center mb-4">
-        Current Temperature: <span className="font-bold">{currentTemp}</span> °C
+        Current Temperature: 
+        <span className="font-bold text-2xl ml-2 text-[#03dac6]">
+          {currentTemp !== '--' ? `${currentTemp}°C` : '--'}
+        </span>
       </p>
       
       <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Data Energy Meter</h3>
@@ -249,47 +310,58 @@ const SimpleMQTTDashboardPanel = () => {
         >
           Matikan LED
         </button>
-        <input 
-          type="text" 
-          placeholder="Tulis pesan..." 
-          className="px-3 py-2 rounded-md bg-[#1e1e1e] text-white border-none flex-1 min-w-[150px]"
+      </div>
+      
+      {/* Energy Meter Data */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
+          <h4 className="text-[#bb86fc] mb-2">Voltage</h4>
+          <p className="text-2xl font-bold">{voltage} <span className="text-sm">V</span></p>
+        </div>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
+          <h4 className="text-[#bb86fc] mb-2">Current</h4>
+          <p className="text-2xl font-bold">{current} <span className="text-sm">A</span></p>
+        </div>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
+          <h4 className="text-[#bb86fc] mb-2">Power</h4>
+          <p className="text-2xl font-bold">{power} <span className="text-sm">W</span></p>
+        </div>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
+          <h4 className="text-[#bb86fc] mb-2">Energy</h4>
+          <p className="text-2xl font-bold">{kwh} <span className="text-sm">kWh</span></p>
+        </div>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
+          <h4 className="text-[#bb86fc] mb-2">Power Factor</h4>
+          <p className="text-2xl font-bold">{powerFactor}</p>
+        </div>
+      </div>
+      
+      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Send Message</h3>
+      
+      {/* Text Input */}
+      <div className="flex flex-col md:flex-row gap-2 mb-4">
+        <input
+          type="text"
           value={customText}
           onChange={(e) => setCustomText(e.target.value)}
           onKeyPress={handleKeyPress}
+          placeholder="Tulis pesan..."
+          className="flex-grow bg-[#2d2d2d] text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#03dac6]"
         />
-        <button 
-          className="bg-[#2196f3] hover:bg-[#1976d2] text-white px-5 py-2 rounded-md transition-colors"
+        <button
           onClick={sendText}
+          className="bg-[#03dac6] hover:bg-[#018786] text-black font-medium px-6 py-2 rounded-md transition-colors"
         >
           Kirim
         </button>
       </div>
       
-      {/* Energy Tiles */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        <div className="bg-[#2196f3] p-4 rounded-lg shadow-lg text-center">
-          <h4 className="mb-2 font-medium">Tegangan</h4>
-          <div className="text-2xl font-bold">{voltage} V</div>
-        </div>
-        <div className="bg-[#4caf50] p-4 rounded-lg shadow-lg text-center">
-          <h4 className="mb-2 font-medium">Arus</h4>
-          <div className="text-2xl font-bold">{current} A</div>
-        </div>
-        <div className="bg-[#ffeb3b] p-4 rounded-lg shadow-lg text-center text-black">
-          <h4 className="mb-2 font-medium">Daya</h4>
-          <div className="text-2xl font-bold">{power} W</div>
-        </div>
-        <div className="bg-[#ff9800] p-4 rounded-lg shadow-lg text-center">
-          <h4 className="mb-2 font-medium">KWH</h4>
-          <div className="text-2xl font-bold">{kwh} kWh</div>
-        </div>
-        <div className="bg-[#9c27b0] p-4 rounded-lg shadow-lg text-center">
-          <h4 className="mb-2 font-medium">Power Factor</h4>
-          <div className="text-2xl font-bold">{powerFactor}</div>
-        </div>
-      </div>
+      {/* Published Messages */}
+      <PublishedMessages />
       
-      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Kirim Pesan Manual</h3>
+      <div className="text-center text-sm text-gray-400 mt-auto pt-4">
+        LED Status: {ledStatus === 'on' ? '🟢 On' : '🔴 Off'}
+      </div>
     </div>
   );
 };

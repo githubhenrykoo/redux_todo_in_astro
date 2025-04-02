@@ -3,8 +3,7 @@ import Layout from '../layouts/BaseLayout.astro';
 import AuthentikPanel from '../components/auth/AuthentikPanel';
 
 // Get current host for proper redirect URI
-const canonicalURL = Astro.url;
-const baseUrl = `${canonicalURL.protocol}//${canonicalURL.host}`;
+const baseUrl = Astro.url.origin;
 ---
 
 <Layout title="Authentik Authentication Example">
@@ -24,24 +23,24 @@ const baseUrl = `${canonicalURL.protocol}//${canonicalURL.host}`;
         <AuthentikPanel 
           client:only={true}
           config={{
-            clientId: import.meta.env.AUTHENTIK_CLIENT_ID,
-            redirectUri: `${baseUrl}/callback`,
-            scopes: import.meta.env.AUTHENTIK_SCOPES,
-            baseUrl: import.meta.env.AUTHENTIK_URL,
-            storageKey: `${import.meta.env.AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}auth_example_page`,
+            clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
+            baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
+            redirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI,
+            storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX}auth_example_page`,
+            scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES?.split(' ') || ['openid', 'profile', 'email']
           }}
         />
         
         <div class="mt-4 text-sm text-gray-600">
           <p>
             <strong>Current Authentication Server:</strong> 
-            <a href={import.meta.env.AUTHENTIK_URL} target="_blank" class="text-blue-600 hover:underline">
-              {import.meta.env.AUTHENTIK_URL}
+            <a href={import.meta.env.PUBLIC_AUTHENTIK_URL} target="_blank" class="text-blue-600 hover:underline">
+              {import.meta.env.PUBLIC_AUTHENTIK_URL}
             </a>
           </p>
           <p class="mt-2">
             <strong>Authentication Scope:</strong> 
-            {import.meta.env.AUTHENTIK_SCOPES}
+            {import.meta.env.PUBLIC_AUTHENTIK_SCOPES}
           </p>
         </div>
       </div>
@@ -50,7 +49,7 @@ const baseUrl = `${canonicalURL.protocol}//${canonicalURL.host}`;
     <div class="mb-8">
       <h2 class="text-xl font-semibold mb-3">How It Works</h2>
       <div class="prose">
-        <p>This example demonstrates authentication using Authentik, a powerful identity provider available at <a href={import.meta.env.AUTHENTIK_URL} target="_blank">auth.pkc.pub</a>.</p>
+        <p>This example demonstrates authentication using Authentik, a powerful identity provider available at <a href={import.meta.env.PUBLIC_AUTHENTIK_URL} target="_blank">auth.pkc.pub</a>.</p>
         <p>The authentication flow uses the OAuth 2.0 Authorization Code flow with PKCE (Proof Key for Code Exchange) for enhanced security.</p>
         
         <h3>Authentication Flow:</h3>
@@ -88,20 +87,21 @@ const baseUrl = `${canonicalURL.protocol}//${canonicalURL.host}`;
           <li>Set up environment variables in a <code>.env</code> file:</li>
         </ol>
         
-        <pre><code>AUTHENTIK_CLIENT_ID=your-client-id-here
-AUTHENTIK_SCOPES=openid profile email
-AUTHENTIK_URL=https://auth.pkc.pub
-AUTHENTIK_STORAGE_KEY_PREFIX=authentik_panel_</code></pre>
+        <pre><code>PUBLIC_AUTHENTIK_CLIENT_ID=your-client-id-here
+PUBLIC_AUTHENTIK_SCOPES=openid profile email
+PUBLIC_AUTHENTIK_URL=https://auth.pkc.pub
+PUBLIC_AUTHENTIK_REDIRECT_URI=https://your-app-url.com/callback
+PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX=authentik_panel_</code></pre>
         
         <p>You can then include the component in your Astro pages:</p>
         <pre><code>&lt;AuthentikPanel 
   client:only={true}
   config={{
-    clientId: import.meta.env.AUTHENTIK_CLIENT_ID,
-    redirectUri: `${Astro.url.protocol}//${Astro.url.host}/your-page`,
-    scopes: import.meta.env.AUTHENTIK_SCOPES,
-    baseUrl: import.meta.env.AUTHENTIK_URL,
-    storageKey: `${import.meta.env.AUTHENTIK_STORAGE_KEY_PREFIX}your_page`
+    clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
+    baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
+    redirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI,
+    scopes: ['openid', 'profile', 'email'],
+    storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX}your_page`
   }}
 /&gt;</code></pre>
       </div>

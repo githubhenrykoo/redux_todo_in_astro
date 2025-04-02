@@ -40,7 +40,7 @@ import Layout from '../layouts/BaseLayout.astro';
           fullUrl: window.location.href,
           clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID ? 'Present' : 'Missing',
           baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
-          redirectUri: `${window.location.origin}/callback`,
+          redirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI,
           clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET ? 'Present' : 'Missing'
         });
 
@@ -51,7 +51,7 @@ import Layout from '../layouts/BaseLayout.astro';
         const client = createClient({
           clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
           clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
-          redirectUri: `${window.location.origin}/callback`,
+          redirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || '',
           scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
           baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
           storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,

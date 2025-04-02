@@ -80,6 +80,20 @@ const FileTablePanel = () => {
       };
     }
     
+    // Check for media type content with mimeType directly available
+    if (content && typeof content === 'object' && content.type === 'media' && content.mimeType) {
+      console.log("Detected type from media object:", content.mimeType);
+      const extension = content.mimeType.split('/')[1] || 'bin';
+      return {
+        mimeType: content.mimeType,
+        extension: extension,
+        isValid: true,
+        isBlob: false,
+        // For images, use the already created preview URL if available
+        previewUrl: content.previewUrl || null
+      };
+    }
+    
     // If we have Buffer JSON, convert it for checking
     let contentForDetection = content;
     let decodedText = null;
@@ -98,10 +112,25 @@ const FileTablePanel = () => {
         
         // If a specific type was detected, return it
         if (detectedType && detectedType.mimeType !== 'application/octet-stream') {
+          console.log("Detected specific type from buffer data:", detectedType.mimeType);
+          
+          // For images, create a preview URL
+          let previewUrl = null;
+          if (detectedType.mimeType.startsWith('image/')) {
+            try {
+              const base64 = btoa(String.fromCharCode.apply(null, array));
+              previewUrl = `data:${detectedType.mimeType};base64,${base64}`;
+              console.log("Created image preview URL from Buffer");
+            } catch (error) {
+              console.error("Error creating preview URL:", error);
+            }
+          }
+          
           return {
             ...detectedType,
             isValid: true,
             decodedText: decodedText,
+            previewUrl: previewUrl
           };
         }
         

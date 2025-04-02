@@ -1,0 +1,270 @@
+
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>MQTT Dashboard</title>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      padding: 30px;
+    }
+
+    h2, h3 {
+      text-align: center;
+      color: #03dac6;
+    }
+
+    canvas {
+      width: 100%;
+      background-color: #1f1f1f;
+      border-radius: 8px;
+      margin: 20px 0;
+      padding: 10px;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .on {
+      background-color: #00c853;
+      color: white;
+    }
+
+    .on:hover {
+      background-color: #00b248;
+    }
+
+    .off {
+      background-color: #d50000;
+      color: white;
+    }
+
+    .off:hover {
+      background-color: #b71c1c;
+    }
+
+    input[type="text"] {
+      padding: 12px;
+      width: 70%;
+      max-width: 400px;
+      border-radius: 6px;
+      border: none;
+      margin-right: 10px;
+      font-size: 16px;
+    }
+
+    .data-block {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .data-card {
+      background-color: #1e1e1e;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #000;
+      text-align: center;
+    }
+
+    .data-card span {
+      display: block;
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    #status {
+      text-align: center;
+      font-style: italic;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+  
+.energy-tiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 15px;
+  margin: 30px 0;
+}
+.tile {
+  flex: 1 1 150px;
+  padding: 20px;
+  border-radius: 10px;
+  color: white;
+  text-align: center;
+  box-shadow: 0 0 10px #000;
+}
+.tile h4 {
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 500;
+}
+.tile .value {
+  font-size: 28px;
+  font-weight: bold;
+}
+.tile.blue { background-color: #2196f3; }
+.tile.green { background-color: #4caf50; }
+.tile.yellow { background-color: #ffeb3b; color: #000; }
+.tile.orange { background-color: #ff9800; }
+.tile.purple { background-color: #9c27b0; }
+
+.control-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 30px 0;
+  align-items: center;
+}
+.control-bar input[type="text"] {
+  flex: 1 1 200px;
+  min-width: 150px;
+}
+.control-bar button {
+  flex: 0 0 auto;
+}
+</style>
+</head>
+<body><div class="container">
+<h2>MQTT Dashboard - Dark Mode</h2>
+<p id="status">Connecting to MQTT Broker...</p>
+<canvas id="tempChart"></canvas>
+<p>Current Temperature: <span id="currentTemp">--</span> °C</p>
+<h3>Data Energy Meter</h3>
+<div class="control-bar"><button class="on" onclick="toggleLED('1')">Nyalakan LED</button><button class="off" onclick="toggleLED('0')">Matikan LED</button><input id="customText" placeholder="Tulis pesan..." type="text"/><button onclick="sendText()">Kirim</button></div><div class="energy-tiles">
+<div class="tile blue">
+<h4>Tegangan</h4>
+<div class="value"><span id="volt">--</span> V</div>
+</div>
+<div class="tile green">
+<h4>Arus</h4>
+<div class="value"><span id="ampere">--</span> A</div>
+</div>
+<div class="tile yellow">
+<h4>Daya</h4>
+<div class="value"><span id="power">--</span> W</div>
+</div>
+<div class="tile orange">
+<h4>KWH</h4>
+<div class="value"><span id="kwh">--</span> kWh</div>
+</div>
+<div class="tile purple">
+<h4>Power Factor</h4>
+<div class="value"><span id="pf">--</span></div>
+</div>
+</div>
+<h3>Kirim Pesan Manual</h3>
+<script>
+    const broker = 'wss://1115a4b6fe5c40e588a3a85468f3c8be.s1.eu.hivemq.cloud:8884/mqtt';
+    const options = {
+      connectTimeout: 4000,
+      clientId: 'webClient_' + Math.random().toString(16).substr(2, 8),
+      username: 'testing',
+      password: 'Testing123',
+      clean: true,
+    };
+
+    const client = mqtt.connect(broker, options);
+
+    client.on('connect', () => {
+      document.getElementById('status').innerText = '✅ Connected to MQTT Broker';
+      client.subscribe('sensor/temperature');
+      ['sensor/tegangan', 'sensor/arus', 'sensor/daya', 'sensor/kwh', 'sensor/pf'].forEach(topic => {
+        client.subscribe(topic);
+      });
+    });
+
+    client.on('error', err => {
+      document.getElementById('status').innerText = '❌ MQTT Connection Error';
+      console.error(err);
+    });
+
+    function toggleLED(state) {
+      client.publish('control/led', state);
+    }
+
+    function sendText() {
+      const text = document.getElementById('customText').value;
+      if (text.trim() !== '') {
+        client.publish('control/tulisan', text); // Ganti topik sesuai kebutuhan
+        document.getElementById('customText').value = '';
+      }
+    }
+
+    const ctx = document.getElementById('tempChart').getContext('2d');
+    const tempData = {
+      labels: [],
+      datasets: [{
+        label: 'Temperature (°C)',
+        data: [],
+        fill: false,
+        borderColor: '#03dac5',
+        tension: 0.3
+      }]
+    };
+
+    const tempChart = new Chart(ctx, {
+      type: 'line',
+      data: tempData,
+      options: {
+        responsive: true,
+        scales: {
+          x: { title: { display: true, text: 'Waktu' } },
+          y: { title: { display: true, text: 'Suhu (°C)' }, suggestedMin: 20, suggestedMax: 40 }
+        }
+      }
+    });
+
+    client.on('message', (topic, message) => {
+      const msg = message.toString();
+      const now = new Date().toLocaleTimeString();
+      if (topic === 'sensor/temperature') {
+        const suhu = parseFloat(msg);
+        document.getElementById('currentTemp').innerText = suhu;
+        tempData.labels.push(now);
+        tempData.datasets[0].data.push(suhu);
+        if (tempData.labels.length > 20) {
+          tempData.labels.shift();
+          tempData.datasets[0].data.shift();
+        }
+        tempChart.update();
+      }
+      if (topic === 'sensor/tegangan') document.getElementById('volt').innerText = msg;
+      if (topic === 'sensor/arus') document.getElementById('ampere').innerText = msg;
+      if (topic === 'sensor/daya') document.getElementById('power').innerText = msg;
+      if (topic === 'sensor/kwh') document.getElementById('kwh').innerText = msg;
+      if (topic === 'sensor/pf') document.getElementById('pf').innerText = msg;
+    });
+  </script>
+</div></body>
+</html>

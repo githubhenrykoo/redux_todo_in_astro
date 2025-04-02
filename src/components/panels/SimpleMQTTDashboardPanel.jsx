@@ -24,17 +24,21 @@ import PublishedMessages from '../PublishedMessages';
  * and avoids issues with server-side rendering
  */
 const SimpleMQTTDashboardPanel = () => {
-  // Local state for input field
+  // Local state for input field and temperature
   const [customText, setCustomText] = useState('');
+  const [localTemp, setLocalTemp] = useState('--');
   
   // Get Redux dispatch function
   const dispatch = useDispatch();
   
   // Get MQTT state from Redux with fallback values
   const mqttState = useSelector(state => state.mqtt) || {};
+  
+  // Access currentTemp directly to ensure we get the latest value
+  const currentTemp = useSelector(state => state.mqtt?.currentTemp) || '--';
+  
   const {
     connectionStatus = 'Waiting for MQTT library...',
-    currentTemp = '--',
     voltage = '--',
     current = '--',
     power = '--',
@@ -43,6 +47,12 @@ const SimpleMQTTDashboardPanel = () => {
     temperatureHistory = { labels: [], data: [] },
     ledStatus = 'off'
   } = mqttState;
+  
+  // Add more detailed debug log
+  useEffect(() => {
+    console.log('Current temperature from Redux:', currentTemp);
+    console.log('Full MQTT state:', mqttState);
+  }, [currentTemp, mqttState]);
   
   // References for Chart.js canvas and MQTT client
   const chartCanvasRef = useRef(null);
@@ -127,7 +137,15 @@ const SimpleMQTTDashboardPanel = () => {
                 const suhu = parseFloat(msg);
                 if (!isNaN(suhu)) {
                   console.log(`Updating temperature to: ${suhu}°C`);
+                  
+                  // Update Redux state
                   dispatch(setCurrentTemp(suhu));
+                  
+                  // Also update local state for immediate UI update
+                  setLocalTemp(suhu);
+                  
+                  // Force component update with local state
+                  setCustomText(prev => prev); // This is a trick to force re-render
                   
                   // Add temperature data point to history
                   dispatch(addTemperatureDataPoint({ label: now, value: suhu }));
@@ -316,7 +334,7 @@ const SimpleMQTTDashboardPanel = () => {
       <p className="text-center mb-4">
         Current Temperature: 
         <span className="font-bold text-2xl ml-2 text-[#03dac6]">
-          {currentTemp !== '--' ? `${currentTemp}°C` : '--'}
+          {localTemp !== '--' ? `${localTemp}°C` : (currentTemp && currentTemp !== '--' ? `${currentTemp}°C` : '--')}
         </span>
       </p>
       

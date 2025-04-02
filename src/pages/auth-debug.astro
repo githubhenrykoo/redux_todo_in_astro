@@ -1,0 +1,90 @@
+---
+import Layout from '../layouts/BaseLayout.astro';
+---
+
+<Layout title="Authentik Debug">
+  <div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-6">Authentik Authentication Debug</h1>
+    
+    <div class="bg-blue-50 p-6 rounded-lg mb-8">
+      <h2 class="text-xl font-semibold mb-4">Environment Variables</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full bg-white rounded-lg">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="py-2 px-4 text-left">Variable</th>
+              <th class="py-2 px-4 text-left">Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="py-2 px-4 border-t">PUBLIC_APP_URL</td>
+              <td class="py-2 px-4 border-t" id="app-url"></td>
+            </tr>
+            <tr>
+              <td class="py-2 px-4 border-t">PUBLIC_AUTHENTIK_REDIRECT_URI</td>
+              <td class="py-2 px-4 border-t" id="redirect-uri"></td>
+            </tr>
+            <tr>
+              <td class="py-2 px-4 border-t">PUBLIC_AUTHENTIK_URL</td>
+              <td class="py-2 px-4 border-t" id="auth-url"></td>
+            </tr>
+            <tr>
+              <td class="py-2 px-4 border-t">PUBLIC_AUTHENTIK_CLIENT_ID</td>
+              <td class="py-2 px-4 border-t" id="client-id"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="bg-green-50 p-6 rounded-lg mb-8">
+      <h2 class="text-xl font-semibold mb-4">Authentication Links</h2>
+      <div class="space-y-4">
+        <div>
+          <h3 class="font-medium">Direct Login URL:</h3>
+          <p class="break-all bg-white p-2 rounded mt-1" id="login-url"></p>
+          <button id="try-direct-login" class="mt-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            Try Direct Login
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-yellow-50 p-6 rounded-lg">
+      <h2 class="text-xl font-semibold mb-4">Suggestions</h2>
+      <ul class="list-disc list-inside space-y-2">
+        <li>Make sure the redirect URI registered in Authentik exactly matches what we're sending</li>
+        <li>Check for trailing slashes and URL encoding differences</li>
+        <li>Try registering "http://todo.pkc.pub/callback" as the exact redirect URI in Authentik</li>
+        <li>Verify that your Authentik application is correctly configured</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Display environment variables
+    document.getElementById('app-url').textContent = import.meta.env.PUBLIC_APP_URL || 'Not set';
+    document.getElementById('redirect-uri').textContent = import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || 'Not set';
+    document.getElementById('auth-url').textContent = import.meta.env.PUBLIC_AUTHENTIK_URL || 'Not set';
+    document.getElementById('client-id').textContent = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || 'Not set';
+
+    // Create direct login URL
+    const baseUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+    const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '';
+    const redirectUri = import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || 'http://todo.pkc.pub/callback';
+    
+    const authUrl = new URL(`${baseUrl}/application/o/authorize/`);
+    authUrl.searchParams.set('client_id', clientId);
+    authUrl.searchParams.set('redirect_uri', redirectUri);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('scope', 'openid profile email');
+    
+    document.getElementById('login-url').textContent = authUrl.toString();
+    
+    // Direct login button
+    document.getElementById('try-direct-login').addEventListener('click', () => {
+      window.location.href = authUrl.toString();
+    });
+  </script>
+</Layout>

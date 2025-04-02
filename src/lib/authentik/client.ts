@@ -59,14 +59,20 @@ export function createClient(config: AuthentikClientConfig) {
       // Create URL with search params
       const url = new URL(authorizationUrl);
       url.searchParams.set('client_id', clientId);
-      url.searchParams.set('redirect_uri', redirectUri);
+      
+      // Hardcode the redirect URI based on hostname for maximum reliability
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+      const hardcodedRedirectUri = isLocalhost ? 'http://localhost:4321/callback' : 'http://todo.pkc.pub/callback';
+      url.searchParams.set('redirect_uri', hardcodedRedirectUri);
+      
       url.searchParams.set('response_type', 'code');
       url.searchParams.set('scope', scopes);
       
       // Debug information for redirect URI issues
       console.log('Authentication Redirect Debug:', {
         authUrl: url.toString(),
-        redirectUri: redirectUri,
+        isLocalhost,
+        hardcodedRedirectUri,
         clientId: clientId ? '[PRESENT]' : '[MISSING]',
         baseUrl: sanitizedBaseUrl
       });
@@ -105,13 +111,17 @@ export function createClient(config: AuthentikClientConfig) {
         throw new Error('Redirect URI is required');
       }
 
+      // Check if we're running on localhost and adjust the redirect URI
+      const isLocalhost = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+      const hardcodedRedirectUri = isLocalhost ? 'http://localhost:4321/callback' : 'http://todo.pkc.pub/callback';
+
       // Exchange authorization code for tokens
       const tokenUrl = new URL(`${sanitizedBaseUrl}/application/o/token/`);
       
       console.log('DEBUG TOKEN EXCHANGE CONFIGURATION:', {
         tokenUrl: tokenUrl.toString(),
         clientId,
-        redirectUri,
+        redirectUri: hardcodedRedirectUri,
         baseUrl: sanitizedBaseUrl,
         codeLength: code.length,
         clientSecretLength: clientSecret.length
@@ -121,7 +131,7 @@ export function createClient(config: AuthentikClientConfig) {
       const tokenParams = new URLSearchParams();
       tokenParams.append('client_id', clientId);
       tokenParams.append('client_secret', clientSecret);
-      tokenParams.append('redirect_uri', redirectUri);
+      tokenParams.append('redirect_uri', hardcodedRedirectUri);
       tokenParams.append('grant_type', 'authorization_code');
       tokenParams.append('code', code);
 
@@ -157,7 +167,7 @@ export function createClient(config: AuthentikClientConfig) {
           ...errorDetails,
           tokenUrl: tokenUrl.toString(),
           clientIdUsed: clientId,
-          redirectUriUsed: redirectUri
+          redirectUriUsed: hardcodedRedirectUri
         });
         throw new Error(`Network error during token exchange: ${errorDetails.errorMessage}`);
       }

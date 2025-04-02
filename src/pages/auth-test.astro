@@ -1,0 +1,154 @@
+---
+import Layout from '../layouts/BaseLayout.astro';
+---
+
+<Layout title="Authentication Test">
+  <div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-6">Authentik Direct Authentication Test</h1>
+    
+    <div class="bg-blue-50 p-6 rounded-lg mb-8">
+      <h2 class="text-xl font-semibold mb-4">Test Authentication</h2>
+      <div id="auth-info" class="mb-4 whitespace-pre bg-white p-4 rounded text-sm font-mono overflow-auto max-h-60"></div>
+      <button id="test-auth" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+        Test Direct Authentication
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-yellow-50 p-6 rounded-lg">
+        <h2 class="text-xl font-semibold mb-4">Use Localhost URI</h2>
+        <button id="use-localhost" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded mb-2">
+          Use http://localhost:4321/callback
+        </button>
+        <div id="localhost-result" class="mt-4 text-sm"></div>
+      </div>
+      
+      <div class="bg-green-50 p-6 rounded-lg">
+        <h2 class="text-xl font-semibold mb-4">Use Production URI</h2>
+        <button id="use-production" class="w-full bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mb-2">
+          Use http://todo.pkc.pub/callback
+        </button>
+        <div id="production-result" class="mt-4 text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Display current authentication environment
+    const authInfo = document.getElementById('auth-info');
+    const isLocalhost = window.location.hostname === 'localhost';
+    
+    // Update auth info display
+    function updateAuthInfo() {
+      authInfo.textContent = JSON.stringify({
+        location: window.location.href,
+        isLocalhost,
+        hostname: window.location.hostname,
+        origin: window.location.origin,
+        clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '[MISSING]',
+        baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '[MISSING]',
+        hasSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET ? 'YES' : 'NO'
+      }, null, 2);
+    }
+    
+    updateAuthInfo();
+    
+    // Direct authentication test
+    document.getElementById('test-auth').addEventListener('click', async () => {
+      try {
+        const { createClient } = await import('../lib/authentik/client');
+        
+        const baseUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+        const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '';
+        const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '';
+        
+        // Log all values
+        console.log('Test Auth Direct Values:', {
+          baseUrl,
+          clientId,
+          clientIdLength: clientId.length,
+          hasSecret: !!clientSecret,
+          secretLength: clientSecret.length
+        });
+        
+        // Set status
+        authInfo.textContent = 'Starting authentication test...';
+        
+        // Wait for confirmation
+        setTimeout(() => {
+          // Navigate directly to the authentication URL
+          const authUrl = new URL(`${baseUrl}/application/o/authorize/`);
+          authUrl.searchParams.set('client_id', clientId);
+          authUrl.searchParams.set('redirect_uri', 'http://todo.pkc.pub/callback');
+          authUrl.searchParams.set('response_type', 'code');
+          authUrl.searchParams.set('scope', 'openid profile email');
+          
+          // Log and redirect
+          console.log('Navigating to:', authUrl.toString());
+          window.location.href = authUrl.toString();
+        }, 500);
+      } catch (error) {
+        console.error('Authentication test failed:', error);
+        authInfo.textContent = `Error: ${error.message}`;
+      }
+    });
+    
+    // Use localhost URI test
+    document.getElementById('use-localhost').addEventListener('click', async () => {
+      try {
+        const { createClient } = await import('../lib/authentik/client');
+        
+        const baseUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+        const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '';
+        const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '';
+        
+        // Navigate directly to the authentication URL
+        const authUrl = new URL(`${baseUrl}/application/o/authorize/`);
+        authUrl.searchParams.set('client_id', clientId);
+        authUrl.searchParams.set('redirect_uri', 'http://localhost:4321/callback');
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('scope', 'openid profile email');
+        
+        // Log and redirect
+        console.log('Navigating to localhost URI:', authUrl.toString());
+        document.getElementById('localhost-result').innerText = `Redirecting to auth with localhost URI...`;
+        
+        setTimeout(() => {
+          window.location.href = authUrl.toString();
+        }, 1000);
+      } catch (error) {
+        console.error('Localhost test failed:', error);
+        document.getElementById('localhost-result').innerText = `Error: ${error.message}`;
+      }
+    });
+    
+    // Use production URI test
+    document.getElementById('use-production').addEventListener('click', async () => {
+      try {
+        const { createClient } = await import('../lib/authentik/client');
+        
+        const baseUrl = import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub';
+        const clientId = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '';
+        const clientSecret = import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '';
+        
+        // Navigate directly to the authentication URL
+        const authUrl = new URL(`${baseUrl}/application/o/authorize/`);
+        authUrl.searchParams.set('client_id', clientId);
+        authUrl.searchParams.set('redirect_uri', 'http://todo.pkc.pub/callback');
+        authUrl.searchParams.set('response_type', 'code');
+        authUrl.searchParams.set('scope', 'openid profile email');
+        
+        // Log and redirect
+        console.log('Navigating to production URI:', authUrl.toString());
+        document.getElementById('production-result').innerText = `Redirecting to auth with production URI...`;
+        
+        setTimeout(() => {
+          window.location.href = authUrl.toString();
+        }, 1000);
+      } catch (error) {
+        console.error('Production test failed:', error);
+        document.getElementById('production-result').innerText = `Error: ${error.message}`;
+      }
+    });
+  </script>
+</Layout>

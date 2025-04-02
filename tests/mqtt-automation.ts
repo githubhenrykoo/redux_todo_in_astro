@@ -52,9 +52,22 @@ import fs from 'fs';
   await page.screenshot({ path: ledOnScreenshot });
   console.log(`LED on screenshot saved to: ${ledOnScreenshot}`);
   
-  // Step 3: Type "Testing" in the input field
-  console.log('Typing message...');
-  await page.fill('input[placeholder="Tulis pesan..."]', 'Testing12345');
+  // Step 3: Type "Testing" in the input field with current time character by character
+  console.log('Typing message with current time...');
+  const currentTime = new Date().toLocaleTimeString();
+  const messageToType = `time: ${currentTime}`;
+  
+  // Focus on the input field first
+  await page.click('input[placeholder="Tulis pesan..."]');
+  
+  // Clear any existing text
+  await page.fill('input[placeholder="Tulis pesan..."]', '');
+  
+  // Type each character with a small delay to make it visible
+  for (const char of messageToType) {
+    await page.keyboard.type(char);
+    await page.waitForTimeout(100); // Add a small delay between each character
+  }
   
   // Take a screenshot after typing the message
   const messageTypedScreenshot: string = path.join(screenshotsDir, `message-typed-${new Date().toISOString().replace(/:/g, '-')}.png`);

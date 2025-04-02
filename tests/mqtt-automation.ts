@@ -58,10 +58,10 @@ import fs from 'fs';
   const messageToType = `time: ${currentTime}`;
   
   // Focus on the input field first
-  await page.click('input[placeholder="Tulis pesan..."]');
+  await page.click('input[placeholder="Enter your message here..."]');
   
   // Clear any existing text
-  await page.fill('input[placeholder="Tulis pesan..."]', '');
+  await page.fill('input[placeholder="Enter your message here..."]', '');
   
   // Type each character with a small delay to make it visible
   for (const char of messageToType) {

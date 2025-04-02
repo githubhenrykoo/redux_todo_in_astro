@@ -323,7 +323,7 @@ const SimpleMQTTDashboardPanel = () => {
   // UI rendering
   return (
     <div className="flex flex-col h-full overflow-auto bg-[#121212] text-[#e0e0e0] p-4">
-      <h2 className="text-center text-xl font-semibold text-[#03dac6] mb-4">MQTT Dashboard - Dark Mode</h2>
+      <h2 className="text-center text-xl font-semibold mb-4">MQTT Dashboard - Dark Mode</h2>
       <p className="text-center italic mb-5">{connectionStatus}</p>
       
       {/* Temperature Chart */}
@@ -333,12 +333,12 @@ const SimpleMQTTDashboardPanel = () => {
       
       <p className="text-center mb-4">
         Current Temperature: 
-        <span className="font-bold text-2xl ml-2 text-[#03dac6]">
+        <span className="font-bold text-2xl ml-2">
           {localTemp !== '--' ? `${localTemp}°C` : (currentTemp && currentTemp !== '--' ? `${currentTemp}°C` : '--')}
         </span>
       </p>
       
-      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Data Energy Meter</h3>
+      <h3 className="text-center text-lg font-semibold mb-4">Data Energy Meter</h3>
       
       {/* Controls */}
       <div className="flex flex-wrap justify-center gap-2 mb-6 items-center">
@@ -346,13 +346,13 @@ const SimpleMQTTDashboardPanel = () => {
           className="bg-[#00c853] hover:bg-[#00b248] text-white px-5 py-2 rounded-md transition-colors"
           onClick={() => toggleLED('1')}
         >
-          Nyalakan LED
+          Turn on LED
         </button>
         <button 
           className="bg-[#d50000] hover:bg-[#b71c1c] text-white px-5 py-2 rounded-md transition-colors"
           onClick={() => toggleLED('0')}
         >
-          Matikan LED
+          Turn off LED
         </button>
       </div>
       
@@ -380,7 +380,7 @@ const SimpleMQTTDashboardPanel = () => {
         </div>
       </div>
       
-      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Send Message</h3>
+      <h3 className="text-center text-lg font-semibold mb-4">Send Message</h3>
       
       {/* Text Input */}
       <div className="flex flex-col md:flex-row gap-2 mb-4">
@@ -389,19 +389,16 @@ const SimpleMQTTDashboardPanel = () => {
           value={customText}
           onChange={(e) => setCustomText(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Tulis pesan..."
+          placeholder="Enter your message here..."
           className="flex-grow bg-[#2d2d2d] text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#03dac6]"
         />
         <button
           onClick={sendText}
           className="bg-[#03dac6] hover:bg-[#018786] text-black font-medium px-6 py-2 rounded-md transition-colors"
         >
-          Kirim
+          Send
         </button>
       </div>
-      
-      {/* Published Messages */}
-      <PublishedMessages />
     </div>
   );
 };

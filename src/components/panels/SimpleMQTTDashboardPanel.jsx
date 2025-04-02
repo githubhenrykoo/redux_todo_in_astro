@@ -132,9 +132,18 @@ const SimpleMQTTDashboardPanel = () => {
                   // Add temperature data point to history
                   dispatch(addTemperatureDataPoint({ label: now, value: suhu }));
                   
-                  // Update chart
+                  // Directly update chart with new data point
                   if (chartInstanceRef.current) {
-                    chartInstanceRef.current.update();
+                    // Limit chart to show last 10 data points for better visualization
+                    if (chartInstanceRef.current.data.labels.length > 10) {
+                      chartInstanceRef.current.data.labels.shift();
+                      chartInstanceRef.current.data.datasets[0].data.shift();
+                    }
+                    
+                    // Add new data point
+                    chartInstanceRef.current.data.labels.push(now);
+                    chartInstanceRef.current.data.datasets[0].data.push(suhu);
+                    chartInstanceRef.current.update('none'); // Use 'none' for smoother updates
                   }
                 } else {
                   console.error('Received invalid temperature value:', msg);
@@ -144,6 +153,7 @@ const SimpleMQTTDashboardPanel = () => {
               }
             }
             
+            // Other sensor topics remain the same
             if (topic === 'sensor/tegangan') dispatch(setVoltage(msg));
             if (topic === 'sensor/arus') dispatch(setCurrent(msg));
             if (topic === 'sensor/daya') dispatch(setPower(msg));
@@ -168,12 +178,17 @@ const SimpleMQTTDashboardPanel = () => {
                 data: temperatureHistory.data,
                 fill: false,
                 borderColor: '#03dac5',
-                tension: 0.3
+                tension: 0.3,
+                pointRadius: 3,
+                pointBackgroundColor: '#03dac5'
               }]
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              animation: {
+                duration: 500 // Faster animations for real-time data
+              },
               scales: {
                 x: { 
                   title: { display: true, text: 'Waktu' },
@@ -191,6 +206,14 @@ const SimpleMQTTDashboardPanel = () => {
               plugins: {
                 legend: {
                   labels: { color: '#e0e0e0' }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  titleColor: '#03dac5',
+                  bodyColor: '#ffffff',
+                  borderColor: '#03dac5',
+                  borderWidth: 1,
+                  displayColors: false
                 }
               }
             }
@@ -222,14 +245,17 @@ const SimpleMQTTDashboardPanel = () => {
     };
   }, [dispatch]);
   
-  // Update chart when temperature history changes
+  // Update chart when temperature history changes - only for initial load or when history is reset
   useEffect(() => {
-    if (chartInstanceRef.current) {
-      chartInstanceRef.current.data.labels = temperatureHistory.labels;
-      chartInstanceRef.current.data.datasets[0].data = temperatureHistory.data;
-      chartInstanceRef.current.update();
+    if (chartInstanceRef.current && mqttState.temperatureHistory) {
+      // Only do a full update if the chart is empty but history has data
+      if (chartInstanceRef.current.data.labels.length === 0 && mqttState.temperatureHistory.labels.length > 0) {
+        chartInstanceRef.current.data.labels = [...mqttState.temperatureHistory.labels];
+        chartInstanceRef.current.data.datasets[0].data = [...mqttState.temperatureHistory.data];
+        chartInstanceRef.current.update();
+      }
     }
-  }, [temperatureHistory]);
+  }, [mqttState.temperatureHistory]);
   
   // MQTT control functions
   const toggleLED = (state) => {
@@ -358,10 +384,6 @@ const SimpleMQTTDashboardPanel = () => {
       
       {/* Published Messages */}
       <PublishedMessages />
-      
-      <div className="text-center text-sm text-gray-400 mt-auto pt-4">
-        LED Status: {ledStatus === 'on' ? '🟢 On' : '🔴 Off'}
-      </div>
     </div>
   );
 };

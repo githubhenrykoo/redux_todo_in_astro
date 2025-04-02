@@ -34,6 +34,9 @@ const SimpleMQTTDashboardPanel = () => {
   // Get MQTT state from Redux with fallback values
   const mqttState = useSelector(state => state.mqtt) || {};
   
+  // Get the full Redux state for export
+  const fullReduxState = useSelector(state => state);
+  
   // Access currentTemp directly to ensure we get the latest value
   const currentTemp = useSelector(state => state.mqtt?.currentTemp) || '--';
   
@@ -275,6 +278,19 @@ const SimpleMQTTDashboardPanel = () => {
     }
   }, [mqttState.temperatureHistory]);
   
+  // Add state to track user actions
+  const [userActions, setUserActions] = useState([]);
+  
+  // Function to record user actions
+  const recordUserAction = (actionType, details) => {
+    const newAction = {
+      type: actionType,
+      details: details,
+      timestamp: new Date().toISOString()
+    };
+    setUserActions(prevActions => [...prevActions, newAction]);
+  };
+  
   // MQTT control functions
   const toggleLED = (state) => {
     if (mqttClientRef.current) {
@@ -289,6 +305,9 @@ const SimpleMQTTDashboardPanel = () => {
       }));
       
       dispatch(setLedStatus(state === '1' ? 'on' : 'off'));
+      
+      // Record user action
+      recordUserAction('TOGGLE_LED', { state: state, ledStatus: state === '1' ? 'on' : 'off' });
     } else {
       console.warn('MQTT client not initialized yet');
       dispatch(setConnectionStatus('⚠️ MQTT client not ready, try again in a moment'));
@@ -307,10 +326,123 @@ const SimpleMQTTDashboardPanel = () => {
         timestamp: new Date().toISOString()
       }));
       
+      // Record user action
+      recordUserAction('SEND_TEXT', { text: customText });
+      
       setCustomText('');
     } else if (!mqttClientRef.current) {
       console.warn('MQTT client not initialized yet');
       dispatch(setConnectionStatus('⚠️ MQTT client not ready, try again in a moment'));
+    }
+  };
+  
+  // Function to export Redux state to JSON file
+  const exportStateToJson = (state, fullState) => {
+    try {
+      // Create a comprehensive export object
+      const stateToExport = {
+        mqtt: JSON.parse(JSON.stringify(state)),
+        fullReduxState: JSON.parse(JSON.stringify(fullState)),
+        exportedAt: new Date().toISOString(),
+        appVersion: '1.0.0',
+        deviceInfo: {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          language: navigator.language
+        },
+        // Include user actions from local state
+        userActions: JSON.parse(JSON.stringify(userActions))
+      };
+      
+      // Add action history if available in the Redux DevTools extension
+      if (window.__REDUX_DEVTOOLS_EXTENSION__) {
+        try {
+          // Attempt to get action history from Redux DevTools
+          const actionHistory = [];
+          
+          // Create a listener for Redux DevTools to capture actions
+          const unsubscribe = window.__REDUX_DEVTOOLS_EXTENSION__.connect().subscribe((message) => {
+            if (message.type === 'DISPATCH' && message.payload.actionsById) {
+              // Extract actions from DevTools state
+              const actions = Object.values(message.payload.actionsById)
+                .map(action => ({
+                  type: action.action.type,
+                  payload: action.action.payload,
+                  timestamp: new Date().toISOString()
+                }));
+              
+              actionHistory.push(...actions);
+            }
+          });
+          
+          // Force a state update to trigger the listener
+          window.__REDUX_DEVTOOLS_EXTENSION__.send('GET_ACTIONS_BY_ID', {});
+          
+          // Add action history to export
+          stateToExport.actionHistory = actionHistory;
+          
+          // Clean up listener
+          setTimeout(() => unsubscribe(), 100);
+        } catch (e) {
+          console.warn('Could not extract action history from Redux DevTools:', e);
+          stateToExport.actionHistoryError = e.message;
+        }
+      }
+      
+      // Ensure published messages are included
+      if (state.publishedMessages) {
+        stateToExport.publishedMessages = JSON.parse(JSON.stringify(state.publishedMessages));
+      }
+      
+      // Include temperature history data
+      if (state.temperatureHistory) {
+        stateToExport.temperatureHistory = JSON.parse(JSON.stringify(state.temperatureHistory));
+      }
+      
+      // Include sensor readings
+      stateToExport.sensorReadings = {
+        temperature: state.currentTemp || '--',
+        voltage: state.voltage || '--',
+        current: state.current || '--',
+        power: state.power || '--',
+        kwh: state.kwh || '--',
+        powerFactor: state.powerFactor || '--'
+      };
+      
+      // Convert state to JSON string with pretty formatting
+      const jsonString = JSON.stringify(stateToExport, null, 2);
+      
+      // Create a blob with the JSON data
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      
+      // Create a URL for the blob
+      const url = URL.createObjectURL(blob);
+      
+      // Create a temporary anchor element to trigger the download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mqtt-data-${new Date().toISOString().replace(/:/g, '-')}.json`;
+      
+      // Append the anchor to the body, click it, and remove it
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 0);
+      
+      console.log('Complete Redux state and action history exported successfully');
+      dispatch(setConnectionStatus('✅ Complete data with action history exported successfully'));
+      
+      // Reset status message after a delay
+      setTimeout(() => {
+        dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
+      }, 3000);
+    } catch (error) {
+      console.error('Error exporting Redux state:', error);
+      dispatch(setConnectionStatus('❌ Error exporting data: ' + error.message));
     }
   };
   
@@ -324,7 +456,18 @@ const SimpleMQTTDashboardPanel = () => {
   return (
     <div className="flex flex-col h-full overflow-auto bg-[#121212] text-[#e0e0e0] p-4">
       <h2 className="text-center text-xl font-semibold text-[#03dac6] mb-4">MQTT Dashboard - Dark Mode</h2>
-      <p className="text-center italic mb-5">{connectionStatus}</p>
+      <div className="flex justify-between items-center mb-5">
+        <p className="text-center italic flex-grow">{connectionStatus}</p>
+        <button
+          onClick={() => {
+            recordUserAction('EXPORT_DATA', { timestamp: new Date().toISOString() });
+            exportStateToJson(mqttState, fullReduxState);
+          }}
+          className="bg-[#3700B3] hover:bg-[#6200EE] text-white px-3 py-1 rounded-md text-sm transition-colors"
+        >
+          Export Data
+        </button>
+      </div>
       
       {/* Temperature Chart */}
       <div className="bg-[#1f1f1f] rounded-lg p-3 mb-5 h-64">
@@ -344,13 +487,17 @@ const SimpleMQTTDashboardPanel = () => {
       <div className="flex flex-wrap justify-center gap-2 mb-6 items-center">
         <button 
           className="bg-[#00c853] hover:bg-[#00b248] text-white px-5 py-2 rounded-md transition-colors"
-          onClick={() => toggleLED('1')}
+          onClick={() => {
+            toggleLED('1');
+          }}
         >
           Nyalakan LED
         </button>
         <button 
           className="bg-[#d50000] hover:bg-[#b71c1c] text-white px-5 py-2 rounded-md transition-colors"
-          onClick={() => toggleLED('0')}
+          onClick={() => {
+            toggleLED('0');
+          }}
         >
           Matikan LED
         </button>

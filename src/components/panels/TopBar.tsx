@@ -259,11 +259,19 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       }
     });
 
-    // Set redirect URI based on environment configuration
-    setRedirectUri(
-      import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || 
-      `${import.meta.env.PUBLIC_APP_URL}/callback`
-    );
+    // Set redirect URI based on environment configuration - hardcoded for reliability
+    const isLocalhost = window.location.hostname === 'localhost';
+    
+    // Hard code both values to ensure they match exactly what's configured in Authentik
+    const localRedirectUri = 'http://localhost:4321/callback'; // Hardcoded for local
+    const prodRedirectUri = 'http://todo.pkc.pub/callback'; // Hardcoded for production
+    
+    setRedirectUri(isLocalhost ? localRedirectUri : prodRedirectUri);
+    
+    console.log('Authentik Redirect URI:', {
+      isLocalhost,
+      usingUri: isLocalhost ? localRedirectUri : prodRedirectUri
+    });
 
     // Check for stored user info
     const storedUserInfo = localStorage.getItem('authentik_top_banner_authuser_info');

@@ -47,11 +47,21 @@ import Layout from '../layouts/BaseLayout.astro';
         // Import the Authentik client dynamically
         const { createClient } = await import('../lib/authentik/client');
 
+        // Hardcode the redirect URI based on hostname for maximum reliability
+        const isLocalhost = window.location.hostname === 'localhost';
+        const hardcodedRedirectUri = isLocalhost ? 'http://localhost:4321/callback' : 'http://todo.pkc.pub/callback';
+
+        console.log('Callback page redirect URI check:', {
+          isLocalhost,
+          hardcodedRedirectUri,
+          currentUrl: window.location.href
+        });
+
         // Create the Authentik client with the same configuration used in TopBar
         const client = createClient({
           clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
           clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
-          redirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || '',
+          redirectUri: hardcodedRedirectUri,
           scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
           baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
           storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,

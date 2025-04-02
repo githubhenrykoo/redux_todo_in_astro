@@ -1,5 +1,190 @@
 ---
-import DefaultLayout from '../layouts/DefaultLayout.astro';
 ---
 
-<DefaultLayout title="Redux Todo App" />
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to PKC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <div class="content">
+      <div class="logo-container">
+        <div class="logo">PKC</div>
+      </div>
+      
+      <h1>Welcome to PKC</h1>
+      <p class="subtitle">Your centralized dashboard for monitoring and controlling IoT devices</p>
+      
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">📊</div>
+          <h3>Real-time Data</h3>
+          <p>Monitor live sensor readings from your connected devices</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔌</div>
+          <h3>Device Control</h3>
+          <p>Toggle devices and send custom commands remotely</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📱</div>
+          <h3>Mobile Friendly</h3>
+          <p>Access your dashboard from any device, anywhere</p>
+        </div>
+      </div>
+      
+      <a href="/Page" class="enter-button">Enter Page</a>
+    </div>
+  </div>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      padding: 40px 20px;
+    }
+    
+    .content {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 60px 40px;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .logo-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    
+    .logo {
+      font-size: 48px;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      border-radius: 16px;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 20px rgba(0, 114, 255, 0.3);
+    }
+    
+    h1 {
+      font-size: 36px;
+      margin-bottom: 16px;
+      font-weight: 700;
+      background: linear-gradient(to right, #00c6ff, #0072ff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .subtitle {
+      font-size: 18px;
+      color: #e0e0e0;
+      margin-bottom: 50px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 30px;
+      margin-bottom: 50px;
+    }
+    
+    .feature {
+      padding: 20px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .feature:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+    
+    .feature h3 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .feature p {
+      color: #cccccc;
+      font-size: 14px;
+    }
+    
+    .enter-button {
+      display: inline-block;
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      color: white;
+      font-weight: 600;
+      font-size: 18px;
+      padding: 16px 40px;
+      border-radius: 40px;
+      text-decoration: none;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin-top: 20px;
+      box-shadow: 0 10px 20px rgba(0, 114, 255, 0.3);
+    }
+    
+    .enter-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 30px rgba(0, 114, 255, 0.4);
+    }
+    
+    @media (max-width: 768px) {
+      .content {
+        padding: 40px 20px;
+      }
+      
+      h1 {
+        font-size: 28px;
+      }
+      
+      .subtitle {
+        font-size: 16px;
+      }
+      
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</body>
+</html>

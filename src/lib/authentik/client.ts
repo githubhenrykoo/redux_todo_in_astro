@@ -63,6 +63,14 @@ export function createClient(config: AuthentikClientConfig) {
       url.searchParams.set('response_type', 'code');
       url.searchParams.set('scope', scopes);
       
+      // Debug information for redirect URI issues
+      console.log('Authentication Redirect Debug:', {
+        authUrl: url.toString(),
+        redirectUri: redirectUri,
+        clientId: clientId ? '[PRESENT]' : '[MISSING]',
+        baseUrl: sanitizedBaseUrl
+      });
+      
       // Store the original URL to return after authentication
       localStorage.setItem(`${storageKey}redirect_uri`, currentUrl);
 

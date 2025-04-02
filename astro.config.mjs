@@ -142,10 +142,25 @@ export default defineConfig({
         '@': path.resolve('./src'),
         '@pages': path.resolve('./src/pages')
       }
+    },
+    server: {
+      hmr: {
+        clientPort: 4321
+      },
+      watch: {
+        usePolling: true
+      },
+      strictPort: true,
+      proxy: {},
+      cors: true,
+      allowedHosts: ['localhost', '127.0.0.1', 'todo.pkc.pub', '10.243.143.134', '172.22.1.146']
     }
   },
   server: {
     host: '0.0.0.0',
-    port: 4321
+    port: 4321,
+    headers: {
+      'Access-Control-Allow-Origin': '*'
+    }
   }
 });

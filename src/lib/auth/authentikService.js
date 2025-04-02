@@ -15,9 +15,9 @@ import { encodeText } from '../../utils/textEncoderPolyfill.js';
  * Default authentication configuration
  */
 const defaultAuthConfig = {
-  baseUrl: 'https://auth.pkc.pub',
-  clientId: '',
-  redirectUri: isBrowser ? window.location.origin : 'http://localhost:4321',
+  baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || 'https://auth.pkc.pub',
+  clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
+  redirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || 'http://todo.pkc.pub/callback',
   scopes: 'openid profile email',
   storageKey: 'authentik_auth',
   responseType: 'code',
@@ -90,15 +90,27 @@ export function getLoginUrl(auth, state = null) {
     return Promise.resolve('#');
   }
   
-  // Create code verifier and store it
-  const codeVerifier = generateRandomString(64);
-  localStorage.setItem(`${auth.storageKey}_code_verifier`, codeVerifier);
+  // Add debug logging for redirect URI
+  if (isBrowser) {
+    console.log('Auth Config:', {
+      baseUrl: auth.baseUrl,
+      clientId: auth.clientId ? '[PRESENT]' : '[MISSING]',
+      redirectUri: auth.redirectUri,
+      publicEnvRedirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI || '[NOT SET]',
+      windowLocationOrigin: window.location.origin,
+      fullUrl: window.location.href
+    });
+  }
   
-  // Generate state if not provided
+  // Generate random state
   if (!state) {
     state = generateRandomString(32);
     localStorage.setItem(`${auth.storageKey}_auth_state`, state);
   }
+  
+  // Create code verifier and store it
+  const codeVerifier = generateRandomString(64);
+  localStorage.setItem(`${auth.storageKey}_code_verifier`, codeVerifier);
   
   // Build URL with PKCE code challenge
   return generateCodeChallenge(codeVerifier).then(codeChallenge => {

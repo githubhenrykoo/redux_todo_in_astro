@@ -58,5 +58,26 @@
             "minSize": 20,
             "visible": true
         }
+    },
+    "file_table_layout": {
+        "left": {
+            "type": "FileTablePanel",
+            "size": 50,
+            "minSize": 30,
+            "visible": true
+        },
+        "middle": {
+            "type": "ContentViewerPanel", 
+            "size": 0,
+            "minSize": 0,
+            "visible": false
+        },
+        "right": {
+            "type": "ContentDetailPanel",
+            "size": 50,
+            "minSize": 30,
+            "visible": true
+        }
     }
+    
 }

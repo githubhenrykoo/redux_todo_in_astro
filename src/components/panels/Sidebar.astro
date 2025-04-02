@@ -1,6 +1,6 @@
 ---
 import { cn } from '../../lib/utils';
-import { FaCode, FaSearch, FaBug, FaTerminal, FaCog, FaCube } from 'react-icons/fa';
+import { FaCode,FaTerminal, FaCog, FaCube, FaFile } from 'react-icons/fa';
 import { store } from '../../store';
 import { changeLayout } from '../../features/panellayoutSlice';
 
@@ -40,6 +40,16 @@ const { class: className, ...props } = Astro.props;
           CLM Editor
         </span>
       </button>
+      <button
+        id="fileLayoutBtn"
+        title="File Table View"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <FaFile className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          File Table
+        </span>
+      </button>
     </div>
     <div>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
@@ -57,6 +67,7 @@ const { class: className, ...props } = Astro.props;
   const todoLayoutBtn = document.getElementById('todoLayoutBtn');
   const generateLayoutBtn = document.getElementById('generateLayoutBtn');
   const clmLayoutBtn = document.getElementById('clmLayoutBtn');
+  const fileLayoutBtn = document.getElementById('fileLayoutBtn');
 
   // Add click handlers
   todoLayoutBtn?.addEventListener('click', () => {
@@ -71,17 +82,23 @@ const { class: className, ...props } = Astro.props;
     store.dispatch(changeLayout('clm_layout'));
   });
 
+  fileLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('file_table_layout'));
+  });
+
   // Function to update active button styles
   function updateActiveButton(layout: string) {
     // Remove active styles from all buttons
     todoLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     generateLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     clmLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    fileLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
 
     // Reset icon colors
     todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     generateLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     clmLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    fileLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
     if (layout === 'todo_layout') {
@@ -93,24 +110,26 @@ const { class: className, ...props } = Astro.props;
     } else if (layout === 'clm_layout') {
       clmLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       clmLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (layout === 'file_table_layout') {
+      fileLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      fileLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     }
   }
 
-  // Get the current layout from panels in the state
-  const getCurrentLayout = () => {
-    const state = store.getState() as any;
-    // Look at the panel configuration to determine which layout is active
+  // Function to determine current layout from state
+  const updateLayoutFromState = (state: any) => {
     const panels = state.panellayout.panels || { right: { type: 'TodoPanel' } };
     if (panels.right.type === 'GeneratePanel') return 'generate_layout';
     if (panels.right.type === 'CLMInputPanel') return 'clm_layout';
+    if (panels.middle?.type === 'CLMInputPanel' && panels.right?.type === 'ContentDetailPanel') return 'file_table_layout';
     return 'todo_layout';
   };
 
   // Initialize button state based on current layout
-  updateActiveButton(getCurrentLayout());
+  updateActiveButton(updateLayoutFromState(store.getState()));
 
   // Subscribe to store changes to update button states
   store.subscribe(() => {
-    updateActiveButton(getCurrentLayout());
+    updateActiveButton(updateLayoutFromState(store.getState()));
   });
 </script>

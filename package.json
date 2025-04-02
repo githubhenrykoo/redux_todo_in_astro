@@ -21,7 +21,8 @@
     "test:content-detector": "jest src/test/content_type_detector.test.js",
     "test:content-detector:coverage": "jest src/test/content_type_detector.test.js --coverage",
     "test:content-detector:simple": "node src/test/run-content-type-tests.js",
-    "test:add-more-data": "node src/test/add-more-test-data.js"
+    "test:add-more-data": "node src/test/add-more-test-data.js",
+    "mqtt-test": "ts-node tests/mqtt-automation.ts"
   },
   "dependencies": {
     "@astrojs/react": "^4.2.1",

@@ -42,7 +42,7 @@ import fs from 'fs';
   
   // Step 2: Click on the "Nyalakan LED" button
   console.log('Turning on the LED...');
-  await page.click('button:has-text("Nyalakan LED")');
+  await page.click('button:has-text("Turn on LED")');
   
   // Wait for the action to take effect
   await page.waitForTimeout(2000);
@@ -76,7 +76,7 @@ import fs from 'fs';
   
   // Step 4: Click the send button
   console.log('Sending message...');
-  await page.click('button:has-text("Kirim")');
+  await page.click('button:has-text("Send")');
   
   // Wait for the action to take effect
   await page.waitForTimeout(2000);
@@ -88,7 +88,7 @@ import fs from 'fs';
   
   // Step 5: Turn off the LED (assuming there's a "Matikan LED" button)
   console.log('Turning off the LED...');
-  await page.click('button:has-text("Matikan LED")');
+  await page.click('button:has-text("Turn off LED")');
   
   // Wait for the action to take effect
   await page.waitForTimeout(2000);

@@ -323,7 +323,7 @@ const SimpleMQTTDashboardPanel = () => {
   // UI rendering
   return (
     <div className="flex flex-col h-full overflow-auto bg-[#121212] text-[#e0e0e0] p-4">
-      <h2 className="text-center text-xl font-semibold mb-4">MQTT Dashboard - Dark Mode</h2>
+      <h2 className="text-center text-xl font-semibold text-[#03dac6] mb-4">MQTT Dashboard - Dark Mode</h2>
       <p className="text-center italic mb-5">{connectionStatus}</p>
       
       {/* Temperature Chart */}
@@ -333,12 +333,12 @@ const SimpleMQTTDashboardPanel = () => {
       
       <p className="text-center mb-4">
         Current Temperature: 
-        <span className="font-bold text-2xl ml-2">
+        <span className="font-bold text-2xl ml-2 text-[#03dac6]">
           {localTemp !== '--' ? `${localTemp}°C` : (currentTemp && currentTemp !== '--' ? `${currentTemp}°C` : '--')}
         </span>
       </p>
       
-      <h3 className="text-center text-lg font-semibold mb-4">Data Energy Meter</h3>
+      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Data Energy Meter</h3>
       
       {/* Controls */}
       <div className="flex flex-wrap justify-center gap-2 mb-6 items-center">
@@ -380,7 +380,7 @@ const SimpleMQTTDashboardPanel = () => {
         </div>
       </div>
       
-      <h3 className="text-center text-lg font-semibold mb-4">Send Message</h3>
+      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Send Message</h3>
       
       {/* Text Input */}
       <div className="flex flex-col md:flex-row gap-2 mb-4">
@@ -399,6 +399,9 @@ const SimpleMQTTDashboardPanel = () => {
           Send
         </button>
       </div>
+      
+      {/* Published Messages */}
+      <PublishedMessages />
     </div>
   );
 };

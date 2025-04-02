@@ -43,6 +43,8 @@ import fs from 'fs';
   await page.screenshot({ path: beforeScreenshot });
   console.log(`Screenshot before command saved to: ${beforeScreenshot}`);
   
+  await page.waitForTimeout(1000);
+
   // Focus the terminal by clicking on it
   await page.click('.xterm-screen');
   
@@ -60,6 +62,8 @@ import fs from 'fs';
   await page.screenshot({ path: typedScreenshot });
   console.log(`Screenshot after typing command saved to: ${typedScreenshot}`);
   
+  await page.waitForTimeout(1000);
+
   // Step 3: Press Enter to execute the command
   console.log('Executing lazygit command...');
   await page.waitForTimeout(500); // Pause before pressing Enter
@@ -76,7 +80,7 @@ import fs from 'fs';
   console.log('Lazygit should now be running in the terminal');
   
   // Keep the browser open for a moment to see the results
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(3000);
   
   // Press 'q' to exit lazygit
   await page.keyboard.press('q');

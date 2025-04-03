@@ -199,7 +199,7 @@ const MQTTDashboardPanel = () => {
 
   return (
     <div className="flex flex-col h-full overflow-auto bg-[#121212] text-[#e0e0e0] p-4">
-      <h2 className="text-center text-xl font-semibold text-[#03dac6] mb-4">MQTT Dashboard - Dark Mode</h2>
+      <h2 className="text-center text-xl font-semibold mb-4">MQTT Dashboard - Dark Mode</h2>
       <p className="text-center italic mb-5">{connectionStatus}</p>
       
       {/* Temperature Chart */}

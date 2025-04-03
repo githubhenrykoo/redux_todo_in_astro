@@ -40,9 +40,11 @@ import fs from 'fs';
   await page.screenshot({ path: dashboardScreenshot });
   console.log(`Dashboard screenshot saved to: ${dashboardScreenshot}`);
   
-  // Step 2: Click on the "Nyalakan LED" button
+  await page.waitForTimeout(2000);
+  
+  // Step 2: Click on the "Turn on LED" button with a more specific selector
   console.log('Turning on the LED...');
-  await page.click('button:has-text("Turn on LED")');
+  await page.click('button:has-text("On LED")');
   
   // Wait for the action to take effect
   await page.waitForTimeout(2000);
@@ -88,7 +90,7 @@ import fs from 'fs';
   
   // Step 5: Turn off the LED (assuming there's a "Matikan LED" button)
   console.log('Turning off the LED...');
-  await page.click('button:has-text("Turn off LED")');
+  await page.click('button:has-text("Off LED")');
   
   // Wait for the action to take effect
   await page.waitForTimeout(2000);

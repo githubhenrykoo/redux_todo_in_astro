@@ -1,6 +1,6 @@
 ---
 import { cn } from '../../lib/utils';
-import { FaCode,FaTerminal, FaCog, FaCube, FaFile } from 'react-icons/fa';
+import { FaCode, FaTerminal, FaCog, FaCube, FaFile, FaMicrophone, FaBrain } from 'react-icons/fa';
 import { store } from '../../store';
 import { changeLayout } from '../../features/panellayoutSlice';
 
@@ -65,6 +65,16 @@ const { class: className, ...props } = Astro.props;
           MQTT Dashboard
         </span>
       </button>
+      <button
+        id="transcriptionLayoutBtn"
+        title="AI Training Data"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <FaBrain className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          AI Training Data
+        </span>
+      </button>
     </div>
     <div>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
@@ -84,6 +94,7 @@ const { class: className, ...props } = Astro.props;
   const clmLayoutBtn = document.getElementById('clmLayoutBtn');
   const fileLayoutBtn = document.getElementById('fileLayoutBtn');
   const mqttDashboardLayoutBtn = document.getElementById('mqttDashboardLayoutBtn');
+  const transcriptionLayoutBtn = document.getElementById('transcriptionLayoutBtn');
 
   // Add click handlers
   todoLayoutBtn?.addEventListener('click', () => {
@@ -106,6 +117,10 @@ const { class: className, ...props } = Astro.props;
     store.dispatch(changeLayout('mqtt_dashboard_layout'));
   });
 
+  transcriptionLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('transcription_layout'));
+  });
+
   // Function to update active button styles
   function updateActiveButton(layout: string) {
     // Remove active styles from all buttons
@@ -114,6 +129,7 @@ const { class: className, ...props } = Astro.props;
     clmLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     fileLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     mqttDashboardLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    transcriptionLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
 
     // Reset icon colors
     todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
@@ -121,6 +137,7 @@ const { class: className, ...props } = Astro.props;
     clmLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     fileLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     mqttDashboardLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    transcriptionLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
     if (layout === 'todo_layout') {
@@ -138,6 +155,9 @@ const { class: className, ...props } = Astro.props;
     } else if (layout === 'mqtt_dashboard_layout') {
       mqttDashboardLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       mqttDashboardLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (layout === 'transcription_layout') {
+      transcriptionLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      transcriptionLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     }
   }
 
@@ -148,6 +168,7 @@ const { class: className, ...props } = Astro.props;
     if (panels.right.type === 'CLMInputPanel') return 'clm_layout';
     if (panels.middle?.type === 'CLMInputPanel' && panels.right?.type === 'ContentDetailPanel') return 'file_table_layout';
     if (panels.right.type === 'MQTTDashboardPanel') return 'mqtt_dashboard_layout';
+    if (panels.right.type === 'TranscriptionPanel') return 'transcription_layout';
     return 'todo_layout';
   };
 

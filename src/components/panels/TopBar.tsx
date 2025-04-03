@@ -263,8 +263,9 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
     const isLocalhost = window.location.hostname === 'localhost';
     
     // Hard code both values to ensure they match exactly what's configured in Authentik
-    const localRedirectUri = 'http://localhost:4321/callback'; // Hardcoded for local
-    const prodRedirectUri = 'http://todo.pkc.pub/callback'; // Hardcoded for production
+    // Changed to use the new auth-helper page instead of callback
+    const localRedirectUri = 'http://localhost:4321/auth-helper'; 
+    const prodRedirectUri = 'http://todo.pkc.pub/auth-helper';
     
     setRedirectUri(isLocalhost ? localRedirectUri : prodRedirectUri);
     
@@ -273,15 +274,74 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       usingUri: isLocalhost ? localRedirectUri : prodRedirectUri
     });
 
-    // Check for stored user info
-    const storedUserInfo = localStorage.getItem('authentik_top_banner_authuser_info');
-    const accessToken = localStorage.getItem('authentik_top_banner_authaccess_token');
-    const idToken = localStorage.getItem('authentik_top_banner_authid_token');
+    // Check for stored user info - try multiple possible storage keys
+    const authStorageKeyPrefix = import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_';
+    
+    // Define possible storage keys to check
+    const possibleUserInfoKeys = [
+      `${authStorageKeyPrefix}top_banner_authuser_info`,
+      `${authStorageKeyPrefix}user_info`,
+      `${authStorageKeyPrefix}user`,
+      'authentik_user_info',
+      'authentik_top_banner_authuser_info'
+    ];
+    
+    const possibleAccessTokenKeys = [
+      `${authStorageKeyPrefix}top_banner_authaccess_token`,
+      `${authStorageKeyPrefix}access_token`,
+      'authentik_access_token',
+      'authentik_top_banner_authaccess_token'
+    ];
+    
+    const possibleIdTokenKeys = [
+      `${authStorageKeyPrefix}top_banner_authid_token`,
+      `${authStorageKeyPrefix}id_token`,
+      'authentik_id_token',
+      'authentik_top_banner_authid_token'
+    ];
+    
+    // Search for user info in various storage keys
+    let storedUserInfo = null;
+    let accessToken = null;
+    let idToken = null;
+    
+    // Find user info from possible keys
+    for (const key of possibleUserInfoKeys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        storedUserInfo = value;
+        console.log('Found user info in key:', key);
+        break;
+      }
+    }
+    
+    // Find access token from possible keys
+    for (const key of possibleAccessTokenKeys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        accessToken = value;
+        console.log('Found access token in key:', key);
+        break;
+      }
+    }
+    
+    // Find ID token from possible keys
+    for (const key of possibleIdTokenKeys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        idToken = value;
+        console.log('Found ID token in key:', key);
+        break;
+      }
+    }
+    
+    // Dump all localStorage keys for debugging
+    console.log('All localStorage keys:', Object.keys(localStorage));
 
     console.log('Stored User Info:', {
-      userInfo: storedUserInfo,
-      accessToken,
-      idToken
+      userInfoFound: !!storedUserInfo,
+      accessTokenFound: !!accessToken,
+      idTokenFound: !!idToken
     });
 
     if (storedUserInfo) {
@@ -452,6 +512,14 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
       
       const currentPath = window.location.pathname + window.location.search;
 
+      console.log('Starting authentication process with:', {
+        clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID ? '[SET]' : '[NOT SET]',
+        clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET ? '[SET]' : '[NOT SET]',
+        redirectUri,
+        baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
+        storageKeyPrefix: import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'
+      });
+
       const client = createClient({
         clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
         clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
@@ -461,10 +529,31 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
       });
 
+      // Store the redirect URI in localStorage before redirecting
+      localStorage.setItem('authentik_last_redirect_uri', redirectUri);
+      
+      // Set a timestamp for debugging
+      localStorage.setItem('authentik_login_attempt_time', new Date().toISOString());
+
+      console.log('Initiating login redirect...');
       await client.login(currentPath);
+      
+      // This code will likely not execute as we're redirecting away
+      console.log('Login redirect initiated');
     } catch (error) {
       console.error('Login failed:', error);
       setLoading(false);
+      
+      // Log detailed error info
+      console.error('Authentication error details:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : 'No stack trace',
+        redirectUri,
+        clientIdConfigured: !!import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID,
+        clientSecretConfigured: !!import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET,
+        authUrlConfigured: !!import.meta.env.PUBLIC_AUTHENTIK_URL
+      });
       
       // Fall back to mock login in development mode if there's an error
       if (import.meta.env.DEV || import.meta.env.MODE === 'development') {

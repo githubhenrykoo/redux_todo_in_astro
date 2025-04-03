@@ -10,6 +10,7 @@ import ContentEditor from '../ui/ContentEditor';
 import FileUploader from '../ui/FileUploader';
 import { FileTypeIcon } from '../ui/icons/FileTypeIcon';
 import TXTViewer from '../viewers/TXTViewer';
+import { getContentType as getContentTypeUtil, getFileExtension } from '../../utils/content-detection';
 
 export default function ContentDetailPanel() {
   const [isEditing, setIsEditing] = useState(false);
@@ -549,8 +550,8 @@ export default function ContentDetailPanel() {
               {/* File Type Icon */}
               <div className="mb-4">
                 <FileTypeIcon 
-                  mimeType={fileInfo?.type || selectedContentItem?.content?.mimeType} 
-                  extension={getFileExtension(fileInfo?.name || selectedContentItem?.content?.fileName)}
+                  mimeType={getContentTypeUtil(fileInfo, selectedItemMetadata)}
+                  extension={fileInfo?.name ? getFileExtension(fileInfo.name) : undefined}
                   size={48}
                 />
               </div>
@@ -562,7 +563,7 @@ export default function ContentDetailPanel() {
               
               {/* File Info */}
               <div className="text-sm text-gray-500 mb-4">
-                {fileInfo?.type || selectedContentItem?.content?.mimeType || "Unknown type"} • 
+                {getContentTypeUtil(fileInfo, selectedItemMetadata) || selectedContentItem?.content?.mimeType || "Unknown type"} • 
                 {formatFileSize(fileInfo?.size || selectedContentItem?.content?.size || 0)}
               </div>
 
@@ -607,8 +608,8 @@ export default function ContentDetailPanel() {
                 ) : (
                   <div className="text-center p-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <FileTypeIcon 
-                      mimeType={fileInfo?.type || selectedContentItem?.content?.mimeType}
-                      extension={getFileExtension(fileInfo?.name || selectedContentItem?.content?.fileName)}
+                      mimeType={getContentTypeUtil(fileInfo, selectedItemMetadata)}
+                      extension={fileInfo?.name ? getFileExtension(fileInfo.name) : undefined}
                       size={64}
                     />
                   </div>
@@ -624,7 +625,8 @@ export default function ContentDetailPanel() {
             <div className="border-b border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center">
                 <FileTypeIcon 
-                  mimeType={getContentType()}
+                  mimeType={getContentTypeUtil(fileInfo, selectedItemMetadata)}
+                  extension={fileInfo?.name ? getFileExtension(fileInfo.name) : undefined}
                   size={24}
                   className="mr-3"
                 />
@@ -633,7 +635,7 @@ export default function ContentDetailPanel() {
                     {selectedHash ? `${selectedHash.substring(0, 8)}...` : 'Text Content'}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    {getContentType()}
+                    {getContentTypeUtil(fileInfo, selectedItemMetadata)}
                   </p>
                 </div>
               </div>
@@ -641,7 +643,7 @@ export default function ContentDetailPanel() {
             
             <div className="p-0">
               {/* Use TXTViewer for text/plain files */}
-              {getContentType() === 'text/plain' ? (
+              {getContentTypeUtil(fileInfo, selectedItemMetadata) === 'text/plain' ? (
                 <TXTViewer content={selectedContentItem?.content} />
               ) : (
                 <ContentEditor
@@ -664,7 +666,7 @@ export default function ContentDetailPanel() {
             <div className="border-b border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center">
                 <FileTypeIcon 
-                  mimeType={getContentType()}
+                  mimeType={getContentTypeUtil(fileInfo, selectedItemMetadata)}
                   extension={fileInfo?.name ? getFileExtension(fileInfo.name) : undefined}
                   size={24}
                   className="mr-3"
@@ -706,10 +708,3 @@ export default function ContentDetailPanel() {
     </div>
   );
 }
-
-// Helper function to get file extension from a filename
-const getFileExtension = (filename) => {
-  if (!filename) return '';
-  const parts = filename.split('.');
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
-};

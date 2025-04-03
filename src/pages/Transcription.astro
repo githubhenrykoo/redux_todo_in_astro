@@ -1,0 +1,14 @@
+---
+import Layout from '../layouts/BaseLayout.astro';
+import TranscriptionPanel from '../components/panels/TranscriptionPanel';
+---
+
+<Layout title="Transcription - PKC">
+  <div class="h-screen flex flex-col overflow-hidden">
+    <main class="flex-1 overflow-hidden">
+      <div class="h-full">
+        <TranscriptionPanel client:load />
+      </div>
+    </main>
+  </div>
+</Layout>

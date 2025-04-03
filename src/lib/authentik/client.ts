@@ -88,7 +88,13 @@ export function createClient(config: AuthentikClientConfig) {
     }
   };
 
-  const handleCallback = async (code: string) => {
+  const handleCallback = async (code: string): Promise<UserInfo> => {
+    console.log('AUTHENTIK DEBUG: handleCallback START', {
+      code: code.substring(0, 5) + '...',
+      storageKey,
+      baseUrl: (baseUrl || '').toString().replace(/\/+$/, '')
+    });
+
     try {
       // Ensure baseUrl is a string and remove trailing slashes
       const sanitizedBaseUrl = (baseUrl || '').toString().replace(/\/+$/, '');
@@ -99,6 +105,7 @@ export function createClient(config: AuthentikClientConfig) {
 
       // Validate input parameters
       if (!code) {
+        console.error('AUTHENTIK ERROR: No authorization code provided');
         throw new Error('Authorization code is required');
       }
       if (!clientId) {
@@ -108,6 +115,7 @@ export function createClient(config: AuthentikClientConfig) {
         throw new Error('Client Secret is required');
       }
       if (!redirectUri) {
+        console.error('AUTHENTIK ERROR: No redirect URI provided');
         throw new Error('Redirect URI is required');
       }
 
@@ -127,18 +135,17 @@ export function createClient(config: AuthentikClientConfig) {
         clientSecretLength: clientSecret.length
       });
 
-      // Prepare token exchange parameters with explicit encoding
+      // Detailed logging of parameters for token exchange
       const tokenParams = new URLSearchParams();
       tokenParams.append('client_id', clientId);
       tokenParams.append('client_secret', clientSecret);
       tokenParams.append('redirect_uri', hardcodedRedirectUri);
       tokenParams.append('grant_type', 'authorization_code');
       tokenParams.append('code', code);
-
-      // Log the exact parameters being sent
-      console.log('DEBUG TOKEN EXCHANGE PARAMS:', {
-        params: Object.fromEntries(tokenParams.entries())
-      });
+      
+      console.log('DEBUG TOKEN EXCHANGE PARAMS:', 
+        Object.fromEntries(tokenParams.entries())
+      );
 
       let tokenResponse;
       try {
@@ -172,61 +179,100 @@ export function createClient(config: AuthentikClientConfig) {
         throw new Error(`Network error during token exchange: ${errorDetails.errorMessage}`);
       }
 
-      // Log full response details for debugging
-      const responseHeaders = Object.fromEntries(tokenResponse.headers.entries());
-      const responseStatus = {
-        ok: tokenResponse.ok,
-        status: tokenResponse.status,
-        statusText: tokenResponse.statusText
-      };
-
-      console.log('Token Exchange Response Details:', {
-        ...responseStatus,
-        headers: responseHeaders
-      });
-
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        console.error('Token Exchange Error:', {
-          status: tokenResponse.status,
-          statusText: tokenResponse.statusText,
-          errorBody: errorText,
-          requestParams: Object.fromEntries(tokenParams)
-        });
-        throw new Error(`Failed to exchange authorization code. Status: ${tokenResponse.status}, Error: ${errorText}`);
-      }
-
-      let tokens;
+      // Add a try-catch around the entire token response handling
+      let responseData;
       try {
-        tokens = await tokenResponse.json();
-        console.log('Token Response Parsed:', {
-          hasAccessToken: !!tokens.access_token,
-          hasIdToken: !!tokens.id_token,
-          tokenKeys: Object.keys(tokens)
-        });
-      } catch (parseError: unknown) {
-        const errorDetails = parseError instanceof Error 
-          ? {
-              errorName: parseError.name,
-              errorMessage: parseError.message,
-              errorStack: parseError.stack
-            }
-          : {
-              errorName: 'Unknown Parse Error',
-              errorMessage: String(parseError),
-              errorStack: null
-            };
+        const responseHeaders = Object.fromEntries(tokenResponse.headers.entries());
+        const responseStatus = {
+          ok: tokenResponse.ok,
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText
+        };
 
-        console.error('Token Parse Error:', errorDetails);
-        throw new Error(`Failed to parse token response: ${errorDetails.errorMessage}`);
+        console.log('Token Exchange Response Details:', {
+          ...responseStatus,
+          headers: responseHeaders
+        });
+
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          console.error('Token Exchange Error:', {
+            status: tokenResponse.status,
+            statusText: tokenResponse.statusText,
+            errorBody: errorText,
+            requestParams: Object.fromEntries(tokenParams)
+          });
+          throw new Error(`Failed to exchange authorization code. Status: ${tokenResponse.status}, Error: ${errorText}`);
+        }
+
+        // Try to get the response as text first to inspect it
+        const responseText = await tokenResponse.text();
+        console.log('Raw token response text:', responseText.substring(0, 200) + '...');
+        
+        try {
+          // Then parse it as JSON
+          responseData = JSON.parse(responseText);
+          console.log('Token response successfully parsed:', {
+            dataReceived: !!responseData,
+            responseKeys: responseData ? Object.keys(responseData) : []
+          });
+          
+          // Direct storage of tokens in localStorage
+          if (responseData && typeof responseData === 'object') {
+            try {
+              // Store auth tokens immediately to prevent loss
+              const authStorageKeyPrefix = 'authentik_';
+              
+              // Store all token response data
+              localStorage.setItem(`${authStorageKeyPrefix}token_response`, JSON.stringify(responseData));
+              
+              // Store access token if available
+              if (responseData.access_token) {
+                localStorage.setItem(`${authStorageKeyPrefix}access_token`, responseData.access_token);
+                localStorage.setItem(`${authStorageKeyPrefix}top_banner_authaccess_token`, responseData.access_token);
+                console.log('Access token stored directly in localStorage during token exchange');
+              }
+              
+              // Store ID token if available
+              if (responseData.id_token) {
+                localStorage.setItem(`${authStorageKeyPrefix}id_token`, responseData.id_token);
+                localStorage.setItem(`${authStorageKeyPrefix}top_banner_authid_token`, responseData.id_token);
+                console.log('ID token stored directly in localStorage during token exchange');
+              }
+              
+              // Store redirect path
+              localStorage.setItem(`${authStorageKeyPrefix}top_banner_authredirect_uri`, '/Page');
+              
+              console.log('Token data stored in localStorage with keys:', 
+                Object.keys(localStorage).filter(k => k.includes(authStorageKeyPrefix))
+              );
+            } catch (storageError) {
+              console.error('Error storing token data in localStorage:', storageError);
+            }
+          }
+        } catch (jsonError) {
+          console.error('Error parsing token response JSON:', {
+            error: jsonError instanceof Error ? jsonError.message : String(jsonError),
+            responseText: responseText.substring(0, 200) + '...'
+          });
+          throw new Error(`Error parsing token response: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}`);
+        }
+      } catch (textError) {
+        console.error('Error reading token response body:', textError);
+        throw new Error('Failed to read token response body');
       }
+      
+      // Continue with the tokens
+      const tokens = responseData;
       
       // Validate tokens
       if (!tokens.access_token) {
+        console.error('No access token received in response:', tokens);
         throw new Error('No access token received');
       }
 
       // Store tokens
+      console.log('Storing tokens with key prefix:', storageKey);
       localStorage.setItem(`${storageKey}access_token`, tokens.access_token);
       localStorage.setItem(`${storageKey}id_token`, tokens.id_token || '');
 
@@ -271,14 +317,24 @@ export function createClient(config: AuthentikClientConfig) {
         userInfoKeys: Object.keys(userInfo)
       });
 
+      // Store user info in localStorage with the configured key
       localStorage.setItem(`${storageKey}user_info`, JSON.stringify(userInfo));
+      
+      // Also store tokens with the user info for convenience
+      const combinedUserInfo = {
+        ...userInfo,
+        access_token: tokens.access_token,
+        id_token: tokens.id_token || '',
+        token_type: tokens.token_type || 'Bearer'
+      };
+      
+      // Store the combined user info for easier access
+      localStorage.setItem(`${storageKey}user_info`, JSON.stringify(combinedUserInfo));
 
-      // Redirect to the specific page
-      if (typeof window !== 'undefined') {
-        window.location.href = `${window.location.origin}/Page`;
-      }
-
-      return userInfo;
+      // Remove the problematic automatic redirect that was breaking the flow
+      // Let the callback.astro page handle the redirect instead
+      
+      return combinedUserInfo;
     } catch (error: unknown) {
       const errorDetails = error instanceof Error 
         ? {

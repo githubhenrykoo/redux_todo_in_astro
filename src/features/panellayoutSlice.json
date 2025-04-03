@@ -98,5 +98,25 @@
             "minSize": 0,
             "visible": false
         }
+    },
+    "transcription_layout": {
+        "left": {
+            "type": "FileTablePanel",
+            "size": 30,
+            "minSize": 20,
+            "visible": true
+        },
+        "middle": {
+            "type": "ContentViewerPanel", 
+            "size": 0,
+            "minSize": 0,
+            "visible": false
+        },
+        "right": {
+            "type": "TranscriptionPanel",
+            "size": 70,
+            "minSize": 50,
+            "visible": true
+        }
     }
 }

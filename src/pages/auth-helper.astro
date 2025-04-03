@@ -1,0 +1,173 @@
+---
+---
+
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication Helper</title>
+</head>
+<body>
+  <h1>Processing Authentication...</h1>
+  <p>This page will redirect you automatically.</p>
+
+  <script is:inline>
+    // Immediately execute
+    (async function() {
+      console.log("AUTH HELPER: Script started");
+      
+      // Directly set the redirect path without waiting for authentication
+      try {
+        const prefix = 'authentik_';
+        localStorage.setItem(`${prefix}top_banner_authredirect_uri`, '/Page');
+        
+        // Store basic authentication state
+        localStorage.setItem(`${prefix}auth_state`, JSON.stringify({
+          isAuthenticated: true,
+          redirectPath: '/Page',
+          timestamp: new Date().toISOString()
+        }));
+        
+        console.log("AUTH HELPER: Stored authentication state and redirect path");
+        
+        // Extract and store the code if available
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        if (code) {
+          localStorage.setItem(`${prefix}auth_code`, code);
+          console.log("AUTH HELPER: Stored auth code");
+          
+          // Process the authentication code to get tokens and user info
+          try {
+            // Determine if we're on localhost or production
+            const isLocalhost = window.location.hostname === 'localhost';
+            const redirectUri = isLocalhost ? 'http://localhost:4321/auth-helper' : 'http://todo.pkc.pub/auth-helper';
+            
+            // Directly fetch tokens from Authentik without using the client library
+            const baseUrl = isLocalhost ? 'http://localhost:9000' : 'https://authentik.pkc.pub';
+            const tokenUrl = `${baseUrl}/application/o/token/`;
+            
+            console.log("AUTH HELPER: Fetching tokens from", tokenUrl);
+            
+            // Create token request parameters
+            const tokenParams = new URLSearchParams();
+            tokenParams.append('grant_type', 'authorization_code');
+            tokenParams.append('code', code);
+            tokenParams.append('redirect_uri', redirectUri);
+            tokenParams.append('client_id', 'GzpEscRHZVgojA96XwwIiBwlWUfxr1Y43SH4zKDw');
+            tokenParams.append('client_secret', 'QcPPsYeV2T3Fci2sXe52yJHGYuVhNFKOBK2Fc01rPRICCdAu1CbmcBfV1W3G7nPFu3wTgfnA1cwyJQDFFiMrhQCgWS7PcVFFnYmIZh5q6w6xvn0gB1nUCWOuiAHZxCSk');
+            
+            const tokenResponse = await fetch(tokenUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json'
+              },
+              body: tokenParams.toString()
+            });
+            
+            console.log("AUTH HELPER: Token response status", tokenResponse.status);
+            
+            if (tokenResponse.ok) {
+              const tokenData = await tokenResponse.json();
+              console.log("AUTH HELPER: Received token data with keys", Object.keys(tokenData));
+              
+              // Store tokens
+              if (tokenData.access_token) {
+                localStorage.setItem(`${prefix}access_token`, tokenData.access_token);
+                localStorage.setItem(`${prefix}top_banner_authaccess_token`, tokenData.access_token);
+              }
+              
+              if (tokenData.id_token) {
+                localStorage.setItem(`${prefix}id_token`, tokenData.id_token);
+                localStorage.setItem(`${prefix}top_banner_authid_token`, tokenData.id_token);
+              }
+              
+              // Fetch user info using the access token
+              try {
+                const userInfoUrl = `${baseUrl}/application/o/userinfo/`;
+                console.log("AUTH HELPER: Fetching user info from", userInfoUrl);
+                
+                const userInfoResponse = await fetch(userInfoUrl, {
+                  headers: {
+                    'Authorization': `Bearer ${tokenData.access_token}`,
+                    'Accept': 'application/json'
+                  }
+                });
+                
+                if (userInfoResponse.ok) {
+                  const userInfo = await userInfoResponse.json();
+                  console.log("AUTH HELPER: Received user info with keys", Object.keys(userInfo));
+                  
+                  // Combine token and user info
+                  const combinedUserInfo = {
+                    ...userInfo,
+                    access_token: tokenData.access_token,
+                    id_token: tokenData.id_token,
+                    token_type: tokenData.token_type,
+                    expires_in: tokenData.expires_in,
+                    token_source: 'auth_helper',
+                    detection_method: 'direct_authentik_api'
+                  };
+                  
+                  // Store complete user info
+                  localStorage.setItem(`${prefix}user_info`, JSON.stringify(combinedUserInfo));
+                  localStorage.setItem(`${prefix}top_banner_authuser_info`, JSON.stringify(combinedUserInfo));
+                  
+                  console.log("AUTH HELPER: Stored combined user info");
+                  
+                  // Dispatch to Redux store if available
+                  if (typeof window !== 'undefined' && window.store && window.store.dispatch) {
+                    console.log("AUTH HELPER: Dispatching to Redux store");
+                    
+                    const loginPayload = {
+                      isAuthenticated: true,
+                      profile: {
+                        email: userInfo.email,
+                        email_verified: userInfo.email_verified,
+                        sub: userInfo.sub,
+                        name: userInfo.name,
+                        given_name: userInfo.given_name,
+                        family_name: userInfo.family_name,
+                        nickname: userInfo.nickname,
+                        preferred_username: userInfo.preferred_username,
+                        groups: userInfo.groups || [],
+                        picture: userInfo.picture
+                      },
+                      tokens: {
+                        access_token: tokenData.access_token,
+                        id_token: tokenData.id_token,
+                        token_type: tokenData.token_type || 'Bearer',
+                        expires_at: tokenData.expires_in ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString() : null
+                      }
+                    };
+                    
+                    window.store.dispatch({ type: 'user/login', payload: loginPayload });
+                  }
+                } else {
+                  console.error("AUTH HELPER: Failed to fetch user info", await userInfoResponse.text());
+                }
+              } catch (userInfoError) {
+                console.error("AUTH HELPER: Error fetching user info", userInfoError);
+              }
+            } else {
+              console.error("AUTH HELPER: Token request failed", await tokenResponse.text());
+            }
+          } catch (tokenError) {
+            console.error("AUTH HELPER: Token processing error", tokenError);
+          }
+        }
+      } catch (error) {
+        console.error("AUTH HELPER: Storage error", error);
+      }
+      
+      // Always redirect to /Page after a reasonable timeout
+      // This ensures the page redirects even if there are errors in processing
+      setTimeout(() => {
+        console.log("AUTH HELPER: Redirecting to /Page");
+        window.location.href = '/Page';
+      }, 3000); // Increased timeout to allow token processing
+    })();
+  </script>
+</body>
+</html>

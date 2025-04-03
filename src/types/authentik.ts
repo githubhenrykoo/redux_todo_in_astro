@@ -12,6 +12,23 @@ export interface UserInfo {
   name?: string;
   email?: string;
   picture?: string;
+  email_verified?: boolean;
+  sub?: string;
+  given_name?: string;
+  family_name?: string;
+  nickname?: string;
+  preferred_username?: string;
+  groups?: string[];
+  // Token information
+  access_token?: string;
+  id_token?: string;
+  token_type?: string;
+  exp?: number;
+  iat?: number;
+  auth_time?: number;
+  // Authentication flow metadata
+  token_source?: string;
+  detection_method?: string; // Similar to your file detection tracking
 }
 
 export interface AuthentikPanelProps extends React.HTMLAttributes<HTMLDivElement> {

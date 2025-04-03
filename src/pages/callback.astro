@@ -1,8 +1,27 @@
 ---
 import Layout from '../layouts/BaseLayout.astro';
+
+// Remove the immediate server-side redirect to allow client-side code to run first
 ---
 
 <Layout title="Authentication Callback">
+  <!-- Immediate inline script for debugging -->
+  <script is:inline>
+    console.log('INLINE DEBUG: Script executing', {
+      time: new Date().toISOString(),
+      url: window.location.href,
+      code: new URLSearchParams(window.location.search).get('code') ? 'present' : 'missing'
+    });
+
+    // Store the redirect path in localStorage as early as possible
+    try {
+      localStorage.setItem('authentik_top_banner_authredirect_uri', '/Page');
+      console.log('INLINE DEBUG: Stored redirect path in localStorage');
+    } catch (storageError) {
+      console.error('INLINE DEBUG: Error storing redirect path:', storageError);
+    }
+  </script>
+  
   <div class="min-h-screen flex items-center justify-center">
     <div class="text-center">
       <h1 class="text-2xl font-semibold mb-4">Processing Authentication...</h1>
@@ -11,8 +30,16 @@ import Layout from '../layouts/BaseLayout.astro';
   </div>
 
   <script>
+    // Immediate logging to verify script execution
+    console.log('CALLBACK DEBUG: Script started', {
+      timestamp: new Date().toISOString(),
+      url: window.location.href
+    });
+
     // Function to handle the authentication callback
     async function handleAuthCallback() {
+      console.log('CALLBACK DEBUG: handleAuthCallback function called');
+      
       try {
         // Extract the authorization code from the URL and trim any whitespace
         const urlParams = new URLSearchParams(window.location.search);
@@ -45,7 +72,25 @@ import Layout from '../layouts/BaseLayout.astro';
         });
 
         // Import the Authentik client dynamically
-        const { createClient } = await import('../lib/authentik/client');
+        console.log('CALLBACK DEBUG: About to import authentik client');
+        let createClient;
+        try {
+          const module = await import('../lib/authentik/client');
+          createClient = module.createClient;
+          console.log('CALLBACK DEBUG: Authentik client imported successfully');
+        } catch (importError: unknown) {
+          console.error('CALLBACK DEBUG: Failed to import authentik client', 
+            importError instanceof Error ? 
+              { message: importError.message, stack: importError.stack } : 
+              String(importError)
+          );
+          throw new Error(`Import failed: ${importError instanceof Error ? importError.message : String(importError)}`);
+        }
+
+        if (!createClient || typeof createClient !== 'function') {
+          console.error('CALLBACK DEBUG: createClient is not a function', { createClient });
+          throw new Error('createClient is not a function');
+        }
 
         // Hardcode the redirect URI based on hostname for maximum reliability
         const isLocalhost = window.location.hostname === 'localhost';
@@ -68,9 +113,95 @@ import Layout from '../layouts/BaseLayout.astro';
         });
 
         // Handle the callback
+        console.log('CALLBACK DEBUG: About to call client.handleCallback');
         const userInfo = await client.handleCallback(code);
         
-        console.log('Authentication Successful:', userInfo);
+        console.log('Authentication Successful:', {
+          userInfoReceived: !!userInfo,
+          userInfoFields: userInfo ? Object.keys(userInfo) : [],
+          accessTokenReceived: !!userInfo?.access_token
+        });
+        
+        // Explicitly store all user information in localStorage with multiple keys for redundancy
+        if (userInfo && typeof userInfo === 'object') {
+          try {
+            // Get the storage key prefix
+            const authStorageKeyPrefix = import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_';
+            
+            // Store user info in multiple formats to ensure it's found
+            localStorage.setItem(`${authStorageKeyPrefix}top_banner_authuser_info`, JSON.stringify(userInfo));
+            localStorage.setItem(`${authStorageKeyPrefix}user_info`, JSON.stringify(userInfo));
+            
+            // Store tokens separately for easier access
+            if (userInfo.access_token) {
+              localStorage.setItem(`${authStorageKeyPrefix}top_banner_authaccess_token`, userInfo.access_token);
+              localStorage.setItem(`${authStorageKeyPrefix}access_token`, userInfo.access_token);
+            }
+            
+            if (userInfo.id_token) {
+              localStorage.setItem(`${authStorageKeyPrefix}top_banner_authid_token`, userInfo.id_token);
+              localStorage.setItem(`${authStorageKeyPrefix}id_token`, userInfo.id_token);
+            }
+            
+            // Log successful storage
+            console.log('Authentication data stored successfully', {
+              keys: Object.keys(localStorage).filter(k => k.includes(authStorageKeyPrefix)),
+              userInfoSize: JSON.stringify(userInfo).length
+            });
+            
+            // Dispatch login action to Redux if possible
+            if (typeof window !== 'undefined') {
+              try {
+                // Safely check for store property on window
+                // @ts-ignore - The store is attached to window in store.js
+                const reduxStore = window.store;
+                
+                if (reduxStore && typeof reduxStore.dispatch === 'function') {
+                  const loginPayload = {
+                    isAuthenticated: true,
+                    profile: {
+                      email: userInfo.email,
+                      email_verified: userInfo.email_verified,
+                      sub: userInfo.sub,
+                      name: userInfo.name,
+                      given_name: userInfo.given_name,
+                      family_name: userInfo.family_name,
+                      nickname: userInfo.nickname,
+                      preferred_username: userInfo.preferred_username,
+                      groups: userInfo.groups || [],
+                      picture: userInfo.picture
+                    },
+                    tokens: {
+                      access_token: userInfo.access_token,
+                      id_token: userInfo.id_token,
+                      token_type: userInfo.token_type || 'Bearer',
+                      expires_at: userInfo.exp ? new Date(userInfo.exp * 1000).toISOString() : null
+                    }
+                  };
+                  
+                  console.log('Dispatching login action to Redux');
+                  reduxStore.dispatch({ type: 'user/login', payload: loginPayload });
+                } else {
+                  console.warn('Redux store not found on window or missing dispatch method');
+                }
+              } catch (reduxError) {
+                console.error('Error dispatching to Redux:', reduxError);
+              }
+            }
+          } catch (storageError) {
+            console.error('Error storing authentication data:', storageError);
+          }
+        } else {
+          console.warn('User info missing or invalid:', userInfo);
+        }
+        
+        // Determine where to redirect after successful authentication
+        const storedState = rawState ? JSON.parse(decodeURIComponent(rawState)) : null;
+        const redirectPath = storedState?.returnTo || '/Page';
+        
+        // Redirect back to the application
+        console.log('Authentication complete. Redirecting to:', redirectPath);
+        window.location.href = redirectPath;
       } catch (error: unknown) {
         const errorDetails = error instanceof Error 
           ? {
@@ -86,8 +217,9 @@ import Layout from '../layouts/BaseLayout.astro';
 
         console.error('Authentication callback failed:', errorDetails);
 
-        // Fallback redirect if something goes wrong
-        window.location.href = '/';
+        // Fallback redirect if something goes wrong - also redirect to /Page instead of root
+        console.log('Authentication failed. Redirecting to fallback: /Page');
+        window.location.href = '/Page';
       }
     }
 

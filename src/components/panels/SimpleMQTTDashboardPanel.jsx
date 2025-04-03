@@ -48,6 +48,65 @@ const SimpleMQTTDashboardPanel = () => {
     ledStatus = 'off'
   } = mqttState;
   
+  // Load saved state from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('mqttDashboardState');
+      if (savedState) {
+        try {
+          const parsedState = JSON.parse(savedState);
+          
+          // Dispatch actions to restore state
+          if (parsedState.currentTemp) dispatch(setCurrentTemp(parsedState.currentTemp));
+          if (parsedState.voltage) dispatch(setVoltage(parsedState.voltage));
+          if (parsedState.current) dispatch(setCurrent(parsedState.current));
+          if (parsedState.power) dispatch(setPower(parsedState.power));
+          if (parsedState.kwh) dispatch(setKwh(parsedState.kwh));
+          if (parsedState.powerFactor) dispatch(setPowerFactor(parsedState.powerFactor));
+          if (parsedState.ledStatus) dispatch(setLedStatus(parsedState.ledStatus));
+          
+          // Restore temperature history if available
+          if (parsedState.temperatureHistory && 
+              parsedState.temperatureHistory.labels && 
+              parsedState.temperatureHistory.data) {
+            
+            // Add each data point individually to ensure chart updates correctly
+            parsedState.temperatureHistory.labels.forEach((label, index) => {
+              dispatch(addTemperatureDataPoint({
+                label,
+                value: parsedState.temperatureHistory.data[index]
+              }));
+            });
+          }
+          
+          console.log('Loaded saved state from localStorage:', parsedState);
+        } catch (error) {
+          console.error('Error loading saved state:', error);
+        }
+      }
+    }
+  }, [dispatch]);
+  
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(mqttState).length > 0) {
+      // Create a simplified version of the state to save
+      const stateToSave = {
+        currentTemp: mqttState.currentTemp,
+        voltage: mqttState.voltage,
+        current: mqttState.current,
+        power: mqttState.power,
+        kwh: mqttState.kwh,
+        powerFactor: mqttState.powerFactor,
+        temperatureHistory: mqttState.temperatureHistory,
+        ledStatus: mqttState.ledStatus
+      };
+      
+      localStorage.setItem('mqttDashboardState', JSON.stringify(stateToSave));
+      console.log('Saved state to localStorage');
+    }
+  }, [mqttState]);
+  
   // Add more detailed debug log
   useEffect(() => {
     console.log('Current temperature from Redux:', currentTemp);
@@ -323,7 +382,7 @@ const SimpleMQTTDashboardPanel = () => {
   // UI rendering
   return (
     <div className="flex flex-col h-full overflow-auto bg-[#121212] text-[#e0e0e0] p-4">
-      <h2 className="text-center text-xl font-semibold mb-4">MQTT Dashboard - Dark Mode</h2>
+      <h2 className="text-center text-xl font-semibold text-[#03dac6] mb-4">MQTT Dashboard - Dark Mode</h2>
       <p className="text-center italic mb-5">{connectionStatus}</p>
       
       {/* Temperature Chart */}
@@ -333,12 +392,12 @@ const SimpleMQTTDashboardPanel = () => {
       
       <p className="text-center mb-4">
         Current Temperature: 
-        <span className="font-bold text-2xl ml-2">
+        <span className="font-bold text-2xl ml-2 text-[#03dac6]">
           {localTemp !== '--' ? `${localTemp}°C` : (currentTemp && currentTemp !== '--' ? `${currentTemp}°C` : '--')}
         </span>
       </p>
       
-      <h3 className="text-center text-lg font-semibold mb-4">Data Energy Meter</h3>
+      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Data Energy Meter</h3>
       
       {/* Controls */}
       <div className="flex flex-wrap justify-center gap-2 mb-6 items-center">
@@ -346,13 +405,13 @@ const SimpleMQTTDashboardPanel = () => {
           className="bg-[#00c853] hover:bg-[#00b248] text-white px-5 py-2 rounded-md transition-colors"
           onClick={() => toggleLED('1')}
         >
-          Turn on LED
+          On LED
         </button>
         <button 
           className="bg-[#d50000] hover:bg-[#b71c1c] text-white px-5 py-2 rounded-md transition-colors"
           onClick={() => toggleLED('0')}
         >
-          Turn off LED
+          Off LED
         </button>
       </div>
       
@@ -380,7 +439,7 @@ const SimpleMQTTDashboardPanel = () => {
         </div>
       </div>
       
-      <h3 className="text-center text-lg font-semibold mb-4">Send Message</h3>
+      <h3 className="text-center text-lg font-semibold text-[#03dac6] mb-4">Send Message</h3>
       
       {/* Text Input */}
       <div className="flex flex-col md:flex-row gap-2 mb-4">
@@ -390,7 +449,7 @@ const SimpleMQTTDashboardPanel = () => {
           onChange={(e) => setCustomText(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Enter your message here..."
-          className="flex-grow bg-[#2d2d2d] text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2"
+          className="flex-grow bg-[#2d2d2d] text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#03dac6]"
         />
         <button
           onClick={sendText}

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import mqtt from 'mqtt';
+import Chart from 'chart.js/auto';
 import {
   setConnectionStatus,
   setCurrentTemp,
@@ -118,18 +120,6 @@ const SimpleMQTTDashboardPanel = () => {
   const mqttClientRef = useRef(null);
   const chartInstanceRef = useRef(null);
   
-  // Utility function to load external scripts
-  const loadScript = (src) => {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = src;
-      script.async = true;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
-      document.head.appendChild(script);
-    });
-  };
-  
   // Initialize everything
   useEffect(() => {
     let mqttClient = null;
@@ -137,211 +127,108 @@ const SimpleMQTTDashboardPanel = () => {
     
     const initializeDashboard = async () => {
       try {
-        // Load required scripts
-        dispatch(setConnectionStatus('Loading required libraries...'));
-        await Promise.all([
-          loadScript('https://unpkg.com/mqtt/dist/mqtt.min.js'),
-          loadScript('https://cdn.jsdelivr.net/npm/chart.js')
-        ]);
-        dispatch(setConnectionStatus('Libraries loaded, connecting to broker...'));
+        dispatch(setConnectionStatus('Connecting to MQTT broker...'));
         
-        // Connect to MQTT broker when scripts are loaded
-        if (window.mqtt) {
-          const broker = 'wss://1115a4b6fe5c40e588a3a85468f3c8be.s1.eu.hivemq.cloud:8884/mqtt';
-          const options = {
-            connectTimeout: 4000,
-            clientId: 'webClient_' + Math.random().toString(16).substr(2, 8),
-            username: 'duwiarsana',
-            password: 'Duwiarsana1234!?',
-            clean: true,
-          };
+        // Connect to MQTT broker directly using the imported library
+        const broker = 'wss://1115a4b6fe5c40e588a3a85468f3c8be.s1.eu.hivemq.cloud:8884/mqtt';
+        const options = {
+          connectTimeout: 4000,
+          clientId: 'webClient_' + Math.random().toString(16).substr(2, 8),
+          username: 'duwiarsana',
+          password: 'Duwiarsana1234!?',
+          clean: true,
+        };
+        
+        console.log("Attempting to connect to MQTT broker...");
+        mqttClient = mqtt.connect(broker, options);
+        mqttClientRef.current = mqttClient;
+        
+        mqttClient.on('connect', () => {
+          console.log("Connected to MQTT broker!");
+          dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
           
-          console.log("Attempting to connect to MQTT broker...");
-          mqttClient = window.mqtt.connect(broker, options);
-          mqttClientRef.current = mqttClient;
+          // Subscribe to topics
+          mqttClient.subscribe('sensor/temperature');
+          [
+            'sensor/tegangan', 
+            'sensor/arus', 
+            'sensor/daya', 
+            'sensor/kwh', 
+            'sensor/pf'
+          ].forEach(topic => {
+            mqttClient.subscribe(topic);
+          });
+        });
+        
+        mqttClient.on('error', (err) => {
+          console.error('MQTT Connection Error:', err);
+          dispatch(setConnectionStatus('❌ MQTT Connection Error: ' + err.message));
+        });
+        
+        mqttClient.on('message', (topic, message) => {
+          const msg = message.toString();
+          const now = new Date().toLocaleTimeString();
+          console.log(`MQTT message received on topic ${topic}: ${msg}`);
           
-          mqttClient.on('connect', () => {
-            console.log("Connected to MQTT broker!");
-            dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
-            
-            // Subscribe to all required topics at once for efficiency
-            const topics = {
-              'sensor/temperature': { qos: 0 },
-              'sensor/tegangan': { qos: 0 },
-              'sensor/arus': { qos: 0 },
-              'sensor/daya': { qos: 0 },
-              'sensor/kwh': { qos: 0 },
-              'sensor/pf': { qos: 0 }
-            };
-            
-            mqttClient.subscribe(topics, (err, granted) => {
-              if (err) {
-                console.error('Error subscribing to topics:', err);
-              } else {
-                console.log('Successfully subscribed to topics:', granted);
+          // Store last message in Redux
+          dispatch(setLastMessage({ topic, message: msg }));
+          
+          // Handle different topics
+          if (topic === 'sensor/temperature') {
+            try {
+              const suhu = parseFloat(msg);
+              if (!isNaN(suhu)) {
+                console.log(`Updating temperature to: ${suhu}°C`);
                 
-                // Send test messages to verify data display
-                // These will be overwritten by actual sensor data when it arrives
-                mqttClient.publish('sensor/tegangan', '220.5');
-                mqttClient.publish('sensor/arus', '1.25');
-                mqttClient.publish('sensor/daya', '275');
-                mqttClient.publish('sensor/kwh', '0.123');
-                mqttClient.publish('sensor/pf', '0.95');
-              }
-            });
-            
-            // Send a test message to verify connection
-            mqttClient.publish('test/connection', 'Dashboard connected', { qos: 0, retain: false });
-          });
-          
-          mqttClient.on('error', (err) => {
-            console.error('MQTT Connection Error:', err);
-            dispatch(setConnectionStatus('❌ MQTT Connection Error: ' + err.message));
-          });
-          
-          mqttClient.on('message', (topic, message) => {
-            const msg = message.toString();
-            const now = new Date().toLocaleTimeString();
-            console.log(`MQTT message received on topic ${topic}: ${msg}`);
-            
-            // Store last message in Redux
-            dispatch(setLastMessage({ topic, message: msg }));
-            
-            // Handle different topics
-            if (topic === 'sensor/temperature') {
-              try {
-                const suhu = parseFloat(msg);
-                if (!isNaN(suhu)) {
-                  console.log(`Updating temperature to: ${suhu}°C`);
-                  
-                  // Update Redux state
-                  dispatch(setCurrentTemp(suhu));
-                  
-                  // Also update local state for immediate UI update
-                  setLocalTemp(suhu);
-                  
-                  // Force component update with local state
-                  setCustomText(prev => prev); // This is a trick to force re-render
-                  
-                  // Add temperature data point to history
-                  dispatch(addTemperatureDataPoint({ label: now, value: suhu }));
-                  
-                  // Directly update chart with new data point
-                  if (chartInstanceRef.current) {
-                    // Limit chart to show last 10 data points for better visualization
-                    if (chartInstanceRef.current.data.labels.length > 10) {
-                      chartInstanceRef.current.data.labels.shift();
-                      chartInstanceRef.current.data.datasets[0].data.shift();
-                    }
-                    
-                    // Add new data point
-                    chartInstanceRef.current.data.labels.push(now);
-                    chartInstanceRef.current.data.datasets[0].data.push(suhu);
-                    chartInstanceRef.current.update('none'); // Use 'none' for smoother updates
+                // Update Redux state
+                dispatch(setCurrentTemp(suhu));
+                
+                // Also update local state for immediate UI update
+                setLocalTemp(suhu);
+                
+                // Force component update with local state
+                setCustomText(prev => prev); // This is a trick to force re-render
+                
+                // Add temperature data point to history
+                dispatch(addTemperatureDataPoint({ label: now, value: suhu }));
+                
+                // Directly update chart with new data point
+                if (chartInstanceRef.current) {
+                  // Limit chart to show last 10 data points for better visualization
+                  if (chartInstanceRef.current.data.labels.length > 10) {
+                    chartInstanceRef.current.data.labels.shift();
+                    chartInstanceRef.current.data.datasets[0].data.shift();
                   }
-                } else {
-                  console.error('Received invalid temperature value:', msg);
+                  
+                  // Add new data point
+                  chartInstanceRef.current.data.labels.push(now);
+                  chartInstanceRef.current.data.datasets[0].data.push(suhu);
+                  chartInstanceRef.current.update('none'); // Use 'none' for smoother updates
                 }
-              } catch (error) {
-                console.error('Error processing temperature data:', error);
+              } else {
+                console.error('Received invalid temperature value:', msg);
               }
+            } catch (error) {
+              console.error('Error processing temperature data:', error);
             }
-            
-            // Process voltage data with proper parsing and formatting
-            else if (topic === 'sensor/tegangan') {
-              try {
-                const value = parseFloat(msg);
-                if (!isNaN(value)) {
-                  console.log(`Updating voltage to: ${value}V`);
-                  dispatch(setVoltage(value.toFixed(1)));
-                } else {
-                  console.error('Received invalid voltage value:', msg);
-                  dispatch(setVoltage('--'));
-                }
-              } catch (error) {
-                console.error('Error processing voltage data:', error);
-                dispatch(setVoltage('--'));
-              }
-            }
-            
-            // Process current data with proper parsing and formatting
-            else if (topic === 'sensor/arus') {
-              try {
-                const value = parseFloat(msg);
-                if (!isNaN(value)) {
-                  console.log(`Updating current to: ${value}A`);
-                  dispatch(setCurrent(value.toFixed(2)));
-                } else {
-                  console.error('Received invalid current value:', msg);
-                  dispatch(setCurrent('--'));
-                }
-              } catch (error) {
-                console.error('Error processing current data:', error);
-                dispatch(setCurrent('--'));
-              }
-            }
-            
-            // Process power data with proper parsing and formatting
-            else if (topic === 'sensor/daya') {
-              try {
-                const value = parseFloat(msg);
-                if (!isNaN(value)) {
-                  console.log(`Updating power to: ${value}W`);
-                  dispatch(setPower(value.toFixed(0)));
-                } else {
-                  console.error('Received invalid power value:', msg);
-                  dispatch(setPower('--'));
-                }
-              } catch (error) {
-                console.error('Error processing power data:', error);
-                dispatch(setPower('--'));
-              }
-            }
-            
-            // Process energy data with proper parsing and formatting
-            else if (topic === 'sensor/kwh') {
-              try {
-                const value = parseFloat(msg);
-                if (!isNaN(value)) {
-                  console.log(`Updating energy to: ${value}kWh`);
-                  dispatch(setKwh(value.toFixed(3)));
-                } else {
-                  console.error('Received invalid energy value:', msg);
-                  dispatch(setKwh('--'));
-                }
-              } catch (error) {
-                console.error('Error processing energy data:', error);
-                dispatch(setKwh('--'));
-              }
-            }
-            
-            // Process power factor data with proper parsing and formatting
-            else if (topic === 'sensor/pf') {
-              try {
-                const value = parseFloat(msg);
-                if (!isNaN(value)) {
-                  console.log(`Updating power factor to: ${value}`);
-                  dispatch(setPowerFactor(value.toFixed(2)));
-                } else {
-                  console.error('Received invalid power factor value:', msg);
-                  dispatch(setPowerFactor('--'));
-                }
-              } catch (error) {
-                console.error('Error processing power factor data:', error);
-                dispatch(setPowerFactor('--'));
-              }
-            }
-          });
-        } else {
-          dispatch(setConnectionStatus('❌ MQTT library not found'));
-          console.error('MQTT library not loaded properly');
-        }
+          } else if (topic === 'sensor/tegangan') {
+            dispatch(setVoltage(msg));
+          } else if (topic === 'sensor/arus') {
+            dispatch(setCurrent(msg));
+          } else if (topic === 'sensor/daya') {
+            dispatch(setPower(msg));
+          } else if (topic === 'sensor/kwh') {
+            dispatch(setKwh(msg));
+          } else if (topic === 'sensor/pf') {
+            dispatch(setPowerFactor(msg));
+          }
+        });
         
         // Initialize Chart.js
-        if (window.Chart && chartCanvasRef.current) {
+        if (chartCanvasRef.current) {
           const ctx = chartCanvasRef.current.getContext('2d');
           
-          chartInstance = new window.Chart(ctx, {
+          chartInstance = new Chart(ctx, {
             type: 'line',
             data: {
               labels: temperatureHistory.labels,
@@ -392,7 +279,7 @@ const SimpleMQTTDashboardPanel = () => {
           });
           chartInstanceRef.current = chartInstance;
         } else {
-          console.error('Chart.js library not loaded properly or canvas not found');
+          console.error('Chart canvas not found');
         }
       } catch (error) {
         console.error('Error initializing dashboard:', error);
@@ -531,6 +418,12 @@ const SimpleMQTTDashboardPanel = () => {
         >
           Turn off LED
         </button>
+        <button 
+          className="bg-[#6200ee] hover:bg-[#3700b3] text-white px-5 py-2 rounded-md transition-colors"
+          onClick={publishTestValues}
+        >
+          Test Energy Meter
+        </button>
       </div>
       
       {/* Energy Meter Data */}
@@ -604,35 +497,3 @@ const SimpleMQTTDashboardPanel = () => {
 };
 
 export default SimpleMQTTDashboardPanel;
-
-// Add this function after the other control functions
-  const publishTestValues = () => {
-    if (mqttClientRef.current) {
-      console.log('Publishing test energy meter values...');
-      mqttClientRef.current.publish('sensor/tegangan', '220.5');
-      mqttClientRef.current.publish('sensor/arus', '1.25');
-      mqttClientRef.current.publish('sensor/daya', '275');
-      mqttClientRef.current.publish('sensor/kwh', '0.123');
-      mqttClientRef.current.publish('sensor/pf', '0.95');
-      
-      // Add a small notification
-      dispatch(setConnectionStatus('✅ Test values published'));
-      
-      // Reset status after 3 seconds
-      setTimeout(() => {
-        dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
-      }, 3000);
-    } else {
-      console.warn('MQTT client not initialized yet');
-      dispatch(setConnectionStatus('⚠️ MQTT client not ready, try again in a moment'));
-    }
-  };
-  
-  // Then add a test button below the LED controls
-  // Add this to the Controls div
-  <button 
-    className="bg-[#6200ee] hover:bg-[#3700b3] text-white px-5 py-2 rounded-md transition-colors"
-    onClick={publishTestValues}
-  >
-    Test Energy Meter
-  </button>

@@ -49,5 +49,8 @@
   },
   "TranscriptionPanel": {
     "component": "../components/panels/TranscriptionPanel.tsx"
+  },
+  "SimpleMQTTDashboardPanel": {
+    "component": "../components/panels/SimpleMQTTDashboardPanel.jsx"
   }
 }

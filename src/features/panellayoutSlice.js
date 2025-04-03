@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import layoutConfig from "./panellayoutSlice.json";
 
 const initialState = {
-  panels: layoutConfig["generate_layout"],
+  panels: layoutConfig["mqtt_dashboard_layout"],
 };
 
 // Simplified function to trigger save

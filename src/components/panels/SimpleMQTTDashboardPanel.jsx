@@ -151,8 +151,8 @@ const SimpleMQTTDashboardPanel = () => {
           const options = {
             connectTimeout: 4000,
             clientId: 'webClient_' + Math.random().toString(16).substr(2, 8),
-            username: 'testing',
-            password: 'Testing123',
+            username: 'duwiarsana',
+            password: 'Duwiarsana1234!?',
             clean: true,
           };
           
@@ -405,37 +405,37 @@ const SimpleMQTTDashboardPanel = () => {
           className="bg-[#00c853] hover:bg-[#00b248] text-white px-5 py-2 rounded-md transition-colors"
           onClick={() => toggleLED('1')}
         >
-          On LED
+          Turn on LED
         </button>
         <button 
           className="bg-[#d50000] hover:bg-[#b71c1c] text-white px-5 py-2 rounded-md transition-colors"
           onClick={() => toggleLED('0')}
         >
-          Off LED
+          Turn off LED
         </button>
       </div>
       
       {/* Energy Meter Data */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
-          <h4 className="text-[#bb86fc] mb-2">Voltage</h4>
-          <p className="text-2xl font-bold">{voltage} <span className="text-sm">V</span></p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 border border-[#333333] p-4 rounded-lg">
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
+          <h4 className="text-[#bb86fc] mb-2 font-medium">Voltage</h4>
+          <p className="text-2xl font-bold text-[#03dac6]">{voltage} <span className="text-sm">V</span></p>
         </div>
-        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
-          <h4 className="text-[#bb86fc] mb-2">Current</h4>
-          <p className="text-2xl font-bold">{current} <span className="text-sm">A</span></p>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
+          <h4 className="text-[#bb86fc] mb-2 font-medium">Current</h4>
+          <p className="text-2xl font-bold text-[#03dac6]">{current} <span className="text-sm">A</span></p>
         </div>
-        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
-          <h4 className="text-[#bb86fc] mb-2">Power</h4>
-          <p className="text-2xl font-bold">{power} <span className="text-sm">W</span></p>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
+          <h4 className="text-[#bb86fc] mb-2 font-medium">Power</h4>
+          <p className="text-2xl font-bold text-[#03dac6]">{power} <span className="text-sm">W</span></p>
         </div>
-        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
-          <h4 className="text-[#bb86fc] mb-2">Energy</h4>
-          <p className="text-2xl font-bold">{kwh} <span className="text-sm">kWh</span></p>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
+          <h4 className="text-[#bb86fc] mb-2 font-medium">Energy</h4>
+          <p className="text-2xl font-bold text-[#03dac6]">{kwh} <span className="text-sm">kWh</span></p>
         </div>
-        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center">
-          <h4 className="text-[#bb86fc] mb-2">Power Factor</h4>
-          <p className="text-2xl font-bold">{powerFactor}</p>
+        <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
+          <h4 className="text-[#bb86fc] mb-2 font-medium">Power Factor</h4>
+          <p className="text-2xl font-bold text-[#03dac6]">{powerFactor}</p>
         </div>
       </div>
       

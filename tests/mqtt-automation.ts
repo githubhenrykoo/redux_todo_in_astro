@@ -16,12 +16,19 @@ import fs from 'fs';
   // Navigate to your app's main page
   await page.goto('http://localhost:4321');
   
-  console.log('Main page loaded, navigating to MQTT Dashboard...');
+  console.log('Main page loaded, waiting for Enter Page button...');
   
   // Wait for the page to load
   await page.waitForTimeout(2000);
   
-  // Step 1: Click on the MQTT Dashboard button in the sidebar using its ID
+  // Step 1: Click on the "Enter Page" button
+  console.log('Clicking on Enter Page button...');
+  await page.click('a.enter-button:has-text("Enter Page")');
+  
+  // Wait for the page navigation to complete
+  await page.waitForTimeout(2000);
+  
+  // Step 2: Click on the MQTT Dashboard button in the sidebar using its ID
   console.log('Clicking on MQTT Dashboard button...');
   await page.click('#mqttDashboardLayoutBtn');
   

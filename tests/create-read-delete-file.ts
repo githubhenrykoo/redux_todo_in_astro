@@ -16,6 +16,13 @@ import fs from 'fs';
   // Navigate to your app
   await page.goto('http://localhost:4321');
 
+  // Step 1: Click on the "Enter Page" button
+  console.log('Clicking on Enter Page button...');
+  await page.click('a.enter-button:has-text("Enter Page")');
+  
+  // Wait for the page navigation to complete
+  await page.waitForTimeout(2000);
+
   // Wait for the page to load
   await page.waitForTimeout(2000);
   

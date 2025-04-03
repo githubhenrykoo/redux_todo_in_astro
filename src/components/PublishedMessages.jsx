@@ -14,9 +14,9 @@ const PublishedMessages = () => {
   
   return (
     <div className="bg-[#1f1f1f] rounded-lg p-4 mt-4">
-      <h3 className="text-[#bb86fc] font-medium mb-2">Published Messages</h3>
+      <h3 className="text-[#bb86fc] font-medium mb-2"></h3>
       {publishedMessages.length === 0 ? (
-        <p className="text-gray-400 italic">No messages published yet</p>
+        <p className="text-gray-400 italic"></p>
       ) : (
         <div className="max-h-40 overflow-y-auto">
           <ul className="space-y-1">

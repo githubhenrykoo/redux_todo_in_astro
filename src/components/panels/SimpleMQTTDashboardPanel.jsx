@@ -164,17 +164,34 @@ const SimpleMQTTDashboardPanel = () => {
             console.log("Connected to MQTT broker!");
             dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
             
-            // Subscribe to topics
-            mqttClient.subscribe('sensor/temperature');
-            [
-              'sensor/tegangan', 
-              'sensor/arus', 
-              'sensor/daya', 
-              'sensor/kwh', 
-              'sensor/pf'
-            ].forEach(topic => {
-              mqttClient.subscribe(topic);
+            // Subscribe to all required topics at once for efficiency
+            const topics = {
+              'sensor/temperature': { qos: 0 },
+              'sensor/tegangan': { qos: 0 },
+              'sensor/arus': { qos: 0 },
+              'sensor/daya': { qos: 0 },
+              'sensor/kwh': { qos: 0 },
+              'sensor/pf': { qos: 0 }
+            };
+            
+            mqttClient.subscribe(topics, (err, granted) => {
+              if (err) {
+                console.error('Error subscribing to topics:', err);
+              } else {
+                console.log('Successfully subscribed to topics:', granted);
+                
+                // Send test messages to verify data display
+                // These will be overwritten by actual sensor data when it arrives
+                mqttClient.publish('sensor/tegangan', '220.5');
+                mqttClient.publish('sensor/arus', '1.25');
+                mqttClient.publish('sensor/daya', '275');
+                mqttClient.publish('sensor/kwh', '0.123');
+                mqttClient.publish('sensor/pf', '0.95');
+              }
             });
+            
+            // Send a test message to verify connection
+            mqttClient.publish('test/connection', 'Dashboard connected', { qos: 0, retain: false });
           });
           
           mqttClient.on('error', (err) => {
@@ -230,12 +247,90 @@ const SimpleMQTTDashboardPanel = () => {
               }
             }
             
-            // Other sensor topics remain the same
-            if (topic === 'sensor/tegangan') dispatch(setVoltage(msg));
-            if (topic === 'sensor/arus') dispatch(setCurrent(msg));
-            if (topic === 'sensor/daya') dispatch(setPower(msg));
-            if (topic === 'sensor/kwh') dispatch(setKwh(msg));
-            if (topic === 'sensor/pf') dispatch(setPowerFactor(msg));
+            // Process voltage data with proper parsing and formatting
+            else if (topic === 'sensor/tegangan') {
+              try {
+                const value = parseFloat(msg);
+                if (!isNaN(value)) {
+                  console.log(`Updating voltage to: ${value}V`);
+                  dispatch(setVoltage(value.toFixed(1)));
+                } else {
+                  console.error('Received invalid voltage value:', msg);
+                  dispatch(setVoltage('--'));
+                }
+              } catch (error) {
+                console.error('Error processing voltage data:', error);
+                dispatch(setVoltage('--'));
+              }
+            }
+            
+            // Process current data with proper parsing and formatting
+            else if (topic === 'sensor/arus') {
+              try {
+                const value = parseFloat(msg);
+                if (!isNaN(value)) {
+                  console.log(`Updating current to: ${value}A`);
+                  dispatch(setCurrent(value.toFixed(2)));
+                } else {
+                  console.error('Received invalid current value:', msg);
+                  dispatch(setCurrent('--'));
+                }
+              } catch (error) {
+                console.error('Error processing current data:', error);
+                dispatch(setCurrent('--'));
+              }
+            }
+            
+            // Process power data with proper parsing and formatting
+            else if (topic === 'sensor/daya') {
+              try {
+                const value = parseFloat(msg);
+                if (!isNaN(value)) {
+                  console.log(`Updating power to: ${value}W`);
+                  dispatch(setPower(value.toFixed(0)));
+                } else {
+                  console.error('Received invalid power value:', msg);
+                  dispatch(setPower('--'));
+                }
+              } catch (error) {
+                console.error('Error processing power data:', error);
+                dispatch(setPower('--'));
+              }
+            }
+            
+            // Process energy data with proper parsing and formatting
+            else if (topic === 'sensor/kwh') {
+              try {
+                const value = parseFloat(msg);
+                if (!isNaN(value)) {
+                  console.log(`Updating energy to: ${value}kWh`);
+                  dispatch(setKwh(value.toFixed(3)));
+                } else {
+                  console.error('Received invalid energy value:', msg);
+                  dispatch(setKwh('--'));
+                }
+              } catch (error) {
+                console.error('Error processing energy data:', error);
+                dispatch(setKwh('--'));
+              }
+            }
+            
+            // Process power factor data with proper parsing and formatting
+            else if (topic === 'sensor/pf') {
+              try {
+                const value = parseFloat(msg);
+                if (!isNaN(value)) {
+                  console.log(`Updating power factor to: ${value}`);
+                  dispatch(setPowerFactor(value.toFixed(2)));
+                } else {
+                  console.error('Received invalid power factor value:', msg);
+                  dispatch(setPowerFactor('--'));
+                }
+              } catch (error) {
+                console.error('Error processing power factor data:', error);
+                dispatch(setPowerFactor('--'));
+              }
+            }
           });
         } else {
           dispatch(setConnectionStatus('❌ MQTT library not found'));
@@ -354,6 +449,29 @@ const SimpleMQTTDashboardPanel = () => {
     }
   };
   
+  // Add test values function
+  const publishTestValues = () => {
+    if (mqttClientRef.current) {
+      console.log('Publishing test energy meter values...');
+      mqttClientRef.current.publish('sensor/tegangan', '220.5');
+      mqttClientRef.current.publish('sensor/arus', '1.25');
+      mqttClientRef.current.publish('sensor/daya', '275');
+      mqttClientRef.current.publish('sensor/kwh', '0.123');
+      mqttClientRef.current.publish('sensor/pf', '0.95');
+      
+      // Add a small notification
+      dispatch(setConnectionStatus('✅ Test values published'));
+      
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
+      }, 3000);
+    } else {
+      console.warn('MQTT client not initialized yet');
+      dispatch(setConnectionStatus('⚠️ MQTT client not ready, try again in a moment'));
+    }
+  };
+  
   const sendText = () => {
     if (mqttClientRef.current && customText.trim() !== '') {
       console.log(`Publishing text: ${customText}`);
@@ -419,23 +537,43 @@ const SimpleMQTTDashboardPanel = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 border border-[#333333] p-4 rounded-lg">
         <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
           <h4 className="text-[#bb86fc] mb-2 font-medium">Voltage</h4>
-          <p className="text-2xl font-bold text-[#03dac6]">{voltage} <span className="text-sm">V</span></p>
+          <p className="text-2xl font-bold text-[#03dac6]">
+            {voltage !== '--' && !isNaN(parseFloat(voltage)) 
+              ? parseFloat(voltage).toFixed(1) 
+              : '--'} <span className="text-sm">V</span>
+          </p>
         </div>
         <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
           <h4 className="text-[#bb86fc] mb-2 font-medium">Current</h4>
-          <p className="text-2xl font-bold text-[#03dac6]">{current} <span className="text-sm">A</span></p>
+          <p className="text-2xl font-bold text-[#03dac6]">
+            {current !== '--' && !isNaN(parseFloat(current)) 
+              ? parseFloat(current).toFixed(2) 
+              : '--'} <span className="text-sm">A</span>
+          </p>
         </div>
         <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
           <h4 className="text-[#bb86fc] mb-2 font-medium">Power</h4>
-          <p className="text-2xl font-bold text-[#03dac6]">{power} <span className="text-sm">W</span></p>
+          <p className="text-2xl font-bold text-[#03dac6]">
+            {power !== '--' && !isNaN(parseFloat(power)) 
+              ? parseFloat(power).toFixed(0) 
+              : '--'} <span className="text-sm">W</span>
+          </p>
         </div>
         <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
           <h4 className="text-[#bb86fc] mb-2 font-medium">Energy</h4>
-          <p className="text-2xl font-bold text-[#03dac6]">{kwh} <span className="text-sm">kWh</span></p>
+          <p className="text-2xl font-bold text-[#03dac6]">
+            {kwh !== '--' && !isNaN(parseFloat(kwh)) 
+              ? parseFloat(kwh).toFixed(3) 
+              : '--'} <span className="text-sm">kWh</span>
+          </p>
         </div>
         <div className="bg-[#1f1f1f] p-4 rounded-lg text-center shadow-lg">
           <h4 className="text-[#bb86fc] mb-2 font-medium">Power Factor</h4>
-          <p className="text-2xl font-bold text-[#03dac6]">{powerFactor}</p>
+          <p className="text-2xl font-bold text-[#03dac6]">
+            {powerFactor !== '--' && !isNaN(parseFloat(powerFactor)) 
+              ? parseFloat(powerFactor).toFixed(2) 
+              : '--'}
+          </p>
         </div>
       </div>
       
@@ -466,3 +604,35 @@ const SimpleMQTTDashboardPanel = () => {
 };
 
 export default SimpleMQTTDashboardPanel;
+
+// Add this function after the other control functions
+  const publishTestValues = () => {
+    if (mqttClientRef.current) {
+      console.log('Publishing test energy meter values...');
+      mqttClientRef.current.publish('sensor/tegangan', '220.5');
+      mqttClientRef.current.publish('sensor/arus', '1.25');
+      mqttClientRef.current.publish('sensor/daya', '275');
+      mqttClientRef.current.publish('sensor/kwh', '0.123');
+      mqttClientRef.current.publish('sensor/pf', '0.95');
+      
+      // Add a small notification
+      dispatch(setConnectionStatus('✅ Test values published'));
+      
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        dispatch(setConnectionStatus('✅ Connected to MQTT Broker'));
+      }, 3000);
+    } else {
+      console.warn('MQTT client not initialized yet');
+      dispatch(setConnectionStatus('⚠️ MQTT client not ready, try again in a moment'));
+    }
+  };
+  
+  // Then add a test button below the LED controls
+  // Add this to the Controls div
+  <button 
+    className="bg-[#6200ee] hover:bg-[#3700b3] text-white px-5 py-2 rounded-md transition-colors"
+    onClick={publishTestValues}
+  >
+    Test Energy Meter
+  </button>

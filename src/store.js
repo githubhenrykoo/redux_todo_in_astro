@@ -13,6 +13,7 @@ import systemReducer from './features/systemSlice';
 import todoReducer from './features/todoSlice';
 import resizeableReducer from './features/resizeableSlice';
 import selectedItemReducer from './features/selectedItemSlice';
+import mqttReducer from './store/mqttSlice';
 
 const store = configureStore({
   reducer: {
@@ -25,6 +26,7 @@ const store = configureStore({
     search: searchReducer,
     system: systemReducer,
     todo: todoReducer,
+    mqtt: mqttReducer,
     
     // UI States
     panellayout: panellayoutReducer,

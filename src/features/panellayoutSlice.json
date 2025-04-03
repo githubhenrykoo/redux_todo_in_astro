@@ -21,7 +21,7 @@
     },
     "todo_layout": {
         "left": {
-            "type": "codeeditor",
+            "type": "DatabaseRetrievePanel",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -82,19 +82,19 @@
     "mqtt_dashboard_layout": {
         "left": {
             "type": "FileTablePanel",
-            "size": 0,
+            "size": 30,
             "minSize": 0,
             "visible": false
         },
         "middle": {
             "type": "SimpleMQTTDashboardPanel", 
-            "size": 100,
-            "minSize": 100,
+            "size": 40,
+            "minSize": 0,
             "visible": true
         },
         "right": {
             "type": "ContentDetailPanel",
-            "size": 0,
+            "size": 30,
             "minSize": 0,
             "visible": false
         }

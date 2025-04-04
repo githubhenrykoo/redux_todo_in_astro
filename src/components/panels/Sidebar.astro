@@ -1,6 +1,6 @@
 ---
 import { cn } from '../../lib/utils';
-import { FaCode, FaTerminal, FaCog, FaCube, FaFile, FaMicrophone, FaBrain, FaYoutube } from 'react-icons/fa';
+import { FaCode, FaTerminal, FaCog, FaCube, FaFile, FaMicrophone, FaBrain, FaYoutube, FaCamera } from 'react-icons/fa';
 import { store } from '../../store';
 import { changeLayout } from '../../features/panellayoutSlice';
 
@@ -76,6 +76,16 @@ const { class: className, ...props } = Astro.props;
         </span>
       </button>
       <button
+        id="cameraLayoutBtn"
+        title="Camera"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <FaCamera className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Camera
+        </span>
+      </button>
+      <button
         id="transcriptionLayoutBtn"
         title="AI Training Data"
         class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative hidden"
@@ -105,6 +115,7 @@ const { class: className, ...props } = Astro.props;
   const fileLayoutBtn = document.getElementById('fileLayoutBtn');
   const mqttDashboardLayoutBtn = document.getElementById('mqttDashboardLayoutBtn');
   const youtubeLayoutBtn = document.getElementById('youtubeLayoutBtn');
+  const cameraLayoutBtn = document.getElementById('cameraLayoutBtn');
   const transcriptionLayoutBtn = document.getElementById('transcriptionLayoutBtn');
 
   // Add click handlers
@@ -132,6 +143,10 @@ const { class: className, ...props } = Astro.props;
     store.dispatch(changeLayout('youtube_layout'));
   });
 
+  cameraLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('camera_layout'));
+  });
+
   transcriptionLayoutBtn?.addEventListener('click', () => {
     store.dispatch(changeLayout('transcription_layout'));
   });
@@ -145,6 +160,7 @@ const { class: className, ...props } = Astro.props;
     fileLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     mqttDashboardLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     youtubeLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    cameraLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     transcriptionLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
 
     // Reset icon colors
@@ -154,6 +170,7 @@ const { class: className, ...props } = Astro.props;
     fileLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     mqttDashboardLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     youtubeLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    cameraLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     transcriptionLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
@@ -175,6 +192,9 @@ const { class: className, ...props } = Astro.props;
     } else if (layout === 'youtube_layout') {
       youtubeLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       youtubeLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (layout === 'camera_layout') {
+      cameraLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      cameraLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     } else if (layout === 'transcription_layout') {
       transcriptionLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       transcriptionLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
@@ -190,6 +210,7 @@ const { class: className, ...props } = Astro.props;
     if (panels.middle?.type === 'SimpleMQTTDashboardPanel') return 'mqtt_dashboard_layout';
     if (panels.middle?.type === 'YouTubePanel') return 'youtube_layout';
     if (panels.right.type === 'TranscriptionPanel') return 'transcription_layout';
+    if (panels.right.type === 'CameraPanel') return 'camera_layout';
     return 'todo_layout';
   };
 

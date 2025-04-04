@@ -119,6 +119,26 @@
             "visible": true
         }
     },
+    "camera_layout": {
+        "left": {
+            "type": "FileTablePanel",
+            "size": 20,
+            "minSize": 0,
+            "visible": false
+        },
+        "middle": {
+            "type": "CameraPanel", 
+            "size": 70,
+            "minSize": 40,
+            "visible": true
+        },
+        "right": {
+            "type": "ContentDetailPanel",
+            "size": 30,
+            "minSize": 0,
+            "visible": false
+        }
+    },
     "transcription_layout": {
         "left": {
             "type": "FileTablePanel",

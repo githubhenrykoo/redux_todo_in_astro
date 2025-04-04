@@ -113,10 +113,10 @@
             "visible": true
         },
         "right": {
-            "type": "ContentDetailPanel",
+            "type": "CalculatorPanel",
             "size": 30,
             "minSize": 0,
-            "visible": false
+            "visible": true
         }
     },
     "transcription_layout": {

@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+const DEFAULT_YOUTUBE_URL = 'https://www.youtube.com/watch?v=ogw7NK-uEus&ab_channel=gasingchannel';
 
 const YouTubePanel = () => {
-  const [inputUrl, setInputUrl] = useState('');
+  const [inputUrl, setInputUrl] = useState(DEFAULT_YOUTUBE_URL);
   const [embedUrl, setEmbedUrl] = useState('');
   const [error, setError] = useState('');
 
@@ -38,6 +40,14 @@ const YouTubePanel = () => {
       return '';
     }
   };
+
+  // Pre-load the default video when component mounts
+  useEffect(() => {
+    const defaultEmbedUrl = convertToEmbedUrl(DEFAULT_YOUTUBE_URL);
+    if (defaultEmbedUrl) {
+      setEmbedUrl(defaultEmbedUrl);
+    }
+  }, []);
 
   // Handle form submission
   const handleSubmit = (e) => {

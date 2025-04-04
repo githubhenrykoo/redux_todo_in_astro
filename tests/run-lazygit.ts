@@ -55,11 +55,33 @@ import fs from 'fs';
   // Focus the terminal by clicking on it
   await page.click('.xterm-screen');
   
-  // Step 2: Type the lazygit command character by character with delay
-  console.log('Typing lazygit command slowly...');
-  const command = 'lazygit';
+  // Step 2: Type the cd command character by character with delay
+  console.log('Typing cd command slowly...');
+  const cdCommand = 'cd documents/github/redux_todo_in_astro';
   
-  for (const char of command) {
+  for (const char of cdCommand) {
+    await page.keyboard.type(char);
+    await page.waitForTimeout(100); // 100ms delay between each character
+  }
+  
+  // Take a screenshot after typing the cd command
+  const cdTypedScreenshot: string = path.join(screenshotsDir, `cd-typed-${new Date().toISOString().replace(/:/g, '-')}.png`);
+  await page.screenshot({ path: cdTypedScreenshot });
+  console.log(`Screenshot after typing cd command saved to: ${cdTypedScreenshot}`);
+  
+  // Press Enter to execute the cd command
+  console.log('Executing cd command...');
+  await page.waitForTimeout(500); // Pause before pressing Enter
+  await page.keyboard.press('Enter');
+  
+  // Wait for the command to execute
+  await page.waitForTimeout(2000);
+  
+  // Step 3: Type the lazygit command character by character with delay
+  console.log('Typing lazygit command slowly...');
+  const lazygitCommand = 'lazygit';
+  
+  for (const char of lazygitCommand) {
     await page.keyboard.type(char);
     await page.waitForTimeout(200); // 200ms delay between each character
   }

@@ -172,7 +172,15 @@ export function processCardContent(content: any, contentType: string | null): an
       try {
         // Convert to base64 - preserve binary data integrity
         const typedArray = array as Uint8Array;
-        const base64 = SafeBuffer.from([...typedArray]).toString('base64');
+        let base64;
+        if (typeof window !== 'undefined' && window.btoa) {
+          // Browser environment
+          const bytes = Array.from(typedArray).map(byte => String.fromCharCode(byte)).join('');
+          base64 = window.btoa(bytes);
+        } else {
+          // Node.js environment or with our polyfill
+          base64 = Buffer.from(typedArray).toString('base64');
+        }
         
         // Return with metadata
         return {

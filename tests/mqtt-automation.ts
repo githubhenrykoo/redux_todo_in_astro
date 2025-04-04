@@ -1,5 +1,5 @@
 import { chromium } from '@playwright/test';
-import type { Browser, Page } from 'playwright';
+import type { Browser, Page, BrowserContext } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 
@@ -10,8 +10,20 @@ import fs from 'fs';
     slowMo: 100 // Slow down operations for better visibility
   });
   
-  // Create a new page
-  const page: Page = await browser.newPage();
+  // Create a browser context with full screen configuration
+  const context: BrowserContext = await browser.newContext({
+    viewport: null, // This will use the maximum viewport size
+    screen: { width: 1920, height: 1080 } // Common full HD resolution
+  });
+  
+  // Create a new page in the full screen context
+  const page: Page = await context.newPage();
+  
+  // Maximize the window (as close to full screen as possible)
+  await page.evaluate(() => {
+    window.moveTo(0, 0);
+    window.resizeTo(screen.width, screen.height);
+  });
   
   // Navigate to your app's main page
   await page.goto('http://localhost:4321');
@@ -44,7 +56,7 @@ import fs from 'fs';
   
   // Take a screenshot of the dashboard
   const dashboardScreenshot: string = path.join(screenshotsDir, `mqtt-dashboard-${new Date().toISOString().replace(/:/g, '-')}.png`);
-  await page.screenshot({ path: dashboardScreenshot });
+  await page.screenshot({ path: dashboardScreenshot, fullPage: true });
   console.log(`Dashboard screenshot saved to: ${dashboardScreenshot}`);
   
   await page.waitForTimeout(2000);
@@ -58,7 +70,7 @@ import fs from 'fs';
   
   // Take a screenshot after turning on the LED
   const ledOnScreenshot: string = path.join(screenshotsDir, `led-on-${new Date().toISOString().replace(/:/g, '-')}.png`);
-  await page.screenshot({ path: ledOnScreenshot });
+  await page.screenshot({ path: ledOnScreenshot, fullPage: true });
   console.log(`LED on screenshot saved to: ${ledOnScreenshot}`);
   
   // Step 3: Type "Testing" in the input field with current time character by character
@@ -80,7 +92,7 @@ import fs from 'fs';
   
   // Take a screenshot after typing the message
   const messageTypedScreenshot: string = path.join(screenshotsDir, `message-typed-${new Date().toISOString().replace(/:/g, '-')}.png`);
-  await page.screenshot({ path: messageTypedScreenshot });
+  await page.screenshot({ path: messageTypedScreenshot, fullPage: true });
   console.log(`Message typed screenshot saved to: ${messageTypedScreenshot}`);
   
   // Step 4: Click the send button
@@ -92,7 +104,7 @@ import fs from 'fs';
   
   // Take a screenshot after sending the message
   const messageSentScreenshot: string = path.join(screenshotsDir, `message-sent-${new Date().toISOString().replace(/:/g, '-')}.png`);
-  await page.screenshot({ path: messageSentScreenshot });
+  await page.screenshot({ path: messageSentScreenshot, fullPage: true });
   console.log(`Message sent screenshot saved to: ${messageSentScreenshot}`);
   
   // Step 5: Turn off the LED (assuming there's a "Matikan LED" button)
@@ -104,7 +116,7 @@ import fs from 'fs';
   
   // Take a screenshot after turning off the LED
   const ledOffScreenshot: string = path.join(screenshotsDir, `led-off-${new Date().toISOString().replace(/:/g, '-')}.png`);
-  await page.screenshot({ path: ledOffScreenshot });
+  await page.screenshot({ path: ledOffScreenshot, fullPage: true });
   console.log(`LED off screenshot saved to: ${ledOffScreenshot}`);
   
   console.log('All actions completed successfully');

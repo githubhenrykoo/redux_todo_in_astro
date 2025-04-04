@@ -99,6 +99,26 @@
             "visible": false
         }
     },
+    "youtube_layout": {
+        "left": {
+            "type": "chatbot",
+            "size": 30,
+            "minSize": 0,
+            "visible": false
+        },
+        "middle": {
+            "type": "YouTubePanel", 
+            "size": 100,
+            "minSize": 0,
+            "visible": true
+        },
+        "right": {
+            "type": "ContentDetailPanel",
+            "size": 30,
+            "minSize": 0,
+            "visible": false
+        }
+    },
     "transcription_layout": {
         "left": {
             "type": "FileTablePanel",

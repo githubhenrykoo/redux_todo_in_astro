@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../styles/clm-display.css';
 
-const CLMDisplayPanel = () => {
+const CLMDisplayPanel = ({ initialHash = '' }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [dimensions, setDimensions] = useState({
@@ -16,7 +16,7 @@ const CLMDisplayPanel = () => {
     const dispatch = useDispatch();
     
     // Use Redux selectors to get the selected hash and cards
-    const selectedHash = useSelector(state => state?.content?.selectedHash);
+    const selectedHash = useSelector(state => state?.content?.selectedHash || initialHash);
     const cards = useSelector(state => state?.content?.cards || {});
     
     // Get the root CLM card from Redux store

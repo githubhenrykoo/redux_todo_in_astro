@@ -36,7 +36,7 @@ const MQTTDashboardPanel = () => {
         const broker = 'wss://1115a4b6fe5c40e588a3a85468f3c8be.s1.eu.hivemq.cloud:8884/mqtt';
         const options = {
           connectTimeout: 4000,
-          clientId: 'webClient_' + Math.random().toString(16).substr(2, 8),
+          clientId: 'webClient_' + Math.random().toString(16).substring(2, 8),
           username: 'testing',
           password: 'Testing123',
           clean: true,
@@ -231,7 +231,7 @@ const MQTTDashboardPanel = () => {
           className="px-3 py-2 rounded-md bg-[#1e1e1e] text-white border-none flex-1 min-w-[150px]"
           value={customText}
           onChange={(e) => setCustomText(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
         />
         <button 
           className="bg-[#2196f3] hover:bg-[#1976d2] text-white px-5 py-2 rounded-md transition-colors"

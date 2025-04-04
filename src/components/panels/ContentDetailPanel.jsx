@@ -250,7 +250,7 @@ export default function ContentDetailPanel() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => resolve(event.target.result);
-      reader.onerror = (error) => reject(new Error('Error reading text file'));
+      reader.onerror = (_error) => reject(new Error('Error reading text file'));
       reader.readAsText(file);
     });
   };
@@ -260,7 +260,7 @@ export default function ContentDetailPanel() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => resolve(event.target.result);
-      reader.onerror = (error) => reject(new Error('Error reading media file'));
+      reader.onerror = (_error) => reject(new Error('Error reading media file'));
       reader.readAsDataURL(file);
     });
   };
@@ -270,7 +270,7 @@ export default function ContentDetailPanel() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => resolve(event.target.result);
-      reader.onerror = (error) => reject(new Error('Error reading binary file'));
+      reader.onerror = (_error) => reject(new Error('Error reading binary file'));
       reader.readAsArrayBuffer(file);
     });
   };

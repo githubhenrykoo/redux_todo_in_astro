@@ -50,12 +50,13 @@ export { store };
 
 // Make store globally accessible in browser environments
 if (typeof window !== 'undefined') {
-  window.store = store;
+  // Using safer approach to avoid TypeScript errors
+  window['store'] = store;
   
   // Add development helpers
   if (import.meta.env.DEV) {
-    window.dispatch = store.dispatch;
-    window.getState = store.getState;
+    window['dispatch'] = store.dispatch;
+    window['getState'] = store.getState;
   }
   
   console.log('Redux store made globally accessible');

@@ -133,10 +133,10 @@
             "visible": true
         },
         "right": {
-            "type": "ContentDetailPanel",
+            "type": "LocationPanel",
             "size": 30,
             "minSize": 0,
-            "visible": false
+            "visible": true
         }
     },
     "transcription_layout": {

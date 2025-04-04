@@ -117,7 +117,9 @@
                   console.log("AUTH HELPER: Stored combined user info");
                   
                   // Dispatch to Redux store if available
-                  if (typeof window !== 'undefined' && window.store && window.store.dispatch) {
+                  if (typeof window !== 'undefined' && 
+                     window['store'] && 
+                     typeof window['store'].dispatch === 'function') {
                     console.log("AUTH HELPER: Dispatching to Redux store");
                     
                     const loginPayload = {
@@ -142,7 +144,7 @@
                       }
                     };
                     
-                    window.store.dispatch({ type: 'user/login', payload: loginPayload });
+                    window['store'].dispatch({ type: 'user/login', payload: loginPayload });
                   }
                 } else {
                   console.error("AUTH HELPER: Failed to fetch user info", await userInfoResponse.text());

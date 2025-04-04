@@ -1,7 +1,7 @@
 import { createSlice, createSelector } from '@reduxjs/toolkit';
 
 // Simple hash generation function
-const generateHash = () => `content_${Math.random().toString(36).substr(2, 9)}`;
+const generateHash = () => `content_${Math.random().toString(36).substring(2, 11)}`;
 
 // Utility function to create content with relationships
 const createContentCard = (content, relationships = {}) => ({

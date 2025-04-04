@@ -133,7 +133,7 @@ const SimpleMQTTDashboardPanel = () => {
         const broker = 'wss://1115a4b6fe5c40e588a3a85468f3c8be.s1.eu.hivemq.cloud:8884/mqtt';
         const options = {
           connectTimeout: 4000,
-          clientId: 'webClient_' + Math.random().toString(16).substr(2, 8),
+          clientId: 'webClient_' + Math.random().toString(16).substring(2, 10),
           username: 'duwiarsana',
           password: 'Duwiarsana1234!?',
           clean: true,
@@ -478,7 +478,7 @@ const SimpleMQTTDashboardPanel = () => {
           type="text"
           value={customText}
           onChange={(e) => setCustomText(e.target.value)}
-          onKeyPress={handleKeyPress}
+          onKeyDown={(e) => e.key === 'Enter' && handleKeyPress(e)}
           placeholder="Enter your message here..."
           className="flex-grow bg-[#2d2d2d] text-white px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#03dac6]"
         />

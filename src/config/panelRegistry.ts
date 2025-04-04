@@ -2,7 +2,8 @@ import type { ComponentType } from 'react';
 import { DemoLeftPanel } from '../components/panels/DemoLeftPanel';
 import { DemoMainPanel } from '../components/panels/DemoMainPanel';
 import { DemoRightPanel } from '../components/panels/DemoRightPanel';
-import { ContentDetail } from '../components/panels/ContentDetail';
+import ContentDetailPanel from '../components/panels/ContentDetailPanel.jsx';
+import YouTubePanel from '../components/panels/YouTubePanel.jsx';
 
 export interface PanelConfig {
   component: ComponentType;
@@ -38,4 +39,5 @@ console.log('[PanelRegistry] Initializing panel registry...');
 registerPanel('DemoLeftPanel', DemoLeftPanel);
 registerPanel('DemoMainPanel', DemoMainPanel);
 registerPanel('DemoRightPanel', DemoRightPanel);
-registerPanel('ContentDetail', ContentDetail);
+registerPanel('ContentDetail', ContentDetailPanel);
+registerPanel('YouTubePanel', YouTubePanel);

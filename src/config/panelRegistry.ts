@@ -6,6 +6,7 @@ import ContentDetailPanel from '../components/panels/ContentDetailPanel.jsx';
 import YouTubePanel from '../components/panels/YouTubePanel.jsx';
 import CalculatorPanel from '../components/panels/CalculatorPanel';
 import CameraPanel from '../components/panels/CameraPanel';
+import LocationPanel from '../components/panels/LocationPanel';
 
 export interface PanelConfig {
   component: ComponentType;
@@ -45,3 +46,4 @@ registerPanel('ContentDetail', ContentDetailPanel);
 registerPanel('YouTubePanel', YouTubePanel);
 registerPanel('CalculatorPanel', CalculatorPanel);
 registerPanel('CameraPanel', CameraPanel);
+registerPanel('LocationPanel', LocationPanel);

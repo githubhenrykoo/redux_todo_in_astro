@@ -121,21 +121,21 @@
     },
     "camera_layout": {
         "left": {
-            "type": "FileTablePanel",
-            "size": 20,
-            "minSize": 0,
-            "visible": false
+            "type": "WeatherPanel",
+            "size": 30,
+            "minSize": 20,
+            "visible": true
         },
         "middle": {
             "type": "CameraPanel", 
-            "size": 70,
+            "size": 40,
             "minSize": 40,
             "visible": true
         },
         "right": {
             "type": "LocationPanel",
             "size": 30,
-            "minSize": 0,
+            "minSize": 20,
             "visible": true
         }
     },
@@ -157,6 +157,26 @@
             "size": 70,
             "minSize": 50,
             "visible": true
+        }
+    },
+    "catalog_layout": {
+        "left": {
+            "type": "CatalogPanel",
+            "size": 100,
+            "minSize": 50,
+            "visible": true
+        },
+        "middle": {
+            "type": "ContentViewerPanel", 
+            "size": 0,
+            "minSize": 0,
+            "visible": false
+        },
+        "right": {
+            "type": "ContentDetailPanel",
+            "size": 0,
+            "minSize": 0,
+            "visible": false
         }
     }
 }

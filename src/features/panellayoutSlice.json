@@ -27,7 +27,7 @@
             "visible": true
         },
         "middle": {
-            "type": "xterm",
+            "type": "googlecalendar",
             "size": 40,
             "minSize": 20,
             "visible": true

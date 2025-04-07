@@ -39,6 +39,7 @@
     "class-variance-authority": "^0.7.0",
     "classnames": "^2.3.1",
     "dotenv": "^16.4.7",
+    "gapi-script": "^1.2.0",
     "jimp": "^0.22.8",
     "lucide-react": "^0.284.0",
     "mqtt": "^5.10.4",

@@ -121,7 +121,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 20px;
-  padding: 10px;
+  padding: 15px;
   width: 100%;
   min-height: 300px;
 }
@@ -347,6 +347,7 @@
   transition: transform 0.2s, box-shadow 0.2s;
   background-color: var(--card-bg, #2c2c2c);
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .list-card-inner:hover {
@@ -413,6 +414,95 @@
   gap: 8px;
   padding: 0 15px;
   border-left: 1px solid var(--border-color, #3e3e3e);
+}
+
+.grid-item {
+  width: 100%;
+  height: 100%;
+}
+
+.grid-item-card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color, #3e3e3e);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+  cursor: pointer;
+  background-color: var(--card-bg, #2c2c2c);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.grid-item-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.grid-item-thumbnail {
+  height: 160px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--card-image-bg, #333);
+  border-bottom: 1px solid var(--border-color, #3e3e3e);
+}
+
+.grid-item-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.grid-item-thumbnail .file-icon {
+  font-size: 3rem;
+  color: var(--text-secondary, #a0aec0);
+}
+
+.grid-item-info {
+  padding: 15px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-item-title {
+  margin: 0 0 10px 0;
+  font-size: 1.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.grid-item-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #a0aec0);
+}
+
+.grid-item-description {
+  font-size: 0.9rem;
+  color: var(--text-color, #e0e0e0);
+  margin: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  max-height: 4.5em; /* Fallback for non-WebKit browsers: 3 lines × 1.5 line height */
+  flex: 1;
+}
+
+.grid-item-actions {
+  padding: 10px 15px;
+  border-top: 1px solid var(--border-color, #3e3e3e);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 768px) {

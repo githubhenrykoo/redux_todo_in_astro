@@ -110,23 +110,42 @@ const CatalogPanel = () => {
       .then(data => {
         if (data.success) {
           console.log('Fetched items:', data);
-          // Transform cards into catalog items
-          const transformedItems = data.cards.map(card => ({
-            id: card.hash,
-            name: card.hash.substring(0, 8), // Use first 8 chars of hash as name
-            category: card.contentType?.mimeType || 'Unknown',
-            description: 'Card content hash: ' + card.hash,
-            timestamp: card.timestamp || new Date().toISOString(),
-            hash: card.hash,
-            contentType: card.contentType,
-            metaData: card.metaData || {}
-          }));
+          // Check response format and transform accordingly
+          let transformedItems = [];
+          
+          if (data.cards && Array.isArray(data.cards)) {
+            // Format from getPage endpoint
+            transformedItems = data.cards.map(card => ({
+              id: card.hash,
+              name: card.hash.substring(0, 8), // Use first 8 chars of hash as name
+              category: card.contentType?.mimeType || 'Unknown',
+              description: 'Card content hash: ' + card.hash,
+              timestamp: card.timestamp || new Date().toISOString(),
+              hash: card.hash,
+              contentType: card.contentType,
+              metaData: card.metaData || {}
+            }));
+          } else if (data.items && Array.isArray(data.items)) {
+            // Alternative format from list endpoint
+            transformedItems = data.items.map(item => ({
+              id: item.id || item.hash,
+              name: item.name || (item.hash ? item.hash.substring(0, 8) : 'Unknown'),
+              category: item.category || item.contentType?.mimeType || 'Unknown',
+              description: item.description || 'No description available',
+              timestamp: item.timestamp || new Date().toISOString(),
+              hash: item.hash || item.id,
+              contentType: item.contentType || { mimeType: 'text/plain' },
+              metaData: item.metaData || {}
+            }));
+          } else {
+            console.warn('Unexpected API response format:', data);
+          }
           
           setItems(transformedItems);
           setPagination({
-            currentPage: data.currentPage,
-            totalPages: data.totalPages,
-            totalItems: data.totalCards,
+            currentPage: data.currentPage || 1,
+            totalPages: data.totalPages || Math.ceil((data.totalCards || data.totalItems || transformedItems.length) / pagination.pageSize),
+            totalItems: data.totalCards || data.totalItems || transformedItems.length,
             pageSize: pagination.pageSize
           });
         } else {
@@ -175,21 +194,37 @@ const CatalogPanel = () => {
         .then(data => {
           if (data.success) {
             // Transform cards into catalog items
-            const transformedItems = data.cards.map(card => ({
-              id: card.hash,
-              name: card.hash.substring(0, 8),
-              category: card.contentType?.mimeType || 'Unknown',
-              description: 'Matching content: ' + (card.matchContext || ''),
-              hash: card.hash,
-              timestamp: card.timestamp || new Date().toISOString(),
-              contentType: card.contentType
-            }));
+            let transformedItems = [];
+            
+            if (data.cards && Array.isArray(data.cards)) {
+              transformedItems = data.cards.map(card => ({
+                id: card.hash,
+                name: card.hash.substring(0, 8),
+                category: card.contentType?.mimeType || 'Unknown',
+                description: 'Matching content: ' + (card.matchContext || ''),
+                hash: card.hash,
+                timestamp: card.timestamp || new Date().toISOString(),
+                contentType: card.contentType
+              }));
+            } else if (data.items && Array.isArray(data.items)) {
+              transformedItems = data.items.map(item => ({
+                id: item.id || item.hash,
+                name: item.name || (item.hash ? item.hash.substring(0, 8) : 'Unknown'),
+                category: item.category || item.contentType?.mimeType || 'Unknown',
+                description: item.description || 'No description available',
+                timestamp: item.timestamp || new Date().toISOString(),
+                hash: item.hash || item.id,
+                contentType: item.contentType || { mimeType: 'text/plain' }
+              }));
+            } else {
+              console.warn('Unexpected API search response format:', data);
+            }
             
             setSearchResults({
               items: transformedItems,
-              currentPage: data.currentPage,
-              totalPages: data.totalPages,
-              totalItems: data.totalResults,
+              currentPage: data.currentPage || newPage,
+              totalPages: data.totalPages || Math.ceil((data.totalResults || data.totalItems || transformedItems.length) / pagination.pageSize),
+              totalItems: data.totalResults || data.totalItems || transformedItems.length,
               searchTerm: searchResults.searchTerm
             });
           } else {
@@ -212,22 +247,39 @@ const CatalogPanel = () => {
         .then(data => {
           if (data.success) {
             // Transform cards into catalog items
-            const transformedItems = data.cards.map(card => ({
-              id: card.hash,
-              name: card.hash.substring(0, 8),
-              category: card.contentType?.mimeType || 'Unknown',
-              description: 'Card content hash: ' + card.hash,
-              timestamp: card.timestamp || new Date().toISOString(),
-              hash: card.hash,
-              contentType: card.contentType,
-              metaData: card.metaData || {}
-            }));
+            let transformedItems = [];
+            
+            if (data.cards && Array.isArray(data.cards)) {
+              transformedItems = data.cards.map(card => ({
+                id: card.hash,
+                name: card.hash.substring(0, 8),
+                category: card.contentType?.mimeType || 'Unknown',
+                description: 'Card content hash: ' + card.hash,
+                timestamp: card.timestamp || new Date().toISOString(),
+                hash: card.hash,
+                contentType: card.contentType,
+                metaData: card.metaData || {}
+              }));
+            } else if (data.items && Array.isArray(data.items)) {
+              transformedItems = data.items.map(item => ({
+                id: item.id || item.hash,
+                name: item.name || (item.hash ? item.hash.substring(0, 8) : 'Unknown'),
+                category: item.category || item.contentType?.mimeType || 'Unknown',
+                description: item.description || 'No description available',
+                timestamp: item.timestamp || new Date().toISOString(),
+                hash: item.hash || item.id,
+                contentType: item.contentType || { mimeType: 'text/plain' },
+                metaData: item.metaData || {}
+              }));
+            } else {
+              console.warn('Unexpected API response format:', data);
+            }
             
             setItems(transformedItems);
             setPagination({
-              currentPage: data.currentPage,
-              totalPages: data.totalPages,
-              totalItems: data.totalCards,
+              currentPage: data.currentPage || newPage,
+              totalPages: data.totalPages || Math.ceil((data.totalCards || data.totalItems || transformedItems.length) / pagination.pageSize),
+              totalItems: data.totalCards || data.totalItems || transformedItems.length,
               pageSize: pagination.pageSize
             });
           } else {
@@ -383,21 +435,37 @@ const CatalogPanel = () => {
       .then(data => {
         if (data.success) {
           // Transform cards into catalog items
-          const transformedItems = (data.cards || []).map(card => ({
-            id: card.hash,
-            name: card.hash.substring(0, 8),
-            category: card.contentType?.mimeType || 'Unknown',
-            description: 'Matching content: ' + (card.matchContext || ''),
-            hash: card.hash,
-            timestamp: card.timestamp || new Date().toISOString(),
-            contentType: card.contentType
-          }));
+          let transformedItems = [];
+          
+          if (data.cards && Array.isArray(data.cards)) {
+            transformedItems = data.cards.map(card => ({
+              id: card.hash,
+              name: card.hash.substring(0, 8),
+              category: card.contentType?.mimeType || 'Unknown',
+              description: 'Matching content: ' + (card.matchContext || ''),
+              hash: card.hash,
+              timestamp: card.timestamp || new Date().toISOString(),
+              contentType: card.contentType
+            }));
+          } else if (data.items && Array.isArray(data.items)) {
+            transformedItems = data.items.map(item => ({
+              id: item.id || item.hash,
+              name: item.name || (item.hash ? item.hash.substring(0, 8) : 'Unknown'),
+              category: item.category || item.contentType?.mimeType || 'Unknown',
+              description: item.description || 'No description available',
+              timestamp: item.timestamp || new Date().toISOString(),
+              hash: item.hash || item.id,
+              contentType: item.contentType || { mimeType: 'text/plain' }
+            }));
+          } else {
+            console.warn('Unexpected API search response format:', data);
+          }
           
           setSearchResults({
             items: transformedItems,
             currentPage: data.currentPage || 1,
-            totalPages: data.totalPages || 1,
-            totalItems: data.totalResults || transformedItems.length,
+            totalPages: data.totalPages || Math.ceil((data.totalResults || data.totalItems || transformedItems.length) / pagination.pageSize),
+            totalItems: data.totalResults || data.totalItems || transformedItems.length,
             searchTerm: searchTerm
           });
         } else {
@@ -613,7 +681,7 @@ const CatalogPanel = () => {
     );
   };
 
-  // Render list view
+  // Render list view with card-based layout
   const renderListView = () => {
     if (loading || searchLoading) {
       return <div className="loading-indicator">Loading items...</div>;
@@ -640,50 +708,50 @@ const CatalogPanel = () => {
 
     return (
       <>
-        <div className="catalog-list-view">
-          <table className="catalog-table">
-            <thead>
-              <tr>
-                <th onClick={() => setSortBy('name')}>
-                  Name {sortBy === 'name' && '↓'}
-                </th>
-                <th>Type</th>
-                <th onClick={() => setSortBy('timestamp')}>
-                  Timestamp {sortBy === 'timestamp' && '↓'}
-                </th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedItems.map(item => (
-                <tr key={item.id}>
-                  <td onClick={() => handleSelectItem(item)} className="item-name">
-                    {item.name}
-                  </td>
-                  <td>
-                    {item.contentType?.mimeType 
-                      ? getSimpleContentType(item.contentType.mimeType) || item.contentType.mimeType 
-                      : 'Unknown'}
-                  </td>
-                  <td>{new Date(item.timestamp).toLocaleString()}</td>
-                  <td className="item-actions">
-                    <button 
-                      className="btn btn-small btn-info"
-                      onClick={() => handleSelectItem(item)}
-                    >
-                      View
-                    </button>
-                    <button 
-                      className="btn btn-small btn-danger"
-                      onClick={() => handleDeleteItem(item.id)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="catalog-list-cards">
+          {sortedItems.map(item => (
+            <div key={item.id} className="list-card">
+              <div className="list-card-inner" onClick={() => handleSelectItem(item)}>
+                <div className="list-card-thumbnail">
+                  {getCardThumbnail(item)}
+                </div>
+                <div className="list-card-content">
+                  <h3 className="list-card-title">{item.name}</h3>
+                  <div className="list-card-meta">
+                    <span className="list-card-type">
+                      {item.contentType?.mimeType 
+                        ? getSimpleContentType(item.contentType.mimeType) || item.contentType.mimeType 
+                        : 'Unknown'}
+                    </span>
+                    <span className="list-card-date">
+                      {new Date(item.timestamp).toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="list-card-description">{item.description}</p>
+                </div>
+                <div className="list-card-actions">
+                  <button 
+                    className="btn btn-small btn-info"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectItem(item);
+                    }}
+                  >
+                    View
+                  </button>
+                  <button 
+                    className="btn btn-small btn-danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteItem(item.id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
         
         {/* Pagination */}
@@ -742,22 +810,39 @@ const CatalogPanel = () => {
       <>
         <div className="catalog-grid-view">
           {sortedItems.map(item => (
-            <div 
-              key={item.id} 
-              className="catalog-card"
-              onClick={() => handleSelectItem(item)}
-            >
-              <div className="catalog-card-image">
-                {getCardThumbnail(item)}
-              </div>
-              <div className="catalog-card-content">
-                <h3>{item.name}</h3>
-                <p className="catalog-card-category">
-                  {item.contentType?.mimeType 
-                    ? getSimpleContentType(item.contentType.mimeType) || item.contentType.mimeType 
-                    : 'Unknown'}
-                </p>
-                <p className="catalog-timestamp">{new Date(item.timestamp).toLocaleString()}</p>
+            <div key={item.id} className="grid-item">
+              <div 
+                className="grid-item-card" 
+                onClick={() => handleSelectItem(item)}
+              >
+                <div className="grid-item-thumbnail">
+                  {getCardThumbnail(item)}
+                </div>
+                <div className="grid-item-info">
+                  <h3 className="grid-item-title">{item.name}</h3>
+                  <div className="grid-item-meta">
+                    <span className="grid-item-type">
+                      {item.contentType?.mimeType 
+                        ? getSimpleContentType(item.contentType.mimeType) || item.contentType.mimeType 
+                        : 'Unknown'}
+                    </span>
+                    <span className="grid-item-date">
+                      {new Date(item.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="grid-item-description">{item.description}</p>
+                </div>
+                <div className="grid-item-actions">
+                  <button 
+                    className="btn btn-small btn-danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteItem(item.id);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -1130,13 +1215,15 @@ const CatalogPanel = () => {
   };
 
   return (
-    <div className="catalog-panel">
+    <div className="catalog-panel" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       {renderHeader()}
       
-      {viewMode === 'list' && renderListView()}
-      {viewMode === 'grid' && renderGridView()}
-      {viewMode === 'detail' && renderDetailView()}
-      {viewMode === 'add' && renderAddForm()}
+      <div className="catalog-content" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
+        {viewMode === 'list' && renderListView()}
+        {viewMode === 'grid' && renderGridView()}
+        {viewMode === 'detail' && renderDetailView()}
+        {viewMode === 'add' && renderAddForm()}
+      </div>
     </div>
   );
 };

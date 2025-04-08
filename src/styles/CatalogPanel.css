@@ -33,6 +33,26 @@
   align-items: center;
 }
 
+.btn-refresh {
+  background-color: var(--btn-secondary-bg, #3a3a3a);
+  color: var(--text-color, #e0e0e0);
+  border: 1px solid var(--border-color, #4e4e4e);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+  background-color: var(--primary-color, #4a7bab);
+  transform: rotate(180deg);
+}
+
 .view-toggles {
   display: flex;
   border-radius: 4px;
@@ -62,6 +82,9 @@
   background-color: var(--panel-subheader-bg, #262626);
   border-bottom: 1px solid var(--border-color, #3e3e3e);
   flex-wrap: wrap;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .search-container {
@@ -69,6 +92,9 @@
   display: flex;
   gap: 8px;
   min-width: 200px;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .search-input {
@@ -78,10 +104,16 @@
   border: 1px solid var(--border-color, #3e3e3e);
   border-radius: 4px;
   color: var(--text-color, #e0e0e0);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .search-button {
   white-space: nowrap;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .filter-select {
@@ -90,6 +122,9 @@
   border: 1px solid var(--border-color, #3e3e3e);
   border-radius: 4px;
   color: var(--text-color, #e0e0e0);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .search-status {
@@ -98,23 +133,32 @@
   border-bottom: 1px solid var(--info-border, rgba(43, 108, 176, 0.3));
   color: var(--text-color, #e0e0e0);
   font-size: 0.9rem;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
   padding: 15px;
   width: 100%;
   position: relative;
   display: flex;
   flex-direction: column;
   min-height: 300px; /* Ensure minimum height */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-list-view {
   width: 100%;
   overflow-x: auto;
   min-height: 300px;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-grid-view {
@@ -124,6 +168,9 @@
   padding: 15px;
   width: 100%;
   min-height: 300px;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-detail-view {
@@ -132,6 +179,9 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-detail-header {
@@ -139,24 +189,36 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-detail-header h2 {
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-detail-content {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-detail-info {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .info-section {
@@ -164,6 +226,9 @@
   padding: 16px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #3e3e3e);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .content-section {
@@ -171,6 +236,9 @@
   padding: 16px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #3e3e3e);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .content-section h3 {
@@ -178,6 +246,9 @@
   margin-bottom: 16px;
   font-size: 1.1rem;
   color: var(--text-secondary, #a0aec0);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .content-container {
@@ -185,63 +256,103 @@
   max-height: 500px;
   background-color: var(--content-bg, #252525);
   border-radius: 4px;
+  max-width: 100%;
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
 }
 
 .content-text, .content-json {
   margin: 0;
   padding: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: pre-wrap !important;
+  word-break: break-all !important; /* Force break for extremely long strings */
   font-family: monospace;
   font-size: 0.9rem;
   line-height: 1.5;
-  overflow-x: auto;
+  overflow-wrap: break-word !important;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  overflow: hidden !important; /* Force no overflow at all */
+  max-width: 100% !important;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+  table-layout: fixed !important; /* For very large tables */
+  position: relative;
 }
 
-.content-json {
-  color: var(--json-color, #e6e6e6);
+.json-key, .json-string, .json-number, .json-boolean, .json-null {
+  word-break: break-all !important;
+  max-width: 100% !important;
+  display: inline-block;
+  overflow: hidden;
 }
 
 .content-image {
   max-width: 100%;
   display: block;
   margin: 0 auto;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .content-audio, .content-video {
   width: 100%;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .pdf-container {
   width: 100%;
   height: 500px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .pdf-frame {
   width: 100%;
   height: 100%;
   border: none;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .html-content {
   padding: 12px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .binary-content {
   padding: 16px;
   text-align: center;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-description {
   line-height: 1.5;
   margin-top: 4px;
   white-space: pre-line;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-detail-actions {
   display: flex;
   gap: 12px;
   margin-top: 8px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .loading-indicator, .error-message, .empty-state {
@@ -250,6 +361,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .pagination-controls {
@@ -259,11 +373,17 @@
   gap: 16px;
   padding: 16px;
   border-top: 1px solid var(--border-color, #3e3e3e);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .pagination-info {
   color: var(--text-muted, #888);
   font-size: 0.9rem;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-form {
@@ -275,55 +395,162 @@
   border-radius: 8px;
   margin: 16px;
   border: 1px solid var(--border-color, #3e3e3e);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 8px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group label {
-  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--text-secondary, #a0aec0);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
-  padding: 8px 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
   background-color: var(--input-bg, #333);
   border: 1px solid var(--border-color, #3e3e3e);
-  border-radius: 4px;
   color: var(--text-color, #e0e0e0);
+  font-size: 14px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-.form-group input[type="file"] {
-  padding: 6px;
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.form-group input:disabled,
-.form-group textarea:disabled {
-  background-color: var(--disabled-bg, #2a2a2a);
-  color: var(--disabled-color, #666);
-  cursor: not-allowed;
-}
-
-.form-actions {
+.drop-zone {
+  border: 2px dashed var(--border-color, #3e3e3e);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  min-height: 150px;
   display: flex;
-  gap: 12px;
-  margin-top: 16px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  background-color: var(--input-bg, #333);
+  cursor: pointer;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.drop-zone.dropping {
+  border-color: var(--primary-color, #4a7bab);
+  background-color: rgba(74, 123, 171, 0.1);
+  box-shadow: 0 0 10px rgba(74, 123, 171, 0.3);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.drop-zone label {
+  cursor: pointer;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #a0aec0);
+  width: 100%;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.drop-zone input {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.drop-icon {
+  font-size: 40px;
+  opacity: 0.5;
+  margin: 10px 0;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.file-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 10px;
+  border-radius: 4px;
+  width: 100%;
+  margin-top: 10px;
+  position: relative;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.file-name {
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.file-size {
+  color: var(--text-secondary, #a0aec0);
+  font-size: 0.8rem;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-clear-file {
+  background: rgba(255, 50, 50, 0.2);
+  border: none;
+  color: var(--text-color, #e0e0e0);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-clear-file:hover {
+  background: rgba(255, 50, 50, 0.4);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .catalog-list-cards {
@@ -333,10 +560,16 @@
   width: 100%;
   min-height: 300px;
   padding: 10px;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card {
   width: 100%;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-inner {
@@ -348,11 +581,17 @@
   background-color: var(--card-bg, #2c2c2c);
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-inner:hover {
   transform: translateY(-3px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-thumbnail {
@@ -363,12 +602,18 @@
   align-items: center;
   justify-content: center;
   background-color: var(--card-image-bg, #333);
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-content {
@@ -377,6 +622,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-title {
@@ -385,6 +633,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-meta {
@@ -393,6 +643,9 @@
   margin-bottom: 8px;
   font-size: 0.85rem;
   color: var(--text-secondary, #a0aec0);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-description {
@@ -405,6 +658,9 @@
   line-clamp: 2;
   -webkit-box-orient: vertical;
   max-height: 3em;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .list-card-actions {
@@ -414,11 +670,17 @@
   gap: 8px;
   padding: 0 15px;
   border-left: 1px solid var(--border-color, #3e3e3e);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item {
   width: 100%;
   height: 100%;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-card {
@@ -432,11 +694,17 @@
   cursor: pointer;
   background-color: var(--card-bg, #2c2c2c);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-thumbnail {
@@ -447,17 +715,26 @@
   justify-content: center;
   background-color: var(--card-image-bg, #333);
   border-bottom: 1px solid var(--border-color, #3e3e3e);
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-thumbnail img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-thumbnail .file-icon {
   font-size: 3rem;
   color: var(--text-secondary, #a0aec0);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-info {
@@ -465,6 +742,10 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-title {
@@ -474,6 +755,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-meta {
@@ -482,6 +765,9 @@
   margin-bottom: 10px;
   font-size: 0.85rem;
   color: var(--text-secondary, #a0aec0);
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-description {
@@ -493,8 +779,11 @@
   -webkit-line-clamp: 3;
   line-clamp: 3;
   -webkit-box-orient: vertical;
-  max-height: 4.5em; /* Fallback for non-WebKit browsers: 3 lines × 1.5 line height */
+  max-height: 4.5em;
   flex: 1;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item-actions {
@@ -503,6 +792,136 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: flex-end;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.form-actions .btn {
+  min-width: 120px;
+  padding: 10px 16px;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.content-controls {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-x: hidden !important; /* Force no horizontal overflow */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.text-content-options {
+  display: flex;
+  padding: 8px 12px;
+  background-color: var(--card-bg, #2c2c2c);
+  border-bottom: 1px solid var(--border-color, #3e3e3e);
+  font-size: 0.85rem;
+  align-items: center;
+  z-index: 5;
+  position: sticky;
+  top: 0;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.text-content-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.text-content-options input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  overflow: hidden; /* Contain all content */
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.json-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  font-family: monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  table-layout: fixed; /* Critical for width control */
+  margin: 0;
+  padding: 0;
+}
+
+.json-key-cell {
+  width: 40%;
+  padding: 2px 4px;
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--json-key-color, #9cdcfe);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+
+.json-value-cell {
+  width: 60%;
+  padding: 2px 4px;
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  white-space: normal;
+  text-align: left;
+}
+
+.content-json-container {
+  padding: 12px;
+  background-color: var(--content-bg, #252525);
+  overflow: auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.json-table tr:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.json-string {
+  color: var(--json-string-color, #ce9178);
+}
+
+.json-number {
+  color: var(--json-number-color, #b5cea8);
+}
+
+.json-boolean {
+  color: var(--json-boolean-color, #569cd6);
+}
+
+.json-null {
+  color: var(--json-null-color, #569cd6);
 }
 
 @media (max-width: 768px) {
@@ -532,4 +951,120 @@
   .pagination-controls {
     flex-wrap: wrap;
   }
+}
+
+/* Universal content wrapper - ultimate overflow prevention */
+.universal-content-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden !important;
+  position: relative;
+  box-sizing: border-box;
+  display: block;
+  table-layout: fixed;
+}
+
+/* CSV table styles */
+.csv-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  font-family: monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  table-layout: fixed; /* Critical for width control */
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.csv-cell {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color, #3e3e3e);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 250px; /* Limit cell width */
+}
+
+/* Striped rows for better readability */
+.csv-table tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Force content wrapping */
+.wrap-text {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+}
+
+.nowrap-text {
+  white-space: pre !important;
+  overflow-x: auto !important;
+}
+
+/* Reset default browser styles for multi-line elements */
+pre, code, textarea {
+  max-width: 100% !important;
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  overflow-wrap: break-word !important;
+  overflow: hidden !important;
+}
+
+/* Fix for all content containers */
+.content-container, 
+.content-text, 
+.content-json, 
+.content-json-container,
+.json-table,
+.csv-content,
+.html-content,
+.pdf-container,
+.binary-content,
+.image-wrapper,
+.audio-wrapper,
+.video-wrapper,
+.html-wrapper,
+.json-wrapper,
+.csv-wrapper,
+.text-wrapper {
+  max-width: 100% !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  overflow-x: hidden !important;
+  word-break: break-all !important;
+  white-space: normal !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+
+/* Fix for image content */
+.content-image {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+/* Specific fixes for the catalog detail view panel */
+.catalog-detail-view {
+  position: relative !important;
+  overflow: hidden !important;
+  max-width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Make sure all content sections have containment */
+.catalog-detail-content {
+  overflow: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Apply containment context to all elements */
+* {
+  contain: content !important;
 }

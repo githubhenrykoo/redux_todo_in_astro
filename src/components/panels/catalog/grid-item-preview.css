@@ -250,36 +250,92 @@
 
 /* Text preview styles */
 .text-preview {
-  background-color: #f9f9f9;
+  display: flex;
   flex-direction: column;
-  padding: 15px;
-}
-
-.text-icon {
-  background-color: #3498db;
-  color: white;
-  padding: 4px 8px;
+  height: 100%;
+  width: 100%;
+  background-color: #f8f9fa;
   border-radius: 4px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  align-self: flex-start;
+  overflow: hidden;
+  position: relative;
 }
 
 .text-preview-content {
-  width: 100%;
+  padding: 12px;
+  overflow: hidden;
+  flex-grow: 1;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  max-height: 140px;
 }
 
-.text-lines {
+.text-preview-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  -webkit-box-orient: vertical;
+  color: #333;
+}
+
+.text-type-label {
+  padding: 4px 8px;
+  font-size: 10px;
+  background-color: #e9ecef;
+  color: #495057;
+  text-align: center;
+  border-top: 1px solid #dee2e6;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  font-weight: 500;
+}
+
+/* Loading indicator */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  padding: 20px 0;
+  color: #6c757d;
+  font-size: 18px;
+}
+
+/* Content type label for icon previews */
+.content-type-label {
+  margin-top: 8px;
+  font-size: 10px;
+  color: #6c757d;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-icon {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   width: 100%;
+  padding: 20px 0;
 }
 
-.text-line {
-  height: 10px;
-  background-color: #e0e0e0;
-  border-radius: 2px;
+.preview-icon i {
+  font-size: 24px;
+  margin-bottom: 8px;
+  color: #6c757d;
 }
 
 /* Default preview styles */

@@ -52,5 +52,8 @@
   },
   "SimpleMQTTDashboardPanel": {
     "component": "../components/panels/SimpleMQTTDashboardPanel.jsx"
+  },
+  "CatalogPanel": {
+    "component": "../components/panels/CatalogPanel.jsx"
   }
 }

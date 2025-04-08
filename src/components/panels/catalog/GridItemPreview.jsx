@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
 
 /**
@@ -6,22 +6,42 @@ import { getSimpleContentType, getContentTypeDisplay } from './utils';
  * Shows actual content previews in the grid view instead of just icons
  */
 const GridItemPreview = ({ item }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const contentType = item.contentType?.mimeType || 'unknown';
+  
+  // Preload image for image content types
+  useEffect(() => {
+    if (contentType.startsWith('image/')) {
+      const img = new Image();
+      img.onload = () => setImageLoaded(true);
+      img.onerror = () => setImageError(true);
+      img.src = `/api/card-collection?action=get&hash=${item.id}`;
+    }
+  }, [contentType, item.id]);
   
   // Image previews
   if (contentType.startsWith('image/')) {
+    if (imageError) {
+      return (
+        <div className="grid-item-preview default-preview">
+          <div className="preview-icon">No Preview</div>
+        </div>
+      );
+    }
+    
     return (
       <div className="grid-item-preview image-preview">
-        <img 
-          src={`/api/card-collection?action=get&hash=${item.id}`} 
-          alt={item.name}
-          className="preview-image" 
-          loading="lazy"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = "https://placehold.co/300x300?text=No+Preview";
-          }}
-        />
+        {imageLoaded ? (
+          <img 
+            src={`/api/card-collection?action=get&hash=${item.id}`} 
+            alt={item.name}
+            className="preview-image" 
+            loading="lazy"
+          />
+        ) : (
+          <div className="preview-loading">Loading...</div>
+        )}
       </div>
     );
   }

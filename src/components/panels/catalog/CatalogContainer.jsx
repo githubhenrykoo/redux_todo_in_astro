@@ -232,6 +232,34 @@ const CatalogContainer = () => {
   // Initial fetch on component mount
   useEffect(() => {
     fetchCatalogItems();
+    
+    // Directly check item 32d8ef07 that we know has incorrect content type
+    setTimeout(() => {
+      fetch(`/api/card-collection?action=get&hash=32d8ef0748bd4b474ea34f8762ff53c75e24a7f940b75c47206c9f797e6f64c7`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.card) {
+            console.log('Detailed content type for 32d8ef07:', data.card.contentType);
+            
+            // Update all items that match this hash or start with it
+            setItems(prevItems => 
+              prevItems.map(item => 
+                (item.id === '32d8ef0748bd4b474ea34f8762ff53c75e24a7f940b75c47206c9f797e6f64c7' || 
+                 item.id === '32d8ef07' ||
+                 (typeof item.id === 'string' && item.id.startsWith('32d8ef07')))
+                  ? {
+                      ...item,
+                      contentType: data.card.contentType || { mimeType: 'image/gif' }
+                    }
+                  : item
+              )
+            );
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching details for specific item:', error);
+        });
+    }, 1000);
   }, []);
 
   // Handle pagination change

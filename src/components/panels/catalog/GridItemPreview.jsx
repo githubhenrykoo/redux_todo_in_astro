@@ -153,7 +153,7 @@ const GridItemPreview = ({ item }) => {
           </div>
         ) : (
           <>
-            <div className="text-preview-content">
+            <div className="high-contrast-text">
               <pre>{textPreview}</pre>
             </div>
             <div className="text-type-label">

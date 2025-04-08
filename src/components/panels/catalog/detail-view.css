@@ -1,0 +1,414 @@
+/* DetailView Container */
+.catalog-detail-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: #282c34;
+  color: #e0e0e0;
+}
+
+.catalog-detail-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #21252b;
+  border-bottom: 1px solid #333;
+}
+
+.catalog-detail-header h2 {
+  margin: 0 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #e0e0e0;
+}
+
+.btn-back {
+  padding: 6px 12px;
+  background-color: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #e0e0e0;
+}
+
+.btn-back:hover {
+  background-color: #444;
+}
+
+.catalog-detail-content {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+.catalog-detail-info {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.info-section {
+  margin-bottom: 20px;
+  padding: 12px;
+  background-color: #2c313a;
+  border-radius: 6px;
+  border: 1px solid #3a3f4b;
+}
+
+.info-section p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #bbb;
+}
+
+.info-section strong {
+  color: #e0e0e0;
+}
+
+.content-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 20px;
+}
+
+.content-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.content-container {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #3a3f4b;
+  border-radius: 6px;
+  background-color: #21252b;
+}
+
+/* Universal Content Wrapper */
+.universal-content-wrapper {
+  height: 100%;
+  overflow: auto;
+  position: relative;
+}
+
+/* Image Content Styles */
+.image-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: #1e2227;
+  overflow: auto;
+}
+
+.image-container {
+  position: relative;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gif-container {
+  background-color: #1a1d23;
+}
+
+.content-image {
+  max-width: 100%;
+  max-height: 90vh;
+  object-fit: contain;
+  transition: opacity 0.3s ease;
+}
+
+.content-image.loading {
+  opacity: 0;
+}
+
+.content-image.loaded {
+  opacity: 1;
+}
+
+.gif-image {
+  background-color: #1a1d23;
+}
+
+.content-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  font-size: 14px;
+  color: #bbb;
+  animation: pulse 1.5s infinite;
+}
+
+.content-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  text-align: center;
+}
+
+.content-error p {
+  margin-bottom: 15px;
+  color: #ff7b7b;
+}
+
+.content-error button {
+  padding: 8px 16px;
+  background-color: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #e0e0e0;
+}
+
+.content-error button:hover {
+  background-color: #444;
+}
+
+/* PDF Content Styles */
+.pdf-wrapper {
+  height: 100%;
+}
+
+.pdf-container {
+  height: 100%;
+}
+
+.pdf-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Audio and Video Content Styles */
+.audio-wrapper, .video-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  background-color: #1e2227;
+}
+
+.content-audio, .content-video {
+  max-width: 100%;
+}
+
+.content-video {
+  max-height: 70vh;
+}
+
+/* HTML Content Styles */
+.html-wrapper {
+  height: 100%;
+  overflow: auto;
+}
+
+.html-content {
+  padding: 16px;
+  color: #e0e0e0;
+}
+
+.html-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Text Content Styles */
+.text-wrapper {
+  height: 100%;
+  overflow: auto;
+}
+
+.content-controls {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.text-content-options {
+  padding: 8px;
+  background-color: #2c313a;
+  border-bottom: 1px solid #3a3f4b;
+  color: #bbb;
+}
+
+.content-text {
+  margin: 0;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 14px;
+  overflow: auto;
+  flex: 1;
+  background-color: #282c34;
+  color: #e0e0e0;
+}
+
+.wrap-text {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.nowrap-text {
+  white-space: pre;
+}
+
+/* JSON Formatting */
+.json-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: monospace;
+  font-size: 14px;
+  color: #bbb;
+}
+
+.json-key-cell {
+  padding: 2px 8px;
+  color: #bbb;
+  white-space: nowrap;
+  vertical-align: top;
+  text-align: right;
+}
+
+.json-value-cell {
+  padding: 2px 8px;
+  word-break: break-word;
+  vertical-align: top;
+}
+
+.json-string {
+  color: #a8d3ff;
+}
+
+.json-number {
+  color: #ffbd7a;
+}
+
+.json-boolean {
+  color: #ff9e9e;
+}
+
+.json-null {
+  color: #bbb;
+}
+
+/* CSV Table Styles */
+.csv-wrapper {
+  height: 100%;
+  overflow: auto;
+}
+
+.csv-content {
+  padding: 16px;
+}
+
+.csv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #e0e0e0;
+}
+
+.csv-table tr:nth-child(even) {
+  background-color: #2c313a;
+}
+
+.csv-table tr:first-child {
+  background-color: #3a3f4b;
+  font-weight: bold;
+}
+
+.csv-cell {
+  padding: 6px 8px;
+  border: 1px solid #444;
+}
+
+/* Animation for loading indicator */
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* Button Styles */
+.btn {
+  padding: 8px 16px;
+  background-color: #333;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #e0e0e0;
+}
+
+.btn:hover {
+  background-color: #444;
+}
+
+.btn-danger {
+  background-color: #b64642;
+  color: white;
+  border-color: #a33d39;
+}
+
+.btn-danger:hover {
+  background-color: #a33d39;
+}
+
+.btn-small {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* Error and Empty States */
+.error-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  color: #ff7b7b;
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  color: #bbb;
+}
+
+.empty-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  text-align: center;
+  color: #bbb;
+  font-style: italic;
+}

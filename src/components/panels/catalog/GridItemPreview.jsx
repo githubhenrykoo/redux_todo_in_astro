@@ -14,8 +14,24 @@ const GridItemPreview = ({ item }) => {
   useEffect(() => {
     if (contentType.startsWith('image/')) {
       const img = new Image();
-      img.onload = () => setImageLoaded(true);
-      img.onerror = () => setImageError(true);
+      
+      // Special case for GIFs - they may need a different approach
+      const isGif = contentType === 'image/gif';
+      
+      img.onload = () => {
+        setImageLoaded(true);
+        // For GIFs, we want to make sure they animate properly
+        if (isGif) {
+          console.log("GIF image loaded successfully:", item.id);
+        }
+      };
+      
+      img.onerror = (e) => {
+        console.error("Error loading image:", e);
+        setImageError(true);
+      };
+      
+      // Use a clean URL format to fetch the image
       img.src = `/api/card-collection?action=get&hash=${item.id}`;
     }
   }, [contentType, item.id]);

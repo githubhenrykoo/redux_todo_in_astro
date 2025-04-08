@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import CardThumbnail from './CardThumbnail';
+import GridItemPreview from './GridItemPreview';
 import PaginationControls from './PaginationControls';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import './grid-item-preview.css';
 
 /**
  * Grid view component for catalog items
@@ -20,6 +21,7 @@ const GridView = ({
 }) => {
   const [verifiedItems, setVerifiedItems] = useState({});
   const [pendingVerifications, setPendingVerifications] = useState({});
+  const [hoveredItem, setHoveredItem] = useState(null);
   
   // Get content type display mapping
   const contentTypeMap = getContentTypeDisplay();
@@ -143,6 +145,15 @@ const GridView = ({
     return `${contentTypeMap[simpleType] || simpleType.toUpperCase()} (${item.contentType.mimeType})`;
   };
 
+  // Helper function to determine if an item is an image
+  const isImageItem = (item) => {
+    const verifiedItem = verifiedItems[item.id];
+    if (verifiedItem && verifiedItem.isVerified) {
+      return verifiedItem.contentType.mimeType?.startsWith('image/');
+    }
+    return item.contentType?.mimeType?.startsWith('image/');
+  };
+
   if (loading) {
     return <div className="loading-indicator">Loading items...</div>;
   }
@@ -168,7 +179,7 @@ const GridView = ({
 
   return (
     <>
-      <div className="catalog-grid-view">
+      <div className="catalog-grid-view grid-masonry">
         {sortedItems.map(item => {
           // Use verified content type if available
           const verifiedItem = verifiedItems[item.id];
@@ -176,14 +187,21 @@ const GridView = ({
             ? { ...item, contentType: verifiedItem.contentType }
             : item;
           
+          const isImage = isImageItem(displayItem);
+          
           return (
-            <div key={item.id} className="grid-item">
+            <div 
+              key={item.id} 
+              className={`grid-item ${isImage ? 'grid-item-image' : 'grid-item-other'}`}
+              onMouseEnter={() => setHoveredItem(item.id)}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
               <div 
-                className="grid-item-card" 
+                className={`grid-item-card ${hoveredItem === item.id ? 'hovered' : ''}`}
                 onClick={() => onSelectItem(item)}
               >
-                <div className="grid-item-thumbnail">
-                  <CardThumbnail item={displayItem} />
+                <div className={`grid-item-thumbnail ${isImage ? 'image-thumbnail' : ''}`}>
+                  <GridItemPreview item={displayItem} />
                 </div>
                 <div className="grid-item-info">
                   <h3 className="grid-item-title">{item.name}</h3>
@@ -197,7 +215,7 @@ const GridView = ({
                   </div>
                   <p className="grid-item-description">{item.description}</p>
                 </div>
-                <div className="grid-item-actions">
+                <div className={`grid-item-actions ${hoveredItem === item.id ? 'visible' : ''}`}>
                   <button 
                     className="btn btn-small btn-danger"
                     onClick={(e) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { importCardFromDatabase, selectContent } from '../../features/contentSlice';
 import { selectItem } from '../../features/selectedItemSlice';
@@ -54,6 +54,10 @@ const CatalogPanel = () => {
     file: null
   });
   
+  // Drag and drop states
+  const [isDragging, setIsDragging] = useState(false);
+  const dropZoneRef = useRef(null);
+  
   // Category list derived from items
   const [categories, setCategories] = useState(['all']);
 
@@ -100,8 +104,8 @@ const CatalogPanel = () => {
     }
   }, [items]);
 
-  // Initial fetch on component mount
-  useEffect(() => {
+  // Fetch catalog items
+  const fetchCatalogItems = () => {
     setLoading(true);
     setError(null);
     
@@ -159,6 +163,30 @@ const CatalogPanel = () => {
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  // Handle refresh button click
+  const handleRefresh = () => {
+    // Clear search if in search mode
+    if (isSearchMode) {
+      setIsSearchMode(false);
+      setSearchResults({
+        items: [],
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        searchTerm: ''
+      });
+      setSearchTerm('');
+    }
+    
+    // Fetch items again
+    fetchCatalogItems();
+  };
+
+  // Initial fetch on component mount
+  useEffect(() => {
+    fetchCatalogItems();
   }, []);
 
   // Helper function to extract a simple content type from MIME type
@@ -494,8 +522,19 @@ const CatalogPanel = () => {
       // File upload
       const formData = new FormData();
       formData.append('file', newItem.file);
-      formData.append('name', newItem.name);
-      formData.append('description', newItem.description || '');
+      
+      // Create the metadata object as required by the API
+      const metadata = {
+        fileName: newItem.name,
+        mimeType: newItem.contentType || 'application/octet-stream',
+        size: newItem.file.size,
+        description: newItem.description || ''
+      };
+      
+      // Append metadata as a JSON string
+      formData.append('metadata', JSON.stringify(metadata));
+      // Append action to formData (since it's multipart form)
+      formData.append('action', 'add');
       
       setLoading(true);
       setError(null);
@@ -504,7 +543,14 @@ const CatalogPanel = () => {
         method: 'POST',
         body: formData
       })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || `Server responded with ${response.status}`);
+            });
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.success) {
             // Add new item to the state
@@ -535,7 +581,7 @@ const CatalogPanel = () => {
         })
         .catch(error => {
           console.error('Error adding catalog item:', error);
-          setError('Failed to add item. Please try again.');
+          setError(`Failed to add item: ${error.message}`);
         })
         .finally(() => {
           setLoading(false);
@@ -549,12 +595,21 @@ const CatalogPanel = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: newItem.name,
-          content: newItem.description,
-          contentType: { mimeType: newItem.contentType || 'text/plain' }
+          action: 'add',
+          card: {
+            content: newItem.description,
+            hash_algorithm: 'sha256'
+          }
         })
       })
-        .then(response => response.json())
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(data => {
+              throw new Error(data.error || `Server responded with ${response.status}`);
+            });
+          }
+          return response.json();
+        })
         .then(data => {
           if (data.success) {
             // Add new item to state
@@ -584,7 +639,7 @@ const CatalogPanel = () => {
         })
         .catch(error => {
           console.error('Error adding catalog item:', error);
-          setError('Failed to add item. Please try again.');
+          setError(`Failed to add item: ${error.message}`);
         })
         .finally(() => {
           setLoading(false);
@@ -618,6 +673,54 @@ const CatalogPanel = () => {
         contentType: file.type || 'application/octet-stream',
         file: file
       });
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only set dragging to false if leaving the drop zone itself, not its children
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget)) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0]; // Take only the first file if multiple are dropped
+      setFileInput(file);
+      setNewItem({
+        ...newItem,
+        name: file.name,
+        contentType: file.type || 'application/octet-stream',
+        file: file
+      });
+      
+      // If not in the add view mode, switch to it
+      if (viewMode !== 'add') {
+        setViewMode('add');
+      }
     }
   };
 
@@ -889,149 +992,131 @@ const CatalogPanel = () => {
       return <div className="error-message">Item not found</div>;
     }
     
-    // Determine content display method based on content type
+    // Process and display content based on type
     const renderContent = () => {
-      // If content is not loaded yet
-      if (!selectedItem.content) {
-        return <div className="content-placeholder">Content not available</div>;
+      if (!selectedItem?.content) {
+        return <div className="empty-content">No content available</div>;
       }
       
-      const content = selectedItem.content;
-      const contentType = selectedItem.contentType?.mimeType || 'text/plain';
-      const simpleType = getSimpleContentType(contentType);
+      const contentType = selectedItem.contentType || { mimeType: 'text/plain' };
       
-      // Handle string content directly
-      if (typeof content === 'string') {
-        // JSON formatting
-        if (simpleType === 'json') {
-          try {
-            const json = JSON.parse(content);
-            return (
-              <pre className="content-json">
-                {JSON.stringify(json, null, 2)}
-              </pre>
-            );
-          } catch (e) {
-            // If parsing fails, display as plain text
-            console.error("Failed to parse JSON:", e);
-          }
-        }
-        
-        // HTML content
-        if (simpleType === 'html') {
-          return (
-            <div className="html-content">
-              <div dangerouslySetInnerHTML={{ __html: content }} />
-            </div>
-          );
-        }
-        
-        // Default text display
-        return (
-          <pre className="content-text">
-            {content}
-          </pre>
-        );
-      }
-      
-      // Handle base64 object format from the API
-      if (typeof content === 'object' && content !== null) {
-        // String data inside an object wrapper
-        if (content.type === 'string' && content.data) {
-          return (
-            <pre className="content-text">
-              {content.data}
-            </pre>
-          );
-        }
-        
-        // Base64 encoded content
-        if (content.type === 'base64' && content.data) {
-          const mimeType = content.originalType || contentType;
-          const simpleMimeType = getSimpleContentType(mimeType);
-          
-          // Images
-          if (mimeType.startsWith('image/')) {
-            return (
-              <img 
-                src={`data:${mimeType};base64,${content.data}`} 
-                alt={selectedItem.name}
-                className="content-image"
-              />
-            );
-          }
-          
-          // Audio
-          if (mimeType.startsWith('audio/')) {
-            return (
-              <audio controls className="content-audio">
-                <source src={`data:${mimeType};base64,${content.data}`} type={mimeType} />
-                Your browser does not support the audio element.
-              </audio>
-            );
-          }
-          
-          // Video
-          if (mimeType.startsWith('video/')) {
-            return (
-              <video controls className="content-video">
-                <source src={`data:${mimeType};base64,${content.data}`} type={mimeType} />
-                Your browser does not support the video element.
-              </video>
-            );
-          }
-          
-          // PDF
-          if (mimeType === 'application/pdf') {
-            return (
-              <div className="pdf-container">
-                <iframe 
-                  src={`data:${mimeType};base64,${content.data}`} 
-                  className="pdf-frame"
-                  title="PDF Document"
-                />
-              </div>
-            );
-          }
-          
-          // Binary file (download link)
-          return (
-            <div className="binary-content">
-              <p>Binary content: {mimeType || 'unknown type'}</p>
-              <p>Detection method: {content.detectionMethod || 'unknown'}</p>
-              <a 
-                href={`data:${mimeType};base64,${content.data}`}
-                download={selectedItem.name || 'download'}
-                className="btn btn-primary"
-              >
-                Download File
-              </a>
-            </div>
-          );
-        }
-        
-        // Buffer format
-        if (content.type === 'Buffer' && Array.isArray(content.data)) {
-          return (
-            <div className="binary-content">
-              <p>Binary Buffer Data</p>
-              <p>Size: {content.data.length} bytes</p>
-              <p>(Buffer preview not available)</p>
-            </div>
-          );
-        }
-      }
-      
-      // Fallback for unknown content
-      return (
-        <div className="content-unknown">
-          <p>Content preview not available</p>
-          <p>Content type: {contentType || 'unknown'}</p>
-          <pre className="content-debug">
-            {JSON.stringify(content, null, 2)}
-          </pre>
+      // Universal content wrapper to enforce containment
+      const ContentWrapper = ({ children, className = '' }) => (
+        <div className={`universal-content-wrapper ${className}`}>
+          {children}
         </div>
       );
+      
+      // Handle different content types
+      if (contentType.mimeType?.startsWith('image/')) {
+        return (
+          <ContentWrapper className="image-wrapper">
+            <img src={`data:${contentType.mimeType};base64,${selectedItem.content}`} alt="Content Preview" className="content-image" />
+          </ContentWrapper>
+        );
+      } else if (contentType.mimeType === 'application/pdf') {
+        return (
+          <ContentWrapper className="pdf-wrapper">
+            <div className="pdf-container">
+              <iframe src={`data:${contentType.mimeType};base64,${selectedItem.content}`} className="pdf-frame" title="PDF Viewer"></iframe>
+            </div>
+          </ContentWrapper>
+        );
+      } else if (contentType.mimeType?.startsWith('audio/')) {
+        return (
+          <ContentWrapper className="audio-wrapper">
+            <audio controls className="content-audio">
+              <source src={`data:${contentType.mimeType};base64,${selectedItem.content}`} type={contentType.mimeType} />
+              Your browser does not support the audio element.
+            </audio>
+          </ContentWrapper>
+        );
+      } else if (contentType.mimeType?.startsWith('video/')) {
+        return (
+          <ContentWrapper className="video-wrapper">
+            <video controls className="content-video">
+              <source src={`data:${contentType.mimeType};base64,${selectedItem.content}`} type={contentType.mimeType} />
+              Your browser does not support the video element.
+            </video>
+          </ContentWrapper>
+        );
+      } else if (contentType.mimeType === 'text/html') {
+        return (
+          <ContentWrapper className="html-wrapper">
+            <div className="html-content" dangerouslySetInnerHTML={{ __html: selectedItem.content }}></div>
+          </ContentWrapper>
+        );
+      } else if (contentType.mimeType === 'application/json' || 
+                 (typeof selectedItem.content === 'string' && selectedItem.content.trim().startsWith('{'))) {
+        // Parse JSON if it's not already an object
+        let jsonContent;
+        try {
+          jsonContent = typeof selectedItem.content === 'string' 
+            ? JSON.parse(selectedItem.content) 
+            : selectedItem.content;
+        } catch (e) {
+          console.error('Error parsing JSON:', e);
+          return (
+            <ContentWrapper className="text-wrapper">
+              <pre className="content-text">
+                {typeof selectedItem.content === 'string' 
+                  ? selectedItem.content 
+                  : JSON.stringify(selectedItem.content, null, 2)}
+              </pre>
+            </ContentWrapper>
+          );
+        }
+        
+        return (
+          <ContentWrapper className="json-wrapper">
+            {renderJsonWithHighlighting(jsonContent)}
+          </ContentWrapper>
+        );
+      } else if (contentType.mimeType === 'text/csv' || contentType.extension === 'csv') {
+        return (
+          <ContentWrapper className="csv-wrapper">
+            <div className="csv-content">
+              <table className="csv-table">
+                <tbody>
+                  {typeof selectedItem.content === 'string' && 
+                    selectedItem.content.split('\n').map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        {row.split(',').map((cell, cellIndex) => (
+                          <td key={cellIndex} className="csv-cell">
+                            {cell.length > 50 ? cell.substring(0, 47) + '...' : cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </ContentWrapper>
+        );
+      } else {
+        // Default text display
+        return (
+          <ContentWrapper className="text-wrapper">
+            <div className="content-controls">
+              <div className="text-content-options">
+                <label>
+                  <input 
+                    type="checkbox" 
+                    checked={!wordWrap} 
+                    onChange={() => setWordWrap(!wordWrap)} 
+                  />
+                  Disable word wrap
+                </label>
+              </div>
+              <pre className={`content-text ${!wordWrap ? 'wrap-text' : 'nowrap-text'}`}>
+                {typeof selectedItem.content === 'string' 
+                  ? selectedItem.content 
+                  : JSON.stringify(selectedItem.content, null, 2)}
+              </pre>
+            </div>
+          </ContentWrapper>
+        );
+      }
     };
     
     return (
@@ -1049,15 +1134,13 @@ const CatalogPanel = () => {
         <div className="catalog-detail-content">
           <div className="catalog-detail-info">
             <div className="info-section">
-              <p><strong>ID:</strong> {selectedItem.id}</p>
+              <p><strong>Hash:</strong> {selectedItem.hash}</p>
               <p><strong>Type:</strong> {
                 selectedItem.contentType?.mimeType 
                   ? `${getSimpleContentType(selectedItem.contentType.mimeType) || selectedItem.contentType.mimeType} (${selectedItem.contentType.mimeType})` 
                   : 'Unknown'
               }</p>
-              <p><strong>Created:</strong> {new Date(selectedItem.timestamp).toLocaleString()}</p>
-              <p><strong>Description:</strong></p>
-              <div className="catalog-description">{selectedItem.description}</div>
+              <p><strong>gtime:</strong> {new Date(selectedItem.timestamp).toLocaleString()}</p>
             </div>
             
             <div className="content-section">
@@ -1070,7 +1153,7 @@ const CatalogPanel = () => {
             <div className="catalog-detail-actions">
               <button 
                 className="btn btn-danger"
-                onClick={() => handleDeleteItem(selectedItem.id)}
+                onClick={() => handleDeleteItem(selectedItem.hash)}
               >
                 Delete
               </button>
@@ -1081,12 +1164,112 @@ const CatalogPanel = () => {
     );
   };
 
+  // Helper function to render JSON with syntax highlighting and guaranteed wrapping
+  const renderJsonWithHighlighting = (jsonObj) => {
+    // Convert JSON to a vertical display format that won't overflow
+    const renderJsonAsTable = (obj, depth = 0) => {
+      // For primitive values, just return them formatted
+      if (typeof obj !== 'object' || obj === null) {
+        return renderPrimitiveValue(obj);
+      }
+      
+      // Recursive table builder
+      const rows = [];
+      
+      // Handle arrays or objects
+      const isArray = Array.isArray(obj);
+      
+      // For each key/index in the object/array
+      Object.entries(obj).forEach(([key, value], index) => {
+        // Create indentation based on depth
+        const indent = '  '.repeat(depth);
+        const displayKey = isArray ? `[${key}]` : key;
+        
+        // If value is an object, recurse, otherwise format the primitive
+        if (typeof value === 'object' && value !== null) {
+          // For objects/arrays, create a row with the key and a placeholder
+          rows.push(
+            `<tr>
+              <td class="json-key-cell">${indent}${displayKey}:</td>
+              <td class="json-value-cell">${isArray ? '[]' : '{'}...</td>
+            </tr>`
+          );
+          
+          // Add the nested object as indented rows
+          rows.push(renderJsonAsTable(value, depth + 1));
+          
+          // Close the object
+          rows.push(
+            `<tr>
+              <td class="json-key-cell">${indent}</td>
+              <td class="json-value-cell">${isArray ? ']' : '}'}</td>
+            </tr>`
+          );
+        } else {
+          // For primitive values, just add a row with the key and value
+          rows.push(
+            `<tr>
+              <td class="json-key-cell">${indent}${displayKey}:</td>
+              <td class="json-value-cell">${renderPrimitiveValue(value)}</td>
+            </tr>`
+          );
+        }
+      });
+      
+      return rows.join('');
+    };
+    
+    // Helper to format primitive values with truncation and highlighting
+    const renderPrimitiveValue = (value) => {
+      // Format and truncate based on type
+      if (typeof value === 'string') {
+        // Truncate long strings
+        const displayValue = value.length > 30 
+          ? `"${value.substring(0, 30)}..."` 
+          : `"${value}"`;
+        return `<span class="json-string">${displayValue}</span>`;
+      } else if (typeof value === 'number') {
+        return `<span class="json-number">${value}</span>`;
+      } else if (typeof value === 'boolean') {
+        return `<span class="json-boolean">${value}</span>`;
+      } else if (value === null) {
+        return `<span class="json-null">null</span>`;
+      } else {
+        return `<span>${String(value)}</span>`;
+      }
+    };
+    
+    // Create the table HTML
+    const tableHtml = `
+      <table class="json-table">
+        <tbody>
+          ${renderJsonAsTable(jsonObj)}
+        </tbody>
+      </table>
+    `;
+    
+    // Return the HTML table with inline styles for containment
+    return (
+      <div 
+        className="content-json-container" 
+        dangerouslySetInnerHTML={{ __html: tableHtml }}
+      />
+    );
+  };
+
   // Panel header with search and controls
   const renderHeader = () => (
     <>
       <div className="panel-header">
         <h2>Card Catalog</h2>
         <div className="panel-controls">
+          <button 
+            className="btn-refresh" 
+            onClick={handleRefresh}
+            title="Refresh catalog"
+          >
+            ↻
+          </button>
           <div className="view-toggles">
             <button
               className={`btn-toggle ${viewMode === 'list' ? 'active' : ''}`}
@@ -1176,13 +1359,44 @@ const CatalogPanel = () => {
           />
         </div>
         
-        <div className="form-group">
-          <label htmlFor="file">Upload File (optional)</label>
+        <div 
+          className={`form-group drop-zone ${isDragging ? 'dropping' : ''}`}
+          ref={dropZoneRef}
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <label htmlFor="file">
+            {isDragging 
+              ? "Drop file here" 
+              : (newItem.file 
+                ? `Selected: ${newItem.file.name}` 
+                : "Drag & drop a file here, or click to browse")}
+          </label>
           <input
             type="file"
             id="file"
             onChange={handleFileChange}
+            style={{ opacity: newItem.file ? 0 : 0.01 }}
           />
+          {!newItem.file && <div className="drop-icon">📁</div>}
+          {newItem.file && (
+            <div className="file-info">
+              <span className="file-name">{newItem.file.name}</span>
+              <span className="file-size">({Math.round(newItem.file.size / 1024)} KB)</span>
+              <button 
+                type="button" 
+                className="btn-clear-file"
+                onClick={() => {
+                  setFileInput(null);
+                  setNewItem({...newItem, file: null});
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </div>
         
         <div className="form-group">
@@ -1200,12 +1414,22 @@ const CatalogPanel = () => {
         
         <div className="form-actions">
           <button type="submit" className="btn btn-primary">
-            Add Item
+            {newItem.file ? 'Upload File' : 'Add Content'}
           </button>
           <button 
             type="button" 
             className="btn btn-secondary" 
-            onClick={() => setViewMode('list')}
+            onClick={() => {
+              // Reset form
+              setNewItem({
+                name: '',
+                description: '',
+                contentType: 'text/plain',
+                file: null
+              });
+              setFileInput(null);
+              setViewMode('list');
+            }}
           >
             Cancel
           </button>

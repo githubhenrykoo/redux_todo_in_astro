@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
 import { ContentService } from '../../../services/content-service';
 import { processContent, isImageType } from '../../../utils/content-utils';
+import VideoPlayer from '../../viewers/VideoPlayer';
+import '../../viewers/video-player.css';
 import './detail-view.css';
 
 /**
@@ -290,16 +292,15 @@ const DetailView = ({
           </audio>
         </ContentWrapper>
       );
-    } else if (contentType.mimeType?.startsWith('video/')) {
+    } else if (contentType.mimeType.startsWith('video/') || contentType.mimeType === 'video/quicktime') {
+      // Use our new VideoPlayer component for video content
       return (
         <ContentWrapper className="video-wrapper">
-          <video controls className="content-video">
-            <source 
-              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
-              type={contentType.mimeType} 
-            />
-            Your browser does not support the video element.
-          </video>
+          <VideoPlayer 
+            hash={selectedItem.hash} 
+            contentType={contentType.mimeType} 
+            content={selectedItem.content}
+          />
         </ContentWrapper>
       );
     } else if (contentType.mimeType === 'text/html') {

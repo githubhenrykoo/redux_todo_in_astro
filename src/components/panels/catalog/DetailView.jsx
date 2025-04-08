@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import './detail-view.css';
 
 /**
  * Detail view component for a catalog item
@@ -14,9 +15,22 @@ const DetailView = ({
   const [wordWrap, setWordWrap] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [imageData, setImageData] = useState(null);
+  const imageRef = useRef(null);
   
   // Get content type display mapping
   const contentTypeMap = getContentTypeDisplay();
+
+  // Reset state when item changes
+  useEffect(() => {
+    if (selectedItem) {
+      setImageLoaded(false);
+      setImageError(false);
+      setRetryCount(0);
+      setImageData(null);
+    }
+  }, [selectedItem?.hash]);
 
   // Pre-load image content when an image is selected
   useEffect(() => {
@@ -24,16 +38,28 @@ const DetailView = ({
     
     const contentType = selectedItem.contentType;
     if (contentType?.mimeType?.startsWith('image/')) {
+      console.log(`Attempting to load image for item: ${selectedItem.hash}`);
       setImageLoaded(false);
       setImageError(false);
+      setImageData(null);
       
-      // Create a direct URL to the image
-      const imageUrl = `/api/card-collection?action=get&hash=${selectedItem.hash}`;
-      
-      const img = new Image();
-      img.onload = () => setImageLoaded(true);
-      img.onerror = () => setImageError(true);
-      img.src = imageUrl;
+      // Fetch the image data from the API
+      fetch(`/api/card-collection?action=get&hash=${selectedItem.hash}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log("Image data received:", data.success);
+          if (data.success && data.card && data.card.content) {
+            setImageLoaded(true);
+            setImageData(data.card.content);
+          } else {
+            console.error("API returned success: false or no card data");
+            setImageError(true);
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching image data:", error);
+          setImageError(true);
+        });
     }
   }, [selectedItem]);
 
@@ -169,26 +195,49 @@ const DetailView = ({
     
     // Handle different content types
     if (contentType.mimeType?.startsWith('image/')) {
-      if (imageError) {
-        return (
-          <ContentWrapper className="error-wrapper">
-            <div className="content-error">
-              <p>Unable to load image preview</p>
-            </div>
-          </ContentWrapper>
-        );
-      }
+      // For images, we need to create a data URL from the API response
+      const isGif = contentType.mimeType === 'image/gif';
       
       return (
         <ContentWrapper className="image-wrapper">
-          {imageLoaded ? (
-            <img 
-              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
-              alt={selectedItem.name || 'Content Preview'} 
-              className="content-image" 
-            />
+          {imageError ? (
+            <div className="content-error">
+              <p>Unable to load image preview</p>
+              <button 
+                className="btn btn-small" 
+                onClick={() => {
+                  setImageError(false);
+                  setRetryCount(prev => prev + 1);
+                  
+                  // Retry loading the image
+                  fetch(`/api/card-collection?action=get&hash=${selectedItem.hash}`)
+                    .then(response => response.json())
+                    .then(data => {
+                      if (data.success && data.card && data.card.content) {
+                        setImageLoaded(true);
+                        setImageData(data.card.content);
+                      } else {
+                        setImageError(true);
+                      }
+                    })
+                    .catch(() => setImageError(true));
+                }}
+              >
+                Retry
+              </button>
+            </div>
           ) : (
-            <div className="content-loading">Loading image...</div>
+            <div className={`image-container ${isGif ? 'gif-container' : ''}`}>
+              {!imageLoaded && <div className="content-loading">Loading image...</div>}
+              {imageLoaded && imageData && (
+                <img 
+                  ref={imageRef}
+                  src={`data:${contentType.mimeType};base64,${imageData}`}
+                  alt={selectedItem.name || 'Content Preview'} 
+                  className={`content-image loaded ${isGif ? 'gif-image' : ''}`}
+                />
+              )}
+            </div>
           )}
         </ContentWrapper>
       );

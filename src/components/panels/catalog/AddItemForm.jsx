@@ -1,55 +1,48 @@
 import React, { useRef, useState } from 'react';
-import { DEFAULT_CONTENT_TYPES } from '../utils/contentTypeUtils';
 
 /**
- * AddItemForm component for adding new items to the catalog
+ * Form component for adding new items to the catalog
  */
-const AddItemForm = ({ onSubmit, onCancel, isLoading, error }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const dropZoneRef = useRef(null);
-
+const AddItemForm = ({ 
+  loading, 
+  error, 
+  onSubmit, 
+  onCancel 
+}) => {
   // Form state
-  const [formData, setFormData] = useState({
+  const [newItem, setNewItem] = useState({
     name: '',
     description: '',
-    contentType: DEFAULT_CONTENT_TYPES.TEXT,
+    contentType: 'text/plain',
     file: null
   });
-
-  // Handle form input changes
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
+  
+  // Drag and drop states
+  const [isDragging, setIsDragging] = useState(false);
+  const dropZoneRef = useRef(null);
+  
   // Handle file input change
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData({
-        ...formData,
+      setNewItem({
+        ...newItem,
         name: file.name,
-        contentType: file.type || DEFAULT_CONTENT_TYPES.BINARY,
+        contentType: file.type || 'application/octet-stream',
         file: file
       });
     }
   };
-
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (!formData.name) {
-      alert('Please provide a name for the new item');
-      return;
-    }
-    
-    onSubmit(formData);
+  
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewItem({
+      ...newItem,
+      [name]: value
+    });
   };
-
+  
   // Drag and drop handlers
   const handleDragEnter = (e) => {
     e.preventDefault();
@@ -83,34 +76,41 @@ const AddItemForm = ({ onSubmit, onCancel, isLoading, error }) => {
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0]; // Take only the first file if multiple are dropped
-      setFormData({
-        ...formData,
+      setNewItem({
+        ...newItem,
         name: file.name,
-        contentType: file.type || DEFAULT_CONTENT_TYPES.BINARY,
+        contentType: file.type || 'application/octet-stream',
         file: file
       });
     }
   };
-
-  // Clear file selection
-  const handleClearFile = () => {
-    setFormData({
-      ...formData,
-      file: null
-    });
+  
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!newItem.name) {
+      alert('Please provide a name for the new item');
+      return;
+    }
+    
+    if (!newItem.file && !newItem.description) {
+      alert('Please provide content to add');
+      return;
+    }
+    
+    onSubmit(newItem);
   };
-
+  
   return (
     <form onSubmit={handleSubmit} className="catalog-form">
-      {error && <div className="form-error">{error}</div>}
-      
       <div className="form-group">
         <label htmlFor="name">Name</label>
         <input
           type="text"
           id="name"
           name="name"
-          value={formData.name}
+          value={newItem.name}
           onChange={handleInputChange}
           placeholder="Item name (optional for text content)"
         />
@@ -127,25 +127,27 @@ const AddItemForm = ({ onSubmit, onCancel, isLoading, error }) => {
         <label htmlFor="file">
           {isDragging 
             ? "Drop file here" 
-            : (formData.file 
-              ? `Selected: ${formData.file.name}` 
+            : (newItem.file 
+              ? `Selected: ${newItem.file.name}` 
               : "Drag & drop a file here, or click to browse")}
         </label>
         <input
           type="file"
           id="file"
           onChange={handleFileChange}
-          style={{ opacity: formData.file ? 0 : 0.01 }}
+          style={{ opacity: newItem.file ? 0 : 0.01 }}
         />
-        {!formData.file && <div className="drop-icon">📁</div>}
-        {formData.file && (
+        {!newItem.file && <div className="drop-icon">📁</div>}
+        {newItem.file && (
           <div className="file-info">
-            <span className="file-name">{formData.file.name}</span>
-            <span className="file-size">({Math.round(formData.file.size / 1024)} KB)</span>
+            <span className="file-name">{newItem.file.name}</span>
+            <span className="file-size">({Math.round(newItem.file.size / 1024)} KB)</span>
             <button 
               type="button" 
               className="btn-clear-file"
-              onClick={handleClearFile}
+              onClick={() => {
+                setNewItem({...newItem, file: null});
+              }}
             >
               ✕
             </button>
@@ -158,27 +160,25 @@ const AddItemForm = ({ onSubmit, onCancel, isLoading, error }) => {
         <textarea
           id="description"
           name="description"
-          value={formData.description}
+          value={newItem.description}
           onChange={handleInputChange}
           rows="6"
           placeholder="Enter text content here"
-          disabled={!!formData.file}
+          disabled={!!newItem.file}
         />
       </div>
       
+      {error && <div className="error-message">{error}</div>}
+      
       <div className="form-actions">
-        <button 
-          type="submit" 
-          className="btn btn-primary"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Uploading...' : (formData.file ? 'Upload File' : 'Add Content')}
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? 'Uploading...' : (newItem.file ? 'Upload File' : 'Add Content')}
         </button>
         <button 
           type="button" 
           className="btn btn-secondary" 
           onClick={onCancel}
-          disabled={isLoading}
+          disabled={loading}
         >
           Cancel
         </button>

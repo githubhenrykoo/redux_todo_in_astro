@@ -1,34 +1,22 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 /**
- * PanelHeader component for the CatalogPanel
- * Provides search, view mode toggles, and refresh functionality
+ * Header component for the catalog panel
  */
-const PanelHeader = ({ 
+const CatalogHeader = ({ 
   viewMode, 
-  onViewModeChange, 
-  onRefresh,
-  onSearch,
-  onClearSearch,
-  isSearchMode,
+  setViewMode, 
+  searchTerm, 
+  setSearchTerm, 
+  isSearchMode, 
   categories,
   filter,
-  onFilterChange
+  setFilter,
+  handleSearchSubmit,
+  handleClearSearch,
+  handleRefresh,
+  searchResults
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    
-    if (!searchTerm.trim()) {
-      // Clear search if empty
-      onClearSearch();
-      return;
-    }
-    
-    onSearch(searchTerm);
-  };
-
   return (
     <>
       <div className="panel-header">
@@ -36,7 +24,7 @@ const PanelHeader = ({
         <div className="panel-controls">
           <button 
             className="btn-refresh" 
-            onClick={onRefresh}
+            onClick={handleRefresh}
             title="Refresh catalog"
           >
             ↻
@@ -44,13 +32,13 @@ const PanelHeader = ({
           <div className="view-toggles">
             <button
               className={`btn-toggle ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => onViewModeChange('list')}
+              onClick={() => setViewMode('list')}
             >
               List
             </button>
             <button
               className={`btn-toggle ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => onViewModeChange('grid')}
+              onClick={() => setViewMode('grid')}
             >
               Grid
             </button>
@@ -58,7 +46,7 @@ const PanelHeader = ({
           {['list', 'grid'].includes(viewMode) && (
             <button
               className="btn btn-primary"
-              onClick={() => onViewModeChange('add')}
+              onClick={() => setViewMode('add')}
             >
               Add New Item
             </button>
@@ -83,10 +71,7 @@ const PanelHeader = ({
               <button
                 type="button"
                 className="btn btn-secondary search-button"
-                onClick={() => {
-                  setSearchTerm('');
-                  onClearSearch();
-                }}
+                onClick={handleClearSearch}
               >
                 Clear
               </button>
@@ -97,7 +82,7 @@ const PanelHeader = ({
             <select 
               className="filter-select"
               value={filter}
-              onChange={(e) => onFilterChange(e.target.value)}
+              onChange={(e) => setFilter(e.target.value)}
             >
               {categories.map(category => (
                 <option key={category} value={category}>
@@ -108,8 +93,14 @@ const PanelHeader = ({
           )}
         </div>
       )}
+      
+      {isSearchMode && searchResults.searchTerm && (
+        <div className="search-status">
+          Showing results for "{searchResults.searchTerm}" ({searchResults.totalItems || 0} items found)
+        </div>
+      )}
     </>
   );
 };
 
-export default PanelHeader;
+export default CatalogHeader;

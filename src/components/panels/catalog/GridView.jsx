@@ -207,16 +207,25 @@ const GridView = ({
                   <GridItemPreview item={displayItem} />
                 </div>
                 <div className="grid-item-info">
-                  <h3 className="grid-item-title">{item.name}</h3>
+                  <h3 className="grid-item-title" style={{ color: '#000000', fontWeight: 'bold' }}>
+                    {item.id.substring(0, 8)}
+                  </h3>
                   <div className="grid-item-meta">
-                    <span className="grid-item-type">
+                    <span className="grid-item-type" style={{ 
+                      color: '#000000', 
+                      fontWeight: 'bold',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #000000'
+                    }}>
                       {getFormattedContentType(displayItem)}
                     </span>
-                    <span className="grid-item-date">
+                    <span className="grid-item-date" style={{ color: '#000000', fontWeight: 'bold' }}>
                       {new Date(item.timestamp).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="grid-item-description">{item.description}</p>
+                  <p className="grid-item-description" style={{ color: '#000000', fontWeight: 'medium' }}>
+                    {item.description || "No description available"}
+                  </p>
                 </div>
                 <div className={`grid-item-actions ${hoveredItem === item.id ? 'visible' : ''}`}>
                   <button 

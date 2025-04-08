@@ -132,7 +132,7 @@ export const TopBar: React.FC<TopBarProps> = ({ initialTheme: initialPropTheme }
         },
         body: JSON.stringify({
           action: 'add',
-          card: JSON.parse(stateJson)
+          card: filteredState
         }),
       });
       

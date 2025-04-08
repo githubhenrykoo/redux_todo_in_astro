@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
 
 /**
@@ -12,9 +12,30 @@ const DetailView = ({
   onDeleteItem 
 }) => {
   const [wordWrap, setWordWrap] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   // Get content type display mapping
   const contentTypeMap = getContentTypeDisplay();
+
+  // Pre-load image content when an image is selected
+  useEffect(() => {
+    if (!selectedItem) return;
+    
+    const contentType = selectedItem.contentType;
+    if (contentType?.mimeType?.startsWith('image/')) {
+      setImageLoaded(false);
+      setImageError(false);
+      
+      // Create a direct URL to the image
+      const imageUrl = `/api/card-collection?action=get&hash=${selectedItem.hash}`;
+      
+      const img = new Image();
+      img.onload = () => setImageLoaded(true);
+      img.onerror = () => setImageError(true);
+      img.src = imageUrl;
+    }
+  }, [selectedItem]);
 
   // Helper function to get proper content type display
   const getFormattedContentType = (mimeType) => {
@@ -23,7 +44,7 @@ const DetailView = ({
     const simpleType = getSimpleContentType(mimeType);
     if (!simpleType) return mimeType;
     
-    return contentTypeMap[simpleType] || simpleType.toUpperCase();
+    return `${contentTypeMap[simpleType] || simpleType.toUpperCase()} (${mimeType})`;
   };
   
   if (itemLoading) {
@@ -140,7 +161,7 @@ const DetailView = ({
   
   // Process and display content based on type
   const renderContent = () => {
-    if (!selectedItem?.content) {
+    if (!selectedItem) {
       return <div className="empty-content">No content available</div>;
     }
     
@@ -148,16 +169,38 @@ const DetailView = ({
     
     // Handle different content types
     if (contentType.mimeType?.startsWith('image/')) {
+      if (imageError) {
+        return (
+          <ContentWrapper className="error-wrapper">
+            <div className="content-error">
+              <p>Unable to load image preview</p>
+            </div>
+          </ContentWrapper>
+        );
+      }
+      
       return (
         <ContentWrapper className="image-wrapper">
-          <img src={`data:${contentType.mimeType};base64,${selectedItem.content}`} alt="Content Preview" className="content-image" />
+          {imageLoaded ? (
+            <img 
+              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
+              alt={selectedItem.name || 'Content Preview'} 
+              className="content-image" 
+            />
+          ) : (
+            <div className="content-loading">Loading image...</div>
+          )}
         </ContentWrapper>
       );
     } else if (contentType.mimeType === 'application/pdf') {
       return (
         <ContentWrapper className="pdf-wrapper">
           <div className="pdf-container">
-            <iframe src={`data:${contentType.mimeType};base64,${selectedItem.content}`} className="pdf-frame" title="PDF Viewer"></iframe>
+            <iframe 
+              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
+              className="pdf-frame" 
+              title="PDF Viewer"
+            ></iframe>
           </div>
         </ContentWrapper>
       );
@@ -165,7 +208,10 @@ const DetailView = ({
       return (
         <ContentWrapper className="audio-wrapper">
           <audio controls className="content-audio">
-            <source src={`data:${contentType.mimeType};base64,${selectedItem.content}`} type={contentType.mimeType} />
+            <source 
+              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
+              type={contentType.mimeType} 
+            />
             Your browser does not support the audio element.
           </audio>
         </ContentWrapper>
@@ -174,15 +220,28 @@ const DetailView = ({
       return (
         <ContentWrapper className="video-wrapper">
           <video controls className="content-video">
-            <source src={`data:${contentType.mimeType};base64,${selectedItem.content}`} type={contentType.mimeType} />
+            <source 
+              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
+              type={contentType.mimeType} 
+            />
             Your browser does not support the video element.
           </video>
         </ContentWrapper>
       );
     } else if (contentType.mimeType === 'text/html') {
+      // For HTML content, we'll fetch it and then render it
       return (
         <ContentWrapper className="html-wrapper">
-          <div className="html-content" dangerouslySetInnerHTML={{ __html: selectedItem.content }}></div>
+          {selectedItem.content ? (
+            <div className="html-content" dangerouslySetInnerHTML={{ __html: selectedItem.content }}></div>
+          ) : (
+            <iframe 
+              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
+              className="html-frame" 
+              title="HTML Viewer"
+              sandbox="allow-same-origin"
+            ></iframe>
+          )}
         </ContentWrapper>
       );
     } else if (contentType.mimeType === 'application/json' || 
@@ -276,10 +335,10 @@ const DetailView = ({
             <p><strong>Hash:</strong> {selectedItem.hash}</p>
             <p><strong>Type:</strong> {
               selectedItem.contentType?.mimeType 
-                ? `${getFormattedContentType(selectedItem.contentType.mimeType)} (${selectedItem.contentType.mimeType})` 
+                ? getFormattedContentType(selectedItem.contentType.mimeType)
                 : 'Unknown'
             }</p>
-            <p><strong>gtime:</strong> {new Date(selectedItem.timestamp).toLocaleString()}</p>
+            <p><strong>Date:</strong> {selectedItem.timestamp || 'Unknown'}</p>
           </div>
           
           <div className="content-section">

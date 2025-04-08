@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import GridItemPreview from './GridItemPreview';
 import PaginationControls from './PaginationControls';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
@@ -26,24 +26,66 @@ const GridView = ({
   // Get content type display mapping
   const contentTypeMap = getContentTypeDisplay();
 
+  // Memoize the detectViaImageLoading function to avoid recreating it on every render
+  const detectViaImageLoading = useCallback((item) => {
+    const img = new Image();
+    
+    img.onload = () => {
+      // If it loads, it's an image - try to determine specific type
+      let imgType = 'image/png'; // Default
+      
+      // Try to infer specific type from URL or response
+      if (img.src.includes('.gif')) {
+        imgType = 'image/gif';
+      } else if (img.src.includes('.jpg') || img.src.includes('.jpeg')) {
+        imgType = 'image/jpeg';
+      }
+      
+      setVerifiedItems(prev => ({
+        ...prev,
+        [item.id]: {
+          contentType: { mimeType: imgType },
+          isVerified: true
+        }
+      }));
+    };
+    
+    img.onerror = () => {
+      // If it fails to load as an image, keep original content type
+      setVerifiedItems(prev => ({
+        ...prev,
+        [item.id]: {
+          contentType: item.contentType,
+          isVerified: true
+        }
+      }));
+    };
+    
+    // Try to load the item as an image
+    img.src = `/api/card-collection?action=get&hash=${item.id}`;
+  }, []);
+
   // Detect actual content types by fetching and examining item data
   useEffect(() => {
     if (!sortedItems || sortedItems.length === 0) return;
     
-    // Track which items are pending verification to avoid duplicates
-    const updatedPending = { ...pendingVerifications };
+    // Create a new map of items to verify
+    const itemsToVerify = sortedItems
+      .filter(item => !verifiedItems[item.id] && !pendingVerifications[item.id])
+      .slice(0, 5);
     
-    // Process a few items at a time to avoid overwhelming the network
-    const itemsToVerify = sortedItems.filter(item => 
-      !verifiedItems[item.id] && !pendingVerifications[item.id]
-    ).slice(0, 5);
+    if (itemsToVerify.length === 0) return;
     
-    // Mark these items as pending verification
+    // Create a copy of the pending verifications
+    const newPendingVerifications = { ...pendingVerifications };
+    
+    // Add each item to the pending list
     itemsToVerify.forEach(item => {
-      updatedPending[item.id] = true;
+      newPendingVerifications[item.id] = true;
     });
     
-    setPendingVerifications(updatedPending);
+    // Update the pending verifications state once
+    setPendingVerifications(newPendingVerifications);
     
     // Process each item
     itemsToVerify.forEach(item => {
@@ -85,46 +127,7 @@ const GridView = ({
           });
         });
     });
-  }, [sortedItems, verifiedItems, pendingVerifications]);
-  
-  // Helper function to detect content type via image loading
-  const detectViaImageLoading = (item) => {
-    const img = new Image();
-    
-    img.onload = () => {
-      // If it loads, it's an image - try to determine specific type
-      let imgType = 'image/png'; // Default
-      
-      // Try to infer specific type from URL or response
-      if (img.src.includes('.gif')) {
-        imgType = 'image/gif';
-      } else if (img.src.includes('.jpg') || img.src.includes('.jpeg')) {
-        imgType = 'image/jpeg';
-      }
-      
-      setVerifiedItems(prev => ({
-        ...prev,
-        [item.id]: {
-          contentType: { mimeType: imgType },
-          isVerified: true
-        }
-      }));
-    };
-    
-    img.onerror = () => {
-      // If it fails to load as an image, keep original content type
-      setVerifiedItems(prev => ({
-        ...prev,
-        [item.id]: {
-          contentType: item.contentType,
-          isVerified: true
-        }
-      }));
-    };
-    
-    // Try to load the item as an image
-    img.src = `/api/card-collection?action=get&hash=${item.id}`;
-  };
+  }, [sortedItems, detectViaImageLoading]);
 
   // Helper function to get proper content type display
   const getFormattedContentType = (item) => {

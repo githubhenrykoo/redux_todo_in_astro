@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import { ContentService } from '../../../services/content-service';
+import { isImageType } from '../../../utils/content-utils';
 
 /**
  * Enhanced preview component for grid items
@@ -8,55 +10,72 @@ import { getSimpleContentType, getContentTypeDisplay } from './utils';
 const GridItemPreview = ({ item }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [dataUrl, setDataUrl] = useState(null);
   const contentType = item.contentType?.mimeType || 'unknown';
   
   // Preload image for image content types
   useEffect(() => {
-    if (contentType.startsWith('image/')) {
-      const img = new Image();
+    if (isImageType(item.contentType)) {
+      setImageLoaded(false);
+      setImageError(false);
       
-      // Special case for GIFs - they may need a different approach
-      const isGif = contentType === 'image/gif';
-      
-      img.onload = () => {
-        setImageLoaded(true);
-        // For GIFs, we want to make sure they animate properly
-        if (isGif) {
-          console.log("GIF image loaded successfully:", item.id);
-        }
-      };
-      
-      img.onerror = (e) => {
-        console.error("Error loading image:", e);
-        setImageError(true);
-      };
-      
-      // Use a clean URL format to fetch the image
-      img.src = `/api/card-collection?action=get&hash=${item.id}`;
+      // Use ContentService to fetch and process content
+      ContentService.fetchContent(item.hash, { maxRetries: 1 })
+        .then(result => {
+          if (result.error) {
+            console.error(`Error loading preview for ${item.hash}:`, result.error);
+            setImageError(true);
+            return;
+          }
+          
+          // Check for processed content (already a data URL)
+          if (result.processed && result.processed.type === 'dataUrl') {
+            setDataUrl(result.processed.url);
+            setImageLoaded(true);
+          } else {
+            // Get a data URL from raw content
+            const url = ContentService.getDataUrl(result.raw);
+            if (url) {
+              setDataUrl(url);
+              setImageLoaded(true);
+            } else {
+              throw new Error('Unable to create data URL from content');
+            }
+          }
+        })
+        .catch(error => {
+          console.error("Error loading preview image:", error);
+          setImageError(true);
+        });
     }
-  }, [contentType, item.id]);
+  }, [item.hash, contentType, item.contentType]);
   
   // Image previews
   if (contentType.startsWith('image/')) {
     if (imageError) {
       return (
         <div className="grid-item-preview default-preview">
-          <div className="preview-icon">No Preview</div>
+          <div className="preview-icon">
+            <i className="fa fa-image" /> Error
+          </div>
         </div>
       );
     }
     
     return (
       <div className="grid-item-preview image-preview">
-        {imageLoaded ? (
+        {!imageLoaded && (
+          <div className="loading-indicator">
+            <i className="fa fa-spinner fa-spin" />
+          </div>
+        )}
+        {imageLoaded && dataUrl && (
           <img 
-            src={`/api/card-collection?action=get&hash=${item.id}`} 
-            alt={item.name}
-            className="preview-image" 
-            loading="lazy"
+            src={dataUrl} 
+            alt={item.name || 'Image preview'} 
+            className="preview-image"
+            onError={() => setImageError(true)}
           />
-        ) : (
-          <div className="preview-loading">Loading...</div>
         )}
       </div>
     );

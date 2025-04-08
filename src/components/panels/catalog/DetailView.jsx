@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import { ContentService } from '../../../services/content-service';
+import { processContent, isImageType } from '../../../utils/content-utils';
 import './detail-view.css';
 
 /**
@@ -17,6 +19,7 @@ const DetailView = ({
   const [imageError, setImageError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [imageData, setImageData] = useState(null);
+  const [contentData, setContentData] = useState(null);
   const imageRef = useRef(null);
   
   // Get content type display mapping
@@ -29,39 +32,70 @@ const DetailView = ({
       setImageError(false);
       setRetryCount(0);
       setImageData(null);
+      setContentData(null);
     }
   }, [selectedItem?.hash]);
 
-  // Pre-load image content when an image is selected
+  // Load content when an item is selected using ContentService
   useEffect(() => {
     if (!selectedItem) return;
     
     const contentType = selectedItem.contentType;
-    if (contentType?.mimeType?.startsWith('image/')) {
-      console.log(`Attempting to load image for item: ${selectedItem.hash}`);
+    const isImage = isImageType(contentType);
+    
+    if (isImage) {
+      console.log(`Loading image for item: ${selectedItem.hash}`);
       setImageLoaded(false);
       setImageError(false);
-      setImageData(null);
       
-      // Fetch the image data from the API
-      fetch(`/api/card-collection?action=get&hash=${selectedItem.hash}`)
-        .then(response => response.json())
-        .then(data => {
-          console.log("Image data received:", data.success);
-          if (data.success && data.card && data.card.content) {
+      // Use ContentService to fetch and process the image
+      ContentService.fetchContent(selectedItem.hash)
+        .then(result => {
+          console.log("Content loaded:", result.hash);
+          
+          if (result.error) {
+            console.error("Error loading content:", result.error);
+            throw new Error(result.error);
+          }
+          
+          if (result.processed && result.processed.type === 'dataUrl') {
+            // Already processed to data URL
+            setImageData(result.processed.url);
             setImageLoaded(true);
-            setImageData(data.card.content);
+          } else if (result.raw?.content) {
+            // Process the content
+            const processed = processContent(result.raw.content, contentType);
+            
+            if (processed.type === 'dataUrl') {
+              setImageData(processed.url);
+              setImageLoaded(true);
+            } else {
+              console.error("Unexpected content format:", processed.type);
+              throw new Error(`Unexpected content format: ${processed.type}`);
+            }
           } else {
-            console.error("API returned success: false or no card data");
-            setImageError(true);
+            throw new Error("No valid content found in API response");
           }
         })
         .catch(error => {
-          console.error("Error fetching image data:", error);
+          console.error("Error processing image:", error);
           setImageError(true);
         });
+    } else {
+      // For non-image content types, just fetch the data
+      ContentService.fetchContent(selectedItem.hash)
+        .then(result => {
+          if (result.error) {
+            console.error("Error loading content:", result.error);
+            return;
+          }
+          setContentData(result);
+        })
+        .catch(error => {
+          console.error("Error loading content:", error);
+        });
     }
-  }, [selectedItem]);
+  }, [selectedItem, retryCount]);
 
   // Helper function to get proper content type display
   const getFormattedContentType = (mimeType) => {
@@ -208,19 +242,6 @@ const DetailView = ({
                 onClick={() => {
                   setImageError(false);
                   setRetryCount(prev => prev + 1);
-                  
-                  // Retry loading the image
-                  fetch(`/api/card-collection?action=get&hash=${selectedItem.hash}`)
-                    .then(response => response.json())
-                    .then(data => {
-                      if (data.success && data.card && data.card.content) {
-                        setImageLoaded(true);
-                        setImageData(data.card.content);
-                      } else {
-                        setImageError(true);
-                      }
-                    })
-                    .catch(() => setImageError(true));
                 }}
               >
                 Retry
@@ -232,9 +253,13 @@ const DetailView = ({
               {imageLoaded && imageData && (
                 <img 
                   ref={imageRef}
-                  src={`data:${contentType.mimeType};base64,${imageData}`}
+                  src={imageData}
                   alt={selectedItem.name || 'Content Preview'} 
                   className={`content-image loaded ${isGif ? 'gif-image' : ''}`}
+                  onError={(e) => {
+                    console.error("Image load error:", e);
+                    setImageError(true);
+                  }}
                 />
               )}
             </div>

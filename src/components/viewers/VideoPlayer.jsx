@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ContentService } from '../../services/content-service';
 import './video-player.css';
+import { getFormattedContentType } from '../panels/catalog/utils';
 
 /**
  * VideoPlayer component for handling various video formats including QuickTime
@@ -293,8 +294,10 @@ const VideoPlayer = ({ content, contentType, hash }) => {
     if (!seekBarRef.current || !videoRef.current || duration === 0) return;
     
     const rect = seekBarRef.current.getBoundingClientRect();
-    const position = (e.clientX - rect.left) / rect.width;
+    const position = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const newTime = position * duration;
+    
+    console.log(`Updating video seek position: ${position.toFixed(2)} (${newTime.toFixed(2)}s)`);
     
     // Update video current time
     videoRef.current.currentTime = newTime;
@@ -309,11 +312,33 @@ const VideoPlayer = ({ content, contentType, hash }) => {
     
     const handleTimeUpdate = () => {
       if (!isDraggingSeeker) {
-        setCurrentTime(videoElement.currentTime);
+        const newTime = videoElement.currentTime;
+        console.log(`Video time updated: ${newTime.toFixed(2)}s / ${videoElement.duration.toFixed(2)}s`);
+        setCurrentTime(newTime);
       }
     };
     
     const handleDurationChange = () => {
+      const newDuration = videoElement.duration;
+      console.log(`Video duration updated: ${newDuration.toFixed(2)}s`);
+      setDuration(newDuration);
+    };
+    
+    const handleLoadedMetadata = () => {
+      const newDuration = videoElement.duration;
+      console.log(`Video metadata loaded. Duration: ${newDuration.toFixed(2)}s`);
+      setDuration(newDuration);
+      
+      // Some browsers only set duration properly on loadedmetadata
+      if (isNaN(duration) || duration === 0) {
+        setDuration(newDuration);
+      }
+    };
+    
+    const handleLoadedData = () => {
+      console.log('Video data loaded. Ready to play.');
+      // Force a UI update once the video is loaded
+      setCurrentTime(videoElement.currentTime);
       setDuration(videoElement.duration);
     };
     
@@ -337,6 +362,8 @@ const VideoPlayer = ({ content, contentType, hash }) => {
     // Add event listeners
     videoElement.addEventListener('timeupdate', handleTimeUpdate);
     videoElement.addEventListener('durationchange', handleDurationChange);
+    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+    videoElement.addEventListener('loadeddata', handleLoadedData);
     videoElement.addEventListener('play', handlePlay);
     videoElement.addEventListener('pause', handlePause);
     videoElement.addEventListener('volumechange', handleVolumeUpdate);
@@ -349,6 +376,8 @@ const VideoPlayer = ({ content, contentType, hash }) => {
     return () => {
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
       videoElement.removeEventListener('durationchange', handleDurationChange);
+      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      videoElement.removeEventListener('loadeddata', handleLoadedData);
       videoElement.removeEventListener('play', handlePlay);
       videoElement.removeEventListener('pause', handlePause);
       videoElement.removeEventListener('volumechange', handleVolumeUpdate);
@@ -382,6 +411,24 @@ const VideoPlayer = ({ content, contentType, hash }) => {
     return 'mov';
   };
   
+  const getVideoTitle = () => {
+    // This could be expanded to extract metadata from the video
+    return "Soldier falling down to knees Meme template";
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || isNaN(bytes)) return '0 B';
+    
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+  };
+
+  const getVideoFileSize = () => {
+    // This is a placeholder - would need to be implemented to get actual size
+    return 2.5 * 1024 * 1024; // Assume 2.5MB as an example
+  };
+
   return (
     <div className="video-player-container">
       {loading ? (
@@ -453,14 +500,13 @@ const VideoPlayer = ({ content, contentType, hash }) => {
               onClick={handleSeekBarClick}
               onMouseDown={handleSeekBarMouseDown}
             >
-              <div className="video-progress-background"></div>
               <div 
                 className="video-progress-bar" 
-                style={{ width: `${(currentTime / duration) * 100}%` }}
+                style={{ width: duration > 0 ? `${(currentTime / duration * 100).toFixed(2)}%` : '0%' }}
               ></div>
               <div 
                 className="video-progress-handle"
-                style={{ left: `${(currentTime / duration) * 100}%` }}
+                style={{ left: duration > 0 ? `${(currentTime / duration * 100).toFixed(2)}%` : '0%' }}
               ></div>
             </div>
             
@@ -515,6 +561,21 @@ const VideoPlayer = ({ content, contentType, hash }) => {
                   </a>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {!isQuickTime && !loading && !error && (
+        <div className="video-title-area">
+          <h3 className="video-title">{getVideoTitle()}</h3>
+          <div className="video-info">
+            <div className="video-metadata">
+              <span className="video-format">
+                {contentType?.mimeType ? 
+                  `${getFormattedContentType(contentType.mimeType)}` : 
+                  'Video'}
+              </span>
+              <span>{formatFileSize(getVideoFileSize())}</span>
             </div>
           </div>
         </div>

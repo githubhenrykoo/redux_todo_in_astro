@@ -45,9 +45,9 @@ export async function POST({ request, response }) {
             await sendMessage('log', { message: 'Clicked Enter Page button' });
             await page.waitForTimeout(1000);
 
-            // 3. Click MQTT Dashboard button
-            await page.click('#mqttDashboardLayoutBtn');
-            await sendMessage('log', { message: 'Opened MQTT Dashboard' });
+            // 3. Click Testing Dashboard button
+            await page.click('#testingLayoutBtn');
+            await sendMessage('log', { message: 'Opened Testing Dashboard' });
             await page.waitForTimeout(2000);
 
             // 4. Turn on LED

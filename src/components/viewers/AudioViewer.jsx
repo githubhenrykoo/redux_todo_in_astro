@@ -3,16 +3,88 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './VideoViewer.css'; // Reuse the same styling as VideoViewer
 
+// Helper function to determine appropriate MIME type
+const getAudioMimeType = (contentType) => {
+  if (!contentType) return 'audio/mpeg'; // Default to MP3 as fallback
+  
+  // Handle direct MIME type
+  if (typeof contentType === 'string') {
+    if (contentType.includes('audio/')) return contentType;
+    
+    // Handle extension-based detection
+    const extensionMap = {
+      'mp3': 'audio/mpeg',
+      'wav': 'audio/wav',
+      'ogg': 'audio/ogg',
+      'flac': 'audio/flac',
+      'm4a': 'audio/m4a',
+      'aac': 'audio/aac'
+    };
+    
+    for (const [ext, mime] of Object.entries(extensionMap)) {
+      if (contentType.toLowerCase().includes(ext)) {
+        return mime;
+      }
+    }
+  }
+  
+  // Handle object-based contentType with mimeType property
+  if (contentType.mimeType && contentType.mimeType.includes('audio/')) {
+    return contentType.mimeType;
+  }
+  
+  // Handle object-based contentType with extension property
+  if (contentType.extension) {
+    const ext = contentType.extension.toLowerCase();
+    switch (ext) {
+      case 'mp3': return 'audio/mpeg';
+      case 'wav': return 'audio/wav';
+      case 'ogg': return 'audio/ogg';
+      case 'flac': return 'audio/flac';
+      case 'm4a': return 'audio/m4a';
+      case 'aac': return 'audio/aac';
+      default: return 'audio/mpeg';
+    }
+  }
+  
+  return 'audio/mpeg'; // Default fallback
+};
+
 const AudioViewer = ({ content, contentType }) => {
   const [src, setSrc] = useState('');
   const [error, setError] = useState(null);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [failedToLoad, setFailedToLoad] = useState(false);
+  const [audioType, setAudioType] = useState('');
+  const [extension, setExtension] = useState('mp3');
 
   // Function to create download link
-  const createDownloadLink = (blobData, extension = 'wav') => {
+  const createDownloadLink = (blobData) => {
     try {
-      const mimeType = contentType?.mimeType || 'audio/wav';
+      // Detect MIME type for audio content
+      const mimeType = getAudioMimeType(contentType);
+      setAudioType(mimeType);
+      
+      // Set file extension based on MIME type
+      const extMap = {
+        'audio/mpeg': 'mp3',
+        'audio/wav': 'wav',
+        'audio/wave': 'wav',
+        'audio/x-wav': 'wav',
+        'audio/flac': 'flac',
+        'audio/ogg': 'ogg',
+        'audio/m4a': 'm4a',
+        'audio/x-m4a': 'm4a',
+        'audio/mp4': 'm4a',
+        'audio/aac': 'aac',
+        'audio/x-aac': 'aac'
+      };
+      
+      const fileExt = extMap[mimeType] || 
+                     (contentType?.extension ? contentType.extension.toLowerCase() : 'mp3');
+      setExtension(fileExt);
+      
+      // Create the Blob and URL
       const blob = new Blob([blobData], { type: mimeType });
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
@@ -30,6 +102,10 @@ const AudioViewer = ({ content, contentType }) => {
       if (content) {
         console.log("AudioViewer: Processing audio content", typeof content);
         
+        // Set audio type from contentType
+        const detectedType = getAudioMimeType(contentType);
+        setAudioType(detectedType);
+        
         // Handle Buffer JSON format
         if (typeof content === 'object' && content !== null && 
             content.type === 'Buffer' && Array.isArray(content.data)) {
@@ -42,8 +118,7 @@ const AudioViewer = ({ content, contentType }) => {
           blobUrl = createDownloadLink(array);
           
           // Use explicit audio MIME type for the player
-          const mimeType = contentType?.mimeType || 'audio/wav';
-          const blob = new Blob([array], { type: mimeType });
+          const blob = new Blob([array], { type: detectedType });
           const url = URL.createObjectURL(blob);
           setSrc(url);
         }
@@ -80,7 +155,10 @@ const AudioViewer = ({ content, contentType }) => {
   const handleError = (e) => {
     console.error("Audio failed to load:", e);
     setFailedToLoad(true);
-    setError("This audio file could not be played in the browser. It may be blocked by your browser settings or extensions, or the format may not be supported.");
+    
+    // Provide more specific error messages based on audio type
+    const format = extension.toUpperCase();
+    setError(`This ${format} audio file could not be played in the browser. It may be blocked by your browser settings or extensions, or the format may not be supported.`);
   };
 
   if (error || failedToLoad) {
@@ -92,7 +170,7 @@ const AudioViewer = ({ content, contentType }) => {
           <div className="mt-4">
             <a 
               href={downloadUrl} 
-              download={`audio-${Date.now()}.${contentType?.extension || 'wav'}`}
+              download={`audio-${Date.now()}.${extension}`}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 inline-block"
             >
               Download Audio File
@@ -123,7 +201,7 @@ const AudioViewer = ({ content, contentType }) => {
             <div className="download-button-container">
               <a 
                 href={downloadUrl} 
-                download={`audio-${Date.now()}.${contentType?.extension || 'wav'}`}
+                download={`audio-${Date.now()}.${extension}`}
                 className="download-button"
                 title="Download audio file"
               >

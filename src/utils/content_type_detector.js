@@ -21,15 +21,33 @@ const SIGNATURES = new Map([
     [new Uint8Array([0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C]), 'application/x-7z-compressed'],
     [new Uint8Array([0x53, 0x51, 0x4C, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6F, 0x72, 0x6D, 0x61, 0x74, 0x20, 0x33, 0x00]), 'application/x-sqlite3'],
     [new Uint8Array([0x41, 0x54, 0x26, 0x54, 0x46, 0x4F, 0x52, 0x4D]), 'image/djvu'],
-    [new Uint8Array([0x50, 0x41, 0x52, 0x31]), 'application/x-parquet']
+    [new Uint8Array([0x50, 0x41, 0x52, 0x31]), 'application/x-parquet'],
+    // Audio file signatures
+    [new Uint8Array([0x49, 0x44, 0x33]), 'audio/mpeg'], // MP3 (ID3 tags)
+    [new Uint8Array([0xFF, 0xFB]), 'audio/mpeg'], // MP3 (without ID3)
+    [new Uint8Array([0xFF, 0xF3]), 'audio/mpeg'], // MP3 (without ID3, MPEG 1 Layer 3)
+    [new Uint8Array([0xFF, 0xF2]), 'audio/mpeg'], // MP3 (without ID3, MPEG 2 Layer 3)
+    [new Uint8Array([0x52, 0x49, 0x46, 0x46]), 'audio/wav'], // WAV (RIFF header)
+    [new Uint8Array([0x66, 0x4C, 0x61, 0x43]), 'audio/flac'], // FLAC
+    [new Uint8Array([0x4F, 0x67, 0x67, 0x53]), 'audio/ogg'], // OGG
+    [new Uint8Array([0x4D, 0x34, 0x41, 0x20]), 'audio/m4a'] // M4A
   ]);
-  
+
+  // Audio tag patterns for text-based content detection
+  const AUDIO_TEXT_PATTERNS = [
+    { pattern: /^ID3/i, mimeType: 'audio/mpeg' },  // ID3 tag for MP3
+    { pattern: /^RIFF....WAVE/i, mimeType: 'audio/wav' }, // RIFF....WAVE pattern for WAV
+    { pattern: /^\xFF[\xE0-\xFF]/i, mimeType: 'audio/mpeg' }, // MP3 frame headers
+    { pattern: /^fLaC/i, mimeType: 'audio/flac' }, // FLAC header
+    { pattern: /^OggS/i, mimeType: 'audio/ogg' }  // OGG header
+  ];
+
   const MERMAID_KEYWORDS = [
     'graph', 'sequencediagram', 'classdiagram', 
     'statediagram', 'erdiagram', 'gantt', 
     'pie', 'flowchart', 'journey'
   ];
-  
+
   const EXTENSION_MAP = {
     'image/png': 'png', 'application/json': 'json',
     'text/plain': 'txt', 'text/x-mermaid': 'mmd',
@@ -45,14 +63,26 @@ const SIGNATURES = new Map([
     'application/x-sqlite3': 'db',
     'image/djvu': 'djvu',
     'application/x-parquet': 'parquet',
-    'text/vnd.graphviz': 'dot'
+    'text/vnd.graphviz': 'dot',
+    // Audio mime type to extension mappings
+    'audio/mpeg': 'mp3',
+    'audio/wav': 'wav',
+    'audio/wave': 'wav',
+    'audio/x-wav': 'wav',
+    'audio/flac': 'flac',
+    'audio/ogg': 'ogg',
+    'audio/m4a': 'm4a',
+    'audio/x-m4a': 'm4a',
+    'audio/mp4': 'm4a',
+    'audio/aac': 'aac',
+    'audio/x-aac': 'aac'
   };
-  
+
   function startsWith(content, signature) {
     return content.length >= signature.length && 
       signature.every((byte, index) => content[index] === byte);
   }
-  
+
   function detectBySignature(content) {
     for (const [signature, mimeType] of SIGNATURES.entries()) {
       if (startsWith(content, signature)) return mimeType;
@@ -62,14 +92,14 @@ const SIGNATURES = new Map([
       ? 'application/xml' 
       : 'application/octet-stream';
   }
-  
+
   function detectContentType(content) {
     if (!content) return { 
       mimeType: 'application/octet-stream', 
       extension: '', 
       isValid: false 
     };
-  
+
     if (typeof content === 'string') {
       const trimmedContent = content.trim();
       
@@ -127,6 +157,17 @@ const SIGNATURES = new Map([
         };
       }
       
+      // Audio text-based content detection
+      for (const pattern of AUDIO_TEXT_PATTERNS) {
+        if (pattern.pattern.test(trimmedContent)) {
+          return { 
+            mimeType: pattern.mimeType, 
+            extension: EXTENSION_MAP[pattern.mimeType], 
+            isValid: true 
+          };
+        }
+      }
+      
       // Plain text
       return { 
         mimeType: 'text/plain', 
@@ -134,7 +175,7 @@ const SIGNATURES = new Map([
         isValid: trimmedContent.length > 0 
       };
     }
-  
+
     if (content instanceof Uint8Array) {
       const mimeType = detectBySignature(content);
       return { 
@@ -143,41 +184,41 @@ const SIGNATURES = new Map([
         isValid: mimeType !== 'application/octet-stream'
       };
     }
-  
+
     return { 
       mimeType: 'application/octet-stream', 
       extension: '', 
       isValid: false 
     };
   }
-  
+
   function validateContent(content) {
     if (!content) {
       throw new Error('Invalid text content');
     }
-  
+
     const trimmedContent = typeof content === 'string' ? content.trim() : content;
     
     if (!trimmedContent) {
       throw new Error('Invalid text content');
     }
-  
+
     if (typeof content === 'string') {
       // Mermaid validation
       if (/^graph\s+[A-Z]+/.test(content)) {
         return true;
       }
-  
+
       // Graphviz validation
       if (/^(digraph|graph)\s+\w+\s*{/.test(content)) {
         return true;
       }
-  
+
       // PlantUML validation
       if (/^@startuml/.test(content) && /@enduml/m.test(content)) {
         return true;
       }
-  
+
       // JSON validation
       if (/^\{[\s\S]*\}$/.test(content)) {
         try {
@@ -190,7 +231,7 @@ const SIGNATURES = new Map([
           throw new Error('Invalid JSON content');
         }
       }
-  
+
       // XML validation
       if (/^<\?xml[\s\S]*\?>[\s\S]*<\w+[\s\S]*>[\s\S]*<\/\w+>$/.test(content)) {
         if (!content.includes('<?xml') || !content.includes('</')) {
@@ -198,7 +239,7 @@ const SIGNATURES = new Map([
         }
         return true;
       }
-  
+
       // Diagram validation
       const diagramPatterns = [
         { 
@@ -217,44 +258,44 @@ const SIGNATURES = new Map([
           message: 'Invalid PlantUML diagram content'
         }
       ];
-  
+
       const matchedDiagram = diagramPatterns.find(d => d.pattern.test(content));
       
       if (matchedDiagram) {
         return true;
       }
-  
+
       // Specific test case handling
       if (content === 'invalid json') {
         throw new Error('Invalid JSON content');
       }
-  
+
       if (content === '<unclosed>xml') {
         throw new Error('Invalid XML content');
       }
-  
+
       if (content === 'not a diagram') {
         throw new Error('Invalid diagram content');
       }
-  
+
       if (content === '') {
         throw new Error('Invalid text content');
       }
-  
+
       // If no specific validation passes
       return true;
     }
-  
+
     return true;
   }
-  
+
   function getExtension(mimeType) {
     return EXTENSION_MAP[mimeType] || '';
   }
-  
+
   export { ContentTypeInterpreter as default };
   export { ContentTypeInterpreter };
-  
+
   class ContentTypeInterpreter {
     constructor() {
       // Bind static methods to instance for compatibility
@@ -263,21 +304,20 @@ const SIGNATURES = new Map([
       this.validateContent = ContentTypeInterpreter.validateContent;
       this.getExtension = ContentTypeInterpreter.getExtension;
     }
-  
+
     static detectBySignature(content) {
       return detectBySignature(content);
     }
-  
+
     static detectContentType(content) {
       return detectContentType(content);
     }
-  
+
     static validateContent(content) {
       return validateContent(content);
     }
-  
+
     static getExtension(mimeType) {
       return getExtension(mimeType);
     }
   }
-  

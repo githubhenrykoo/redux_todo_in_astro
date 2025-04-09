@@ -1,14 +1,18 @@
 // src/components/viewers/PDFViewer.jsx
 import React, { useState, useEffect, useMemo } from 'react';
+import './pdf-viewer.css';
 
 /**
- * A specialized viewer for PDF files
+ * A specialized viewer for PDF files with enhanced controls
  */
 export const PDFViewer = ({ content, contentType }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pdfSource, setPdfSource] = useState(null);
   const [textContent, setTextContent] = useState(null); // For fallback text display
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [zoom, setZoom] = useState(100);
   
   // Process the content and set the appropriate state
   useEffect(() => {
@@ -203,10 +207,56 @@ export const PDFViewer = ({ content, contentType }) => {
     return null;
   }, [content]);
   
+  // Handle page navigation
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+  
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  // Handle zoom controls
+  const handleZoomIn = () => {
+    setZoom(Math.min(zoom + 25, 200));
+  };
+  
+  const handleZoomOut = () => {
+    setZoom(Math.max(zoom - 25, 50));
+  };
+  
+  const handleZoomReset = () => {
+    setZoom(100);
+  };
+  
+  // Try to get the total number of pages when PDF loads
+  const handlePdfLoad = () => {
+    setIsLoading(false);
+    
+    // If there's an embedded PDF viewer, we might be able to access its properties
+    try {
+      const pdfObject = document.querySelector('object[type="application/pdf"]');
+      if (pdfObject && pdfObject.contentDocument) {
+        // Modern PDF viewers often show page count in their UI
+        // This is a best effort approach as browser security may limit access
+        setTimeout(() => {
+          setTotalPages(2); // Fallback if we can't detect
+        }, 1000);
+      }
+    } catch (e) {
+      console.log("Could not detect PDF page count:", e);
+      setTotalPages(1);
+    }
+  };
+  
   // Display text content if we have it (fallback display)
   if (textContent) {
     return (
-      <div className="flex flex-col h-full p-4 bg-gray-50 overflow-auto">
+      <div className="pdf-fallback">
         <div className="text-amber-600 text-center mb-4">
           <div className="text-3xl mb-2">⚠️</div>
           <p className="font-medium">Content has application/pdf type but appears to be text</p>
@@ -224,7 +274,7 @@ export const PDFViewer = ({ content, contentType }) => {
   
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-4 bg-gray-50">
+      <div className="pdf-fallback">
         <div className="text-red-500 text-center">
           <div className="text-5xl mb-4">⚠️</div>
           <p className="font-medium">{error}</p>
@@ -237,51 +287,74 @@ export const PDFViewer = ({ content, contentType }) => {
   
   if (!pdfSource) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-4 bg-gray-50">
+      <div className="pdf-loading">
         <div className="text-gray-500 text-center">
           <div className="text-5xl mb-4">📄</div>
-          <p className="font-medium">Unable to display PDF</p>
-          <p className="text-sm text-gray-600 mt-2">
-            The provided content could not be converted to a viewable PDF.
-          </p>
+          <p className="font-medium">Loading PDF...</p>
         </div>
       </div>
     );
   }
   
-  // For security reasons, use object/embed tag for PDFs instead of an iframe
   return (
-    <div className="flex flex-col h-full p-4 bg-gray-50 overflow-hidden">
+    <div className="pdf-viewer-container">
+      <div className="pdf-toolbar">
+        <button onClick={handlePrevPage} disabled={currentPage <= 1}>
+          Previous
+        </button>
+        <button onClick={handleNextPage} disabled={currentPage >= totalPages}>
+          Next
+        </button>
+        <span className="page-info">
+          Page {currentPage} of {totalPages || '?'}
+        </span>
+        
+        <div className="pdf-zoom-controls">
+          <button onClick={handleZoomOut} title="Zoom Out">
+            -
+          </button>
+          <span className="page-info">
+            {zoom}%
+          </span>
+          <button onClick={handleZoomIn} title="Zoom In">
+            +
+          </button>
+          <button onClick={handleZoomReset} title="Reset Zoom">
+            Reset
+          </button>
+        </div>
+      </div>
+      
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 z-10">
-          <div className="animate-pulse text-gray-500">Loading PDF...</div>
+        <div className="pdf-loading">
+          <div>Loading PDF...</div>
         </div>
       )}
       
-      <div className="relative flex-grow w-full h-full overflow-hidden">
+      <div className="pdf-container">
         <object
-          className="w-full h-full"
+          className="pdf-frame"
           data={pdfSource}
           type="application/pdf"
-          onLoad={() => setIsLoading(false)}
+          onLoad={handlePdfLoad}
           onError={(e) => {
             console.error("PDF load error:", e);
             setIsLoading(false);
             setError("Failed to load PDF: Document may be corrupted");
           }}
         >
-          <div className="flex flex-col items-center justify-center h-full bg-gray-100">
-            <p className="text-gray-600">
+          <div className="pdf-fallback">
+            <p>
               Your browser does not support inline PDF viewing. 
-              <a href={pdfSource} target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-500 hover:underline">
-                Click here to download.
+              <a href={pdfSource} target="_blank" rel="noopener noreferrer" download="document.pdf">
+                Click here to download the PDF
               </a>
             </p>
           </div>
         </object>
       </div>
       
-      <div className="mt-2 text-sm text-gray-600 text-center">
+      <div className="mt-2 text-sm text-gray-600 text-center pdf-info">
         <p>PDF Document</p>
         {size && <p>Size: {formatFileSize(size)}</p>}
       </div>

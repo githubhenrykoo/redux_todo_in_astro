@@ -223,6 +223,9 @@ export const GET: APIRoute = async ({ request }) => {
     switch (action) {
       case 'get': {
         const hash = url.searchParams.get('hash');
+        // Check if raw parameter is provided to return content directly
+        const rawResponse = url.searchParams.get('raw') === 'true';
+        const forceDownload = url.searchParams.get('forceDownload') === 'true';
         
         if (!hash) {
           return new Response(
@@ -247,7 +250,7 @@ export const GET: APIRoute = async ({ request }) => {
             { status: 404, headers: { 'Content-Type': 'application/json' } }
           );
         }
-        
+
         // Get content type
         let contentTypeInfo: any = null;
         if (card.contentType) {
@@ -259,7 +262,41 @@ export const GET: APIRoute = async ({ request }) => {
           console.log('Detected content type:', contentTypeInfo);
         }
         
-        // Process content based on content type
+        // Handle raw response for PDF and binary files (for direct viewing/downloading)
+        if (rawResponse) {
+          console.log(`Serving raw content for ${hash}, content type:`, contentTypeInfo?.mimeType);
+          
+          let contentToServe: Buffer | Uint8Array | string = card.content;
+          const mimeType = contentTypeInfo?.mimeType || 'application/octet-stream';
+          
+          // Convert Buffer JSON format to actual Buffer if needed
+          if (typeof card.content === 'object' && 
+              card.content !== null && 
+              card.content.type === 'Buffer' && 
+              Array.isArray(card.content.data)) {
+            contentToServe = new Uint8Array(card.content.data);
+          }
+          
+          // Set appropriate headers based on content type and download preference
+          const headers: Record<string, string> = {
+            'Content-Type': mimeType
+          };
+          
+          if (forceDownload) {
+            const extension = contentTypeInfo?.extension || 'bin';
+            headers['Content-Disposition'] = `attachment; filename="${hash.substring(0, 8)}.${extension}"`;
+          } else {
+            headers['Content-Disposition'] = 'inline';
+          }
+          
+          // Return the raw content directly
+          return new Response(contentToServe, { 
+            status: 200, 
+            headers 
+          });
+        }
+        
+        // Process content based on content type (for standard JSON responses)
         const processedContent = processCardContent(card.content, contentTypeInfo?.mimeType || null);
         
         console.log('card-collection API - Card retrieved:', {

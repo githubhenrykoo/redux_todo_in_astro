@@ -92,10 +92,12 @@ const PanelContent = () => {
   );
 };
 
-const PanelGroupLayout = () => (
-  <Provider store={store}>
-    <PanelContent />
-  </Provider>
-);
+const PanelGroupLayout = () => {
+  return (
+    <Provider store={store}>
+      <PanelContent />
+    </Provider>
+  );
+};
 
 export default PanelGroupLayout;

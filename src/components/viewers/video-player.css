@@ -91,3 +91,139 @@ video::-webkit-media-controls-play-button {
   font-weight: bold;
   margin-right: 8px;
 }
+
+/* QuickTime specific styling */
+.quicktime-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #21252b;
+  padding: 20px;
+}
+
+.quicktime-message {
+  max-width: 600px;
+  background-color: #2c313a;
+  border-radius: 8px;
+  border: 1px solid #3a3f4b;
+  padding: 25px;
+  color: #e0e0e0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.quicktime-message h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin: 0 0 15px 0;
+  color: #e6e6e6;
+}
+
+.quicktime-note {
+  color: #bbb;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.quicktime-options {
+  margin-top: 20px;
+}
+
+.quicktime-options h4 {
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.quicktime-options ol {
+  padding-left: 20px;
+  margin: 0;
+}
+
+.quicktime-options li {
+  margin-bottom: 15px;
+}
+
+.quicktime-options li strong {
+  color: #e0e0e0;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.quicktime-options p {
+  margin: 5px 0;
+  color: #bbb;
+  font-size: 0.9rem;
+}
+
+.download-button {
+  display: inline-block;
+  background-color: #0366d6;
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.download-button:hover {
+  background-color: #0078ff;
+  text-decoration: none;
+}
+
+/* Standard video player styling */
+.video-player-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.video-wrapper {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.video-player {
+  width: 100%;
+  height: auto;
+  max-height: 80vh;
+  border-radius: 4px;
+}
+
+.video-controls {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.download-link {
+  color: #0366d6;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.download-link:hover {
+  text-decoration: underline;
+}
+
+.video-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  height: 100%;
+  color: #ccc;
+}
+
+.video-error {
+  color: #e24c4c;
+  padding: 20px;
+  text-align: center;
+}

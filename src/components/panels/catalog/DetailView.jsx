@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import { getSimpleContentType, getContentTypeDisplay, determineCorrectContentType } from './utils';
 import { ContentService } from '../../../services/content-service';
 import { processContent, isImageType } from '../../../utils/content-utils';
 import VideoPlayer from '../../viewers/VideoPlayer';
@@ -532,9 +532,7 @@ const DetailView = ({
           <div className="info-section">
             <p><strong>Hash:</strong> {selectedItem.hash}</p>
             <p><strong>Type:</strong> {
-              selectedItem.contentType?.mimeType 
-                ? getFormattedContentType(selectedItem.contentType.mimeType)
-                : 'Unknown'
+              determineCorrectContentType(selectedItem)
             }</p>
             <p><strong>Date:</strong> {selectedItem.timestamp || 'Unknown'}</p>
           </div>

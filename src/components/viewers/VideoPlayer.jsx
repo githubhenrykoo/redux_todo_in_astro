@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ContentService } from '../../services/content-service';
+import './video-player.css';
 
 /**
  * VideoPlayer component for handling various video formats including QuickTime
@@ -12,7 +13,19 @@ const VideoPlayer = ({ content, contentType, hash }) => {
   const [retry, setRetry] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [isQuickTime, setIsQuickTime] = useState(false);
+  
+  // Video playback state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isDraggingSeeker, setIsDraggingSeeker] = useState(false);
+  
   const videoRef = useRef(null);
+  const videoContainerRef = useRef(null);
+  const seekBarRef = useRef(null);
   
   useEffect(() => {
     setLoading(true);
@@ -189,6 +202,163 @@ const VideoPlayer = ({ content, contentType, hash }) => {
     };
   }, [content, contentType, hash, retry]);
   
+  // Toggle play/pause 
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  // Toggle mute
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
+  // Handle volume change
+  const handleVolumeChange = (e) => {
+    const newVolume = parseFloat(e.target.value);
+    if (videoRef.current) {
+      videoRef.current.volume = newVolume;
+      setVolume(newVolume);
+      setIsMuted(newVolume === 0);
+    }
+  };
+
+  // Handle fullscreen toggle
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (videoContainerRef.current.requestFullscreen) {
+        videoContainerRef.current.requestFullscreen();
+      } else if (videoContainerRef.current.webkitRequestFullscreen) {
+        videoContainerRef.current.webkitRequestFullscreen();
+      } else if (videoContainerRef.current.msRequestFullscreen) {
+        videoContainerRef.current.msRequestFullscreen();
+      }
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+      setIsFullscreen(false);
+    }
+  };
+
+  // Format time to MM:SS
+  const formatTime = (timeInSeconds) => {
+    if (isNaN(timeInSeconds)) return '00:00';
+    
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Handle seeking when user drags the progress bar
+  const handleSeekBarMouseDown = (e) => {
+    setIsDraggingSeeker(true);
+    updateSeekPosition(e);
+  };
+
+  const handleSeekBarMouseMove = (e) => {
+    if (isDraggingSeeker) {
+      updateSeekPosition(e);
+    }
+  };
+
+  const handleSeekBarMouseUp = (e) => {
+    if (isDraggingSeeker) {
+      updateSeekPosition(e);
+      setIsDraggingSeeker(false);
+    }
+  };
+
+  // Handle clicks directly on the progress bar
+  const handleSeekBarClick = (e) => {
+    updateSeekPosition(e);
+  };
+
+  // Update video position based on seekbar interaction
+  const updateSeekPosition = (e) => {
+    if (!seekBarRef.current || !videoRef.current || duration === 0) return;
+    
+    const rect = seekBarRef.current.getBoundingClientRect();
+    const position = (e.clientX - rect.left) / rect.width;
+    const newTime = position * duration;
+    
+    // Update video current time
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+  };
+
+  // Listen for video events to update UI state
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    
+    if (!videoElement) return;
+    
+    const handleTimeUpdate = () => {
+      if (!isDraggingSeeker) {
+        setCurrentTime(videoElement.currentTime);
+      }
+    };
+    
+    const handleDurationChange = () => {
+      setDuration(videoElement.duration);
+    };
+    
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
+    
+    const handlePause = () => {
+      setIsPlaying(false);
+    };
+    
+    const handleVolumeUpdate = () => {
+      setVolume(videoElement.volume);
+      setIsMuted(videoElement.muted);
+    };
+    
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    
+    // Add event listeners
+    videoElement.addEventListener('timeupdate', handleTimeUpdate);
+    videoElement.addEventListener('durationchange', handleDurationChange);
+    videoElement.addEventListener('play', handlePlay);
+    videoElement.addEventListener('pause', handlePause);
+    videoElement.addEventListener('volumechange', handleVolumeUpdate);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mousemove', handleSeekBarMouseMove);
+    document.addEventListener('mouseup', handleSeekBarMouseUp);
+    
+    // Clean up event listeners
+    return () => {
+      videoElement.removeEventListener('timeupdate', handleTimeUpdate);
+      videoElement.removeEventListener('durationchange', handleDurationChange);
+      videoElement.removeEventListener('play', handlePlay);
+      videoElement.removeEventListener('pause', handlePause);
+      videoElement.removeEventListener('volumechange', handleVolumeUpdate);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mousemove', handleSeekBarMouseMove);
+      document.removeEventListener('mouseup', handleSeekBarMouseUp);
+    };
+  }, [isDraggingSeeker]);
+  
   // Handle video playback errors
   const handleVideoError = (e) => {
     console.error('Video playback error:', e);
@@ -257,25 +427,95 @@ const VideoPlayer = ({ content, contentType, hash }) => {
           </div>
         </div>
       ) : (
-        <div className="video-wrapper">
+        <div className="video-wrapper" ref={videoContainerRef}>
           <video 
             ref={videoRef}
             src={videoUrl} 
-            controls 
-            autoPlay={false}
+            onClick={togglePlay}
             onError={handleVideoError}
             className="video-player"
+            width="auto"
+            height="auto"
+            style={{
+              maxWidth: "100%", 
+              width: "auto",
+              height: "auto",
+              maxHeight: "70vh",
+              margin: "0 auto",
+              display: "block"
+            }}
           />
-          <div className="video-controls">
-            {downloadUrl && (
-              <a 
-                href={downloadUrl} 
-                download={`video-${hash?.substring(0, 8) || 'download'}.${getVideoExtension(contentType)}`} 
-                className="download-link"
-              >
-                Download Video
-              </a>
-            )}
+          
+          <div className="custom-video-controls">
+            <div 
+              className="video-progress-container" 
+              ref={seekBarRef}
+              onClick={handleSeekBarClick}
+              onMouseDown={handleSeekBarMouseDown}
+            >
+              <div className="video-progress-background"></div>
+              <div 
+                className="video-progress-bar" 
+                style={{ width: `${(currentTime / duration) * 100}%` }}
+              ></div>
+              <div 
+                className="video-progress-handle"
+                style={{ left: `${(currentTime / duration) * 100}%` }}
+              ></div>
+            </div>
+            
+            <div className="video-controls-bottom">
+              <div className="video-controls-left">
+                <button className="video-control-button" onClick={togglePlay}>
+                  {isPlaying ? (
+                    <span className="control-icon">❚❚</span>
+                  ) : (
+                    <span className="control-icon">▶</span>
+                  )}
+                </button>
+                
+                <div className="video-volume-control">
+                  <button className="video-control-button" onClick={toggleMute}>
+                    {isMuted ? (
+                      <span className="control-icon">🔇</span>
+                    ) : (
+                      <span className="control-icon">🔊</span>
+                    )}
+                  </button>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="1" 
+                    step="0.1" 
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    className="volume-slider"
+                  />
+                </div>
+                
+                <div className="video-time-display">
+                  <span>{formatTime(currentTime)}</span>
+                  <span> / </span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+              
+              <div className="video-controls-right">
+                <button className="video-control-button" onClick={toggleFullscreen}>
+                  <span className="control-icon">{isFullscreen ? '⤓' : '⤒'}</span>
+                </button>
+                
+                {downloadUrl && (
+                  <a 
+                    href={downloadUrl} 
+                    download={`video-${hash?.substring(0, 8) || 'download'}.${getVideoExtension(contentType)}`} 
+                    className="download-link"
+                  >
+                    <span className="control-icon">⬇</span>
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

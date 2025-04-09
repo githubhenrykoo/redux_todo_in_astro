@@ -36,9 +36,11 @@ export async function POST({ request, response }) {
             await sendMessage('log', { message: 'Clicked Enter Page button' });
             await page.waitForTimeout(2000);
 
-            // Click code editor button
-            await page.click('#todoLayoutBtn');
-            await sendMessage('log', { message: 'Clicked code editor button' });
+            await page.waitForTimeout(2000);
+
+            // Click Testing Dashboard button
+            await page.click('#testingLayoutBtn');
+            await sendMessage('log', { message: 'Clicked Testing Dashboard button' });
 
             // Wait for terminal
             await page.waitForSelector('.xterm-screen', { timeout: 10000 });

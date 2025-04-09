@@ -1,0 +1,139 @@
+/* PDF Viewer Component Styles */
+
+.pdf-viewer-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #282c34;
+  color: #e0e0e0;
+}
+
+/* PDF toolbar styling */
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #21252b;
+  border-bottom: 1px solid #3a3f4b;
+  z-index: 10;
+}
+
+.pdf-toolbar button {
+  background-color: #333;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 5px 10px;
+  margin-right: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.pdf-toolbar button:hover {
+  background-color: #444;
+}
+
+.pdf-toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pdf-toolbar .page-info {
+  margin: 0 15px;
+  color: #e0e0e0;
+  font-size: 14px;
+}
+
+.pdf-zoom-controls {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.pdf-zoom-controls button {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* PDF container with viewer */
+.pdf-container {
+  flex: 1;
+  position: relative;
+  background-color: #fff;
+  overflow: auto;
+  height: calc(100% - 100px);
+}
+
+object[type="application/pdf"], embed[type="application/pdf"] {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  display: block;
+}
+
+/* PDF loading and fallback styles */
+.pdf-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  background-color: #21252b;
+  color: #e0e0e0;
+  font-size: 16px;
+  padding: 20px;
+}
+
+.pdf-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  height: 100%;
+  background-color: #21252b;
+  text-align: center;
+  color: #e0e0e0;
+}
+
+.pdf-fallback a {
+  color: #61dafb;
+  margin-top: 15px;
+  padding: 8px 16px;
+  border: 1px solid #61dafb;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.pdf-fallback a:hover {
+  background-color: #61dafb;
+  color: #282c34;
+}
+
+.pdf-info {
+  padding: 8px;
+  font-size: 12px;
+  color: #aaa;
+  text-align: center;
+  background-color: #21252b;
+  border-top: 1px solid #3a3f4b;
+}
+
+/* Animation for loading state */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.pdf-loading > div {
+  animation: pulse 1.5s infinite;
+}

@@ -3,6 +3,8 @@ import { getSimpleContentType, getContentTypeDisplay } from './utils';
 import { ContentService } from '../../../services/content-service';
 import { processContent, isImageType } from '../../../utils/content-utils';
 import VideoPlayer from '../../viewers/VideoPlayer';
+import PDFViewer from '../../viewers/PDFViewer';
+import AudioViewer from '../../viewers/AudioViewer';
 import '../../viewers/video-player.css';
 import './detail-view.css';
 
@@ -22,6 +24,9 @@ const DetailView = ({
   const [retryCount, setRetryCount] = useState(0);
   const [imageData, setImageData] = useState(null);
   const [contentData, setContentData] = useState(null);
+  const [rawContent, setRawContent] = useState(null);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [contentError, setContentError] = useState(null);
   const imageRef = useRef(null);
   
   // Get content type display mapping
@@ -35,69 +40,96 @@ const DetailView = ({
       setRetryCount(0);
       setImageData(null);
       setContentData(null);
+      setRawContent(null);
+      setContentLoading(false);
+      setContentError(null);
     }
   }, [selectedItem?.hash]);
 
-  // Load content when an item is selected using ContentService
   useEffect(() => {
-    if (!selectedItem) return;
+    if (selectedItem?.hash) {
+      document.title = `Card - ${selectedItem.hash.substring(0, 8)}`;
+    }
+    return () => {
+      document.title = 'Card Catalog';
+    };
+  }, [selectedItem]);
+
+  // For PDF content, create a direct link to the file
+  const getPdfDirectUrl = (hash) => {
+    // Use direct file access with the raw parameter to bypass content processing
+    return `/api/card-collection?action=get&hash=${hash}&raw=true&forceDownload=false`;
+  };
+
+  // Fetch content for the selected item
+  useEffect(() => {
+    if (!selectedItem?.hash) return;
     
-    const contentType = selectedItem.contentType;
-    const isImage = isImageType(contentType);
+    setContentLoading(true);
+    setImageLoaded(false);
+    setImageError(false);
     
-    if (isImage) {
-      console.log(`Loading image for item: ${selectedItem.hash}`);
-      setImageLoaded(false);
-      setImageError(false);
-      
-      // Use ContentService to fetch and process the image
-      ContentService.fetchContent(selectedItem.hash)
-        .then(result => {
-          console.log("Content loaded:", result.hash);
-          
-          if (result.error) {
-            console.error("Error loading content:", result.error);
-            throw new Error(result.error);
-          }
-          
+    // Determine if we need special content processing
+    const needsBinaryProcessing = 
+      selectedItem.contentType?.mimeType?.startsWith('image/') ||
+      selectedItem.contentType?.mimeType === 'application/pdf' ||
+      selectedItem.contentType?.mimeType?.startsWith('audio/') ||
+      selectedItem.contentType?.mimeType?.startsWith('video/');
+    
+    console.log(`Loading content for item: ${selectedItem.hash}, type: ${selectedItem.contentType?.mimeType}`);
+    
+    // Use ContentService to fetch and process content
+    ContentService.fetchContent(selectedItem.hash, { maxRetries: 3 })
+      .then(result => {
+        setContentLoading(false);
+        
+        if (result.error) {
+          console.error("Error loading content:", result.error);
+          setContentError(result.error);
+          return;
+        }
+        
+        // Store raw content for specialized viewers (PDF, Video, Audio)
+        if (result.raw) {
+          setRawContent(result.raw.content || result.raw);
+        }
+        
+        // For image content, create a data URL
+        if (isImageType(selectedItem.contentType)) {
           if (result.processed && result.processed.type === 'dataUrl') {
             // Already processed to data URL
             setImageData(result.processed.url);
             setImageLoaded(true);
           } else if (result.raw?.content) {
             // Process the content
-            const processed = processContent(result.raw.content, contentType);
+            const processed = processContent(result.raw.content, selectedItem.contentType);
             
             if (processed.type === 'dataUrl') {
               setImageData(processed.url);
               setImageLoaded(true);
             } else {
               console.error("Unexpected content format:", processed.type);
-              throw new Error(`Unexpected content format: ${processed.type}`);
+              setContentError("Failed to process image data");
             }
           } else {
-            throw new Error("No valid content found in API response");
+            setContentError("No valid content found in API response");
           }
-        })
-        .catch(error => {
-          console.error("Error processing image:", error);
+        }
+        
+        // Store full content data for JSON, text, etc.
+        setContentData(result);
+      })
+      .catch(error => {
+        console.error("Error loading content:", error);
+        setContentLoading(false);
+        setContentError(`Failed to load content: ${error.message || 'Unknown error'}`);
+        
+        if (isImageType(selectedItem.contentType)) {
           setImageError(true);
-        });
-    } else {
-      // For non-image content types, just fetch the data
-      ContentService.fetchContent(selectedItem.hash)
-        .then(result => {
-          if (result.error) {
-            console.error("Error loading content:", result.error);
-            return;
-          }
-          setContentData(result);
-        })
-        .catch(error => {
-          console.error("Error loading content:", error);
-        });
-    }
-  }, [selectedItem, retryCount]);
+        }
+      });
+      
+  }, [selectedItem?.hash, retryCount]);
 
   // Helper function to get proper content type display
   const getFormattedContentType = (mimeType) => {
@@ -108,7 +140,39 @@ const DetailView = ({
     
     return `${contentTypeMap[simpleType] || simpleType.toUpperCase()} (${mimeType})`;
   };
-  
+
+  // Helper function to detect if content is binary data
+  const isBinaryContent = (data) => {
+    if (!data) return false;
+    
+    // Check if it's a string that looks like binary data (contains many non-printable characters)
+    if (typeof data === 'string') {
+      // Simple heuristic: if string contains many non-printable characters or appears to be binary
+      const nonPrintableChars = data.match(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g);
+      return nonPrintableChars && nonPrintableChars.length > (data.length * 0.1); // More than 10% non-printable
+    }
+    
+    // If it's an object that looks like a buffer or array of numbers
+    if (
+      (typeof data === 'object' && 
+       data !== null && 
+       (data.type === 'Buffer' || data instanceof Uint8Array || 
+        (Array.isArray(data) && data.length > 0 && typeof data[0] === 'number')))
+    ) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (size) => {
+    if (size < 1024) return `${size} bytes`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(2)} KB`;
+    if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
   if (itemLoading) {
     return <div className="loading-indicator">Loading item details...</div>;
   }
@@ -229,6 +293,78 @@ const DetailView = ({
     
     const contentType = selectedItem.contentType || { mimeType: 'text/plain' };
     
+    // Special handler for PDFs - prioritize this at the very top
+    if (contentType.mimeType === 'application/pdf') {
+      console.log("Rendering PDF with direct object approach");
+      // Create a direct URL to the raw PDF content
+      const pdfUrl = getPdfDirectUrl(selectedItem.hash);
+      
+      return (
+        <ContentWrapper className="pdf-wrapper">
+          <div className="pdf-container">
+            <object
+              data={pdfUrl}
+              type="application/pdf"
+              className="pdf-frame"
+              aria-label="PDF Document"
+            >
+              <p>
+                Your browser doesn't support PDF viewing.
+                <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+                  Download PDF
+                </a>
+              </p>
+            </object>
+          </div>
+        </ContentWrapper>
+      );
+    }
+    
+    // Handle binary data that may be misclassified
+    if (contentData && isBinaryContent(contentData.raw?.content || contentData.raw)) {
+      console.log("Detected binary content, proper rendering required", contentType.mimeType);
+      
+      // Skip binary handling for known file types that are binary by nature
+      if (contentType.mimeType === 'application/pdf' || 
+          contentType.mimeType.startsWith('image/') ||
+          contentType.mimeType.startsWith('video/') ||
+          contentType.mimeType.startsWith('audio/')) {
+        // Let the specific handlers below deal with these known binary formats
+        console.log("Skipping binary fallback for known binary file type:", contentType.mimeType);
+      }
+      // Only use binary fallback for octet-stream or unknown binary content
+      else if (contentType.mimeType === 'application/octet-stream' || 
+          contentType.mimeType === 'binary/octet-stream') {
+        // Treat as a binary file with download option
+        return (
+          <ContentWrapper className="binary-wrapper">
+            <div className="binary-container">
+              <div className="binary-info">
+                <div className="binary-icon">📄</div>
+                <h3>Binary File</h3>
+                <p>This appears to be a binary file that cannot be displayed in the browser.</p>
+                <p>Content type: {contentType.mimeType}</p>
+                {contentData && contentData.raw && (
+                  <p>File size: {formatFileSize(
+                    contentData.raw.content ? 
+                    contentData.raw.content.length || 0 : 
+                    contentData.raw.length || 0
+                  )}</p>
+                )}
+                <a 
+                  href={`/api/card-collection?action=get&hash=${selectedItem.hash}`}
+                  download={`${selectedItem.hash.substring(0, 8)}.bin`}
+                  className="btn btn-primary"
+                >
+                  Download File
+                </a>
+              </div>
+            </div>
+          </ContentWrapper>
+        );
+      }
+    }
+    
     // Handle different content types
     if (contentType.mimeType?.startsWith('image/')) {
       // For images, we need to create a data URL from the API response
@@ -268,28 +404,15 @@ const DetailView = ({
           )}
         </ContentWrapper>
       );
-    } else if (contentType.mimeType === 'application/pdf') {
-      return (
-        <ContentWrapper className="pdf-wrapper">
-          <div className="pdf-container">
-            <iframe 
-              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
-              className="pdf-frame" 
-              title="PDF Viewer"
-            ></iframe>
-          </div>
-        </ContentWrapper>
-      );
     } else if (contentType.mimeType?.startsWith('audio/')) {
       return (
         <ContentWrapper className="audio-wrapper">
-          <audio controls className="content-audio">
-            <source 
-              src={`/api/card-collection?action=get&hash=${selectedItem.hash}`} 
-              type={contentType.mimeType} 
-            />
-            Your browser does not support the audio element.
-          </audio>
+          <AudioViewer 
+            hash={selectedItem.hash}
+            content={rawContent}
+            contentType={contentType}
+            format={contentType.extension || "audio"}
+          />
         </ContentWrapper>
       );
     } else if (contentType.mimeType.startsWith('video/') || contentType.mimeType === 'video/quicktime') {
@@ -419,7 +542,24 @@ const DetailView = ({
           <div className="content-section">
             <h3>Content</h3>
             <div className="content-container">
-              {renderContent()}
+              {contentLoading ? (
+                <div className="content-loading">Loading content...</div>
+              ) : contentError ? (
+                <div className="content-error">
+                  <p>{contentError}</p>
+                  <button 
+                    className="btn btn-small" 
+                    onClick={() => {
+                      setContentError(null);
+                      setRetryCount(prev => prev + 1);
+                    }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                renderContent()
+              )}
             </div>
           </div>
           

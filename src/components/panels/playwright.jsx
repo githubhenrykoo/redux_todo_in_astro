@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { addLog, addScreenshot, setStatus, clearLogs } from '../../features/testLogsSlice';
 
 const Playwright = () => {
-    const [status, setStatus] = useState('idle');
-    const [logs, setLogs] = useState([]);
-    const [screenshots, setScreenshots] = useState([]);
+    const dispatch = useDispatch();
+    const testLogs = useSelector(state => state.testLogs) || { status: 'idle', logs: [], screenshots: [] };
+    const { status, logs, screenshots } = testLogs;
 
     const runAutomation = async (type) => {
         try {
-            setStatus('running');
-            setLogs([]);
+            dispatch(setStatus('running'));
+            dispatch(clearLogs());
 
             const endpoint = type === 'mqtt' 
                 ? '/api/run-mqtt-automation' 
@@ -32,7 +34,6 @@ const Playwright = () => {
                 if (done) break;
 
                 const text = decoder.decode(value);
-                // Split by newlines and process each message
                 const messages = text.split('\n').filter(msg => msg.trim());
                 
                 for (const msg of messages) {
@@ -40,22 +41,24 @@ const Playwright = () => {
                         if (msg) {
                             const data = JSON.parse(msg);
                             if (data.type === 'log') {
-                                setLogs(prev => [...prev, data.message]);
+                                dispatch(addLog(data.message));
                             } else if (data.type === 'screenshot') {
-                                setScreenshots(prev => [...prev, data.path]);
+                                dispatch(addScreenshot(data.path));
                             }
                         }
                     } catch (parseError) {
                         console.error('Parse error:', parseError);
+                        dispatch(addLog(`Parse error: ${parseError.message}`));
                     }
                 }
             }
 
-            setStatus('completed');
+            dispatch(setStatus('completed'));
+            dispatch(addLog(`${type} automation test completed successfully`));
         } catch (error) {
             console.error('Error:', error);
-            setStatus('error');
-            setLogs(prev => [...prev, `Error: ${error.message}`]);
+            dispatch(setStatus('error'));
+            dispatch(addLog(`Error: ${error.message}`));
         }
     };
 
@@ -107,7 +110,7 @@ const Playwright = () => {
                 <div className="mt-4">
                     <h3 className="font-bold mb-2">Test Logs:</h3>
                     <div className="bg-gray-100 p-4 rounded max-h-60 overflow-y-auto font-mono text-sm">
-                        {logs.map((log, index) => (
+                        {logs && logs.map((log, index) => (
                             <div key={index} className="mb-1">
                                 {log}
                             </div>

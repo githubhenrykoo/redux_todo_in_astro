@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import testLogsReducer from './features/testLogsSlice';
 
 // Core Reducers
 import themeReducer from './features/themeSlice';
@@ -27,6 +28,7 @@ const store = configureStore({
     system: systemReducer,
     todo: todoReducer,
     mqtt: mqttReducer,
+    testLogs: testLogsReducer,
     
     // UI States
     panellayout: panellayoutReducer,
@@ -45,19 +47,15 @@ const store = configureStore({
   }
 });
 
-// Export store
-export { store };
-
 // Make store globally accessible in browser environments
 if (typeof window !== 'undefined') {
-  // Using safer approach to avoid TypeScript errors
   window['store'] = store;
   
-  // Add development helpers
   if (import.meta.env.DEV) {
     window['dispatch'] = store.dispatch;
     window['getState'] = store.getState;
   }
-  
-  console.log('Redux store made globally accessible');
 }
+
+// Single export of store
+export { store };

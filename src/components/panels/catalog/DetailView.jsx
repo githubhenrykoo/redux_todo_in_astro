@@ -186,8 +186,8 @@ const DetailView = ({
   }
   
   // Universal content wrapper to enforce containment
-  const ContentWrapper = ({ children, className = '' }) => (
-    <div className={`universal-content-wrapper ${className}`}>
+  const ContentWrapper = ({ children, className = '', fullWidth = false }) => (
+    <div className={`universal-content-wrapper ${className} ${fullWidth ? 'full-width' : ''}`}>
       {children}
     </div>
   );
@@ -404,6 +404,17 @@ const DetailView = ({
           )}
         </ContentWrapper>
       );
+    } else if (contentType.mimeType?.startsWith('video/')) {
+      console.log('Rendering video content:', contentType.mimeType);
+      return (
+        <div className="video-display-container">
+          <VideoPlayer 
+            hash={selectedItem.hash} 
+            contentType={contentType} 
+            content={contentData?.raw?.content || contentData?.raw}
+          />
+        </div>
+      );
     } else if (contentType.mimeType?.startsWith('audio/')) {
       return (
         <ContentWrapper className="audio-wrapper">
@@ -412,17 +423,6 @@ const DetailView = ({
             content={rawContent}
             contentType={contentType}
             format={contentType.extension || "audio"}
-          />
-        </ContentWrapper>
-      );
-    } else if (contentType.mimeType.startsWith('video/') || contentType.mimeType === 'video/quicktime') {
-      // Use our new VideoPlayer component for video content
-      return (
-        <ContentWrapper className="video-wrapper">
-          <VideoPlayer 
-            hash={selectedItem.hash} 
-            contentType={contentType.mimeType} 
-            content={selectedItem.content}
           />
         </ContentWrapper>
       );

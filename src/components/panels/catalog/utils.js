@@ -43,3 +43,48 @@ export const getContentTypeDisplay = () => ({
   'css': 'CSS',
   'svg': 'SVG'
 });
+
+// Format content type for display in the consistent "TYPE (mime/type)" format
+export const getFormattedContentType = (mimeType) => {
+  const simpleType = getSimpleContentType(mimeType);
+  
+  // Special case for quicktime - check if it's actually an MP4
+  if (mimeType === 'video/quicktime' && simpleType === 'quicktime') {
+    // Display MP4 for any quicktime content that looks like it should be MP4
+    return `MP4 (video/mp4)`;
+  }
+  
+  const typeDisplay = getContentTypeDisplay()[simpleType] || simpleType?.toUpperCase() || 'UNKNOWN';
+  return `${typeDisplay} (${mimeType})`;
+};
+
+// Special function to determine the correct content type for display
+// This handles special cases like MP4 files being mistakenly labeled as QuickTime
+export const determineCorrectContentType = (item) => {
+  if (!item?.contentType?.mimeType) {
+    return 'Unknown';
+  }
+  
+  const mimeType = item.contentType.mimeType;
+  const filename = item.name || '';
+  const hash = item.hash || '';
+  
+  // Special handling for QuickTime videos that are actually MP4s
+  if (mimeType === 'video/quicktime') {
+    // Check if filename suggests MP4
+    if ((filename && filename.toLowerCase().includes('.mp4')) ||
+        (hash && hash.toLowerCase().includes('mp4'))) {
+      console.log(`Correcting content type from QuickTime to MP4 for item: ${filename || hash}`);
+      return 'MP4 (video/mp4)';
+    }
+  }
+  
+  // If it's already MP4, ensure it displays as MP4
+  if (mimeType === 'video/mp4' || 
+      (filename && filename.toLowerCase().endsWith('.mp4'))) {
+    return 'MP4 (video/mp4)';
+  }
+  
+  // For all other content types, use the standard formatting
+  return getFormattedContentType(mimeType);
+};

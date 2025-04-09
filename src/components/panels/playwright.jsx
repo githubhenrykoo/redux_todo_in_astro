@@ -5,18 +5,19 @@ const Playwright = () => {
     const [logs, setLogs] = useState([]);
     const [screenshots, setScreenshots] = useState([]);
 
-    const runMqttAutomation = async () => {
+    const runAutomation = async (type) => {
         try {
             setStatus('running');
             setLogs([]);
             setScreenshots([]);
 
-            const response = await fetch('/api/run-mqtt-automation', {
+            const endpoint = type === 'mqtt' ? '/api/run-mqtt-automation' : '/api/run-lazygit-automation';
+            const response = await fetch(endpoint, {
                 method: 'POST',
             });
 
             if (!response.ok) {
-                throw new Error('Failed to run MQTT automation test');
+                throw new Error(`Failed to run ${type} automation test`);
             }
 
             const reader = response.body.getReader();
@@ -27,12 +28,22 @@ const Playwright = () => {
                 if (done) break;
 
                 const text = decoder.decode(value);
-                const data = JSON.parse(text);
-
-                if (data.type === 'log') {
-                    setLogs(prev => [...prev, data.message]);
-                } else if (data.type === 'screenshot') {
-                    setScreenshots(prev => [...prev, data.path]);
+                // Split by newlines and process each message
+                const messages = text.split('\n').filter(msg => msg.trim());
+                
+                for (const msg of messages) {
+                    try {
+                        if (msg) {
+                            const data = JSON.parse(msg);
+                            if (data.type === 'log') {
+                                setLogs(prev => [...prev, data.message]);
+                            } else if (data.type === 'screenshot') {
+                                setScreenshots(prev => [...prev, data.path]);
+                            }
+                        }
+                    } catch (parseError) {
+                        console.error('Parse error:', parseError);
+                    }
                 }
             }
 
@@ -46,19 +57,33 @@ const Playwright = () => {
 
     return (
         <div className="p-4">
-            <h2 className="text-xl font-bold mb-4">MQTT Automation Test Runner</h2>
+            <h2 className="text-xl font-bold mb-4">Automation Test Runner</h2>
             
-            <button
-                onClick={runMqttAutomation}
-                disabled={status === 'running'}
-                className={`px-4 py-2 rounded ${
-                    status === 'running'
-                        ? 'bg-gray-400'
-                        : 'bg-blue-500 hover:bg-blue-600'
-                } text-white`}
-            >
-                {status === 'running' ? 'Running MQTT Test...' : 'Run MQTT Automation'}
-            </button>
+            <div className="flex gap-4 mb-4">
+                <button
+                    onClick={() => runAutomation('mqtt')}
+                    disabled={status === 'running'}
+                    className={`px-4 py-2 rounded ${
+                        status === 'running'
+                            ? 'bg-gray-400'
+                            : 'bg-blue-500 hover:bg-blue-600'
+                    } text-white`}
+                >
+                    {status === 'running' ? 'Running MQTT Test...' : 'Run MQTT Automation'}
+                </button>
+
+                <button
+                    onClick={() => runAutomation('lazygit')}
+                    disabled={status === 'running'}
+                    className={`px-4 py-2 rounded ${
+                        status === 'running'
+                            ? 'bg-gray-400'
+                            : 'bg-green-500 hover:bg-green-600'
+                    } text-white`}
+                >
+                    {status === 'running' ? 'Running Lazygit Test...' : 'Run Lazygit Automation'}
+                </button>
+            </div>
 
             <div className="mt-4">
                 <h3 className="font-bold mb-2">Status: {status}</h3>
@@ -73,26 +98,6 @@ const Playwright = () => {
                         ))}
                     </div>
                 </div>
-
-                {screenshots.length > 0 && (
-                    <div className="mt-4">
-                        <h3 className="font-bold mb-2">Test Screenshots:</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            {screenshots.map((screenshot, index) => (
-                                <div key={index} className="border rounded p-2">
-                                    <p className="text-sm text-gray-600 mb-2">
-                                        Step {index + 1}
-                                    </p>
-                                    <img
-                                        src={`/data/${screenshot}`}
-                                        alt={`MQTT test step ${index + 1}`}
-                                        className="w-full"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

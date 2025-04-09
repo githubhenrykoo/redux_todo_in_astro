@@ -173,6 +173,31 @@ const DetailView = ({
     return `${(size / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   };
 
+  // Get correct content type for display
+  const getDisplayContentType = () => {
+    if (!selectedItem?.contentType?.mimeType) return 'Unknown';
+    
+    // Handle special case for QuickTime videos that are actually MP4s
+    if (selectedItem.contentType.mimeType === 'video/quicktime') {
+      console.log('Converting QuickTime content type display to MP4');
+      return 'MP4 (video/mp4)';
+    }
+    
+    // Use the standard formatting function for all other content types
+    return getFormattedContentType(selectedItem.contentType.mimeType);
+  };
+
+  // Render item details section
+  const renderItemDetails = () => {
+    return (
+      <div className="info-section">
+        <p><strong>Hash:</strong> {selectedItem.hash}</p>
+        <p><strong>Type:</strong> {getDisplayContentType()}</p>
+        <p><strong>Date:</strong> {selectedItem.timestamp || 'Unknown'}</p>
+      </div>
+    );
+  };
+
   if (itemLoading) {
     return <div className="loading-indicator">Loading item details...</div>;
   }
@@ -529,13 +554,7 @@ const DetailView = ({
       
       <div className="catalog-detail-content">
         <div className="catalog-detail-info">
-          <div className="info-section">
-            <p><strong>Hash:</strong> {selectedItem.hash}</p>
-            <p><strong>Type:</strong> {
-              determineCorrectContentType(selectedItem)
-            }</p>
-            <p><strong>Date:</strong> {selectedItem.timestamp || 'Unknown'}</p>
-          </div>
+          {renderItemDetails()}
           
           <div className="content-section">
             <h3>Content</h3>

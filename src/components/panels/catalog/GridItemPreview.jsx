@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSimpleContentType, getContentTypeDisplay, getFormattedContentType } from './utils';
+import { getSimpleContentType, getContentTypeDisplay, getFormattedContentType, determineCorrectContentType } from './utils';
 import { ContentService } from '../../../services/content-service';
 import { isImageType } from '../../../utils/content-utils';
 
@@ -157,7 +157,9 @@ const GridItemPreview = ({ item }) => {
               <pre>{textPreview}</pre>
             </div>
             <div className="text-type-label">
-              {getFormattedContentType(item.contentType?.mimeType)}
+              {item.contentType?.mimeType === 'video/quicktime' ? 
+                'MP4 (video/mp4)' : 
+                getFormattedContentType(item.contentType?.mimeType)}
             </div>
           </>
         )}
@@ -182,7 +184,9 @@ const GridItemPreview = ({ item }) => {
       <div className="preview-icon">
         <i className={getIconClass()} />
         <div className="content-type-label">
-          {getFormattedContentType(item.contentType?.mimeType)}
+          {item.contentType?.mimeType === 'video/quicktime' ? 
+            'MP4 (video/mp4)' : 
+            getFormattedContentType(item.contentType?.mimeType)}
         </div>
       </div>
     </div>

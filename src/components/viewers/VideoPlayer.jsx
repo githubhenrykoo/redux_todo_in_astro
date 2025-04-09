@@ -27,6 +27,7 @@ const VideoPlayer = ({ content, contentType, hash }) => {
   const videoRef = useRef(null);
   const videoContainerRef = useRef(null);
   const seekBarRef = useRef(null);
+  const progressIntervalRef = useRef(null);
   
   useEffect(() => {
     setLoading(true);
@@ -202,6 +203,39 @@ const VideoPlayer = ({ content, contentType, hash }) => {
       }
     };
   }, [content, contentType, hash, retry]);
+  
+  // Use a manual interval to update the progress bar more frequently
+  useEffect(() => {
+    const startProgressTracking = () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      
+      progressIntervalRef.current = setInterval(() => {
+        if (videoRef.current && !isDraggingSeeker && isPlaying) {
+          setCurrentTime(videoRef.current.currentTime);
+        }
+      }, 60); // Update roughly every 60ms for smoother updates
+    };
+    
+    const stopProgressTracking = () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+    
+    if (isPlaying) {
+      startProgressTracking();
+    } else {
+      stopProgressTracking();
+    }
+    
+    // Clean up on unmount
+    return () => {
+      stopProgressTracking();
+    };
+  }, [isPlaying, isDraggingSeeker]);
   
   // Toggle play/pause 
   const togglePlay = () => {
@@ -412,8 +446,8 @@ const VideoPlayer = ({ content, contentType, hash }) => {
   };
   
   const getVideoTitle = () => {
-    // This could be expanded to extract metadata from the video
-    return "Soldier falling down to knees Meme template";
+    // Use the item name if available, otherwise default to hash
+    return hash ? `Video ${hash.substring(0, 8)}` : "Video";
   };
 
   const formatFileSize = (bytes) => {
@@ -425,8 +459,12 @@ const VideoPlayer = ({ content, contentType, hash }) => {
   };
 
   const getVideoFileSize = () => {
-    // This is a placeholder - would need to be implemented to get actual size
-    return 2.5 * 1024 * 1024; // Assume 2.5MB as an example
+    // Try to get actual file size from content if available
+    if (content && content.content && content.content.data) {
+      return content.content.data.length || 0;
+    }
+    // Fallback size
+    return 0;
   };
 
   return (

@@ -9,9 +9,13 @@ const Playwright = () => {
         try {
             setStatus('running');
             setLogs([]);
-            setScreenshots([]);
 
-            const endpoint = type === 'mqtt' ? '/api/run-mqtt-automation' : '/api/run-lazygit-automation';
+            const endpoint = type === 'mqtt' 
+                ? '/api/run-mqtt-automation' 
+                : type === 'file'
+                ? '/api/run-file-automation'
+                : '/api/run-lazygit-automation';
+                
             const response = await fetch(endpoint, {
                 method: 'POST',
             });
@@ -82,6 +86,18 @@ const Playwright = () => {
                     } text-white`}
                 >
                     {status === 'running' ? 'Running Lazygit Test...' : 'Run Lazygit Automation'}
+                </button>
+
+                <button
+                    onClick={() => runAutomation('file')}
+                    disabled={status === 'running'}
+                    className={`px-4 py-2 rounded ${
+                        status === 'running'
+                            ? 'bg-gray-400'
+                            : 'bg-blue-500 hover:bg-blue-600'
+                    } text-white`}
+                >
+                    {status === 'running' ? 'Running File Test...' : 'Run File Automation'}
                 </button>
             </div>
 

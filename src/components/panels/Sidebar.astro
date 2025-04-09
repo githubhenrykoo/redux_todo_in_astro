@@ -96,6 +96,21 @@ const { class: className, ...props } = Astro.props;
         </span>
       </button>
       <button
+        id="testingLayoutBtn"
+        title="Testing Dashboard"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 4h6v6h-6z"></path>
+          <path d="M4 14h6v6H4z"></path>
+          <path d="M17 7l-3 3"></path>
+          <path d="M7 17l-3 3"></path>
+        </svg>
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Testing Dashboard
+        </span>
+      </button>
+      <button
         id="transcriptionLayoutBtn"
         title="AI Training Data"
         class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative hidden"
@@ -127,6 +142,7 @@ const { class: className, ...props } = Astro.props;
   const youtubeLayoutBtn = document.getElementById('youtubeLayoutBtn');
   const cameraLayoutBtn = document.getElementById('cameraLayoutBtn');
   const catalogLayoutBtn = document.getElementById('catalogLayoutBtn');
+  const testingLayoutBtn = document.getElementById('testingLayoutBtn');
   const transcriptionLayoutBtn = document.getElementById('transcriptionLayoutBtn');
 
   // Add click handlers
@@ -162,6 +178,10 @@ const { class: className, ...props } = Astro.props;
     store.dispatch(changeLayout('catalog_layout'));
   });
 
+  testingLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('Testing'));
+  });
+
   transcriptionLayoutBtn?.addEventListener('click', () => {
     store.dispatch(changeLayout('transcription_layout'));
   });
@@ -170,7 +190,7 @@ const { class: className, ...props } = Astro.props;
   function updateActiveButton(layout: string) {
     // Remove active styles from all buttons
     todoLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
-    generateLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    testingLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     clmLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     fileLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     mqttDashboardLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
@@ -181,7 +201,7 @@ const { class: className, ...props } = Astro.props;
 
     // Reset icon colors
     todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
-    generateLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    testingLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     clmLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     fileLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     mqttDashboardLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');

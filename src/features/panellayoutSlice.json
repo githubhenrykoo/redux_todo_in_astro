@@ -182,19 +182,19 @@
     "catalog_layout": {
         "left": {
             "type": "CatalogPanel",
-            "size": 100,
+            "size": 40,
             "minSize": 50,
             "visible": true
         },
         "middle": {
             "type": "ContentViewerPanel", 
-            "size": 0,
+            "size": 30,
             "minSize": 0,
             "visible": false
         },
         "right": {
             "type": "ContentDetailPanel",
-            "size": 0,
+            "size": 30,
             "minSize": 0,
             "visible": false
         }

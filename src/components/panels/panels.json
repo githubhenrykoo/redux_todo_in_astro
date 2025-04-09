@@ -53,6 +53,9 @@
   "SimpleMQTTDashboardPanel": {
     "component": "../components/panels/SimpleMQTTDashboardPanel.jsx"
   },
+  "playwright": {
+    "component": "../components/panels/playwright.jsx"
+  },
   "CatalogPanel": {
     "component": "../components/panels/CatalogPanel.jsx"
   }

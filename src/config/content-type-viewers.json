@@ -90,6 +90,21 @@
       "priority": 100,
       "fallback": "BinaryViewer.jsx"
     },
+    "audio/flac": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "audio/ogg": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
+    "audio/m4a": {
+      "component": "AudioViewer.jsx",
+      "priority": 100,
+      "fallback": "BinaryViewer.jsx"
+    },
     
     "text/html": {
       "component": "../components/viewers/CodeViewer",
@@ -166,6 +181,21 @@
       "description": "Detect Redux state format to use specialized viewer",
       "test": "typeof content === 'object' && content !== null && (content.cards || content.state || content.todos || content.clm || content.selectedHash !== undefined)",
       "mimeType": "application/redux-state"
+    },
+    {
+      "description": "Detect MP3 audio files with ID3 tags in octet-stream content",
+      "test": "typeof content === 'string' && content.includes('ID3')",
+      "mimeType": "audio/mpeg"
+    },
+    {
+      "description": "Detect WAV audio files in octet-stream content",
+      "test": "typeof content === 'string' && content.includes('RIFF') && content.includes('WAVE')",
+      "mimeType": "audio/wav"
+    },
+    {
+      "description": "Detect MP3 audio files based on content structure when misclassified",
+      "test": "typeof content === 'object' && content !== null && content.type === 'Buffer' && content.data && content.data.length > 10 && ((content.data[0] === 73 && content.data[1] === 68 && content.data[2] === 51) || (content.data[0] === 255 && (content.data[1] === 251 || content.data[1] === 243 || content.data[1] === 242)))",
+      "mimeType": "audio/mpeg"
     }
   ]
 }

@@ -159,6 +159,26 @@
             "visible": true
         }
     },
+    "Testing": {
+        "left": {
+            "type": "playwright",
+            "size": 50,
+            "minSize": 30,
+            "visible": true
+        },
+        "middle": {
+            "type": "xterm", 
+            "size": 0,
+            "minSize": 0,
+            "visible": false
+        },
+        "right": {
+            "type": "SimpleMQTTDashboardPanel",
+            "size": 50,
+            "minSize": 30,
+            "visible": true
+        }
+    },
     "catalog_layout": {
         "left": {
             "type": "CatalogPanel",

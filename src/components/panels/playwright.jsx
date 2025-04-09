@@ -78,7 +78,7 @@ const Playwright = () => {
                     className={`px-4 py-2 rounded ${
                         status === 'running'
                             ? 'bg-gray-400'
-                            : 'bg-green-500 hover:bg-green-600'
+                            : 'bg-blue-500 hover:bg-blue-600'
                     } text-white`}
                 >
                     {status === 'running' ? 'Running Lazygit Test...' : 'Run Lazygit Automation'}

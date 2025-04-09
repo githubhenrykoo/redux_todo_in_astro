@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import { getSimpleContentType, getContentTypeDisplay, getFormattedContentType } from './utils';
 import { ContentService } from '../../../services/content-service';
 import { isImageType } from '../../../utils/content-utils';
 
@@ -157,7 +157,7 @@ const GridItemPreview = ({ item }) => {
               <pre>{textPreview}</pre>
             </div>
             <div className="text-type-label">
-              {ContentService.getContentTypeDisplay(item.contentType)}
+              {getFormattedContentType(item.contentType?.mimeType)}
             </div>
           </>
         )}
@@ -182,7 +182,7 @@ const GridItemPreview = ({ item }) => {
       <div className="preview-icon">
         <i className={getIconClass()} />
         <div className="content-type-label">
-          {ContentService.getContentTypeDisplay(item.contentType)}
+          {getFormattedContentType(item.contentType?.mimeType)}
         </div>
       </div>
     </div>

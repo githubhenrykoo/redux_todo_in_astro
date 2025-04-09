@@ -5,6 +5,8 @@ import { store } from '../store';
 
 // Map of panel types to their components
 const panelComponents = {
+  // Add direct component mapping for CatalogPanel
+  'CatalogPanel': React.lazy(() => import('../components/panels/CatalogPanel.jsx')),
   // Other components can be added here
 };
 

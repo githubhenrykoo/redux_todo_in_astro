@@ -505,3 +505,6 @@ const CatalogPanel = () => {
 };
 
 export default CatalogPanel;
+
+// Also export as a named export to support different import strategies
+export { CatalogPanel };

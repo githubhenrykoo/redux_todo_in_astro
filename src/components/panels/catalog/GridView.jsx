@@ -181,74 +181,113 @@ const GridView = ({
   }
 
   return (
-    <>
-      <div className="catalog-grid-view grid-masonry">
-        {sortedItems.map(item => {
-          // Use verified content type if available
-          const verifiedItem = verifiedItems[item.id];
-          const displayItem = verifiedItem && verifiedItem.isVerified
-            ? { ...item, contentType: verifiedItem.contentType }
-            : item;
-          
-          const isImage = isImageItem(displayItem);
-          
-          return (
-            <div 
-              key={item.id} 
-              className={`grid-item ${isImage ? 'grid-item-image' : 'grid-item-other'}`}
-              onMouseEnter={() => setHoveredItem(item.id)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
+    <div style={{
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative'
+    }}>
+      {/* Main scrollable grid container */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: '50px', /* Space for pagination */
+        overflowY: 'scroll',
+        overflowX: 'hidden',
+        padding: '16px 16px 0 16px'
+      }}>
+        {/* Grid layout */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+          gap: '20px',
+          width: '100%',
+          paddingTop: '16px', /* Add padding to fix first row cards being cut off */
+          paddingBottom: '70px'
+        }}>
+          {sortedItems.map(item => {
+            // Use verified content type if available
+            const verifiedItem = verifiedItems[item.id];
+            const displayItem = verifiedItem && verifiedItem.isVerified
+              ? { ...item, contentType: verifiedItem.contentType }
+              : item;
+            
+            const isImage = isImageItem(displayItem);
+            
+            return (
               <div 
-                className={`grid-item-card ${hoveredItem === item.id ? 'hovered' : ''}`}
-                onClick={() => onSelectItem(item)}
+                key={item.id} 
+                className={`grid-item ${isImage ? 'grid-item-image' : 'grid-item-other'}`}
+                onMouseEnter={() => setHoveredItem(item.id)}
+                onMouseLeave={() => setHoveredItem(null)}
               >
-                <div className={`grid-item-thumbnail ${isImage ? 'image-thumbnail' : ''}`}>
-                  <GridItemPreview item={displayItem} />
-                </div>
-                <div className="grid-item-info">
-                  <h3 className="grid-item-title" style={{ color: '#000000', fontWeight: 'bold' }}>
-                    {item.id.substring(0, 8)}
-                  </h3>
-                  <div className="grid-item-meta">
-                    <span className="grid-item-type" style={{ 
-                      color: '#000000', 
-                      fontWeight: 'bold',
-                      backgroundColor: '#ffffff',
-                      border: '1px solid #000000'
-                    }}>
-                      {getFormattedContentType(displayItem)}
-                    </span>
-                    <span className="grid-item-date" style={{ color: '#000000', fontWeight: 'bold' }}>
-                      {new Date(item.timestamp).toLocaleDateString()}
-                    </span>
+                <div 
+                  className={`grid-item-card ${hoveredItem === item.id ? 'hovered' : ''}`}
+                  onClick={() => onSelectItem(item)}
+                >
+                  <div className={`grid-item-thumbnail ${isImage ? 'image-thumbnail' : ''}`}>
+                    <GridItemPreview item={displayItem} />
                   </div>
-                  <p className="grid-item-description" style={{ color: '#000000', fontWeight: 'medium' }}>
-                    {item.description || "No description available"}
-                  </p>
-                </div>
-                <div className={`grid-item-actions ${hoveredItem === item.id ? 'visible' : ''}`}>
-                  <button 
-                    className="btn btn-small btn-danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteItem(item.id);
-                    }}
-                  >
-                    Delete
-                  </button>
+                  <div className="grid-item-info">
+                    <h3 className="grid-item-title" style={{ color: '#000000', fontWeight: 'bold' }}>
+                      {item.id.substring(0, 8)}
+                    </h3>
+                    <div className="grid-item-meta">
+                      <span className="grid-item-type" style={{ 
+                        color: '#000000', 
+                        fontWeight: 'bold',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #000000'
+                      }}>
+                        {getFormattedContentType(displayItem)}
+                      </span>
+                      <span className="grid-item-date" style={{ color: '#000000', fontWeight: 'bold' }}>
+                        {new Date(item.timestamp).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={`grid-item-actions ${hoveredItem === item.id ? 'visible' : ''}`}>
+                    <button 
+                      className="btn btn-small btn-danger"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteItem(item.id);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
       
-      <PaginationControls 
-        paginationInfo={paginationInfo} 
-        onPageChange={onPageChange} 
-      />
-    </>
+      {/* Fixed pagination at bottom */}
+      <div style={{ 
+        position: 'absolute', 
+        bottom: 0, 
+        left: 0, 
+        right: 0, 
+        height: '50px',
+        borderTop: '1px solid var(--border-color, #3e3e3e)',
+        backgroundColor: 'var(--panel-subheader-bg, #262626)',
+        padding: '8px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 5
+      }}>
+        <PaginationControls 
+          paginationInfo={paginationInfo} 
+          onPageChange={onPageChange} 
+        />
+      </div>
+    </div>
   );
 };
 

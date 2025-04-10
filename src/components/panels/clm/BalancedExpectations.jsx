@@ -1,7 +1,7 @@
 import React from 'react';
 import DimensionPanel from './DimensionPanel';
 
-const BalancedExpectations = ({ data, onChange, generateJsonData }) => {
+const BalancedExpectations = ({ data, onChange, generateJsonData, clmReference }) => {
     console.log("BalancedExpectations rendered with data:", data);
     
     // Define fields according to CLM_for_CLM_Mcard.md spec
@@ -40,6 +40,7 @@ const BalancedExpectations = ({ data, onChange, generateJsonData }) => {
         // Create a clean object for JSON preview
         return {
             dimensionType: "balancedExpectations",
+            clmReference: clmReference || "", // Include reference to parent CLM
             practicalBoundaries: data.practicalBoundaries || "",
             evaluationMetrics: data.evaluationMetrics || "",
             feedbackLoops: data.feedbackLoops || ""

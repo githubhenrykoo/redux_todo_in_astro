@@ -1,29 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { importCardFromDatabase, selectContent } from '../../features/contentSlice';
-import { selectItem } from '../../features/selectedItemSlice';
-import '../../styles/CatalogPanel.css';
-
-// Import subcomponents from the catalog directory
-import CatalogHeader from './catalog/CatalogHeader';
-import GridView from './catalog/GridView';
-import DetailView from './catalog/DetailView';
-import AddItemForm from './catalog/AddItemForm';
-
-// Import our new modules
-import * as api from './catalog/api';
-import { processApiItems, updatePagination, processContentForDisplay } from './catalog/dataHelpers';
-import { getSimpleContentType } from './catalog/utils';
+import { importCardFromDatabase, selectContent } from '../../../features/contentSlice';
+import { selectItem } from '../../../features/selectedItemSlice';
+import * as api from './api';
+import { processApiItems, updatePagination, processContentForDisplay, getSimpleContentType } from './dataHelpers';
 
 /**
- * CatalogPanel - Component for displaying and managing catalog items
+ * Custom hook for catalog data management
+ * @returns {Object} - Catalog data and functions
  */
-const CatalogPanel = () => {
+const useCatalogData = () => {
   const dispatch = useDispatch();
   
   // Main state
   const [items, setItems] = useState([]);
-  const [viewMode, setViewMode] = useState('grid'); // Default to grid view
+  const [viewMode, setViewMode] = useState('grid');
   const [selectedItem, setSelectedItem] = useState(null);
   
   // Loading and error states
@@ -49,6 +40,19 @@ const CatalogPanel = () => {
     items: [], currentPage: 1, totalPages: 1, totalItems: 0, searchTerm: ''
   });
 
+  // Initialize
+  useEffect(() => {
+    fetchCatalogItems();
+  }, []);
+
+  // Update categories whenever items change
+  useEffect(() => {
+    if (items.length > 0) {
+      const catSet = new Set(items.map(item => item.category));
+      setCategories(['all', ...Array.from(catSet)].filter(Boolean));
+    }
+  }, [items]);
+
   // Computed values
   const displayItems = isSearchMode ? searchResults.items : items;
   const paginationInfo = isSearchMode 
@@ -63,19 +67,6 @@ const CatalogPanel = () => {
       ? a.name.localeCompare(b.name) 
       : new Date(b.timestamp) - new Date(a.timestamp)
   );
-
-  // Initialize
-  useEffect(() => {
-    fetchCatalogItems();
-  }, []);
-
-  // Update categories whenever items change
-  useEffect(() => {
-    if (items.length > 0) {
-      const catSet = new Set(items.map(item => item.category));
-      setCategories(['all', ...Array.from(catSet)].filter(Boolean));
-    }
-  }, [items]);
 
   // API Handlers
   const fetchCatalogItems = async () => {
@@ -230,53 +221,6 @@ const CatalogPanel = () => {
     }
   };
 
-  // UI Handlers
-  const handleRefresh = () => {
-    if (isSearchMode) clearSearch();
-    fetchCatalogItems();
-  };
-
-  const handleSearchSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!searchTerm.trim()) {
-      clearSearch();
-      return;
-    }
-    
-    setIsSearchMode(true);
-    setSearchLoading(true);
-    
-    try {
-      const data = await api.searchByContent(searchTerm, 1, pagination.pageSize);
-      if (data.success) {
-        const transformedItems = processApiItems(data);
-        setSearchResults({
-          items: transformedItems,
-          currentPage: data.currentPage || 1,
-          totalPages: data.totalPages || Math.ceil((data.totalResults || data.totalItems || transformedItems.length) / pagination.pageSize),
-          totalItems: data.totalResults || data.totalItems || transformedItems.length,
-          searchTerm: searchTerm
-        });
-      } else {
-        setSearchError(data.error || 'Search failed');
-      }
-    } catch (error) {
-      console.error('Error searching catalog items:', error);
-      setSearchError('Search failed. Please try again.');
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const clearSearch = () => {
-    setIsSearchMode(false);
-    setSearchResults({
-      items: [], currentPage: 1, totalPages: 1, totalItems: 0, searchTerm: ''
-    });
-    setSearchTerm('');
-  };
-
   const addFileItem = async (newItemData) => {
     setLoading(true);
     try {
@@ -333,64 +277,87 @@ const CatalogPanel = () => {
     }
   };
 
-  // Render main component
-  return (
-    <div className="catalog-panel" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CatalogHeader 
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        isSearchMode={isSearchMode}
-        categories={categories}
-        filter={filter}
-        setFilter={setFilter}
-        handleSearchSubmit={handleSearchSubmit}
-        handleClearSearch={clearSearch}
-        handleRefresh={handleRefresh}
-        searchResults={searchResults}
-      />
-      
-      <div className="catalog-content" style={{ flex: 1, overflow: 'auto', position: 'relative' }}>
-        {viewMode === 'grid' && (
-          <GridView 
-            loading={loading || searchLoading}
-            error={error}
-            searchError={searchError}
-            isSearchMode={isSearchMode}
-            searchResults={searchResults}
-            sortedItems={sortedItems}
-            paginationInfo={paginationInfo}
-            onSelectItem={handleSelectItem}
-            onDeleteItem={handleDeleteItem}
-            onPageChange={handlePageChange}
-          />
-        )}
-        
-        {viewMode === 'detail' && (
-          <DetailView 
-            itemLoading={itemLoading}
-            itemError={itemError}
-            selectedItem={selectedItem}
-            onBack={() => setViewMode('grid')}
-            onDeleteItem={handleDeleteItem}
-          />
-        )}
-        
-        {viewMode === 'add' && (
-          <AddItemForm 
-            loading={loading}
-            error={error}
-            onSubmit={handleAddItem}
-            onCancel={() => setViewMode('grid')}
-          />
-        )}
-      </div>
-    </div>
-  );
+  // UI Handlers
+  const handleRefresh = () => {
+    if (isSearchMode) clearSearch();
+    fetchCatalogItems();
+  };
+
+  const handleSearchSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!searchTerm.trim()) {
+      clearSearch();
+      return;
+    }
+    
+    setIsSearchMode(true);
+    setSearchLoading(true);
+    
+    try {
+      const data = await api.searchByContent(searchTerm, 1, pagination.pageSize);
+      if (data.success) {
+        const transformedItems = processApiItems(data);
+        setSearchResults({
+          items: transformedItems,
+          currentPage: data.currentPage || 1,
+          totalPages: data.totalPages || Math.ceil((data.totalResults || data.totalItems || transformedItems.length) / pagination.pageSize),
+          totalItems: data.totalResults || data.totalItems || transformedItems.length,
+          searchTerm: searchTerm
+        });
+      } else {
+        setSearchError(data.error || 'Search failed');
+      }
+    } catch (error) {
+      console.error('Error searching catalog items:', error);
+      setSearchError('Search failed. Please try again.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setIsSearchMode(false);
+    setSearchResults({
+      items: [], currentPage: 1, totalPages: 1, totalItems: 0, searchTerm: ''
+    });
+    setSearchTerm('');
+  };
+
+  return {
+    // State
+    items,
+    viewMode,
+    setViewMode,
+    selectedItem,
+    loading,
+    itemLoading,
+    searchLoading,
+    error,
+    itemError,
+    searchError,
+    searchTerm,
+    setSearchTerm,
+    isSearchMode,
+    categories,
+    filter,
+    setFilter,
+    sortBy,
+    setSortBy,
+    pagination,
+    searchResults,
+    sortedItems,
+    paginationInfo,
+    
+    // Functions
+    handleSelectItem,
+    handleDeleteItem,
+    handleAddItem,
+    handleRefresh,
+    handleSearchSubmit,
+    clearSearch,
+    handlePageChange
+  };
 };
 
-export default CatalogPanel;
-
-// Also export as a named export to support different import strategies
-export { CatalogPanel };
+export default useCatalogData;

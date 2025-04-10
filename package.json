@@ -45,6 +45,7 @@
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "gapi-script": "^1.2.0",
+    "googleapis": "^148.0.0",
     "http": "^0.0.1-security",
     "jimp": "^0.22.8",
     "lucide-react": "^0.284.0",

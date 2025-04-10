@@ -188,6 +188,7 @@ const CLMInputPanel = () => {
             case 'balancedExpectations':
                 return {
                     dimensionType: "balancedExpectations",
+                    clmReference: currentClmHash || "", // Reference to parent CLM
                     practicalBoundaries: data.balancedExpectations.practicalBoundaries,
                     evaluationMetrics: data.balancedExpectations.evaluationMetrics,
                     feedbackLoops: data.balancedExpectations.feedbackLoops
@@ -215,8 +216,7 @@ const CLMInputPanel = () => {
             // Step 1: Generate JSON-formatted content for each dimension MCard
             const abstractSpecificationJson = generateJsonData('abstractSpecification');
             const concreteImplementationJson = generateJsonData('concreteImplementation');
-            const balancedExpectationsJson = generateJsonData('balancedExpectations');
-
+            
             // Step 2: Store each dimension as its own MCard to get hash references
             // First, save Abstract Specification dimension
             console.log("Saving Abstract Specification dimension...");
@@ -259,38 +259,16 @@ const CLMInputPanel = () => {
             }
             const concreteImplResult = await concreteImplResponse.json();
             const concreteImplHash = concreteImplResult.hash;
-            
-            // Finally, save Balanced Expectations dimension
-            console.log("Saving Balanced Expectations dimension...");
-            const balancedExpResponse = await fetch('/api/card-collection', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    action: 'add',
-                    card: {
-                        content: balancedExpectationsJson
-                    }
-                })
-            });
-            
-            if (!balancedExpResponse.ok) {
-                throw new Error(`Failed to save Balanced Expectations: ${balancedExpResponse.status}`);
-            }
-            const balancedExpResult = await balancedExpResponse.json();
-            const balancedExpHash = balancedExpResult.hash;
 
             // Step 3: Create the root CLM MCard with references to the dimension hashes
             console.log("Creating root CLM with dimension hash references...");
             const rootClmJson = {
                 title: documentTitle,
                 type: 'clm_document',
-                // Reference dimensions by their hash values according to the CLM_for_CLM_Mcard.md spec
+                // Reference only Abstract Specification and Concrete Implementation dimensions by hash
                 dimensions: {
                     abstractSpecification: abstractSpecHash,
-                    concreteImplementation: concreteImplHash,
-                    balancedExpectations: balancedExpHash
+                    concreteImplementation: concreteImplHash
                 }
             };
 
@@ -335,12 +313,42 @@ const CLMInputPanel = () => {
             
             if (result.success) {
                 // Store the CLM hash for future updates
-                setCurrentClmHash(result.hash);
+                const clmHash = result.hash;
+                setCurrentClmHash(clmHash);
+                
+                // NOW save Balanced Expectations dimension with reference to parent CLM
+                console.log("Saving Balanced Expectations dimension with CLM reference...");
+                const balancedExpectationsJson = {
+                    ...generateJsonData('balancedExpectations'),
+                    clmReference: clmHash // Ensure the CLM reference is set to the newly created CLM
+                };
+                
+                const balancedExpResponse = await fetch('/api/card-collection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'add',
+                        card: {
+                            content: balancedExpectationsJson
+                        }
+                    })
+                });
+                
+                if (!balancedExpResponse.ok) {
+                    console.warn(`Note: Failed to save Balanced Expectations: ${balancedExpResponse.status}`);
+                    // Continue anyway as the CLM was saved successfully
+                } else {
+                    const balancedExpResult = await balancedExpResponse.json();
+                    console.log(`Balanced Expectations saved with hash: ${balancedExpResult.hash.substring(0, 10)}...`);
+                }
+                
                 setLastUpdated(new Date().toISOString());
                 
                 setSaveMessage({ 
                     type: 'success', 
-                    text: `CLM data saved successfully! Hash: ${result.hash.substring(0, 10)}...` 
+                    text: `CLM data saved successfully! Hash: ${clmHash.substring(0, 10)}...` 
                 });
             } else {
                 throw new Error(result.error || 'Failed to save CLM data');
@@ -459,6 +467,7 @@ const CLMInputPanel = () => {
                         data={clmData.balancedExpectations}
                         onChange={handleInputChange}
                         generateJsonData={generateJsonData}
+                        clmReference={currentClmHash}
                     />
                 );
             default:

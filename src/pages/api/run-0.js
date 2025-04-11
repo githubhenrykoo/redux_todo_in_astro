@@ -35,44 +35,13 @@ export async function POST({ request, response }) {
             
             const page = await context.newPage();
 
-            // Part 1: MQTT Automation
-            await sendMessage('log', { message: '=== Starting MQTT Tests ===' });
+            // Part 1: Lazygit Automation
+            await sendMessage('log', { message: '=== Starting Lazygit Tests ===' });
             
             await page.goto('http://localhost:4321');
             await page.click('a.enter-button[href="/Page"]');
             await page.waitForTimeout(1000);
 
-            await page.click('#todoLayoutBtn');
-            await page.waitForTimeout(2000);
-
-            // LED Tests
-            await page.click('button:has-text("Turn on LED")');
-            await sendMessage('log', { message: 'Turned ON LED' });
-            await page.screenshot({ 
-                path: path.join(screenshotsDir, `led-on-${Date.now()}.png`),
-                fullPage: true 
-            });
-            await page.waitForTimeout(1000);
-
-            await page.click('button:has-text("Test Energy Meter")');
-            await sendMessage('log', { message: 'Testing Energy Meter' });
-            await page.waitForTimeout(1000);
-
-            // Send message
-            const currentTime = new Date().toLocaleTimeString();
-            const message = `Current Time: ${currentTime}`;
-            await page.click('input[placeholder="Enter your message here..."]');
-            await page.keyboard.type(message, { delay: 100 });
-            await page.click('button:has-text("Send")');
-            await page.waitForTimeout(1000);
-
-            await page.click('button:has-text("Turn off LED")');
-            await sendMessage('log', { message: 'Turned OFF LED' });
-            await page.waitForTimeout(1000);
-
-            // Part 2: Lazygit Automation
-            await sendMessage('log', { message: '=== Starting Lazygit Tests ===' });
-            
             await page.click('.xterm-screen');
             const cdCommand = 'cd documents/github/redux_todo_in_astro';
             for (const char of cdCommand) {
@@ -100,6 +69,34 @@ export async function POST({ request, response }) {
 
             await page.keyboard.press('q');
             await page.waitForTimeout(2000);
+
+            // Part 2: MQTT Automation
+            await sendMessage('log', { message: '=== Starting MQTT Tests ===' });
+
+            // LED Tests
+            await page.click('button:has-text("Turn on LED")');
+            await sendMessage('log', { message: 'Turned ON LED' });
+            await page.screenshot({ 
+                path: path.join(screenshotsDir, `led-on-${Date.now()}.png`),
+                fullPage: true 
+            });
+            await page.waitForTimeout(1000);
+
+            await page.click('button:has-text("Test Energy Meter")');
+            await sendMessage('log', { message: 'Testing Energy Meter' });
+            await page.waitForTimeout(1000);
+
+            // Send message
+            const currentTime = new Date().toLocaleTimeString();
+            const message = `Current Time: ${currentTime}`;
+            await page.click('input[placeholder="Enter your message here..."]');
+            await page.keyboard.type(message, { delay: 100 });
+            await page.click('button:has-text("Send")');
+            await page.waitForTimeout(1000);
+
+            await page.click('button:has-text("Turn off LED")');
+            await sendMessage('log', { message: 'Turned OFF LED' });
+            await page.waitForTimeout(1000);
 
             await sendMessage('log', { message: 'Combined automation completed successfully' });
             await browser.close();

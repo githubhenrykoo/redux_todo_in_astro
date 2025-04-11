@@ -6,6 +6,7 @@ import { store } from '../store';
 // Map of panel types to their components
 const panelComponents = {
   // Special case components can be added here
+  googlecalendar: lazy(() => import('../components/panels/googlecalendar.jsx'))
 };
 
 // Create a client-only wrapper for xterm
@@ -28,8 +29,8 @@ const PanelContent = () => {
     // Special handling for xterm
     if (config.type === 'xterm') {
       return (
-        <ClientOnly fallback={<div className="flex items-center justify-center h-full">Loading terminal...</div>}>
-          <Suspense fallback={<div className="flex items-center justify-center h-full">Initializing terminal...</div>}>
+        <ClientOnly fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading terminal...</div>}>
+          <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Initializing terminal...</div>}>
             {React.createElement(React.lazy(() => import('../components/panels/xterm.jsx')))}
           </Suspense>
         </ClientOnly>
@@ -40,7 +41,7 @@ const PanelContent = () => {
     if (panelComponents[config.type]) {
       const Component = panelComponents[config.type];
       return (
-        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading {config.type}...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading {config.type}...</div>}>
           <Component />
         </Suspense>
       );
@@ -70,28 +71,28 @@ const PanelContent = () => {
     );
     
     return (
-      <Suspense fallback={<div className="flex items-center justify-center h-full">Loading panel...</div>}>
+      <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading panel...</div>}>
         <Component />
       </Suspense>
     );
   };
 
   return (
-    <div className="h-full w-full overflow-hidden">
+    <div className="h-full w-full overflow-hidden dark:bg-gray-900">
       <PanelGroup direction="horizontal" className="h-full">
-        <Panel defaultSize={panels.left.size} minSize={panels.left.minSize}>
+        <Panel defaultSize={panels.left.size} minSize={panels.left.minSize} className="dark:bg-gray-800">
           {renderPanel(panels.left)}
         </Panel>
 
-        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
+        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors" />
 
-        <Panel defaultSize={panels.middle.size} minSize={panels.middle.minSize}>
+        <Panel defaultSize={panels.middle.size} minSize={panels.middle.minSize} className="dark:bg-gray-800">
           {renderPanel(panels.middle)}
         </Panel>
 
-        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
+        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors" />
 
-        <Panel defaultSize={panels.right.size} minSize={panels.right.minSize}>
+        <Panel defaultSize={panels.right.size} minSize={panels.right.minSize} className="dark:bg-gray-800">
           {renderPanel(panels.right)}
         </Panel>
       </PanelGroup>

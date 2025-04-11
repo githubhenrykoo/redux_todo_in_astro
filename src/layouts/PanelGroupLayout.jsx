@@ -8,7 +8,7 @@ const panelComponents = {
   // Special case components can be added here
   googlecalendar: lazy(() => import('../components/panels/googlecalendar.jsx')),
   chatbot: lazy(() => import('../components/panels/chatbot.jsx')),
-  databaseretrieve: lazy(() => import('../components/panels/DatabaseRetrievePanel.jsx')),
+  databaseretrieve: lazy(() => import('../components/panels/DatabaseRetrievePanel.tsx')),
 };
 
 // Create a client-only wrapper for xterm

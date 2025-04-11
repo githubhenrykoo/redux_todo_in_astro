@@ -104,19 +104,7 @@ const GoogleCalendar = () => {
         setIsLoading(true);
         setError(null);
         
-        // Check if API keys are properly configured
-        const apiKey = import.meta.env.PUBLIC_GOOGLE_API_KEY;
-        const clientId = import.meta.env.PUBLIC_GOOGLE_CLIENT_ID;
-        
-        if (!apiKey || apiKey === 'PLACEHOLDER_API_KEY' || 
-            !clientId || clientId === 'PLACEHOLDER_CLIENT_ID') {
-          console.error('Google Calendar API keys not configured');
-          setConfigError(true);
-          setError('Google Calendar API is not properly configured. Please add your API keys to the .env file.');
-          setIsLoading(false);
-          setIsInitializing(false);
-          return;
-        }
+        // No longer need to check for API keys since they're hardcoded
         
         await loadGoogleApi();
         

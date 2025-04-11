@@ -46,13 +46,17 @@ export async function POST({ request }) {
         await page.click('button:text("Stop Camera")');
         await page.waitForTimeout(1500);
 
-        // 7. Click Get Location button
-        await page.click('button:text("Get Location")');
-        await page.waitForTimeout(2000);
-
-        // 8. Click Zoom in on Google Maps
-        await page.click('button[aria-label="Zoom in"]');
+        // 7. Click Enter Manually button
+        await page.click('button:text("Enter Manually")');
         await page.waitForTimeout(1500);
+
+        // 8. Click Use San Francisco button
+        await page.click('button:text("Use San Francisco")');
+        await page.waitForTimeout(1500);
+
+        // 9. Click Use These Coordinates button
+        await page.click('button:text("Use These Coordinates")');
+        await page.waitForTimeout(1000);
 
         // 9. Click Settings button
         await page.click('button:text("Settings")');

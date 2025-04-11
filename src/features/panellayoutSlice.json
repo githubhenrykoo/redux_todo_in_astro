@@ -27,13 +27,13 @@
             "visible": true
         },
         "middle": {
-            "type": "googlecalendar",
+            "type": "xterm",
             "size": 40,
             "minSize": 20,
             "visible": true
         },
         "right": {
-            "type": "chatbot",
+            "type": "SimpleMQTTDashboardPanel",
             "size": 30,
             "minSize": 20,
             "visible": true

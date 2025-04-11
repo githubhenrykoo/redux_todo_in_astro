@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { importCardFromDatabase, selectContent } from '../../features/contentSlice';
-import { selectItem } from '../../features/selectedItemSlice';
+import { importCardFromDatabase, selectContent } from '../../features/contentSlice.js';
+import { selectItem } from '../../features/selectedItemSlice.js';
 
 // Import our new components
-import { SearchBar } from './database/SearchBar';
-import { HashLookup } from './database/HashLookup';
-import { ControlBar } from './database/ControlBar';
-import { CardList } from './database/CardList';
-import { Pagination } from './database/Pagination';
+import { SearchBar } from './database/SearchBar.js';
+import { HashLookup } from './database/HashLookup.js';
+import { ControlBar } from './database/ControlBar.js';
+import CardList from './database/CardList.js';
+import { Pagination } from './database/Pagination.js';
 
 interface PageData {
   items: MCardFromData[];
@@ -36,7 +36,7 @@ interface MCardFromData {
   };
 }
 
-export const DatabaseRetrievePanel: React.FC = () => {
+const DatabaseRetrievePanel: React.FC = () => {
   const dispatch = useDispatch();
   const [cards, setCards] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -122,11 +122,13 @@ export const DatabaseRetrievePanel: React.FC = () => {
 
       const data = await response.json();
       
-      // The retrieve endpoint returns PageData directly
-      setCards(data);
-      
-      // Clear selected card when fetching new cards
-      setSelectedCardHash(null);
+      if (data.success) {
+        setCards(data);
+        // Clear selected card when fetching new cards
+        setSelectedCardHash(null);
+      } else {
+        throw new Error(data.error || 'Failed to fetch cards');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       console.error('Error fetching cards:', err);
@@ -136,16 +138,10 @@ export const DatabaseRetrievePanel: React.FC = () => {
     }
   };
 
-  // Initial fetch on component mount
-  useEffect(() => {
-    fetchCards({ page, pageSize });
-  }, []);
-
   // Handle search form submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchTerm) {
-      setPage(1); // Reset to first page when searching
+    if (searchTerm.trim()) {
       fetchCards({ search: searchTerm, page: 1, pageSize });
     }
   };
@@ -153,8 +149,8 @@ export const DatabaseRetrievePanel: React.FC = () => {
   // Handle hash lookup form submission
   const handleHashLookup = (e: React.FormEvent) => {
     e.preventDefault();
-    if (hashValue) {
-      fetchCardByHash(hashValue);
+    if (hashValue.trim()) {
+      fetchCardByHash(hashValue.trim());
     }
   };
 
@@ -169,61 +165,48 @@ export const DatabaseRetrievePanel: React.FC = () => {
   };
 
   // Handle selecting a card
-  const handleSelectCard = (card: MCardFromData) => {
+  const handleSelectCard = async (card: MCardFromData) => {
+    // Toggle selection if clicking the same card
+    if (selectedCardHash === card.hash) {
+      setSelectedCardHash(null);
+      return;
+    }
+    
     setSelectedCardHash(card.hash);
     
-    // Log the card details to see what's actually available
-    console.log("Selected card:", card);
-    
-    // Get content type directly from server response
-    const serverContentType = card.contentType;
-    console.log("Server-provided content type:", serverContentType);
-    
-    // Extract a simple content type string for the UI
-    const simpleType = serverContentType?.extension || 
+    // If we already have content, use it directly
+    if (card.content !== undefined) {
+      console.log("Using existing card content");
+      
+      // Get content type directly from server response
+      const serverContentType = card.contentType;
+      console.log("Server-provided content type:", serverContentType);
+      
+      // Extract a simple content type string for the UI
+      const simpleType = serverContentType?.extension || 
                        (serverContentType?.mimeType ? getSimpleContentType(serverContentType.mimeType) : null) || 
                        "txt";
-    
-    console.log("Using content type:", simpleType);
-    
-    // Process the content based on its format - server has already processed it
-    let processedContent = card.content;
-    
-    // Import the card to Redux store
-    dispatch(importCardFromDatabase({ 
-      hash: card.hash,
-      content: processedContent,
-      metadata: {
-        contentType: serverContentType
-      },
-      relationships: {
-        parentHash: null,
-        childHashes: [],
-        relatedHashes: []
-      }
-    }));
-    
-    // Select the card in Redux
-    dispatch(selectContent(card.hash));
-    
-    // Update the selectedItem state with card details
-    dispatch(selectItem({
-      item: processedContent,
-      hash: card.hash,
-      contentType: simpleType,
-      gtime: card.g_time
-    }));
-    
-    // If we don't have the content yet, fetch the full card to get content and details
-    if (!card.content) {
-      fetchCardDetails(card.hash);
+      
+      console.log("Using content type:", simpleType);
+      
+      // Process the content based on its type
+      dispatch(selectItem({
+        item: card.content,
+        hash: card.hash,
+        contentType: simpleType,
+        gtime: card.g_time
+      }));
+    } else {
+      // Otherwise fetch the full card details
+      console.log("Fetching full card details");
+      await fetchCardDetails(card.hash);
     }
   };
-  
-  // Function to fetch the full card details 
+
+  // Function to fetch the full card details
   const fetchCardDetails = async (hash: string) => {
     try {
-      // Use the card-collection API to get full card details
+      // Make the API request using the card-collection GET endpoint with full=true to get content
       const response = await fetch(`/api/card-collection?action=get&hash=${hash}&full=true`);
       
       if (!response.ok) {
@@ -357,3 +340,5 @@ export const DatabaseRetrievePanel: React.FC = () => {
     </div>
   );
 };
+
+export default DatabaseRetrievePanel;

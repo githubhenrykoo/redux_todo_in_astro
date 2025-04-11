@@ -193,7 +193,7 @@
             "visible": false
         },
         "right": {
-            "type": "ContentDetailPanel",
+            "type": "CLMDisplayPanel",
             "size": 30,
             "minSize": 0,
             "visible": false

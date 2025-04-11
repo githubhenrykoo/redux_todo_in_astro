@@ -1,7 +1,7 @@
 {
     "generate_layout": {
         "left": {
-            "type": "DatabaseRetrievePanel",
+            "type": "CatalogPanel",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -21,7 +21,7 @@
     },
     "todo_layout": {
         "left": {
-            "type": "DatabaseRetrievePanel",
+            "type": "CatalogPanel",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -41,7 +41,7 @@
     },
     "clm_layout": {
         "left": {
-            "type": "DatabaseRetrievePanel",
+            "type": "CatalogPanel",
             "size": 33,
             "minSize": 20,
             "visible": true

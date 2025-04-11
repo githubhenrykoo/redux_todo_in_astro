@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card } from './Card';
+import Card from './Card.js';
 import { useDispatch } from 'react-redux';
-import { updateContentType } from '../../../features/selectedItemSlice';
+import { updateContentType } from '../../../features/selectedItemSlice.js';
 
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString) {
@@ -43,7 +43,7 @@ interface CardListProps {
   loading: boolean;
 }
 
-export const CardList: React.FC<CardListProps> = ({
+const CardList: React.FC<CardListProps> = ({
   cards,
   selectedCardHash,
   onSelectCard,
@@ -104,3 +104,5 @@ export const CardList: React.FC<CardListProps> = ({
     </div>
   );
 };
+
+export default CardList;

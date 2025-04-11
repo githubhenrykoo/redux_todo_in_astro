@@ -46,12 +46,24 @@ const PanelContent = () => {
       );
     }
     
-    // Otherwise try dynamic import
+    // Try both .tsx and .jsx extensions
     const Component = React.lazy(() => 
-      import(`../components/panels/${config.type}.jsx`).then(module => {
-        console.log(`Successfully loaded component for: ${config.type}`);
-        return { default: module.default || module[config.type] };
-      }).catch((error) => {
+      Promise.any([
+        import(`../components/panels/${config.type}.tsx`).then(module => {
+          console.log(`Successfully loaded .tsx component for: ${config.type}`);
+          return { default: module.default };
+        }).catch(err => {
+          console.log(`Failed to load .tsx for ${config.type}:`, err);
+          throw err;
+        }),
+        import(`../components/panels/${config.type}.jsx`).then(module => {
+          console.log(`Successfully loaded .jsx component for: ${config.type}`);
+          return { default: module.default };
+        }).catch(err => {
+          console.log(`Failed to load .jsx for ${config.type}:`, err);
+          throw err;
+        })
+      ]).catch((error) => {
         console.error(`Failed to load component for panel type: ${config.type}`, error);
         throw new Error(`No component found for panel type: ${config.type}`);
       })

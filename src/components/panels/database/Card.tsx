@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ContentTypeInterpreter } from '../../../content/model/content_type_detector';
-import { FileTypeIcon } from '../../../components/ui/icons/FileTypeIcon';
+import { ContentTypeInterpreter } from '../../../content/model/content_type_detector.js';
+import { FileTypeIcon } from '../../../components/ui/icons/FileTypeIcon.js';
 
 interface CardProps {
   card: {
@@ -67,7 +67,7 @@ const TextPreview: React.FC<{ content: any, maxLength?: number }> = ({ content, 
   return <pre className="whitespace-pre-wrap break-words text-xs font-mono">{displayText || 'No content'}</pre>;
 };
 
-export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onContentTypeDetected }) => {
+const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onContentTypeDetected }) => {
   const [contentType, setContentType] = useState<{
     mimeType?: string;
     extension?: string;
@@ -111,44 +111,18 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onConten
           // Check for text file patterns
           if (textContent.includes("This is") || textContent.includes("test file") || 
               textContent.trim().startsWith("This is")) {
-            console.log("Card - Detected text file pattern:", textContent.substring(0, 30));
             
-            setContentType({
+            // Update content type to text/plain
+            const newContentType = {
               mimeType: 'text/plain',
               extension: 'txt',
-              isValid: true
-            });
+              isValid: true,
+              isBlob: false
+            };
             
-            // Also update the Redux store with the corrected content type
+            setContentType(newContentType);
             if (onContentTypeDetected) {
-              onContentTypeDetected(card.hash, {
-                mimeType: 'text/plain',
-                extension: 'txt',
-                isValid: true
-              });
-            }
-          } else {
-            // Character ratio check for text detection
-            const printableChars = textContent.match(/[\x20-\x7E\n\r\t]/g) || [];
-            const ratio = printableChars.length / textContent.length;
-            
-            if (textContent.length > 0 && ratio > 0.8) {
-              console.log("Card - High printable character ratio:", ratio.toFixed(2));
-              
-              setContentType({
-                mimeType: 'text/plain',
-                extension: 'txt',
-                isValid: true
-              });
-              
-              // Also update the Redux store
-              if (onContentTypeDetected) {
-                onContentTypeDetected(card.hash, {
-                  mimeType: 'text/plain',
-                  extension: 'txt',
-                  isValid: true
-                });
-              }
+              onContentTypeDetected(card.hash, newContentType);
             }
           }
         } catch (e) {
@@ -156,13 +130,13 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onConten
         }
       }
     }
-  }, [card, contentType]);
+  }, [card, contentType?.mimeType, onContentTypeDetected]);
 
   // Helper function to get a human-readable label for mime types
   const getFileTypeLabel = (mimeType?: string): string => {
-    if (!mimeType) return 'data';
-
-    // Direct debugging for Buffer JSON content that should be text
+    if (!mimeType) return 'Unknown';
+    
+    // Special handling for text in octet-stream
     if (mimeType === 'application/octet-stream' && card && card.content) {
       console.log("Card component - Checking potential text in octet-stream");
       
@@ -244,7 +218,7 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onConten
 
     // Fallback to the full mime type
     return mimeType;
-  }
+  };
 
   const handleClick = () => {
     onSelect(card);
@@ -293,3 +267,5 @@ export const Card: React.FC<CardProps> = ({ card, isSelected, onSelect, onConten
     </div>
   );
 };
+
+export default Card;

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SaveButton from './clm/SaveButton';
 import AbstractSpecification from './clm/AbstractSpecification';
 import ConcreteImplementation from './clm/ConcreteImplementation';
-import BalancedExpectations from './clm/BalancedExpectations';
 
 const CLMInputPanel = () => {
     // Title state
@@ -21,12 +20,6 @@ const CLMInputPanel = () => {
             inputs: '',
             activities: '',
             outputs: ''
-        },
-        // Balanced Expectations dimension
-        balancedExpectations: {
-            practicalBoundaries: '',
-            evaluationMetrics: '',
-            feedbackLoops: ''
         }
     });
     
@@ -185,15 +178,6 @@ const CLMInputPanel = () => {
                     outputs: data.concreteImplementation.outputs
                 };
             
-            case 'balancedExpectations':
-                return {
-                    dimensionType: "balancedExpectations",
-                    clmReference: currentClmHash || "", // Reference to parent CLM
-                    practicalBoundaries: data.balancedExpectations.practicalBoundaries,
-                    evaluationMetrics: data.balancedExpectations.evaluationMetrics,
-                    feedbackLoops: data.balancedExpectations.feedbackLoops
-                };
-            
             default:
                 return {};
         }
@@ -316,34 +300,6 @@ const CLMInputPanel = () => {
                 const clmHash = result.hash;
                 setCurrentClmHash(clmHash);
                 
-                // NOW save Balanced Expectations dimension with reference to parent CLM
-                console.log("Saving Balanced Expectations dimension with CLM reference...");
-                const balancedExpectationsJson = {
-                    ...generateJsonData('balancedExpectations'),
-                    clmReference: clmHash // Ensure the CLM reference is set to the newly created CLM
-                };
-                
-                const balancedExpResponse = await fetch('/api/card-collection', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        action: 'add',
-                        card: {
-                            content: balancedExpectationsJson
-                        }
-                    })
-                });
-                
-                if (!balancedExpResponse.ok) {
-                    console.warn(`Note: Failed to save Balanced Expectations: ${balancedExpResponse.status}`);
-                    // Continue anyway as the CLM was saved successfully
-                } else {
-                    const balancedExpResult = await balancedExpResponse.json();
-                    console.log(`Balanced Expectations saved with hash: ${balancedExpResult.hash.substring(0, 10)}...`);
-                }
-                
                 setLastUpdated(new Date().toISOString());
                 
                 setSaveMessage({ 
@@ -359,8 +315,7 @@ const CLMInputPanel = () => {
             console.log('Detailed error data:', {
                 title: documentTitle,
                 abstractSpecification: generateJsonData('abstractSpecification'),
-                concreteImplementation: generateJsonData('concreteImplementation'),
-                balancedExpectations: generateJsonData('balancedExpectations')
+                concreteImplementation: generateJsonData('concreteImplementation')
             });
             setSaveMessage({ 
                 type: 'error', 
@@ -461,15 +416,6 @@ const CLMInputPanel = () => {
                         generateJsonData={generateJsonData}
                     />
                 );
-            case 'balancedExpectations':
-                return (
-                    <BalancedExpectations 
-                        data={clmData.balancedExpectations}
-                        onChange={handleInputChange}
-                        generateJsonData={generateJsonData}
-                        clmReference={currentClmHash}
-                    />
-                );
             default:
                 return null;
         }
@@ -492,16 +438,10 @@ const CLMInputPanel = () => {
                             Abstract Specification
                         </button>
                         <button 
-                            className={`px-4 py-2 rounded-md mr-2 ${activeDimension === 'concreteImplementation' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}
+                            className={`px-4 py-2 rounded-md ${activeDimension === 'concreteImplementation' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}
                             onClick={() => setActiveDimension('concreteImplementation')}
                         >
                             Concrete Implementation
-                        </button>
-                        <button 
-                            className={`px-4 py-2 rounded-md ${activeDimension === 'balancedExpectations' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}
-                            onClick={() => setActiveDimension('balancedExpectations')}
-                        >
-                            Balanced Expectations
                         </button>
                     </div>
                     <SaveButton 

@@ -1,6 +1,6 @@
 ---
 import { cn } from '../../lib/utils';
-import { FaCode, FaTerminal, FaCog, FaCube, FaFile, FaMicrophone, FaBrain, FaYoutube, FaCamera, FaBook } from 'react-icons/fa';
+import { FaCode, FaTerminal, FaCog, FaCube, FaFile, FaMicrophone, FaBrain, FaYoutube, FaCamera, FaBook, FaCalendar } from 'react-icons/fa';
 import { store } from '../../store';
 import { changeLayout } from '../../features/panellayoutSlice';
 
@@ -22,13 +22,13 @@ const { class: className, ...props } = Astro.props;
         id="todoLayoutBtn"
         class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors border-l-2 border-primary bg-muted"
       >
-        <FaCode className="text-lg text-primary" />
+        <FaCalendar className="text-lg text-primary" />
       </button>
       <button
         id="generateLayoutBtn"
         class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors"
       >
-        <FaTerminal className="text-lg text-muted-foreground" />
+        <FaCode className="text-lg text-muted-foreground" />
       </button>
       <button
         id="clmLayoutBtn"

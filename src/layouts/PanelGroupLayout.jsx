@@ -1,12 +1,14 @@
-import React, { Suspense, lazy } from 'react';
-import { Provider, useSelector } from 'react-redux';
+import React, { Suspense, lazy, useState, useEffect } from 'react';
+import { Provider, useSelector, useDispatch } from 'react-redux';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { store } from '../store';
 
 // Map of panel types to their components
 const panelComponents = {
   // Special case components can be added here
-  googlecalendar: lazy(() => import('../components/panels/googlecalendar.jsx'))
+  googlecalendar: lazy(() => import('../components/panels/googlecalendar.jsx')),
+  chatbot: lazy(() => import('../components/panels/chatbot.jsx')),
+  databaseretrieve: lazy(() => import('../components/panels/DatabaseRetrievePanel.jsx')),
 };
 
 // Create a client-only wrapper for xterm
@@ -23,7 +25,12 @@ const ClientOnly = ({ children, fallback = <div>Loading...</div> }) => {
 
 const PanelContent = () => {
   const { panels } = useSelector(state => state.panellayout);
-  if (!panels) return <div>Loading panels...</div>;
+  const [mounted, setMounted] = useState(false);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const renderPanel = (config) => {
     // Special handling for xterm
@@ -42,7 +49,7 @@ const PanelContent = () => {
       const Component = panelComponents[config.type];
       return (
         <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading {config.type}...</div>}>
-          <Component />
+          {mounted ? <Component /> : null}
         </Suspense>
       );
     }
@@ -72,7 +79,7 @@ const PanelContent = () => {
     
     return (
       <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading panel...</div>}>
-        <Component />
+        {mounted ? <Component /> : null}
       </Suspense>
     );
   };

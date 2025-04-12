@@ -4,6 +4,26 @@ A modern Todo application built with Astro, React, and Redux, demonstrating a da
 
 This project implements a data-driven, functionally pure framework for an AI-powered [Progressive Knowledge Container](./Personal%20Knowledge%20Container.md) (PKC), built on the foundational principle of Single Source of Truth (SSoT). By adopting the Flux architectural pattern, the system ensures that all state changes flow unidirectionally through version-controlled data structures, creating a reliable foundation for machine learning workflows. Built as a Progressive Web App (PWA) using JavaScript and WASM, it minimizes hand-written code in favor of version-controlled data structures that define not only system behavior, but also the functionality and configurations of user interfaces. The framework serves as a thin orchestration layer that composes pure functions based on declarative configurations, connecting external data stores (LLMs, SQLite, IndexedDB) with a browser-based interface. At its core, the system creates a self-improving workflow that iteratively refines both its knowledge base and operational patterns through structured data management, with each iteration maintaining SSoT through Flux's predictable state mutations. By encoding complex behaviors, user interface configurations, and functionality in data rather than code, the system can learn and evolve its own workflows while maintaining functional simplicity and predictability, all while ensuring data consistency through version-controlled state management.
 
+## 🧠 Theoretical Foundation: Functorial Petri Nets and ABC Curriculum
+
+This implementation aligns with the **ABC Curriculum** (Archetypal, Broad, Contextualized) framework, which integrates three cognitive modalities:
+
+- **Design Thinking**: Embodied in the user interface's adaptive panels and intuitive workflow
+- **Computational Thinking**: Realized through Redux's pure functional approach to state management
+- **Systems Thinking**: Manifested in the interconnected components and data flow architecture
+
+The application's architecture is formally modeled using **Functorial Petri Net** principles:
+
+- **State as Markings**: The Redux store represents a global marking (state) of the system
+- **Actions as Transitions**: Redux actions implement Petri Net transitions that transform the state
+- **Reducers as Firing Rules**: Reducers define the logic for how transitions consume and produce tokens
+- **Functorial Properties**: Preserves structural relationships when transforming data between different domains
+
+This mathematical foundation ensures that the application maintains essential properties such as:
+- **Compositional Semantics**: Components can be composed while preserving behavior
+- **Modular Design**: Independent development with guaranteed consistent integration
+- **Verifiable Behavior**: Formal analysis techniques can be applied to prevent invalid states
+
 ## 🏛️ Architectural Principles
 
 - **Single Source of Truth (SSoT)**: Redux serves as the central state management system, ensuring consistent and predictable data flow throughout the application

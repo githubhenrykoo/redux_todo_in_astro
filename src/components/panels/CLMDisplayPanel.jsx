@@ -311,6 +311,10 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
         </div>;
     }
 
+    // Extract the dimension data for display
+    const { context, goal, successCriteria } = dimensions.abstractSpecification || {};
+    const { inputs, activities, outputs } = dimensions.concreteImplementation || {};
+
     return (
         <div className="clm-display-panel">
             <h2 className="clm-title">{rootClm?.title || 'Cubical Logic Model'}</h2>
@@ -320,115 +324,54 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                 {rootClm?.type && <p><strong>Type:</strong> <code>{rootClm.type}</code></p>}
             </div>
             
-            {/* Root CLM JSON Structure Display */}
-            <div className="clm-root-json">
-                <h3>Root CLM Structure</h3>
-                <pre className="json-display">
-{JSON.stringify({
-  title: rootClm?.title || 'Cubical Logic Model',
-  type: rootClm?.type || '',
-  dimensions: {
-    abstractSpecification: rootClm?.dimensions?.abstractSpecification || '',
-    concreteImplementation: rootClm?.dimensions?.concreteImplementation || '',
-    balancedExpectations: rootClm?.dimensions?.balancedExpectations || ''
-  }
-}, null, 2)}
-                </pre>
-            </div>
-            
-            {/* Balanced Expectations Catalog Display */}
-            {dimensions.balancedExpectations && (
-                <div className="balanced-expectations-catalog">
-                    <h3>Balanced Expectations Dimension</h3>
-                    <div className="catalog-item">
-                        <div className="catalog-header">
-                            <span className="dimension-type">dimensionType: balancedExpectations</span>
-                            <span className="dimension-hash">Hash: {rootClm?.dimensions?.balancedExpectations?.substring(0, 10) || 'N/A'}...</span>
-                        </div>
-                        
-                        <div className="catalog-content">
-                            <div className="catalog-section">
-                                <h4>CLM Reference</h4>
-                                <p>{dimensions.balancedExpectations.clmReference || 'sha256:clm123...'}</p>
-                            </div>
-                            
-                            <div className="catalog-section">
-                                <h4>Practical Boundaries</h4>
-                                <p>{dimensions.balancedExpectations.practicalBoundaries || 'System constraints and error handling strategies'}</p>
-                            </div>
-                            
-                            <div className="catalog-section">
-                                <h4>Evaluation Metrics</h4>
-                                <p>{dimensions.balancedExpectations.evaluationMetrics || 'Performance indicators and monitoring thresholds'}</p>
-                            </div>
-                            
-                            <div className="catalog-section">
-                                <h4>Feedback Loops</h4>
-                                <p>{dimensions.balancedExpectations.feedbackLoops || 'User feedback channels and continuous improvement processes'}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-            
-            {/* JSON Structure of Balanced Expectations */}
-            {dimensions.balancedExpectations && (
-                <div className="balanced-expectations-json">
-                    <h3>Balanced Expectations JSON</h3>
-                    <pre className="json-display">
-{JSON.stringify({
-  dimensionType: "balancedExpectations",
-  clmReference: dimensions.balancedExpectations.clmReference || "sha256:clm123...",
-  practicalBoundaries: dimensions.balancedExpectations.practicalBoundaries || "System constraints and error handling strategies",
-  evaluationMetrics: dimensions.balancedExpectations.evaluationMetrics || "Performance indicators and monitoring thresholds",
-  feedbackLoops: dimensions.balancedExpectations.feedbackLoops || "User feedback channels and continuous improvement processes"
-}, null, 2)}
-                    </pre>
-                </div>
-            )}
-            
-            {/* Display available dimensions */}
-            <div className="balanced-expectations-catalog">
-                <h3>Available Dimensions</h3>
-                <div className="catalog-item">
-                    <div className="catalog-header">
-                        <span className="dimension-type">Dimension Status</span>
-                    </div>
+            {/* Display CLM in table format */}
+            <table className="clm-table" width="600">
+                {/* Abstract Specification Section */}
+                <tbody>
+                    <tr>
+                        <th colSpan={6}><a href="#abstract-specification">Abstract Specification</a></th>
+                    </tr>
+                    <tr>
+                        <th colSpan={1}><a href="#context">Context</a></th>
+                        <td colSpan={5} style={{ wordWrap: 'break-word' }}>
+                            {formatContent(context) || 'No context available'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th colSpan={1}><a href="#goal">Goal</a></th>
+                        <td colSpan={5} style={{ wordWrap: 'break-word' }}>
+                            {formatContent(goal) || 'No goal available'}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th colSpan={1}><a href="#success-criteria">Success Criteria</a></th>
+                        <td colSpan={5} style={{ wordWrap: 'break-word' }}>
+                            {formatContent(successCriteria) || 'No success criteria available'}
+                        </td>
+                    </tr>
                     
-                    <div className="catalog-content">
-                        {rootClm?.dimensions?.abstractSpecification && (
-                            <div className="catalog-section">
-                                <h4>Abstract Specification</h4>
-                                <p>Hash: <code>{rootClm.dimensions.abstractSpecification}</code></p>
-                                <p>Status: {dimensions.abstractSpecification ? '✅ Loaded' : '❌ Not Loaded'}</p>
-                            </div>
-                        )}
-                        
-                        {rootClm?.dimensions?.concreteImplementation && (
-                            <div className="catalog-section">
-                                <h4>Concrete Implementation</h4>
-                                <p>Hash: <code>{rootClm.dimensions.concreteImplementation}</code></p>
-                                <p>Status: {dimensions.concreteImplementation ? '✅ Loaded' : '❌ Not Loaded'}</p>
-                            </div>
-                        )}
-                        
-                        {rootClm?.dimensions?.balancedExpectations && (
-                            <div className="catalog-section">
-                                <h4>Balanced Expectations</h4>
-                                <p>Hash: <code>{rootClm.dimensions.balancedExpectations}</code></p>
-                                <p>Status: {dimensions.balancedExpectations ? '✅ Loaded' : '❌ Not Loaded'}</p>
-                            </div>
-                        )}
-                        
-                        {!rootClm?.dimensions?.balancedExpectations && (
-                            <div className="catalog-section">
-                                <h4>Balanced Expectations</h4>
-                                <p>This dimension is not available in the current CLM document.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+                    {/* Concrete Implementation Section */}
+                    <tr>
+                        <th colSpan={6}><a href="#concrete-implementation">Concrete Implementation</a></th>
+                    </tr>
+                    <tr>
+                        <th colSpan={2}><a href="#inputs">Inputs</a></th>
+                        <th colSpan={2}><a href="#activities">Activities</a></th>
+                        <th colSpan={2}><a href="#outputs">Outputs</a></th>
+                    </tr>
+                    <tr>
+                        <td colSpan={2} style={{ wordWrap: 'break-word' }}>
+                            {formatContent(inputs) || 'No inputs available'}
+                        </td>
+                        <td colSpan={2} style={{ wordWrap: 'break-word' }}>
+                            {formatContent(activities) || 'No activities available'}
+                        </td>
+                        <td colSpan={2} style={{ wordWrap: 'break-word' }}>
+                            {formatContent(outputs) || 'No outputs available'}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
             
             {/* Dimension Hash References */}
             <div className="clm-dimension-hashes">
@@ -444,6 +387,22 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                         <li><strong>Balanced Expectations:</strong> <code>{rootClm.dimensions.balancedExpectations}</code></li>
                     )}
                 </ul>
+            </div>
+            
+            {/* JSON Structure Display - Optional, can be commented out if not needed */}
+            <div className="clm-root-json">
+                <h3>Root CLM Structure</h3>
+                <pre className="json-display">
+{JSON.stringify({
+  title: rootClm?.title || 'Cubical Logic Model',
+  type: rootClm?.type || '',
+  dimensions: {
+    abstractSpecification: rootClm?.dimensions?.abstractSpecification || '',
+    concreteImplementation: rootClm?.dimensions?.concreteImplementation || '',
+    balancedExpectations: rootClm?.dimensions?.balancedExpectations || ''
+  }
+}, null, 2)}
+                </pre>
             </div>
         </div>
     );

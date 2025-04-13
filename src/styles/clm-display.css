@@ -324,6 +324,87 @@
     line-height: 1.5;
 }
 
+/* Balanced Expectations Catalog Styles */
+.balanced-expectations-section,
+.balanced-expectations-empty {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.be-catalog-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+
+.be-catalog-table th,
+.be-catalog-table td {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.be-catalog-table th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+.be-catalog-table tr:nth-child(even) {
+  background-color: #f8f8f8;
+}
+
+.be-catalog-table tr:hover {
+  background-color: #f0f0f0;
+}
+
+.hash-value {
+  font-family: monospace;
+  background-color: #f5f5f5;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  color: #444;
+}
+
+.be-view-button,
+.output-view-button,
+.create-be-button {
+  padding: 0.4rem 0.6rem;
+  margin-right: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background-color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.be-view-button:hover,
+.output-view-button:hover {
+  background-color: #f0f0f0;
+}
+
+.create-be-button {
+  background-color: #4a89dc;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+.create-be-button:hover {
+  background-color: #3a79cc;
+}
+
+.be-actions {
+  margin-top: 1rem;
+  text-align: right;
+}
+
 @media (max-width: 768px) {
     .clm-metadata {
         flex-direction: column;

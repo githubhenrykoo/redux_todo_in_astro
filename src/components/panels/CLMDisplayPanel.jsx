@@ -9,9 +9,9 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
     const [error, setError] = useState(null);
     const [dimensions, setDimensions] = useState({
         abstractSpecification: null,
-        concreteImplementation: null,
-        balancedExpectations: null
+        concreteImplementation: null
     });
+    const [balancedExpectations, setBalancedExpectations] = useState([]);
     const [debug, setDebug] = useState({
         lastFetchedHash: null,
         apiResponse: null,
@@ -55,15 +55,22 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
         if (rootClm) {
             if (rootClm.dimensions) {
                 loadDimensions(rootClm.dimensions);
+                // Search for related Balanced Expectations
+                if (selectedHash) {
+                    searchBalancedExpectations(selectedHash);
+                }
             } else if (rootClm.type === 'clm_document' && rootClm.dimensions) {
                 // Special handling for clm_document type
                 loadDimensions(rootClm.dimensions);
+                // Search for related Balanced Expectations
+                if (selectedHash) {
+                    searchBalancedExpectations(selectedHash);
+                }
             } else {
                 // Reset dimensions if no dimensions property
                 setDimensions({
                     abstractSpecification: null,
-                    concreteImplementation: null,
-                    balancedExpectations: null
+                    concreteImplementation: null
                 });
                 
                 // Set error for debugging
@@ -73,9 +80,10 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
             // Reset dimensions if no root CLM
             setDimensions({
                 abstractSpecification: null,
-                concreteImplementation: null,
-                balancedExpectations: null
+                concreteImplementation: null
             });
+            // Reset balanced expectations too
+            setBalancedExpectations([]);
         }
     }, [rootClm]);
 
@@ -100,19 +108,15 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                 if (cards[abstractHash]) {
                     console.log(`Found Abstract Specification in Redux store: ${abstractHash}`);
                     abstractSpec = typeof cards[abstractHash].content === 'string' 
-                        ? JSON.parse(cards[abstractHash].content)
+                        ? JSON.parse(cards[abstractHash].content) 
                         : cards[abstractHash].content;
                 } else {
-                    // If not in store, fetch it
+                    // Fetch the abstract specification dimension
                     console.log(`Fetching Abstract Specification: ${abstractHash}`);
                     abstractSpec = await fetchDimension('abstractSpecification', abstractHash);
                 }
-                
-                if (abstractSpec) {
-                    setDimensions(prev => ({ ...prev, abstractSpecification: abstractSpec }));
-                }
             }
-            
+
             // Check if concrete implementation is already in Redux store
             let concreteImpl = null;
             if (dimensionHashes.concreteImplementation) {
@@ -122,206 +126,193 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                 if (cards[concreteHash]) {
                     console.log(`Found Concrete Implementation in Redux store: ${concreteHash}`);
                     concreteImpl = typeof cards[concreteHash].content === 'string' 
-                        ? JSON.parse(cards[concreteHash].content)
+                        ? JSON.parse(cards[concreteHash].content) 
                         : cards[concreteHash].content;
                 } else {
-                    // If not in store, fetch it
+                    // Fetch the concrete implementation dimension
                     console.log(`Fetching Concrete Implementation: ${concreteHash}`);
                     concreteImpl = await fetchDimension('concreteImplementation', concreteHash);
                 }
-                
-                if (concreteImpl) {
-                    setDimensions(prev => ({ ...prev, concreteImplementation: concreteImpl }));
-                }
             }
+
+            // Update dimensions in state
+            setDimensions({
+                abstractSpecification: abstractSpec,
+                concreteImplementation: concreteImpl
+            });
+
+            // Save for debugging
+            setDebug(prev => ({
+                ...prev,
+                dimensionData: {
+                    abstractSpecification: abstractSpec,
+                    concreteImplementation: concreteImpl
+                }
+            }));
             
-            // Check if balanced expectations is already in Redux store
-            let balancedExp = null;
-            if (dimensionHashes.balancedExpectations) {
-                const balancedHash = dimensionHashes.balancedExpectations;
-                
-                // Check if the card is already in the Redux store
-                if (cards[balancedHash]) {
-                    console.log(`Found Balanced Expectations in Redux store: ${balancedHash}`);
-                    balancedExp = typeof cards[balancedHash].content === 'string' 
-                        ? JSON.parse(cards[balancedHash].content)
-                        : cards[balancedHash].content;
-                } else {
-                    // If not in store, fetch it
-                    console.log(`Fetching Balanced Expectations: ${balancedHash}`);
-                    balancedExp = await fetchDimension('balancedExpectations', balancedHash);
-                }
-                
-                if (balancedExp) {
-                    setDimensions(prev => ({ ...prev, balancedExpectations: balancedExp }));
-                }
-            }
         } catch (error) {
             console.error('Error loading dimensions:', error);
-            setError(`Error loading dimension data: ${error.message}`);
+            setError(`Error loading dimensions: ${error.message}`);
         } finally {
             setLoading(false);
+        }
+    };
+    
+    // Search for Balanced Expectations that reference this CLM
+    const searchBalancedExpectations = async (clmHash) => {
+        try {
+            const response = await fetch(`/api/card-collection?action=searchByContent&query=${clmHash}`);
+            if (!response.ok) {
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Search results for Balanced Expectations:', data);
+            
+            // Filter results to find only Balanced Expectations that reference this CLM
+            const balancedExpectationsFound = data.cards?.filter(card => {
+                try {
+                    const content = typeof card.content === 'string' 
+                        ? JSON.parse(card.content) 
+                        : card.content;
+                    
+                    return content.dimensionType === 'balancedExpectations' && 
+                           content.clmReference === clmHash;
+                } catch (err) {
+                    console.error('Error parsing card content:', err);
+                    return false;
+                }
+            }) || [];
+            
+            setBalancedExpectations(balancedExpectationsFound);
+            
+        } catch (error) {
+            console.error('Error searching for Balanced Expectations:', error);
+            // Don't set an error state for this, just log it
         }
     };
 
     // Helper function to fetch a single dimension by hash
     const fetchDimension = async (dimensionType, hash) => {
-        setDebug(prev => ({ ...prev, lastFetchedHash: hash }));
-        
         try {
-            console.log(`Fetching dimension ${dimensionType} with hash: ${hash}`);
+            console.log(`Fetching ${dimensionType} dimension with hash ${hash}`);
             
-            // Construct the URL with query parameters for a GET request
-            const url = new URL('/api/card-collection', window.location.origin);
-            url.searchParams.append('action', 'get');
-            url.searchParams.append('hash', hash);
-            
-            console.log(`API Request URL:`, url.toString());
-            
-            // Use fetch with GET method
-            const response = await fetch(url.toString(), {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-            
-            console.log(`API Response status: ${response.status}`);
-            
-            // Store the raw response text for debugging
-            const responseText = await response.text();
-            
-            setDebug(prev => ({ 
-                ...prev, 
-                apiResponse: {
-                    status: response.status,
-                    text: responseText.substring(0, 500) // Limit to first 500 chars for UI
-                }
+            // Update debug state
+            setDebug(prev => ({
+                ...prev,
+                lastFetchedHash: hash
             }));
             
+            // Make the API call
+            const response = await fetch(`/api/card-collection?action=get&hash=${hash}`);
+            
+            // Check if response is OK
             if (!response.ok) {
-                throw new Error(`Failed to fetch dimension: ${response.status}\nResponse: ${responseText.substring(0, 100)}...`);
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
             }
             
-            // Parse the response text
-            let result;
-            try {
-                result = JSON.parse(responseText);
-            } catch (e) {
-                throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
-            }
+            // Parse the response JSON
+            const responseData = await response.json();
+            console.log(`${dimensionType} API response:`, responseData);
             
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to retrieve dimension data');
-            }
-            
-            console.log(`Successfully retrieved dimension:`, result.card);
-            
-            // Store dimension data for debugging
-            setDebug(prev => ({ 
-                ...prev, 
-                dimensionData: result.card 
+            // Update debug state with the response data
+            setDebug(prev => ({
+                ...prev,
+                apiResponse: responseData
             }));
             
-            // Parse content if it's a string
-            const content = typeof result.card.content === 'string' 
-                ? JSON.parse(result.card.content) 
-                : result.card.content;
-                
+            // Extract content from the response data
+            let content = null;
+            if (responseData.card && responseData.card.content) {
+                content = typeof responseData.card.content === 'string'
+                    ? JSON.parse(responseData.card.content)
+                    : responseData.card.content;
+            }
+            
+            // Dispatch to Redux store to cache the dimension
+            if (content && hash) {
+                dispatch({
+                    type: 'content/addCard',
+                    payload: {
+                        hash,
+                        card: responseData.card
+                    }
+                });
+            }
+            
             return content;
         } catch (error) {
-            console.error(`Error fetching dimension ${dimensionType}:`, error);
-            throw error;
+            console.error(`Error fetching ${dimensionType} dimension:`, error);
+            setError(`Error fetching ${dimensionType} dimension: ${error.message}`);
+            return null;
         }
     };
-
+    
     // Helper function to format content based on type
     const formatContent = (content) => {
-        if (!content) return '';
+        if (!content) {
+            return null;
+        }
         
-        // If content is already a string, return it
-        if (typeof content === 'string') return content;
+        if (typeof content === 'string') {
+            return content;
+        }
         
-        // If it's an object (parsed JSON), stringify it for display
+        if (Array.isArray(content)) {
+            return content.join('\n');
+        }
+        
         if (typeof content === 'object') {
             try {
-                // Filter out createdAt if it exists
-                const { createdAt, ...filteredContent } = content;
-                return JSON.stringify(filteredContent, null, 2);
+                return JSON.stringify(content, null, 2);
             } catch (e) {
-                console.error('Error stringifying content:', e);
+                return `Error formatting content: ${e.message}`;
             }
         }
         
-        // Fallback: convert to string
         return String(content);
     };
-
-    // Show loading state while dimensions are being loaded
+    
+    // Extract content from dimensions for display
+    const abstractSpec = dimensions.abstractSpecification || {};
+    const context = abstractSpec.context;
+    const goal = abstractSpec.goal;
+    const successCriteria = abstractSpec.successCriteria;
+    
+    const concreteImpl = dimensions.concreteImplementation || {};
+    const inputs = concreteImpl.inputs;
+    const activities = concreteImpl.activities;
+    const outputs = concreteImpl.outputs;
+    
     if (loading) {
         return <div className="clm-display-loading">Loading CLM dimensions...</div>;
     }
-
-    // Show error message if there was a problem
+    
     if (error) {
-        return <div className="clm-display-error">
-            <h3>Error</h3>
-            <p>{error}</p>
-            
-            {/* Debug information */}
-            <div className="debug-section">
-                <h4>Debug Information</h4>
-                
-                <div className="debug-item">
-                    <h5>Last Fetched Hash:</h5>
-                    <pre>{debug.lastFetchedHash || 'None'}</pre>
-                </div>
-                
-                {debug.apiResponse && (
-                    <div className="debug-item">
-                        <h5>API Response:</h5>
-                        <p>Status: {debug.apiResponse.status}</p>
-                        <pre>{debug.apiResponse.text || 'No response text'}</pre>
-                    </div>
-                )}
-                
-                <div className="debug-item">
-                    <h5>Dimension Hash References:</h5>
-                    <ul>
-                        {rootClm?.dimensions?.abstractSpecification && (
-                            <li><strong>Abstract Specification:</strong> <code>{rootClm.dimensions.abstractSpecification}</code></li>
-                        )}
-                        {rootClm?.dimensions?.concreteImplementation && (
-                            <li><strong>Concrete Implementation:</strong> <code>{rootClm.dimensions.concreteImplementation}</code></li>
-                        )}
-                        {rootClm?.dimensions?.balancedExpectations && (
-                            <li><strong>Balanced Expectations:</strong> <code>{rootClm.dimensions.balancedExpectations}</code></li>
-                        )}
-                    </ul>
+        return (
+            <div className="clm-display-error">
+                <h2>Error Loading CLM</h2>
+                <p>{error}</p>
+                <div className="debug-info">
+                    <h3>Debug Information</h3>
+                    <pre>{JSON.stringify({rootClm, debug}, null, 2)}</pre>
                 </div>
             </div>
-        </div>;
+        );
     }
-
-    // Show placeholder if no CLM is selected
-    if (!selectedHash || !rootClm) {
-        return <div className="clm-display-placeholder">
-            <h3>CLM Viewer</h3>
-            <p>Select a CLM from the content panel to view it</p>
-        </div>;
+    
+    if (!rootClm) {
+        return <div className="clm-display-empty">No CLM selected. Please select a CLM to view.</div>;
     }
-
-    // Extract the dimension data for display
-    const { context, goal, successCriteria } = dimensions.abstractSpecification || {};
-    const { inputs, activities, outputs } = dimensions.concreteImplementation || {};
-
+    
     return (
         <div className="clm-display-panel">
-            <h2 className="clm-title">{rootClm?.title || 'Cubical Logic Model'}</h2>
+            <h2>{rootClm.title || 'Untitled CLM'}</h2>
             
-            <div className="clm-metadata">
-                <p><strong>CLM Hash:</strong> <code>{selectedHash || 'N/A'}</code></p>
-                {rootClm?.type && <p><strong>Type:</strong> <code>{rootClm.type}</code></p>}
+            {/* Debug Info - Comment out in production */}
+            <div className="clm-debug-info" style={{ display: 'none' }}>
+                <h3>Debug Info</h3>
+                <pre>{JSON.stringify(debug, null, 2)}</pre>
             </div>
             
             {/* Display CLM in table format */}
@@ -383,12 +374,123 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                     {rootClm?.dimensions?.concreteImplementation && (
                         <li><strong>Concrete Implementation:</strong> <code>{rootClm.dimensions.concreteImplementation}</code></li>
                     )}
-                    {rootClm?.dimensions?.balancedExpectations && (
-                        <li><strong>Balanced Expectations:</strong> <code>{rootClm.dimensions.balancedExpectations}</code></li>
-                    )}
                 </ul>
             </div>
             
+            {/* Balanced Expectations Section - Shows any found Balanced Expectations that reference this CLM */}
+            {balancedExpectations.length > 0 && (
+                <div className="balanced-expectations-section">
+                    <h3>Balanced Expectations Catalog</h3>
+                    <p>The following Balanced Expectations reference this CLM:</p>
+                    
+                    <table className="be-catalog-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Hash</th>
+                                <th>Output Reference</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {balancedExpectations.map((beCard, index) => {
+                                const beContent = typeof beCard.content === 'string' 
+                                    ? JSON.parse(beCard.content) 
+                                    : beCard.content;
+                                
+                                // Format timestamp if available
+                                const timestamp = beCard.g_time || beCard.timestamp || '';
+                                const formattedDate = timestamp ? new Date(timestamp).toLocaleString() : 'N/A';
+                                
+                                return (
+                                    <tr key={index} className="be-catalog-item">
+                                        <td>{index + 1}</td>
+                                        <td>
+                                            <code className="hash-value">{beCard.hash?.substring(0, 12)}...</code>
+                                        </td>
+                                        <td>
+                                            {beContent.outputReference ? (
+                                                <code className="hash-value">{beContent.outputReference.substring(0, 12)}...</code>
+                                            ) : 'N/A'}
+                                        </td>
+                                        <td>{formattedDate}</td>
+                                        <td>
+                                            <button 
+                                                className="be-view-button"
+                                                onClick={() => {
+                                                    // Dispatch to view this BE card
+                                                    dispatch({
+                                                        type: 'content/setSelectedHash',
+                                                        payload: beCard.hash
+                                                    });
+                                                }}
+                                            >
+                                                View
+                                            </button>
+                                            {beContent.outputReference && (
+                                                <button 
+                                                    className="output-view-button"
+                                                    onClick={() => {
+                                                        // Dispatch to view the output
+                                                        dispatch({
+                                                            type: 'content/setSelectedHash',
+                                                            payload: beContent.outputReference
+                                                        });
+                                                    }}
+                                                >
+                                                    View Output
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    
+                    {/* Add a button to create a new Balanced Expectation for this CLM */}
+                    <div className="be-actions">
+                        <button 
+                            className="create-be-button"
+                            onClick={() => {
+                                // Dispatch an action to open the Balanced Expectations creation form
+                                dispatch({
+                                    type: 'ui/openCreateBEForm',
+                                    payload: {
+                                        clmHash: selectedHash
+                                    }
+                                });
+                            }}
+                        >
+                            Create New Balanced Expectation
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {/* Display empty message if no Balanced Expectations found */}
+            {balancedExpectations.length === 0 && selectedHash && (
+                <div className="balanced-expectations-empty">
+                    <h3>Balanced Expectations Catalog</h3>
+                    <p>No Balanced Expectations found for this CLM.</p>
+                    <button 
+                        className="create-be-button"
+                        onClick={() => {
+                            // Dispatch an action to open the Balanced Expectations creation form
+                            dispatch({
+                                type: 'ui/openCreateBEForm',
+                                payload: {
+                                    clmHash: selectedHash
+                                }
+                            });
+                        }}
+                    >
+                        Create New Balanced Expectation
+                    </button>
+                </div>
+            )}
+
             {/* JSON Structure Display - Optional, can be commented out if not needed */}
             <div className="clm-root-json">
                 <h3>Root CLM Structure</h3>
@@ -398,8 +500,7 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
   type: rootClm?.type || '',
   dimensions: {
     abstractSpecification: rootClm?.dimensions?.abstractSpecification || '',
-    concreteImplementation: rootClm?.dimensions?.concreteImplementation || '',
-    balancedExpectations: rootClm?.dimensions?.balancedExpectations || ''
+    concreteImplementation: rootClm?.dimensions?.concreteImplementation || ''
   }
 }, null, 2)}
                 </pre>

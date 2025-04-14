@@ -68,6 +68,31 @@ const ChatbotPanel = ({ className = '' }) => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = { role: 'user', content: input.trim() };
+    const timestamp = new Date().toLocaleTimeString();
+    
+    // Save chat action to playwright-state.json
+    try {
+      const response = await fetch('/api/update-playwright-state', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'chat',
+          userMessage: input.trim(),
+          timestamp: new Date().toISOString(),
+          status: 'active',
+          logs: [{
+            timestamp,
+            message: `User: ${input.trim()}`,
+            type: 'chat'
+          }]
+        })
+      });
+    } catch (err) {
+      console.error('Error saving chat state:', err);
+    }
+
     dispatch(setMessages([...messages, userMessage]));
     dispatch(setInput(''));
     dispatch(setLoading(true));
@@ -110,6 +135,30 @@ const ChatbotPanel = ({ className = '' }) => {
 
       const data = await response.json();
       
+      // Save LLM response to playwright-state.json
+      try {
+        await fetch('/api/update-playwright-state', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'chat',
+            llmResponse: data.message?.content || 'No response from model',
+            model: selectedModel,
+            timestamp: new Date().toISOString(),
+            status: 'active',
+            logs: [{
+              timestamp: new Date().toLocaleTimeString(),
+              message: `Assistant (${selectedModel}): ${data.message?.content || 'No response from model'}`,
+              type: 'chat'
+            }]
+          })
+        });
+      } catch (err) {
+        console.error('Error saving LLM response:', err);
+      }
+
       // Remove thinking indicator and add actual response
       dispatch(setMessages([
         ...messages,

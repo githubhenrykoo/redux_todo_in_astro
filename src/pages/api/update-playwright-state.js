@@ -12,8 +12,35 @@ export async function POST({ request }) {
       const fileContent = await fs.readFile(statePath, 'utf-8');
       currentState = JSON.parse(fileContent);
     } catch (err) {
-      // File doesn't exist or is invalid, use empty state
-      currentState = { logs: [], status: 'initial', screenshots: [] };
+      currentState = { 
+        logs: [], 
+        status: 'initial', 
+        screenshots: [],
+        testActions: [],
+        chatHistory: []
+      };
+    }
+
+    // Create test action from chat data
+    if (newData.type === 'chat') {
+      const testAction = {
+        timestamp: new Date().toISOString(),
+        action: 'chat',
+        selector: '#chatInput', // Add the actual selector for your chat input
+        value: newData.userMessage || newData.llmResponse,
+        type: newData.userMessage ? 'input' : 'response',
+        model: newData.model || 'llama3',
+        testStep: {
+          description: newData.userMessage ? 
+            `Type message: "${newData.userMessage}"` : 
+            `Verify response contains: "${newData.llmResponse?.substring(0, 50)}..."`,
+          code: newData.userMessage ?
+            `await page.fill('#chatInput', '${newData.userMessage}');\nawait page.click('#sendButton');` :
+            `await expect(page.locator('.message-content')).toContainText('${newData.llmResponse?.substring(0, 50)}');`
+        }
+      };
+
+      currentState.testActions = [...(currentState.testActions || []), testAction];
     }
 
     // Merge new data with existing state
@@ -21,7 +48,14 @@ export async function POST({ request }) {
       ...currentState,
       logs: [...currentState.logs, ...newData.logs],
       status: newData.status || currentState.status,
-      lastUpdated: newData.lastUpdated || new Date().toISOString()
+      lastUpdated: newData.lastUpdated || new Date().toISOString(),
+      chatHistory: [...(currentState.chatHistory || []), {
+        timestamp: new Date().toISOString(),
+        type: newData.type,
+        userMessage: newData.userMessage,
+        llmResponse: newData.llmResponse,
+        model: newData.model
+      }].filter(item => item.userMessage || item.llmResponse)
     };
 
     // Write updated state back to file

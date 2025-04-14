@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import chatbotReducer from './features/chatbotSlice';
 import testLogsReducer from './features/testLogsSlice';
 
 // Core Reducers
@@ -16,7 +17,7 @@ import resizeableReducer from './features/resizeableSlice';
 import selectedItemReducer from './features/selectedItemSlice';
 import mqttReducer from './store/mqttSlice';
 
-const store = configureStore({
+export const store = configureStore({
   reducer: {
     // Core State
     theme: themeReducer,
@@ -29,6 +30,7 @@ const store = configureStore({
     todo: todoReducer,
     mqtt: mqttReducer,
     testLogs: testLogsReducer,
+    chatbot: chatbotReducer,
     
     // UI States
     panellayout: panellayoutReducer,
@@ -57,5 +59,5 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Single export of store
-export { store };
+// Remove this line since we already exported the store above
+// export { store };

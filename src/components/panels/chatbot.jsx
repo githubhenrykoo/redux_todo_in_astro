@@ -1,63 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { 
+  setMessages, 
+  setInput, 
+  setLoading, 
+  setError, 
+  setModels, 
+  setSelectedModel 
+} from '../../features/chatbotSlice';
 
 const ChatbotPanel = ({ className = '' }) => {
-  // Add this with other state declarations
+  // Add local state for mentions
   const [mentions, setMentions] = useState([]);
   
-  const [messages, setMessages] = useState([
-    { 
-      role: 'system', 
-      content: `How can I help?
-
-Command:
-- "read the testing.txt", "show contents of testing.txt"
-- "list files in downloads"
-- "where am i"
-- "make directory testing"
-- "delete file testing.txt"`
-    }
-  ]);
-
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('llama3');
+  const dispatch = useDispatch();
+  const {
+    messages,
+    input,
+    isLoading,
+    error,
+    models,
+    selectedModel
+  } = useSelector(state => state.chatbot);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const terminalSocketRef = useRef(null);
 
-  // Fetch available models on component mount
   useEffect(() => {
     fetchModels();
   }, []);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const fetchModels = async () => {
-    try {
-      const response = await fetch('http://localhost:11434/api/tags');
-      if (!response.ok) {
-        throw new Error('Failed to fetch models');
-      }
-      const data = await response.json();
-      setModels(data.models || []);
-    } catch (err) {
-      console.error('Error fetching models:', err);
-      setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434');
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleInputChange = (e) => {
-    setInput(e.target.value);
+    dispatch(setInput(e.target.value));
   };
 
   const handleKeyDown = (e) => {
@@ -67,94 +50,29 @@ Command:
     }
   };
 
-  useEffect(() => {
-    // Connect to terminal WebSocket server
-    connectToTerminal();
-    return () => {
-      if (terminalSocketRef.current) {
-        terminalSocketRef.current.close();
-      }
-    };
-  }, []);
-
-  const connectToTerminal = () => {
+  const fetchModels = async () => {
     try {
-      const ws = new WebSocket('ws://localhost:3001');
-      terminalSocketRef.current = ws;
-
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'output') {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: message.data
-          }]);
-        }
-      };
+      const response = await fetch('http://localhost:11434/api/tags');
+      if (!response.ok) {
+        throw new Error('Failed to fetch models');
+      }
+      const data = await response.json();
+      dispatch(setModels(data.models || []));
     } catch (err) {
-      console.error('Terminal connection error:', err);
+      console.error('Error fetching models:', err);
+      dispatch(setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434'));
     }
   };
 
-  // Add this function after other function declarations
-  // Update the processNaturalLanguageCommand function
-  const processNaturalLanguageCommand = (text) => {
-    const commandMap = {
-      'read': 'cat',
-      'show': 'cat',
-      'list': 'ls',
-      'show files': 'ls',
-      'show directory': 'ls',
-      'current directory': 'pwd',
-      'where am i': 'pwd',
-      'clear screen': 'clear',
-      'make directory': 'mkdir',
-      'create directory': 'mkdir',
-      'remove': 'rm',
-      'delete': 'rm',
-    };
-  
-    // Common patterns for file operations
-    const readPattern = /(?:read|show|display|open)\s+(?:contents\s+of\s+|the\s+)?(?:file\s+)?["']?([^"']+?)["']?\s*$/i;
-    const listPattern = /(?:list|show)\s+(?:files|directory|contents)\s*(?:in\s+)?(.+)?/i;
-    const mkdirPattern = /(?:make|create)\s+(?:a\s+)?(?:new\s+)?directory\s+(?:named\s+)?(.+)/i;
-    const removePattern = /(?:remove|delete)\s+(?:the\s+)?(?:file|directory)?\s+(.+)/i;
-  
-    let command = '';
-  
-    if (readPattern.test(text)) {
-      const match = text.match(readPattern);
-      const filename = match[1].trim();
-      command = `cat "${filename}"`;
-    } else if (listPattern.test(text)) {
-      const match = text.match(listPattern);
-      command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
-    } else if (mkdirPattern.test(text)) {
-      const match = text.match(mkdirPattern);
-      command = `mkdir "${match[1].trim()}"`;
-    } else if (removePattern.test(text)) {
-      const match = text.match(removePattern);
-      command = `rm "${match[1].trim()}"`;
-    } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
-      command = 'pwd';
-    } else if (text.toLowerCase().includes('clear screen')) {
-      command = 'clear';
-    }
-  
-    return command;
-  };
-  
-  // Update the sendMessage function's command handling section
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
-  
+
     const userMessage = { role: 'user', content: input.trim() };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-    setError(null);
-  
+    dispatch(setMessages([...messages, userMessage]));
+    dispatch(setInput(''));
+    dispatch(setLoading(true));
+    dispatch(setError(null));
+
     // Check for terminal commands (both direct and natural language)
     const naturalCommand = processNaturalLanguageCommand(input.trim());
     if (input.trim().startsWith('$') || naturalCommand) {
@@ -165,13 +83,13 @@ Command:
           data: command + '\n'
         }));
       }
-      setIsLoading(false);
+      dispatch(setLoading(false));
       return;
     }
 
     try {
       // Add thinking indicator
-      setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
+      dispatch(setMessages([...messages, userMessage, { role: 'assistant', content: '...', isThinking: true }]));
 
       // Call Ollama API
       const response = await fetch('http://localhost:11434/api/chat', {
@@ -181,7 +99,7 @@ Command:
         },
         body: JSON.stringify({
           model: selectedModel,
-          messages: [...messages.filter(m => !m.isThinking), userMessage],
+          messages: [...messages, userMessage].filter(m => !m.isThinking),
           stream: false
         }),
       });
@@ -193,23 +111,23 @@ Command:
       const data = await response.json();
       
       // Remove thinking indicator and add actual response
-      setMessages(prev => [
-        ...prev.filter(m => !m.isThinking),
+      dispatch(setMessages([
+        ...messages,
+        userMessage,
         { role: 'assistant', content: data.message?.content || 'No response from model' }
-      ]);
+      ]));
     } catch (err) {
       console.error('Error sending message:', err);
-      
-      // Remove thinking indicator and add error message
-      setMessages(prev => [
-        ...prev.filter(m => !m.isThinking),
+      dispatch(setMessages([
+        ...messages,
+        userMessage,
         { role: 'error', content: `Error: ${err.message}. Make sure Ollama is running with llama3 model.` }
-      ]);
-      setError(err.message);
+      ]));
+      dispatch(setError(err.message));
     } finally {
-      setIsLoading(false);
+      dispatch(setLoading(false));
     }
-  };
+};
 
   const clearChat = () => {
     setMessages([
@@ -376,3 +294,50 @@ Command:
 };
 
 export default ChatbotPanel;
+
+
+// Add this function before sendMessage
+const processNaturalLanguageCommand = (text) => {
+  const commandMap = {
+    'read': 'cat',
+    'show': 'cat',
+    'list': 'ls',
+    'show files': 'ls',
+    'show directory': 'ls',
+    'current directory': 'pwd',
+    'where am i': 'pwd',
+    'clear screen': 'clear',
+    'make directory': 'mkdir',
+    'create directory': 'mkdir',
+    'remove': 'rm',
+    'delete': 'rm',
+  };
+  
+  const readPattern = /(?:read|show|display|open)\s+(?:contents\s+of\s+|the\s+)?(?:file\s+)?["']?([^"']+?)["']?\s*$/i;
+  const listPattern = /(?:list|show)\s+(?:files|directory|contents)\s*(?:in\s+)?(.+)?/i;
+  const mkdirPattern = /(?:make|create)\s+(?:a\s+)?(?:new\s+)?directory\s+(?:named\s+)?(.+)/i;
+  const removePattern = /(?:remove|delete)\s+(?:the\s+)?(?:file|directory)?\s+(.+)/i;
+  
+  let command = '';
+  
+  if (readPattern.test(text)) {
+    const match = text.match(readPattern);
+    const filename = match[1].trim();
+    command = `cat "${filename}"`;
+  } else if (listPattern.test(text)) {
+    const match = text.match(listPattern);
+    command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
+  } else if (mkdirPattern.test(text)) {
+    const match = text.match(mkdirPattern);
+    command = `mkdir "${match[1].trim()}"`;
+  } else if (removePattern.test(text)) {
+    const match = text.match(removePattern);
+    command = `rm "${match[1].trim()}"`;
+  } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
+    command = 'pwd';
+  } else if (text.toLowerCase().includes('clear screen')) {
+    command = 'clear';
+  }
+  
+  return command;
+};

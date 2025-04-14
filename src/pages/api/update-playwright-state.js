@@ -3,7 +3,7 @@ import path from 'path';
 
 export async function POST({ request }) {
   try {
-    const statePath = path.join(process.cwd(), 'playwright-state.json');
+    const statePath = path.join(process.cwd(), 'redux-state.json');
     const newData = await request.json();
     
     // Read existing state

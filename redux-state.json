@@ -1,0 +1,17 @@
+{
+  "logs": [
+    {
+      "timestamp": "6:09:03 AM",
+      "message": "User: testing",
+      "type": "chat"
+    },
+    {
+      "timestamp": "6:09:07 AM",
+      "message": "Assistant (llama3): It seems you've entered a command! Let's see what it is...\n\nSince I'm a text-based AI, I can help with the following commands:\n\n* \"read the testing.txt\", or \"show contents of testing.txt\": If you have a file named \"testing.txt\" in your current directory, I can read its contents for you.\n* \"list files in downloads\": If you want to list the files in your downloads folder, I can help with that.\n* \"where am i\": This command is used to show the current working directory. I'll let you know where we are!\n* \"make directory testing\": Want to create a new directory named \"testing\"? I can assist with that.\n* \"delete file testing.txt\": If you want to delete a file named \"testing.txt\" from your current directory, I can help with that.\n\nWhich command would you like to use?",
+      "type": "chat"
+    }
+  ],
+  "status": "active",
+  "screenshots": [],
+  "lastUpdated": "2025-04-14T22:09:07.600Z"
+}

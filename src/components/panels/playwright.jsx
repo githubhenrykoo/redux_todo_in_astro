@@ -1,16 +1,32 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addLog, addScreenshot, setStatus, clearLogs } from '../../features/testLogsSlice';
+import { writeToJsonl } from '../../utils/logWriter';
 
 const Playwright = () => {
     const dispatch = useDispatch();
     const testLogs = useSelector(state => state.testLogs) || { status: 'idle', logs: [], screenshots: [] };
     const { status, logs, screenshots } = testLogs;
 
+    const logToFile = async (message, type, testName) => {
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            testName,
+            type,
+            message,
+            status: status
+        };
+        
+        await writeToJsonl(logEntry);
+        dispatch(addLog(message));
+    };
+
     const runTest5 = async () => {
+        const testName = 'Chatbot, YouTube, Calculator';
         try {
             dispatch(setStatus('running'));
             dispatch(clearLogs());
+            await logToFile('=== Starting Chatbot, YouTube, Calculator Test ===', 'info', testName);
             
             const response = await fetch('/api/run-5', {
                 method: 'POST'
@@ -31,23 +47,23 @@ const Playwright = () => {
                         if (msg) {
                             const data = JSON.parse(msg);
                             if (data.type === 'log') {
-                                dispatch(addLog(`✓ ${data.message}`));
+                                await logToFile(`✓ ${data.message}`, 'success', testName);
                             } else if (data.type === 'screenshot') {
                                 dispatch(addScreenshot(data.path));
-                                dispatch(addLog(`📸 Screenshot captured: ${data.path}`));
+                                await logToFile(`📸 Screenshot captured: ${data.path}`, 'screenshot', testName);
                             }
                         }
                     } catch (parseError) {
-                        dispatch(addLog(`❌ Parse error: ${parseError.message}`));
+                        await logToFile(`❌ Parse error: ${parseError.message}`, 'error', testName);
                     }
                 }
             }
 
             dispatch(setStatus('completed'));
-            dispatch(addLog('✅ Test completed successfully'));
+            await logToFile('✅ Test completed successfully', 'success', testName);
         } catch (error) {
             dispatch(setStatus('error'));
-            dispatch(addLog(`❌ Error: ${error.message}`));
+            await logToFile(`❌ Error: ${error.message}`, 'error', testName);
         }
     };
 
@@ -125,9 +141,9 @@ const Playwright = () => {
         try {
             dispatch(setStatus('running'));
             dispatch(clearLogs());
-            dispatch(addLog('Starting Catalog Manager Test...'));
+            dispatch(addLog('=== Starting Catalog Manager Test ==='));
             
-            const response = await fetch('/api/run-0', {
+            const response = await fetch('/api/run-7', {
                 method: 'POST'
             });
 

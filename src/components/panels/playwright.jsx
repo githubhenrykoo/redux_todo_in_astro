@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addLog, addScreenshot, setStatus, clearLogs } from '../../features/testLogsSlice';
 import { writeToJsonl } from '../../utils/logWriter';
@@ -7,6 +7,40 @@ const Playwright = () => {
     const dispatch = useDispatch();
     const testLogs = useSelector(state => state.testLogs) || { status: 'idle', logs: [], screenshots: [] };
     const { status, logs, screenshots } = testLogs;
+
+    // Modified save state to merge with existing logs
+    useEffect(() => {
+        const saveState = async () => {
+            try {
+                // Fetch existing state first
+                const existingStateResponse = await fetch('/api/get-state');
+                const existingState = await existingStateResponse.json();
+
+                const newState = {
+                    status,
+                    logs: [...(existingState.logs || []), ...logs],
+                    screenshots: [...(existingState.screenshots || []), ...screenshots],
+                    lastUpdated: new Date().toISOString()
+                };
+                
+                const response = await fetch('/api/save-state', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(newState)
+                });
+                
+                if (!response.ok) {
+                    console.error('Failed to save state');
+                }
+            } catch (error) {
+                console.error('Error saving state:', error);
+            }
+        };
+
+        saveState();
+    }, [status, logs, screenshots]);
 
     const logToFile = async (message, type, testName) => {
         const logEntry = {

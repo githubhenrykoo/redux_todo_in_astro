@@ -95,7 +95,7 @@ const ChatbotPanel = ({ className = '' }) => {
     } catch (err) {
       console.error('Error saving chat state:', err);
     }
-    
+
     // Second fetch call for LLM response
     try {
       await fetch('/api/update-playwright-state', {

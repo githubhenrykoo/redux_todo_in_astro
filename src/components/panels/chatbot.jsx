@@ -71,8 +71,11 @@ const ChatbotPanel = ({ className = '' }) => {
     const timestamp = new Date().toLocaleTimeString();
     
     // Save chat action to playwright-state.json
+    // In the sendMessage function, update the fetch calls:
+    
+    // First fetch call for user message
     try {
-      const response = await fetch('/api/update-playwright-state', {
+      await fetch('/api/update-playwright-state', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +86,7 @@ const ChatbotPanel = ({ className = '' }) => {
           timestamp: new Date().toISOString(),
           status: 'active',
           logs: [{
-            timestamp,
+            timestamp: new Date().toLocaleTimeString(),
             message: `User: ${input.trim()}`,
             type: 'chat'
           }]
@@ -91,6 +94,30 @@ const ChatbotPanel = ({ className = '' }) => {
       });
     } catch (err) {
       console.error('Error saving chat state:', err);
+    }
+    
+    // Second fetch call for LLM response
+    try {
+      await fetch('/api/update-playwright-state', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'chat',
+          llmResponse: data.message?.content || 'No response from model',
+          model: selectedModel,
+          timestamp: new Date().toISOString(),
+          status: 'active',
+          logs: [{
+            timestamp: new Date().toLocaleTimeString(),
+            message: `Assistant (${selectedModel}): ${data.message?.content || 'No response from model'}`,
+            type: 'chat'
+          }]
+        })
+      });
+    } catch (err) {
+      console.error('Error saving LLM response:', err);
     }
 
     dispatch(setMessages([...messages, userMessage]));

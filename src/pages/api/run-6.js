@@ -48,23 +48,23 @@ export async function POST({ request }) {
 
         // 7. Click Enter Manually button
         await page.click('button:text("Enter Manually")');
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(3000);
 
         // 8. Click Use San Francisco button
         await page.click('button:text("Use San Francisco")');
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(3000);
 
         // 9. Click Use These Coordinates button
         await page.click('button:text("Use These Coordinates")');
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(3000);
 
         // 9. Click Settings button
         await page.click('button:text("Settings")');
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(2000);
 
         // 10. Click Low quality button
         await page.click('button:text("Low")');
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(2000);
 
         // 11. Click Stop Tracking button
         await page.click('button:text("Stop Tracking")');

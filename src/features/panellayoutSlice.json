@@ -167,7 +167,7 @@
             "visible": true
         },
         "middle": {
-            "type": "xterm", 
+            "type": "googlecalendar", 
             "size": 0,
             "minSize": 0,
             "visible": false

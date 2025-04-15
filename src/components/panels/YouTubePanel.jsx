@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const DEFAULT_YOUTUBE_URL = 'https://www.youtube.com/watch?v=ogw7NK-uEus&ab_channel=gasingchannel';
+const DEFAULT_YOUTUBE_URL = '';
 
 const YouTubePanel = () => {
   const [inputUrl, setInputUrl] = useState(DEFAULT_YOUTUBE_URL);

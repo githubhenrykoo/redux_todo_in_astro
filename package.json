@@ -24,7 +24,8 @@
     "test:content-detector:simple": "node src/test/run-content-type-tests.js",
     "test:add-more-data": "node src/test/add-more-test-data.js",
     "mqtt-test": "ts-node tests/mqtt-automation.ts",
-    "start:terminal": "node server/terminal-server.js"
+    "start:terminal": "node server/terminal-server.js",
+    "start:notion": "ts-node --esm src/scripts/start-notion-server.ts"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

@@ -1,0 +1,10 @@
+notion:
+  output_dir: "docs/notion"
+  sync_interval: "0 * * * *"  # Hourly sync
+  api:
+    port: 3000
+    endpoints:
+      - path: "/sync/page/:pageId"
+        method: "POST"
+      - path: "/sync/database"
+        method: "POST"

@@ -142,6 +142,7 @@ const NotionPanel = () => {
         
         <div className="input-group">
           <input 
+            value="1d83b3ef43448048abbbe3452cba06da"
             type="text" 
             placeholder="Enter Page ID"
             disabled={!connected}

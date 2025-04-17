@@ -25,7 +25,8 @@
     "test:add-more-data": "node src/test/add-more-test-data.js",
     "mqtt-test": "ts-node tests/mqtt-automation.ts",
     "start:terminal": "node server/terminal-server.js",
-    "notion:github": "node scripts/fetchNotionToProject.js"
+    "notion:github": "node scripts/fetchNotionToProject.js",
+    "notion:mcp": "node server/notion-mcp-server.js"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",

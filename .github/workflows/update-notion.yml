@@ -1,0 +1,29 @@
+# .github/workflows/update-notion.yml
+name: Update Notion Docs
+
+on:
+  schedule:
+    - cron: '0 * * * *' # setiap jam
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - run: npm install
+      - run: node scripts/fetchNotionToProject.js
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_PAGE_ID: ${{ secrets.NOTION_PAGE_ID }}
+
+      - run: git config user.name "GitHub Action"
+      - run: git config user.email "action@github.com"
+      - run: |
+          git add data/notion/*
+          git commit -m "Update Notion data" || echo "No changes"
+          git push

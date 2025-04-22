@@ -27,7 +27,7 @@
             "visible": true
         },
         "middle": {
-            "type": "xterm",
+            "type": "googlecalendar",
             "size": 40,
             "minSize": 20,
             "visible": true
@@ -183,7 +183,7 @@
         "left": {
             "type": "CatalogPanel",
             "size": 40,
-            "minSize": 50,
+            "minSize": 0,
             "visible": true
         },
         "middle": {

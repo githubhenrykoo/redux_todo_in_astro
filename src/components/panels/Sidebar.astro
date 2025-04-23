@@ -96,6 +96,21 @@ const { class: className, ...props } = Astro.props;
         </span>
       </button>
       <button
+        id="llmVizLayoutBtn"
+        title="LLM Visualization"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"></path>
+          <path d="M3 15v4a2 2 0 0 0 2 2h16v-6H5a2 2 0 0 1-2-2v0z"></path>
+          <path d="M18 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"></path>
+          <circle cx="6" cy="12" r="2"></circle>
+        </svg>
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          LLM Visualization
+        </span>
+      </button>
+      <button
         id="testingLayoutBtn"
         title="Testing Dashboard"
         class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
@@ -142,6 +157,7 @@ const { class: className, ...props } = Astro.props;
   const youtubeLayoutBtn = document.getElementById('youtubeLayoutBtn');
   const cameraLayoutBtn = document.getElementById('cameraLayoutBtn');
   const catalogLayoutBtn = document.getElementById('catalogLayoutBtn');
+  const llmVizLayoutBtn = document.getElementById('llmVizLayoutBtn');
   const testingLayoutBtn = document.getElementById('testingLayoutBtn');
   const transcriptionLayoutBtn = document.getElementById('transcriptionLayoutBtn');
 
@@ -178,6 +194,10 @@ const { class: className, ...props } = Astro.props;
     store.dispatch(changeLayout('catalog_layout'));
   });
 
+  llmVizLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('llm_viz_layout'));
+  });
+
   testingLayoutBtn?.addEventListener('click', () => {
     store.dispatch(changeLayout('Testing'));
   });
@@ -190,6 +210,7 @@ const { class: className, ...props } = Astro.props;
   function updateActiveButton(layout: string) {
     // Remove active styles from all buttons
     todoLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    generateLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     testingLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     clmLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     fileLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
@@ -197,10 +218,12 @@ const { class: className, ...props } = Astro.props;
     youtubeLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     cameraLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     catalogLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    llmVizLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     transcriptionLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
 
     // Reset icon colors
     todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    generateLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     testingLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     clmLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     fileLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
@@ -208,6 +231,7 @@ const { class: className, ...props } = Astro.props;
     youtubeLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     cameraLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     catalogLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    llmVizLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     transcriptionLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
@@ -238,6 +262,9 @@ const { class: className, ...props } = Astro.props;
     } else if (layout === 'transcription_layout') {
       transcriptionLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       transcriptionLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (layout === 'llm_viz_layout') {
+      llmVizLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      llmVizLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     }
   }
 

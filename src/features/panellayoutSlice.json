@@ -167,7 +167,7 @@
             "visible": true
         },
         "middle": {
-            "type": "googlecalendar", 
+            "type": "xterm", 
             "size": 0,
             "minSize": 0,
             "visible": false
@@ -194,6 +194,26 @@
         },
         "right": {
             "type": "CLMDisplayPanel",
+            "size": 30,
+            "minSize": 0,
+            "visible": false
+        }
+    },
+    "llm_viz_layout": {
+        "left": {
+            "type": "CatalogPanel",
+            "size": 30,
+            "minSize": 0,
+            "visible": false
+        },
+        "middle": {
+            "type": "LlmVizPanel", 
+            "size": 100,
+            "minSize": 80,
+            "visible": true
+        },
+        "right": {
+            "type": "ContentViewerPanel",
             "size": 30,
             "minSize": 0,
             "visible": false

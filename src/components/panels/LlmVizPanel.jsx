@@ -21,6 +21,11 @@ const LlmVizPanel = () => {
     setLoading(false);
   };
 
+  // Directly open the URL in a new tab
+  const openInNewTab = () => {
+    window.open(serverUrl, '_blank');
+  };
+
   // Check server availability on component mount
   useEffect(() => {
     const checkServerAvailability = async () => {
@@ -31,20 +36,30 @@ const LlmVizPanel = () => {
         
         const response = await fetch(serverUrl, {
           method: 'HEAD',
-          signal: controller.signal
+          signal: controller.signal,
+          mode: 'no-cors' // This allows the request to succeed even with CORS restrictions
         });
         
         clearTimeout(timeoutId);
         
-        if (!response.ok) {
-          setError(`Server returned ${response.status}: ${response.statusText}`);
-        }
+        // With mode: 'no-cors', we can't actually check response.ok
+        // The request will "succeed" even if the server is unreachable
+        // So we need to use the fact that the fetch completed at all
+        setError(null);
       } catch (err) {
         setError(`Cannot connect to LLM Visualization server at ${serverUrl}. Make sure it's running.`);
       }
     };
     
     checkServerAvailability();
+    
+    // Set a timer to automatically hide the loading indicator after a reasonable time
+    // This is a fallback in case the iframe load event doesn't fire due to CORS
+    const loadingTimer = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+    
+    return () => clearTimeout(loadingTimer);
   }, [serverUrl]);
 
   // Handle server URL change
@@ -90,10 +105,7 @@ const LlmVizPanel = () => {
             placeholder="Server URL"
           />
           <button 
-            onClick={() => {
-              setLoading(true);
-              setError(null);
-            }}
+            onClick={openInNewTab}
             style={{
               padding: '5px 10px',
               backgroundColor: 'var(--accent-color, #4a90e2)',
@@ -103,7 +115,7 @@ const LlmVizPanel = () => {
               cursor: 'pointer'
             }}
           >
-            Refresh
+            Open in New Tab
           </button>
         </div>
       </div>
@@ -170,10 +182,50 @@ const LlmVizPanel = () => {
                   cd llm-viz<br/>
                   npm run dev
                 </code>
+                <button 
+                  onClick={openInNewTab}
+                  style={{
+                    marginTop: '15px',
+                    padding: '8px 15px',
+                    backgroundColor: 'var(--accent-color, #4a90e2)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Try Opening Directly
+                </button>
               </div>
             </div>
           </div>
         )}
+        
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center',
+          zIndex: 1
+        }}>
+          <p>Due to browser security restrictions, the visualization may not load in an iframe.</p>
+          <button 
+            onClick={openInNewTab}
+            style={{
+              marginTop: '15px',
+              padding: '10px 20px',
+              backgroundColor: 'var(--accent-color, #4a90e2)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            Open LLM Visualization in New Tab
+          </button>
+        </div>
         
         <iframe
           src={serverUrl}
@@ -181,11 +233,13 @@ const LlmVizPanel = () => {
             width: '100%',
             height: '100%',
             border: 'none',
-            backgroundColor: 'white' // Default before content loads
+            backgroundColor: 'white', // Default before content loads
+            opacity: 0.3 // Make it transparent to show the message above
           }}
           onLoad={handleIframeLoad}
           onError={handleIframeError}
           title="LLM Visualization"
+          sandbox="allow-scripts allow-same-origin"
         />
       </div>
     </div>

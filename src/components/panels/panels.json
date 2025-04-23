@@ -61,5 +61,8 @@
   },
   "CatalogPanel": {
     "component": "../components/panels/CatalogPanel.jsx"
+  },
+  "LlmVizPanel": {
+    "component": "../components/panels/LlmVizPanel.jsx"
   }
 }

@@ -1,0 +1,53 @@
+/* Common panel styles */
+.loading-spinner {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--accent-color, #4a90e2);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Button hover and active states */
+button:hover {
+  background-color: var(--accent-hover, #3a80d2);
+}
+
+button:active {
+  background-color: var(--accent-active, #2a70c2);
+}
+
+/* Input focus states */
+input:focus {
+  outline: none;
+  border-color: var(--accent-color, #4a90e2);
+}
+
+/* Common error styles */
+.error-container {
+  background-color: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  border-radius: 5px;
+  padding: 15px;
+  max-width: 500px;
+}
+
+.error-title {
+  color: #ff5252;
+  margin-top: 0;
+}
+
+.code-block {
+  display: block; 
+  background-color: #2a2a2a; 
+  padding: 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  text-align: left;
+  font-family: monospace;
+}

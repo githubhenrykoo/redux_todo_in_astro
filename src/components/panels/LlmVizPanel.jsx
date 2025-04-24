@@ -62,13 +62,6 @@ const LlmVizPanel = () => {
     return () => clearTimeout(loadingTimer);
   }, [serverUrl]);
 
-  // Handle server URL change
-  const handleServerUrlChange = (e) => {
-    setServerUrl(e.target.value);
-    setLoading(true);
-    setError(null);
-  };
-
   // Render panel
   return (
     <div className="llm-viz-panel" style={{ 
@@ -93,7 +86,7 @@ const LlmVizPanel = () => {
           <input
             type="text"
             value={serverUrl}
-            onChange={handleServerUrlChange}
+            onChange={(e) => setServerUrl(e.target.value)}
             style={{ 
               padding: '5px 8px',
               backgroundColor: 'var(--input-bg, #3a3a3a)',
@@ -201,40 +194,13 @@ const LlmVizPanel = () => {
           </div>
         )}
         
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          textAlign: 'center',
-          zIndex: 1
-        }}>
-          <p>Due to browser security restrictions, the visualization may not load in an iframe.</p>
-          <button 
-            onClick={openInNewTab}
-            style={{
-              marginTop: '15px',
-              padding: '10px 20px',
-              backgroundColor: 'var(--accent-color, #4a90e2)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
-          >
-            Open LLM Visualization in New Tab
-          </button>
-        </div>
-        
         <iframe
           src={serverUrl}
           style={{
             width: '100%',
             height: '100%',
             border: 'none',
-            backgroundColor: 'white', // Default before content loads
-            opacity: 0.3 // Make it transparent to show the message above
+            backgroundColor: 'white' // Default before content loads
           }}
           onLoad={handleIframeLoad}
           onError={handleIframeError}

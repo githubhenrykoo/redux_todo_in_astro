@@ -22,8 +22,18 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV ASTRO_TELEMETRY_DISABLED 1
 
-# Build using the build:nocheck script that we verified works
-RUN npm run build:nocheck
+# Set build mode (default to normal build, GitHub Actions uses nocheck)
+ARG BUILD_MODE=normal
+
+# Build the application based on the build mode
+RUN if [ "$BUILD_MODE" = "nocheck" ]; then \
+      echo "Running build with nocheck flag" && \
+      npm run build:nocheck; \
+    else \
+      echo "Running normal build" && \
+      npm run build; \
+    fi
+
 # Copy the Vercel output to make it easier to access
 RUN cp -r .vercel/output/functions/_render.func/dist/server ./vercel-server
 

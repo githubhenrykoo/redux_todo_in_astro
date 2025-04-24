@@ -4,6 +4,10 @@ FROM node:18-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ python3-dev py3-pip
+RUN pip3 install setuptools
+
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
 RUN npm ci
@@ -19,8 +23,8 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV ASTRO_TELEMETRY_DISABLED 1
 
-# Skip TypeScript checking during build to avoid errors
-RUN npm run build -- --no-check
+# Build using the build:nocheck script that we verified works
+RUN npm run build:nocheck
 
 # Production image, copy all the files and run the app
 FROM base AS runner

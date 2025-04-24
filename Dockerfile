@@ -37,26 +37,8 @@ ENV PORT 3000
 # Install Express before changing to a non-root user
 RUN npm install express
 
-# Create a simple server entry point
-RUN echo 'const express = require("express");\n\
-const app = express();\n\
-const { default: handler } = require("./server/entry.mjs");\n\
-\n\
-app.use(express.json());\n\
-app.all("*", async (req, res) => {\n\
-  try {\n\
-    const result = await handler(req);\n\
-    res.status(result.status).set(result.headers).end(result.body);\n\
-  } catch (error) {\n\
-    console.error(error);\n\
-    res.status(500).send("Internal Server Error");\n\
-  }\n\
-});\n\
-\n\
-const PORT = process.env.PORT || 3000;\n\
-app.listen(PORT, () => {\n\
-  console.log(`Server running on port ${PORT}`);\n\
-});\n' > server.js
+# Copy our server.cjs file
+COPY server.cjs ./
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 astro
@@ -74,4 +56,4 @@ EXPOSE 3000
 ENV HOST 0.0.0.0
 ENV PORT 3000
 
-CMD ["node", "server.js"]
+CMD ["node", "server.cjs"]

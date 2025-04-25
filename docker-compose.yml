@@ -27,3 +27,38 @@ services:
       - PORT=4321
     command: npm run dev
     restart: unless-stopped
+  
+  notion-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    ports:
+      - "3002:3002"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - NOTION_PORT=3002
+      - NOTION_API_KEY=${NOTION_API_KEY}
+      - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
+    command: node server/notion-mcp-server.js
+    restart: unless-stopped
+
+  terminal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    command: bash -c "cd server && npm rebuild node-pty --update-binary && node terminal-server.js"
+    privileged: true
+    restart: unless-stopped

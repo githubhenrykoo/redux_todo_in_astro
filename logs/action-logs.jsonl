@@ -15,3 +15,6 @@
 {"timestamp":"2025-04-14T23:16:17.108Z","testName":"Chatbot, YouTube, Calculator","type":"success","message":"✅ Test completed successfully","status":"completed"}
 {"timestamp":"2025-04-24T06:44:37.643Z","testName":"Chatbot, YouTube, Calculator","type":"info","message":"=== Starting Chatbot, YouTube, Calculator Test ===","status":"idle"}
 {"timestamp":"2025-04-24T06:45:18.866Z","testName":"Chatbot, YouTube, Calculator","type":"success","message":"✅ Test completed successfully","status":"idle"}
+{"timestamp":"2025-04-25T01:27:06.802Z","testName":"Chatbot, YouTube, Calculator","type":"info","message":"=== Starting Chatbot, YouTube, Calculator Test ===","status":"idle"}
+{"timestamp":"2025-04-25T01:27:08.010Z","testName":"Chatbot, YouTube, Calculator","type":"error","message":"❌ Parse error: Unexpected token '<', \"<title>Err\"... is not valid JSON","status":"idle"}
+{"timestamp":"2025-04-25T01:27:08.521Z","testName":"Chatbot, YouTube, Calculator","type":"success","message":"✅ Test completed successfully","status":"idle"}

@@ -153,7 +153,8 @@ export default defineConfig({
       strictPort: true,
       proxy: {},
       cors: true,
-      allowedHosts: ['localhost', '127.0.0.1', 'todo.pkc.pub', '10.243.143.134', '172.22.1.146', 'todo.toyhouse.cc', 'todo.web4x.org', 'alessandro.pkc.pub']
+      host: true, 
+      allowedHosts: true 
     },
     build: {
       rollupOptions: {

@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
 
+// Add the extractTitle helper function
+const extractTitle = (page) => {
+  // Try to get title from properties
+  if (page.properties && page.properties.title) {
+    const titleProperty = page.properties.title;
+    if (Array.isArray(titleProperty.title)) {
+      return titleProperty.title.map(t => t.plain_text).join('');
+    }
+  }
+  
+  // Fallback to page ID if no title found
+  return page.id;
+};
+
 const NotionPanel = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -81,7 +95,9 @@ const NotionPanel = () => {
         const formattedDoc = {
           id: data.document.page.id,
           title: extractTitle(data.document.page),
-          content: extractContent(data.document.blocks),
+          tables: data.document.tables,
+          descriptions: data.document.descriptions,
+          subheadings: data.document.subheadings,
           lastEdited: data.document.page.last_edited_time
         };
         setDocuments(prev => [...prev, formattedDoc]);
@@ -93,22 +109,6 @@ const NotionPanel = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Add helper functions to extract title and content
-  const extractTitle = (page) => {
-    const titleProp = Object.values(page.properties).find(
-      prop => prop.type === 'title'
-    );
-    return titleProp?.title[0]?.plain_text || 'Untitled';
-  };
-
-  const extractContent = (blocks) => {
-    return blocks
-      .filter(block => block.type === 'paragraph')
-      .map(block => block.paragraph.rich_text?.[0]?.plain_text || '')
-      .join('\n')
-      .slice(0, 500);
   };
 
   return (
@@ -166,7 +166,72 @@ const NotionPanel = () => {
         {documents.map((doc) => (
           <div key={doc.id} className="document-item">
             <h3>{doc.title}</h3>
-            <p>{doc.content.substring(0, 100)}...</p>
+            
+            {/* Display tables */}
+            {doc.tables && doc.tables.length > 0 && (
+              <div className="tables">
+                <h4>Tables</h4>
+                {doc.tables.map(table => (
+                  <div key={table.id} className="table-container" style={{ overflowX: 'auto', marginBottom: '20px' }}>
+                    <table style={{ 
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      marginBottom: '10px'
+                    }}>
+                      <tbody>
+                        {table.rows.map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {row.cells.map((cell, cellIndex) => (
+                              <td 
+                                key={cellIndex}
+                                style={{
+                                  border: '1px solid #ddd',
+                                  padding: '8px',
+                                  backgroundColor: rowIndex === 0 ? '#f5f5f5' : 'white'
+                                }}
+                              >
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Display subheadings */}
+            {doc.subheadings && doc.subheadings.length > 0 && (
+              <div className="subheadings">
+                <h4>Subheadings</h4>
+                {doc.subheadings.map(heading => (
+                  <div 
+                    key={heading.id} 
+                    className={`heading-${heading.level}`}
+                    style={{ 
+                      marginLeft: `${(heading.level - 1) * 20}px`,
+                      fontSize: `${1.4 - (heading.level * 0.1)}em`,
+                      marginBottom: '8px'
+                    }}
+                  >
+                    {heading.content}
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Display descriptions */}
+            {doc.descriptions && doc.descriptions.length > 0 && (
+              <div className="descriptions">
+                <h4>Descriptions</h4>
+                {doc.descriptions.map(desc => (
+                  <p key={desc.id}>{desc.content}</p>
+                ))}
+              </div>
+            )}
+            
             <div className="document-meta">
               <span>ID: {doc.id}</span>
             </div>
@@ -178,6 +243,57 @@ const NotionPanel = () => {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        .notion-panel {
+          background-color: white;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .document-item {
+          margin-bottom: 24px;
+          padding: 16px;
+          border: 1px solid #eee;
+          border-radius: 8px;
+        }
+        
+        .sync-button {
+          padding: 8px 16px;
+          background-color: #2ecc71;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-right: 10px;
+        }
+        
+        .sync-button:disabled {
+          background-color: #95a5a6;
+          cursor: not-allowed;
+        }
+        
+        .input-group {
+          display: flex;
+          gap: 10px;
+          margin-top: 10px;
+        }
+        
+        .input-group input {
+          padding: 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          flex: 1;
+        }
+        
+        .error-message {
+          color: #e74c3c;
+          padding: 10px;
+          margin: 10px 0;
+          background-color: #fadbd8;
+          border-radius: 4px;
+        }
+      `}</style>
     </div>
   );
 };

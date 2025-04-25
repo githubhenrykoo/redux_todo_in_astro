@@ -53,16 +53,69 @@ app.get('/health', async (req, res) => {
 // Download database endpoint
 app.post('/sync/database', async (req, res) => {
   try {
+    // First, retrieve the database structure
+    const database = await notion.databases.retrieve({
+      database_id: databaseId
+    });
+
+    // Then query the database without assuming specific properties
     const response = await notion.databases.query({
       database_id: databaseId,
-      sorts: [{ property: 'Created', direction: 'descending' }]
+      page_size: 100
     });
-    res.json({ success: true, documents: response.results });
+
+    // Transform the results to include table data
+    const documents = await Promise.all(response.results.map(async (page) => {
+      // Get page blocks to find tables
+      const blocks = await notion.blocks.children.list({
+        block_id: page.id,
+        page_size: 100
+      });
+
+      const tables = [];
+      for (const block of blocks.results) {
+        if (block.type === 'table') {
+          const tableRows = await notion.blocks.children.list({
+            block_id: block.id,
+            page_size: 100
+          });
+          
+          tables.push({
+            id: block.id,
+            rows: tableRows.results.map(row => ({
+              cells: row.table_row.cells
+            }))
+          });
+        }
+      }
+
+      return {
+        id: page.id,
+        title: page.properties?.title?.title?.[0]?.plain_text || 'Untitled',
+        tables,
+        lastEdited: page.last_edited_time
+      };
+    }));
+
+    res.json({ 
+      success: true, 
+      documents,
+      database: {
+        id: database.id,
+        title: database.title?.[0]?.plain_text || 'Untitled Database'
+      }
+    });
   } catch (error) {
-    console.error('Error downloading database:', error);
+    console.error('Database sync error:', {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      details: error.details
+    });
     res.status(500).json({ 
       success: false, 
-      error: error.message || 'Failed to download database' 
+      error: error.message || 'Failed to sync database',
+      details: error.code || 'Unknown error code'
     });
   }
 });
@@ -72,11 +125,64 @@ app.post('/sync/page/:pageId', async (req, res) => {
   try {
     const { pageId } = req.params;
     const page = await notion.pages.retrieve({ page_id: pageId });
-    const blocks = await notion.blocks.children.list({ block_id: pageId });
+    const blocks = await notion.blocks.children.list({ 
+      block_id: pageId,
+      page_size: 100
+    });
+    
+    // Get all tables, descriptions, and subheadings from the page
+    const tables = [];
+    const descriptions = [];
+    const subheadings = [];
+    
+    for (const block of blocks.results) {
+      if (block.type === 'table') {
+        // Get table rows
+        const tableRows = await notion.blocks.children.list({
+          block_id: block.id,
+          page_size: 100
+        });
+        
+        tables.push({
+          id: block.id,
+          rows: tableRows.results.map(row => ({
+            cells: row.table_row.cells
+          }))
+        });
+      } else if (block.type === 'paragraph') {
+        // Collect descriptions (paragraphs)
+        const text = block.paragraph.rich_text
+          .map(t => t.plain_text)
+          .join('');
+        if (text.trim()) {
+          descriptions.push({
+            id: block.id,
+            content: text
+          });
+        }
+      } else if (block.type === 'heading_1' || block.type === 'heading_2' || block.type === 'heading_3') {
+        const text = block[block.type].rich_text
+          .map(t => t.plain_text)
+          .join('');
+        if (text.trim()) {
+          subheadings.push({
+            id: block.id,
+            content: text,
+            level: parseInt(block.type.slice(-1))
+          });
+        }
+      }
+    }
     
     res.json({ 
       success: true, 
-      document: { page, blocks: blocks.results } 
+      document: {
+        page,
+        tables,
+        descriptions,
+        subheadings,
+        blocks: blocks.results
+      }
     });
   } catch (error) {
     console.error('Error downloading page:', error);

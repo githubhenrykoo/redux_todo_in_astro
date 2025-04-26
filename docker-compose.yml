@@ -62,3 +62,19 @@ services:
     command: bash -c "cd server && npm rebuild node-pty --update-binary && node terminal-server.js"
     privileged: true
     restart: unless-stopped
+    
+  gasing-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: deps
+    ports:
+      - "3004:3004"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - GASING_PORT=3004
+    command: node src/gasing/division/GasingMCP.js
+    restart: unless-stopped

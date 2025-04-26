@@ -12,6 +12,10 @@ fn main() {
     }
     let gasing_time = start.elapsed().as_secs_f64();
     println!("GASING Division 2: {} seconds", gasing_time);
+<<<<<<< HEAD
+=======
+    println!("GASING Result: {}", hasil);
+>>>>>>> f04baed (add and edit)
 
     // Computer Division
     let start = Instant::now();
@@ -20,6 +24,10 @@ fn main() {
     }
     let computer_time = start.elapsed().as_secs_f64();
     println!("General Division 2: {} seconds", computer_time);
+<<<<<<< HEAD
+=======
+    println!("Computer Result: {}", hasil);
+>>>>>>> f04baed (add and edit)
 
     println!("\nGASING is {} times faster", computer_time/gasing_time);
 }

@@ -52,7 +52,7 @@ const ChatbotPanel = ({ className = '' }) => {
 
   const fetchModels = async () => {
     try {
-      const response = await fetch('http://localhost:11434/api/tags');
+      const response = await fetch('http://localhost:3003/models');
       if (!response.ok) {
         throw new Error('Failed to fetch models');
       }
@@ -60,7 +60,7 @@ const ChatbotPanel = ({ className = '' }) => {
       dispatch(setModels(data.models || []));
     } catch (err) {
       console.error('Error fetching models:', err);
-      dispatch(setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434'));
+      dispatch(setError('Failed to connect to Ollama MCP server. Make sure it\'s running on http://localhost:3003'));
     }
   };
 
@@ -68,140 +68,76 @@ const ChatbotPanel = ({ className = '' }) => {
     if (!input.trim() || isLoading) return;
 
     const userMessage = { role: 'user', content: input.trim() };
-    const timestamp = new Date().toLocaleTimeString();
     
-    // Save chat action to playwright-state.json
-    // In the sendMessage function, update the fetch calls:
-    
-    // First fetch call for user message
-    try {
-      await fetch('/api/update-playwright-state', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'chat',
-          userMessage: input.trim(),
-          timestamp: new Date().toISOString(),
-          status: 'active',
-          logs: [{
-            timestamp: new Date().toLocaleTimeString(),
-            message: `User: ${input.trim()}`,
-            type: 'chat'
-          }]
-        })
-      });
-    } catch (err) {
-      console.error('Error saving chat state:', err);
-    }
-
-    // Second fetch call for LLM response
-    try {
-      await fetch('/api/update-playwright-state', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'chat',
-          llmResponse: data.message?.content || 'No response from model',
-          model: selectedModel,
-          timestamp: new Date().toISOString(),
-          status: 'active',
-          logs: [{
-            timestamp: new Date().toLocaleTimeString(),
-            message: `Assistant (${selectedModel}): ${data.message?.content || 'No response from model'}`,
-            type: 'chat'
-          }]
-        })
-      });
-    } catch (err) {
-      console.error('Error saving LLM response:', err);
-    }
-
     dispatch(setMessages([...messages, userMessage]));
     dispatch(setInput(''));
     dispatch(setLoading(true));
     dispatch(setError(null));
 
-    // Check for terminal commands (both direct and natural language)
+    // Check for terminal commands
     const naturalCommand = processNaturalLanguageCommand(input.trim());
     if (input.trim().startsWith('$') || naturalCommand) {
-      const command = input.trim().startsWith('$') ? input.trim().slice(1) : naturalCommand;
-      if (terminalSocketRef.current?.readyState === WebSocket.OPEN) {
-        terminalSocketRef.current.send(JSON.stringify({
-          type: 'input',
-          data: command + '\n'
-        }));
-      }
-      dispatch(setLoading(false));
-      return;
+        const command = input.trim().startsWith('$') ? input.trim().slice(1) : naturalCommand;
+        if (terminalSocketRef.current?.readyState === WebSocket.OPEN) {
+            terminalSocketRef.current.send(JSON.stringify({
+                type: 'input',
+                data: command + '\n'
+            }));
+        }
+        dispatch(setLoading(false));
+        return;
     }
 
     try {
-      // Add thinking indicator
-      dispatch(setMessages([...messages, userMessage, { role: 'assistant', content: '...', isThinking: true }]));
+        // Add thinking indicator
+        dispatch(setMessages([...messages, userMessage, { role: 'assistant', content: '...', isThinking: true }]));
 
-      // Call Ollama API
-      const response = await fetch('http://localhost:11434/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          messages: [...messages, userMessage].filter(m => !m.isThinking),
-          stream: false
-        }),
-      });
+        // Check if fetch is available
+        if (typeof fetch !== 'function') {
+            throw new Error('Fetch API is not available in this environment');
+        }
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      // Save LLM response to playwright-state.json
-      try {
-        await fetch('/api/update-playwright-state', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'chat',
-            llmResponse: data.message?.content || 'No response from model',
-            model: selectedModel,
-            timestamp: new Date().toISOString(),
-            status: 'active',
-            logs: [{
-              timestamp: new Date().toLocaleTimeString(),
-              message: `Assistant (${selectedModel}): ${data.message?.content || 'No response from model'}`,
-              type: 'chat'
-            }]
-          })
+        // Call chat API with error handling
+        const response = await fetch('http://localhost:3003/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: selectedModel,
+                messages: [...messages, userMessage].filter(m => !m.isThinking),
+                stream: false
+            }),
         });
-      } catch (err) {
-        console.error('Error saving LLM response:', err);
-      }
 
-      // Remove thinking indicator and add actual response
-      dispatch(setMessages([
-        ...messages,
-        userMessage,
-        { role: 'assistant', content: data.message?.content || 'No response from model' }
-      ]));
+        // Add more detailed error handling
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error (${response.status}): ${errorText || response.statusText}`);
+        }
+
+        const data = await response.json();
+        
+        if (!data || !data.message) {
+            throw new Error('Invalid response format from server');
+        }
+        
+        // Remove thinking indicator and add actual response
+        dispatch(setMessages([
+            ...messages,
+            userMessage,
+            { role: 'assistant', content: data.message?.content || 'No response from model' }
+        ]));
     } catch (err) {
-      console.error('Error sending message:', err);
-      dispatch(setMessages([
-        ...messages,
-        userMessage,
-        { role: 'error', content: `Error: ${err.message}. Make sure Ollama is running with llama3 model.` }
-      ]));
-      dispatch(setError(err.message));
+        console.error('Error sending message:', err);
+        dispatch(setMessages([
+            ...messages,
+            userMessage,
+            { role: 'assistant', content: `Error: ${err.message}. Please check server logs for details.` }
+        ]));
+        dispatch(setError(err.message));
     } finally {
-      dispatch(setLoading(false));
+        dispatch(setLoading(false));
     }
 };
 

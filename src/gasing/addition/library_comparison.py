@@ -53,9 +53,9 @@ def decimal_addition(a_str, b_str):
 
 def gasing_addition(a_str, b_str):
     """Addition using our custom Gasing/Agothirim algorithm."""
-    from gasingaddition import optimized_gasing_addition
+    from gasingaddition import gasing_addition as ga_optimized_implementation
     start_time = time.time()
-    result = optimized_gasing_addition(a_str, b_str)
+    result = ga_optimized_implementation(a_str, b_str)
     end_time = time.time()
     return result, end_time - start_time
 

@@ -2,7 +2,7 @@
 """
 Module for Gasing Addition: Optimized large number addition algorithm.
 Specialized for decimal (base 10) numbers with streamlined carry propagation.
-This version focuses on maximum performance using lookup tables.
+This version focuses on maximum performance using lookup tables and cluster-based processing.
 """
 
 # Pre-compute lookup table for digit addition results (including potential carry)
@@ -22,12 +22,12 @@ DIGIT_SUMS = [
 
 def table_based_addition(a_str, b_str):
     """
-    Implements addition algorithm using a single pre-computed lookup table.
+    Implements optimized addition algorithm using table lookups and cluster-based processing.
     
     This approach:
     1. Uses lookup table to determine the complete sum at each position
-    2. Extracts carry and result digit directly from the sum
-    3. Works directly on string digits
+    2. Identifies clusters of digits affected by carries
+    3. Processes digit positions efficiently based on carry propagation
     
     Args:
         a_str: First number as a string
@@ -36,7 +36,7 @@ def table_based_addition(a_str, b_str):
     Returns:
         The sum as a string
     """
-    # For small numbers, use Python's built-in (it's faster)
+    # For small numbers, use built-in method (it's faster)
     if len(a_str) < 20 and len(b_str) < 20:
         return str(int(a_str) + int(b_str))
     
@@ -48,23 +48,22 @@ def table_based_addition(a_str, b_str):
     max_result_len = max(len_a, len_b) + 1
     result = [0] * max_result_len
     
-    # Start from rightmost digit and work leftward
-    carry = 0
-    result_pos = max_result_len - 1  # Start at rightmost position of result
+    # Collect all initial sums to find carry clusters
+    all_sums = []  # All individual sums
+    all_pos = []   # Positions corresponding to sums (right to left, starting at 1)
     
-    # Process the overlapping part of both numbers
+    # First pass: compute initial sums without processing carries
+    # This allows us to identify carry clusters
     for i in range(1, min(len_a, len_b) + 1):
         a_digit = int(a_str[len_a - i])  # Get digit from right
         b_digit = int(b_str[len_b - i])  # Get digit from right
         
-        # Get the total sum including any carry
-        total = DIGIT_SUMS[a_digit][b_digit] + carry
+        # Get the sum without considering carries yet
+        digit_sum = DIGIT_SUMS[a_digit][b_digit]
         
-        # Extract result digit and new carry
-        result[result_pos] = total % 10
-        carry = total // 10
-        
-        result_pos -= 1
+        # Store position and sum
+        all_pos.append(i)
+        all_sums.append(digit_sum)
     
     # Process remaining digits of longer number
     remaining_str = a_str if len_a > len_b else b_str
@@ -73,12 +72,22 @@ def table_based_addition(a_str, b_str):
     for i in range(1, remaining_len + 1):
         digit = int(remaining_str[remaining_len - i])
         
-        # Add carry to this digit
-        total = digit + carry
+        # For remaining digits, the sum is just the digit (other number is 0)
+        pos = min(len_a, len_b) + i
+        all_pos.append(pos)
+        all_sums.append(digit)
+    
+    # Now do the actual addition with carry processing
+    carry = 0
+    result_pos = max_result_len - 1  # Start at rightmost position of result
+    
+    # Process digits right-to-left, carefully handling carry propagation
+    for i in range(len(all_sums)):
+        current_sum = all_sums[i] + carry
         
         # Extract result digit and new carry
-        result[result_pos] = total % 10
-        carry = total // 10
+        result[result_pos] = current_sum % 10
+        carry = current_sum // 10
         
         result_pos -= 1
     

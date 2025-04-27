@@ -9,8 +9,7 @@ def carry_detection(a_str, b_str, verbose=True):
     Detects carries for each digit position following the Gasing logic with the
     Agothirim optimization for consecutive 9s.
     
-    Optimized implementation that efficiently detects sequences of 9s and
-    applies the Agothirim optimization to skip unnecessary processing.
+    Highly optimized implementation focusing on reducing operations and memory usage.
     
     Args:
         a_str: First decimal number as a string
@@ -24,92 +23,89 @@ def carry_detection(a_str, b_str, verbose=True):
     if not a_str or not b_str:
         return []
     
-    # Convert to digits directly - faster than making intermediate lists
+    # Get the maximum length directly
     max_len = max(len(a_str), len(b_str))
     
-    # Preallocate arrays with proper size - avoids resizing
+    # Pre-allocate arrays for performance (using lists, as they proved faster in testing)
     a_padded = [0] * max_len
     b_padded = [0] * max_len
     carry = [0] * max_len
     result_digits = [0] * max_len
     
-    # Fill padded arrays directly - avoid intermediate list creation
+    # Direct array filling (faster than list comprehension)
     a_offset = max_len - len(a_str)
     b_offset = max_len - len(b_str)
     
+    # Fast direct assignment without intermediate conversions
     for i in range(len(a_str)):
         a_padded[i + a_offset] = int(a_str[i])
     
     for i in range(len(b_str)):
         b_padded[i + b_offset] = int(b_str[i])
     
-    # Precompute all position sums for faster lookup
-    position_sums = [0] * max_len
-    for i in range(max_len):
-        position_sums[i] = a_padded[i] + b_padded[i]
+    # Pre-compute all position sums
+    position_sums = [a_padded[i] + b_padded[i] for i in range(max_len)]
     
-    # Performance tracking
-    stats = {
-        "total_positions": max_len,
-        "positions_processed": 0,
-        "skipped_positions": 0,
-        "carry_operations": 0
-    }
+    # Performance tracking with direct variables
+    positions_processed = 0
+    skipped_positions = 0
+    carry_ops = 0
     
     if verbose:
-        # Create display strings for debug output
         a_display = ''.join(str(d) for d in a_padded)
         b_display = ''.join(str(d) for d in b_padded)
         print(f"Padded A: {a_display}, B: {b_display}\n")
         print(f"Processing left-to-right using Agothirim optimization...\n")
     
-    # Process from left to right - optimized loop
+    # Main processing loop - optimized for common cases first
     i = 0
     while i < max_len:
-        stats["positions_processed"] += 1
+        positions_processed += 1
         s = position_sums[i]
         
         if verbose:
             print(f"Position {i+1}: A={a_padded[i]}, B={b_padded[i]}, sum={s}")
         
-        # Fast paths for common cases
+        # Optimized fast path for most common case (s < 9)
         if s < 9:
-            # Most common case: no carry - inline for speed
             if verbose:
                 print(f"  sum < 9: no carry")
             result_digits[i] = s
             i += 1
+            if verbose:
+                print()
             continue
             
+        # Fast path for direct carry (s > 9)
         if s > 9:
-            # Direct carry case - avoid extra function calls
             if verbose:
                 print(f"  sum > 9: immediate carry")
             
             carry[i] = 1
             result_digits[i] = s % 10
-            stats["carry_operations"] += 1
+            carry_ops += 1
             
-            # Optimized consecutive 9s check - combined conditions
+            # Now check for consecutive 9s before this position - inlined for speed
             j = i - 1
-            consecutive_nines = []
+            nine_positions = []
             
-            # Look for consecutive 9s before current position - tight loop
+            # Collect consecutive 9s in a tight loop
             while j >= 0 and result_digits[j] == 9:
-                consecutive_nines.append(j)
+                nine_positions.append(j)
                 j -= 1
             
-            if consecutive_nines:
+            # Only process if we found consecutive 9s
+            if nine_positions:
                 if verbose:
-                    print(f"  Found {len(consecutive_nines)} consecutive 9(s) before position {i+1}")
+                    print(f"  Found {len(nine_positions)} consecutive 9(s) before position {i+1}")
                 
-                # Process all 9s in one block - minimize function calls
-                for nine_pos in consecutive_nines:
+                # Process consecutive 9s efficiently
+                for pos in nine_positions:
                     if verbose:
-                        print(f"  Setting position {nine_pos+1} from 9 to 0")
-                    result_digits[nine_pos] = 0
-                    carry[nine_pos] = 1
-                    stats["carry_operations"] += 1
+                        print(f"  Setting position {pos+1} from 9 to 0")
+                    result_digits[pos] = 0
+                    carry[pos] = 1
+                    carry_ops += 1
                 
                 # Increment the digit before the 9s if possible
                 if j >= 0:
@@ -121,44 +117,44 @@ def carry_detection(a_str, b_str, verbose=True):
             if verbose:
                 print()
             continue
-            
-        # Only case left: s == 9 - optimized to minimize branches
+        
+        # Only remaining case is s == 9
         if verbose:
             print(f"  sum == 9: checking ahead for future carries")
         
-        # Optimized consecutive 9s detection - linear scan
+        # Find all consecutive 9s
         j = i + 1
-        consecutive_nines = [i]  # Current position starts the sequence
+        nine_sequence = [i]
         
-        # Find all consecutive 9-sums in one pass
+        # Tight loop for consecutive 9s search
         while j < max_len and position_sums[j] == 9:
             if verbose:
                 print(f"    Position {j+1} also has sum 9, adding to sequence")
-            consecutive_nines.append(j)
+            nine_sequence.append(j)
             j += 1
         
-        # Check if sequence ends with a carry 
+        # Check if there's a carry at the end of the sequence
         if j < max_len and position_sums[j] > 9:
-            # We found a future carry: optimize the entire sequence at once
+            # We found a future carry - apply the optimization
             if verbose:
-                print(f"    Found sum > 9 at position {j+1} after sequence of {len(consecutive_nines)} consecutive 9(s)")
+                print(f"    Found sum > 9 at position {j+1} after sequence of {len(nine_sequence)} consecutive 9(s)")
                 print(f"    Applying Agothirim optimization: convert all 9s to 0s")
             
-            # Set all 9s to 0 with carries - batch operation
-            for nine_pos in consecutive_nines:
-                result_digits[nine_pos] = 0
-                carry[nine_pos] = 1
-                stats["carry_operations"] += 1
+            # Directly apply to all 9s in the sequence
+            for pos in nine_sequence:
+                result_digits[pos] = 0
+                carry[pos] = 1
+                carry_ops += 1
             
-            # Skip ahead efficiently
-            skipped = len(consecutive_nines) - 1  # We'd process current anyway
-            stats["skipped_positions"] += skipped
-            i = consecutive_nines[-1] + 1
+            # Skip ahead past the 9s sequence
+            skipped = len(nine_sequence) - 1  # We'd process current position anyway
+            skipped_positions += skipped
+            i = nine_sequence[-1] + 1
             
             if verbose:
                 print(f"    Skipping ahead {skipped} positions to position {i+1}")
         else:
-            # No future carry, just record the 9 and continue
+            # No carry after the sequence, just record 9
             if verbose:
                 if j < max_len:
                     print(f"    No future carry found, sum < 9 ({position_sums[j]}) at pos {j+1}: keeping 9 as is")
@@ -170,12 +166,12 @@ def carry_detection(a_str, b_str, verbose=True):
         if verbose:
             print()
     
-    # Print performance stats if requested
-    if stats['skipped_positions'] > 0 and verbose:
-        efficiency = (stats['skipped_positions'] / stats['total_positions']) * 100
+    # Display performance stats if needed
+    if skipped_positions > 0 and verbose:
+        efficiency = (skipped_positions / max_len) * 100
         print(f"Optimization efficiency: {efficiency:.2f}% of positions skipped")
-        print(f"Positions processed: {stats['positions_processed']} of {stats['total_positions']}")
-        print(f"Carry operations: {stats['carry_operations']}\n")
+        print(f"Positions processed: {positions_processed} of {max_len}")
+        print(f"Carry operations: {carry_ops}\n")
     
     return carry
 

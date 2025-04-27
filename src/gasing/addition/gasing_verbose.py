@@ -84,38 +84,24 @@ def table_based_addition_verbose(a_str, b_str, verbose=True):
         all_pos.append(pos)
         all_sums.append(digit)
     
-    # Identify carry clusters in a more precise way
-    # A cluster is a sequence of positions where carries propagate
+    # Identify carry clusters according to positions where sum >= 10
+    # Each cluster ends at a position with sum >= 10
     clusters = []
-    
-    # Keep track of ongoing clusters
     current_cluster = []
-    carry_active = False
     
-    # Process right to left (index 0 is rightmost position)
-    for i in range(len(all_sums)):
+    # Process left to right (in our stored order, that's backwards)
+    # Start with leftmost digit (highest index)
+    for i in range(len(all_sums)-1, -1, -1):
         sum_val = all_sums[i]
+        current_cluster.append(i)
         
-        # Check if this position generates a carry or could be affected by one
-        if sum_val >= 10 or (carry_active and sum_val == 9):
-            # This position is part of a cluster
-            current_cluster.append(i)
-            
-            # If sum is 9 and there's a carry, it will generate a new carry
-            # If sum is >= 10, it already generates a carry
-            carry_active = (sum_val >= 10) or (carry_active and sum_val == 9)
-        else:
-            # This position stops any carry propagation
-            carry_active = False
-            
-            # If we had an active cluster, finish it
-            if current_cluster:
+        # When we find a sum >= 10, or reach the end, complete this cluster
+        if sum_val >= 10 or i == 0:
+            # Only add cluster if it has at least one position with sum >= 10
+            if any(all_sums[idx] >= 10 for idx in current_cluster):
                 clusters.append(list(current_cluster))
-                current_cluster = []
-    
-    # Handle any remaining cluster
-    if current_cluster:
-        clusters.append(current_cluster)
+            # Start a new cluster
+            current_cluster = []
     
     # Now do the actual addition with carry processing
     carry = 0

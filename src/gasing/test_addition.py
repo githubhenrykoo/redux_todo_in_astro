@@ -78,10 +78,13 @@ class TestGasingAddition(unittest.TestCase):
     def test_different_bases(self):
         """Test addition in different number bases."""
         # Binary (base 2)
+        # For "1010" + "0101", each position is exactly threshold (1), so no carries
         carries, _ = self.capture_output(carry_detection, "1010", "0101", base=2)
-        # In binary, when 1+0=1 there's no carry
-        # When 1+1=2, that's > threshold of 1, so carry occurs
-        self.assertEqual(carries, [1, 0, 1, 0])
+        self.assertEqual(carries, [0, 0, 0, 0])
+        
+        # Test with carries in binary - when 1+1=2 > threshold of 1
+        carries, _ = self.capture_output(carry_detection, "1101", "1011", base=2)
+        self.assertEqual(carries, [1, 1, 1, 0])
         
         # Octal (base 8)
         carries, _ = self.capture_output(carry_detection, "765", "723", base=8)
@@ -136,8 +139,9 @@ def run_interactive_tests():
         ("199", "299", 10),      # Case with 9, carry needed
         
         # Binary test cases
-        ("1010", "0101", 2),     # Binary addition
-        ("1111", "1111", 2),     # All 1s in binary
+        ("1010", "0101", 2),     # Binary addition, all sums at threshold
+        ("1111", "1111", 2),     # All 1s in binary, all sums exceed threshold
+        ("1101", "1011", 2),     # Binary with carries where 1+1=2
         
         # Hexadecimal test cases
         ("ABC", "DEF", 16),      # Hex addition

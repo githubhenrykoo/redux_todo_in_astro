@@ -85,6 +85,22 @@ def carry_detection(a_str, b_str, base=10):
     return carry
 
 
+def convert_to_base(number, base):
+    """Convert a decimal number to the specified base."""
+    if number == 0:
+        return "0"
+    
+    digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    result = ""
+    
+    while number > 0:
+        remainder = number % base
+        result = digits[remainder] + result
+        number //= base
+    
+    return result
+
+
 def main():
     """Run interactive Gasing addition logging."""
     print("Gasing Addition with carry detection and logging")
@@ -93,19 +109,45 @@ def main():
     base = int(input("Enter number base (2-36, default=10): ") or "10")
     
     carry = carry_detection(a_str, b_str, base)
-    print("Carry results per position (1=carry):")
+    print("\nCarry results per position (1=carry):")
     print(carry)
     print(f"Total carries detected: {sum(carry)}")
     
-    # For bases <= 10, we can show the decimal sum for verification
-    if base <= 10:
-        try:
+    # Calculate and display results for all bases
+    try:
+        # Convert to decimal first
+        if base <= 10:
             a_dec = int(a_str, base)
             b_dec = int(b_str, base)
-            print(f"Sum (decimal): {a_dec + b_dec}")
-            print(f"Sum (base-{base}): {format(a_dec + b_dec, f'0{len(a_str)}')}")
-        except ValueError:
-            print("Could not compute sum - input may contain digits invalid for this base")
+        else:
+            # For bases > 10, handle manually
+            a_dec = int(''.join(str(int(c, 16)) if c.isdigit() else str(ord(c.upper()) - ord('A') + 10) for c in a_str), base)
+            b_dec = int(''.join(str(int(c, 16)) if c.isdigit() else str(ord(c.upper()) - ord('A') + 10) for c in b_str), base)
+        
+        sum_dec = a_dec + b_dec
+        print(f"\nResults:")
+        print(f"A (decimal): {a_dec}")
+        print(f"B (decimal): {b_dec}")
+        print(f"Sum (decimal): {sum_dec}")
+        
+        # Convert back to original base
+        sum_in_base = convert_to_base(sum_dec, base)
+        print(f"Sum (base-{base}): {sum_in_base}")
+        
+        # Display step-by-step calculation with carries
+        print("\nStep-by-step calculation:")
+        print(f"{' ' * (max(len(a_str), len(b_str)) - len(a_str))}{a_str}")
+        print(f"{' ' * (max(len(a_str), len(b_str)) - len(b_str))}{b_str}")
+        print("-" * max(len(a_str), len(b_str)))
+        
+        # Display carries above the calculation
+        carries_str = ""
+        for c in carry:
+            carries_str += str(c) if c == 1 else " "
+        print(f"{' ' * (max(len(a_str), len(b_str)) - len(carries_str))}{carries_str}")
+        print(f"{sum_in_base}")
+    except ValueError:
+        print("Could not compute sum - input may contain digits invalid for this base")
 
 
 if __name__ == "__main__":

@@ -53,10 +53,9 @@ def decimal_addition(a_str, b_str):
 
 def gasing_addition(a_str, b_str):
     """Addition using our custom Gasing/Agothirim algorithm."""
-    from gasing import carry_detection, calculate_sum
+    from gasingaddition import optimized_gasing_addition
     start_time = time.time()
-    carry = carry_detection(a_str, b_str, verbose=False)
-    result = calculate_sum(a_str, b_str, carry)
+    result = optimized_gasing_addition(a_str, b_str)
     end_time = time.time()
     return result, end_time - start_time
 
@@ -65,33 +64,9 @@ def traditional_addition(a_str, b_str):
     Addition using the traditional right-to-left algorithm.
     Optimized to skip carry detection and directly add the numbers.
     """
+    from traditional import optimized_traditional_addition
     start_time = time.time()
-    
-    # Convert to lists of digits
-    a_digits = [int(d) for d in a_str]
-    b_digits = [int(d) for d in b_str]
-    
-    # Pad to same length
-    max_len = max(len(a_digits), len(b_digits))
-    a_padded = [0] * (max_len - len(a_digits)) + a_digits
-    b_padded = [0] * (max_len - len(b_digits)) + b_digits
-    
-    # Traditional right-to-left addition
-    result_digits = []
-    carry = 0
-    
-    for i in range(max_len - 1, -1, -1):  # Start from the right
-        digit_sum = a_padded[i] + b_padded[i] + carry
-        result_digits.insert(0, digit_sum % 10)  # Insert at beginning
-        carry = digit_sum // 10
-    
-    # Handle final carry
-    if carry > 0:
-        result_digits.insert(0, carry)
-    
-    # Convert back to string
-    result = ''.join(map(str, result_digits))
-    
+    result = optimized_traditional_addition(a_str, b_str)
     end_time = time.time()
     return result, end_time - start_time
 

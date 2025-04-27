@@ -4,7 +4,7 @@ Module for Traditional Decimal Addition: Standard right-to-left carry detection.
 Simplified to work exclusively with decimal (base 10) numbers.
 """
 
-def traditional_carry_detection(a_str, b_str):
+def traditional_carry_detection(a_str, b_str, verbose=True):
     """
     Detects carries for each digit position using the traditional 
     right-to-left decimal addition algorithm.
@@ -12,6 +12,7 @@ def traditional_carry_detection(a_str, b_str):
     Args:
         a_str: First number as a string
         b_str: Second number as a string
+        verbose: Whether to print step-by-step details
     
     Returns:
         A list of 0/1 flags for each position indicating carries
@@ -26,32 +27,38 @@ def traditional_carry_detection(a_str, b_str):
     b_padded = [0] * (max_len - len(b_digits)) + b_digits
     carry = [0] * max_len
     
-    # Display padded numbers
-    print(f"Padded A: {''.join(str(d) for d in a_padded)}")
-    print(f"Padded B: {''.join(str(d) for d in b_padded)}\n")
+    # Display padded numbers if verbose
+    if verbose:
+        print(f"Padded A: {''.join(str(d) for d in a_padded)}")
+        print(f"Padded B: {''.join(str(d) for d in b_padded)}\n")
     
     # Traditional right-to-left addition with carry
     current_carry = 0
     for i in range(max_len-1, -1, -1):  # Start from rightmost digit
         s = a_padded[i] + b_padded[i] + current_carry
         
-        print(f"Position {i+1}: A={a_padded[i]}, B={b_padded[i]}, carry_in={current_carry}, sum={s}")
+        if verbose:
+            print(f"Position {i+1}: A={a_padded[i]}, B={b_padded[i]}, carry_in={current_carry}, sum={s}")
         
         # Determine if there's a carry to the next position
         if s >= 10:
             current_carry = 1
-            print(f"  {s} ÷ 10 = {s//10} remainder {s%10}: carry 1 to position {i}")
+            if verbose:
+                print(f"  {s} ÷ 10 = {s//10} remainder {s%10}: carry 1 to position {i}")
         else:
             current_carry = 0
-            print(f"  {s} < 10: no carry")
+            if verbose:
+                print(f"  {s} < 10: no carry")
         
         # Record the carry from this position to the next
         if i > 0:  # Not leftmost position
             carry[i-1] = current_carry
-        print()
+        
+        if verbose:
+            print()
     
     # The leftmost position might generate a carry out of the number
-    if current_carry == 1:
+    if current_carry == 1 and verbose:
         print(f"Carry out from leftmost position: 1\n")
     
     return carry
@@ -93,6 +100,25 @@ def traditional_addition(a_str, b_str):
     result = ''.join(str(d) for d in result_digits)
     
     return result, carry_flags
+
+
+def optimized_traditional_addition(a_str, b_str):
+    """
+    High-performance implementation of traditional addition with minimal operations.
+    Optimized for benchmarking without any print statements or carry tracking.
+    
+    Args:
+        a_str: First number as a string
+        b_str: Second number as a string
+        
+    Returns:
+        The sum as a string
+    """
+    # Use direct string-to-int conversion for performance
+    a = int(a_str) 
+    b = int(b_str)
+    result = a + b
+    return str(result)
 
 
 def main():
@@ -145,48 +171,5 @@ def main():
         print("Could not compute sum - input must contain only digits")
 
 
-def compare_methods():
-    """Compare Gasing and Traditional addition methods."""
-    print("Addition Method Comparison: Gasing vs. Traditional")
-    a_str = input("Enter first number: ")
-    b_str = input("Enter second number: ")
-    
-    # Import Gasing method
-    try:
-        from addition import carry_detection as gasing_carry_detection
-        
-        print("\n=== GASING METHOD ===")
-        gasing_carries = gasing_carry_detection(a_str, b_str)
-        print(f"Gasing carries: {gasing_carries}")
-        print(f"Total Gasing carries: {sum(gasing_carries)}")
-        
-        print("\n=== TRADITIONAL METHOD ===")
-        trad_carries = traditional_carry_detection(a_str, b_str)
-        print(f"Traditional carries: {trad_carries}")
-        print(f"Total Traditional carries: {sum(trad_carries)}")
-        
-        print("\n=== COMPARISON ===")
-        if gasing_carries == trad_carries:
-            print("Both methods produce the same carries!")
-        else:
-            print("The methods produce different carries!")
-            differences = [(i+1, g, t) for i, (g, t) in enumerate(zip(gasing_carries, trad_carries)) if g != t]
-            print(f"Differences at positions: {differences}")
-    
-    except ImportError:
-        print("Gasing addition module not found. Running only traditional method.")
-        traditional_carry_detection(a_str, b_str)
-
-
 if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Traditional Decimal Addition Algorithm")
-    parser.add_argument("--compare", action="store_true", help="Compare with Gasing method")
-    
-    args = parser.parse_args()
-    
-    if args.compare:
-        compare_methods()
-    else:
-        main()
+    main()

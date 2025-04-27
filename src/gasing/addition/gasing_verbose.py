@@ -84,27 +84,38 @@ def table_based_addition_verbose(a_str, b_str, verbose=True):
         all_pos.append(pos)
         all_sums.append(digit)
     
-    # Identify clusters by finding positions where sum >= 10
+    # Identify carry clusters in a more precise way
+    # A cluster is a sequence of positions where carries propagate
     clusters = []
-    cluster_start = None
     
-    # Loop through positions from left to right (reverse of our storage order)
-    for i in range(len(all_pos)-1, -1, -1):
-        pos = all_pos[i]
+    # Keep track of ongoing clusters
+    current_cluster = []
+    carry_active = False
+    
+    # Process right to left (index 0 is rightmost position)
+    for i in range(len(all_sums)):
         sum_val = all_sums[i]
         
-        if sum_val >= 10:
-            # Found a carry - start a new cluster if none active
-            if cluster_start is None:
-                cluster_start = i
-        elif cluster_start is not None:
-            # End of a cluster - save it
-            clusters.append((cluster_start, i))
-            cluster_start = None
+        # Check if this position generates a carry or could be affected by one
+        if sum_val >= 10 or (carry_active and sum_val == 9):
+            # This position is part of a cluster
+            current_cluster.append(i)
+            
+            # If sum is 9 and there's a carry, it will generate a new carry
+            # If sum is >= 10, it already generates a carry
+            carry_active = (sum_val >= 10) or (carry_active and sum_val == 9)
+        else:
+            # This position stops any carry propagation
+            carry_active = False
+            
+            # If we had an active cluster, finish it
+            if current_cluster:
+                clusters.append(list(current_cluster))
+                current_cluster = []
     
-    # Handle last cluster if it goes to the end
-    if cluster_start is not None:
-        clusters.append((cluster_start, 0))
+    # Handle any remaining cluster
+    if current_cluster:
+        clusters.append(current_cluster)
     
     # Now do the actual addition with carry processing
     carry = 0
@@ -156,16 +167,28 @@ def table_based_addition_verbose(a_str, b_str, verbose=True):
     
     # Display the clusters and sums
     if verbose:
-        print("\nINITIAL DIGIT SUMS (right-to-left): ")
-        print(all_sums)
+        # Reverse the order to display left-to-right (more intuitive)
+        left_to_right_sums = list(reversed(all_sums))
+        print("\nINITIAL DIGIT SUMS (left-to-right): ")
+        print(left_to_right_sums)
         
         print("\nCLUSTERS TO PROCESS TOGETHER:")
         if clusters:
-            for i, (end, start) in enumerate(clusters):
-                # Extract the positions and sums in this cluster
-                cluster_positions = all_pos[start:end+1]
-                cluster_sums = all_sums[start:end+1]
-                print(f"Cluster {i+1}: positions {cluster_positions}, sums {cluster_sums}")
+            for i, cluster_indices in enumerate(clusters):
+                # Convert indices to positions (1-based)
+                cluster_positions = [all_pos[idx] for idx in cluster_indices]
+                cluster_sums = [all_sums[idx] for idx in cluster_indices]
+                
+                # Sort by position for display (right to left)
+                sorted_indices = sorted(range(len(cluster_positions)), key=lambda k: cluster_positions[k])
+                sorted_positions = [cluster_positions[i] for i in sorted_indices]
+                sorted_sums = [cluster_sums[i] for i in sorted_indices]
+                
+                # Reverse for left-to-right display
+                l2r_positions = list(reversed(sorted_positions))
+                l2r_sums = list(reversed(sorted_sums))
+                
+                print(f"Cluster {i+1}: positions {l2r_positions}, sums {l2r_sums}")
         else:
             print("No clusters found - all positions can be processed independently")
         
@@ -210,7 +233,8 @@ def main():
         b_padded = b_str.rjust(len(str(sum_dec)))
         
         print(f"{a_padded}")
-        print(f"{'+' + b_padded[1:]}" if len(b_padded) > 0 else "")
+        # Fix the display formatting to show the plus sign properly aligned
+        print(f"+{b_padded.rjust(len(a_padded))}")
         print("-" * len(str(sum_dec)))
         
         # Display carries above the calculation

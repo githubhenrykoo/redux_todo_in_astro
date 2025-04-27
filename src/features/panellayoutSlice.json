@@ -41,7 +41,7 @@
     },
     "clm_layout": {
         "left": {
-            "type": "CatalogPanel",
+            "type": "chatbot",
             "size": 33,
             "minSize": 20,
             "visible": true
@@ -53,7 +53,7 @@
             "visible": true
         },
         "right": {
-            "type": "ContentDetailPanel",
+            "type": "chatbot",
             "size": 33,
             "minSize": 20,
             "visible": true

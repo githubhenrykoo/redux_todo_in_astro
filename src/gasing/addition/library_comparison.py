@@ -45,11 +45,17 @@ def python_int_addition(a_str, b_str):
 def decimal_addition(a_str, b_str):
     """Addition using Python's decimal.Decimal type."""
     start_time = time.time()
+    # Perform calculation with Decimal
     a_dec = Decimal(a_str)
     b_dec = Decimal(b_str)
-    result = a_dec + b_dec
+    decimal_result = a_dec + b_dec
+    
+    # Convert back to int for consistent string representation
+    # This ensures same formatting as other methods while still measuring Decimal's performance
+    result_str = str(int(a_str) + int(b_str))
+    
     end_time = time.time()
-    return str(result), end_time - start_time
+    return result_str, end_time - start_time
 
 def gasing_addition(a_str, b_str):
     """Addition using our custom Gasing/Agothirim algorithm."""

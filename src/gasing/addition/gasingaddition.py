@@ -36,37 +36,50 @@ def table_based_addition_optimized(a_str, b_str):
     if len(a_str) < 20 and len(b_str) < 20:
         return str(int(a_str) + int(b_str))
     
-    # Process directly from right to left (least significant digit first)
-    len_a = len(a_str)
-    len_b = len(b_str)
+    # Pre-pad numbers to avoid bounds checking during computation
+    len_a, len_b = len(a_str), len(b_str)
     max_len = max(len_a, len_b)
     
-    # Pre-allocate result - use bytearray for better performance with numeric data
-    result = bytearray(max_len + 1)  # +1 for possible carry
+    # Pre-allocate result buffer (includes space for potential carry)
+    result = bytearray(max_len + 1)
     
-    # Single-pass processing with direct table lookups
-    carry = 0
-    for i in range(1, max_len + 1):
-        # Get digits from right, defaulting to 0 if beyond the number's length
-        a_digit = int(a_str[len_a - i]) if i <= len_a else 0
-        b_digit = int(b_str[len_b - i]) if i <= len_b else 0
+    # Optimization: Batch convert digits to integers for both numbers
+    # For equal length numbers, use a specialized fast path
+    if len_a == len_b:
+        # Equal length fast path (common case)
+        carry = 0
+        for i in range(max_len-1, -1, -1):
+            # Direct table lookup without bounds checking
+            digit_sum = DIGIT_SUMS[int(a_str[i])][int(b_str[i])] + carry
+            # Store result and update carry
+            result[i+1] = digit_sum % 10
+            carry = digit_sum // 10
         
-        # Use table lookup and add carry
-        total = DIGIT_SUMS[a_digit][b_digit] + carry
-        
-        # Extract result digit and new carry
-        result[max_len + 1 - i] = total % 10
-        carry = total // 10
-    
-    # Set final carry if needed
-    if carry > 0:
+        # Set final carry (if any)
         result[0] = carry
-        start_pos = 0
     else:
-        start_pos = 1
+        # Pad shorter number with zeros for direct indexing
+        padded_a = '0' * (max_len - len_a) + a_str
+        padded_b = '0' * (max_len - len_b) + b_str
+        
+        # Process from right to left, single pass
+        carry = 0
+        for i in range(max_len-1, -1, -1):
+            # Direct table lookup with padded arrays (no bounds checking)
+            digit_sum = DIGIT_SUMS[int(padded_a[i])][int(padded_b[i])] + carry
+            # Store result and update carry  
+            result[i+1] = digit_sum % 10
+            carry = digit_sum // 10
+        
+        # Set final carry (if any)
+        result[0] = carry
     
-    # Convert result to string efficiently
-    return ''.join(str(d) for d in result[start_pos:])
+    # Skip leading zero if no carry
+    start = 0 if result[0] > 0 else 1
+    
+    # Fast ASCII conversion (avoids str() calls per digit)
+    # This uses chr(d + ord('0')) which is a direct way to convert 0-9 to '0'-'9'
+    return ''.join(chr(d + 48) for d in result[start:])
 
 
 def table_based_addition(a_str, b_str):

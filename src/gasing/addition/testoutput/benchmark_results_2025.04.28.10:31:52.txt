@@ -3,17 +3,17 @@
 OVERALL PERFORMANCE (Lower is better)
 =====================================
 
-gasing      | ################################################## 0.064025s
-traditional | ##### 0.006855s
-python_int  | ## 0.003321s
-decimal     | ####### 0.009650s
+gasing      | ################################################## 0.065777s
+traditional | ##### 0.006874s
+python_int  | ## 0.003297s
+decimal     | ####### 0.009643s
 
 === PERFORMANCE BY DIGIT LENGTH ===
 
 DIGIT RANGE 41-50 - 1000 test cases (Lower is better)
 =====================================================
 
-gasing      | ################################################## 0.000064s
+gasing      | ################################################## 0.000066s
 traditional | ##### 0.000007s
 python_int  | ## 0.000003s
 decimal     | ####### 0.000010s
@@ -26,6 +26,6 @@ Decimal: 1000/1000 correct
 
 === SPEEDUP COMPARISON ===
 Fastest algorithm: Python_int
-Python_int is 19.28x faster than gasing
-Python_int is 2.06x faster than traditional
-Python_int is 2.91x faster than decimal
+Python_int is 19.95x faster than gasing
+Python_int is 2.08x faster than traditional
+Python_int is 2.93x faster than decimal

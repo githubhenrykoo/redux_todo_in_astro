@@ -12,6 +12,7 @@ import sys
 import time
 import decimal
 import os
+import datetime
 from decimal import Decimal
 
 # Set precision high enough for our large numbers
@@ -105,6 +106,11 @@ def create_text_visualizations(results, digit_ranges, output_dir):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     
+    # Add timestamp to filename with improved formatting
+    timestamp = datetime.datetime.now().strftime("%Y.%m.%d.%H:%M:%S")
+    output_filename = f"benchmark_results_{timestamp}.txt"
+    output_path = os.path.join(output_dir, output_filename)
+    
     # Prepare data for overall performance
     algorithms = list(results.keys())
     times = [results[algo]['total_time'] for algo in algorithms]
@@ -132,18 +138,16 @@ def create_text_visualizations(results, digit_ranges, output_dir):
             range_charts.append(range_chart)
     
     # Save to files
-    with open(f"{output_dir}/benchmark_results.txt", "w") as f:
+    with open(output_path, "w") as f:
         f.write("=== ALGORITHM BENCHMARK RESULTS ===\n\n")
         
         # Write overall performance chart
-        f.write(overall_chart)
-        f.write("\n\n")
+        f.write(overall_chart + "\n\n")
         
-        # Write detailed performance by digit range
+        # Write per-digit-range charts
         f.write("=== PERFORMANCE BY DIGIT LENGTH ===\n\n")
         for chart in range_charts:
-            f.write(chart)
-            f.write("\n\n")
+            f.write(chart + "\n\n")
         
         # Write accuracy results
         f.write("=== ACCURACY RESULTS ===\n")
@@ -159,10 +163,6 @@ def create_text_visualizations(results, digit_ranges, output_dir):
             if algo != fastest_algo:
                 speedup = data['total_time'] / results[fastest_algo]['total_time']
                 f.write(f"{fastest_algo.capitalize()} is {speedup:.2f}x faster than {algo}\n")
-    
-    # Create a copy in the current directory for easy viewing
-    with open(f"benchmark_results.txt", "w") as f:
-        f.write(open(f"{output_dir}/benchmark_results.txt").read())
     
     return overall_chart
 
@@ -276,7 +276,12 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
     output_path = os.path.join("/Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition", output_dir)
     chart = create_text_visualizations(results, digit_ranges, output_path)
     
-    print(f"\nDetailed results saved to {output_path}/benchmark_results.txt")
+    # Get the filename with timestamp
+    timestamp = datetime.datetime.now().strftime("%Y.%m.%d.%H:%M:%S")
+    output_filename = f"benchmark_results_{timestamp}.txt"
+    benchmark_file_path = os.path.join(output_path, output_filename)
+    
+    print(f"\nDetailed results saved to {benchmark_file_path}")
     print("\nASCII Performance Chart:")
     print(chart)
 

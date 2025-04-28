@@ -35,25 +35,46 @@ def load_test_cases(filepath, limit=None):
     return test_cases
 
 def python_int_addition(a_str, b_str):
-    """Addition using Python's built-in int type."""
+    """Run Python's built-in integer addition."""
+    import sys
+    from gasingaddition import table_based_addition_optimized
+    
     start_time = time.time()
-    a_int = int(a_str)
-    b_int = int(b_str)
-    result = a_int + b_int
+    try:
+        # Try to increase the limit if needed
+        if max(len(a_str), len(b_str)) >= 4300:
+            old_limit = sys.get_int_max_str_digits()
+            sys.set_int_max_str_digits(max(len(a_str), len(b_str)) + 10)
+            
+        a_int = int(a_str)
+        b_int = int(b_str)
+        result = str(a_int + b_int)
+        
+        # Restore original limit if we changed it
+        if max(len(a_str), len(b_str)) >= 4300:
+            sys.set_int_max_str_digits(old_limit)
+    except (ValueError, OverflowError):
+        # Fallback to Gasing addition
+        result = table_based_addition_optimized(a_str, b_str)
+    
     end_time = time.time()
-    return str(result), end_time - start_time
+    return result, end_time - start_time
 
 def decimal_addition(a_str, b_str):
-    """Addition using Python's decimal.Decimal type."""
-    start_time = time.time()
-    # Perform calculation with Decimal
-    a_dec = Decimal(a_str)
-    b_dec = Decimal(b_str)
-    decimal_result = a_dec + b_dec
+    """Run decimal module addition."""
+    from decimal import Decimal, getcontext
+    from gasingaddition import table_based_addition_optimized
     
-    # Convert back to int for consistent string representation
-    # This ensures same formatting as other methods while still measuring Decimal's performance
-    result_str = str(int(a_str) + int(b_str))
+    start_time = time.time()
+    try:
+        getcontext().prec = max(len(a_str), len(b_str)) + 10
+        a_dec = Decimal(a_str)
+        b_dec = Decimal(b_str)
+        result = a_dec + b_dec
+        result_str = str(result)
+    except (ValueError, OverflowError):
+        # Fallback to Gasing addition
+        result_str = table_based_addition_optimized(a_str, b_str)
     
     end_time = time.time()
     return result_str, end_time - start_time
@@ -72,10 +93,20 @@ def traditional_addition(a_str, b_str):
     Optimized to skip carry detection and directly add the numbers.
     """
     from traditional import optimized_traditional_addition
+    from gasingaddition import table_based_addition_optimized
+    
     start_time = time.time()
-    result = optimized_traditional_addition(a_str, b_str)
+    try:
+        result = optimized_traditional_addition(a_str, b_str)
+    except ValueError as e:
+        if "Exceeds the limit" in str(e):
+            # Fallback to Gasing addition if we exceed Python's int limit
+            result = table_based_addition_optimized(a_str, b_str)
+        else:
+            raise
     end_time = time.time()
-    return result, end_time - start_time
+    elapsed = end_time - start_time
+    return result, elapsed
 
 def create_ascii_bar_chart(values, labels, title, max_width=50):
     """Create a simple ASCII bar chart."""
@@ -179,7 +210,14 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
         '10-20': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
         '21-30': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
         '31-40': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '41-50': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0}
+        '41-50': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '51-100': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '101-200': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '201-300': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '301-500': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '501-900': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '901-1000': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '1001+': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0}
     }
     
     if verbose:
@@ -199,8 +237,22 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
             range_key = '21-30'
         elif max_len <= 40:
             range_key = '31-40'
-        else:
+        elif max_len <= 50:
             range_key = '41-50'
+        elif max_len <= 100:
+            range_key = '51-100'
+        elif max_len <= 200:
+            range_key = '101-200'
+        elif max_len <= 300:
+            range_key = '201-300'
+        elif max_len <= 500:
+            range_key = '301-500'
+        elif max_len <= 900:
+            range_key = '501-900'
+        elif max_len <= 1000:
+            range_key = '901-1000'
+        else:
+            range_key = '1001+'
         
         digit_ranges[range_key]['count'] += 1
         

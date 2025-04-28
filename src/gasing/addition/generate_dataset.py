@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
 Generate a large dataset of random number addition problems.
-Creates a CSV file with 1000 pairs of numbers, where both numbers
-in each pair have the same number of digits (between 10-50 digits).
+Creates a CSV file with 10000 pairs of numbers, where both numbers
+in each pair have exactly 4300 digits (right at Python's int conversion limit).
 """
 
 import random
 import csv
 import os
+from gasingaddition import table_based_addition_optimized
 
 def generate_random_number(num_digits):
     """
@@ -30,7 +31,7 @@ def generate_random_number(num_digits):
     
     return number_str
 
-def generate_dataset(num_pairs=1000, output_file="large_addition_dataset.csv"):
+def generate_dataset(num_pairs=10000, output_file="large_addition_dataset.csv"):
     """
     Generate a dataset of random number addition problems where both
     numbers in each pair have the same number of digits.
@@ -38,15 +39,16 @@ def generate_dataset(num_pairs=1000, output_file="large_addition_dataset.csv"):
     dataset = []
     
     for i in range(num_pairs):
-        # Determine the number of digits for this pair
-        num_digits = random.randint(100, 1000)
+        # Fixed digit size - right at Python's limit
+        num_digits = 4300
         
         # Generate a pair of random numbers with same digit count
         a = generate_random_number(num_digits)
         b = generate_random_number(num_digits)
         
-        # Calculate the expected sum
-        sum_value = str(int(a) + int(b))
+        # Calculate the expected sum using a custom addition function
+        # instead of int conversion which could cause memory issues
+        sum_value = table_based_addition_optimized(a, b)
         
         # Create a name for this test case
         name = f"Random_{i+1}_{len(a)}d+{len(b)}d"

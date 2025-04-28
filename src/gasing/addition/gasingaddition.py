@@ -48,12 +48,12 @@ def table_based_addition(a_str, b_str):
     max_result_len = max(len_a, len_b) + 1
     result = [0] * max_result_len
     
-    # Collect all initial sums to find carry clusters
+    # Collect all sums for cluster identification
     all_sums = []  # All individual sums
     all_pos = []   # Positions corresponding to sums (right to left, starting at 1)
     
     # First pass: compute initial sums without processing carries
-    # This allows us to identify carry clusters
+    # This allows us to identify clusters
     for i in range(1, min(len_a, len_b) + 1):
         a_digit = int(a_str[len_a - i])  # Get digit from right
         b_digit = int(b_str[len_b - i])  # Get digit from right
@@ -77,20 +77,40 @@ def table_based_addition(a_str, b_str):
         all_pos.append(pos)
         all_sums.append(digit)
     
+    # Identify carry clusters according to positions where sum >= 10
+    # Each cluster ends at a position with sum >= 10
+    clusters = []
+    current_cluster = []
+    
+    # Process left to right (in our stored order, that's backwards)
+    # Start with leftmost digit (highest index)
+    for i in range(len(all_sums)-1, -1, -1):
+        sum_val = all_sums[i]
+        current_cluster.append(i)
+        
+        # When we find a sum >= 10, or reach the end, complete this cluster
+        if sum_val >= 10 or i == 0:
+            # Only add cluster if it has at least one position with sum >= 10
+            if any(all_sums[idx] >= 10 for idx in current_cluster):
+                clusters.append(list(current_cluster))
+            # Start a new cluster
+            current_cluster = []
+    
     # Now do the actual addition with carry processing
     carry = 0
-    result_pos = max_result_len - 1  # Start at rightmost position of result
+    result_pos = max_result_len - 1
     
-    # Process digits right-to-left, carefully handling carry propagation
+    # Process all positions in right-to-left order
     for i in range(len(all_sums)):
-        current_sum = all_sums[i] + carry
+        # Add current digit sum and carry
+        total = all_sums[i] + carry
         
         # Extract result digit and new carry
-        result[result_pos] = current_sum % 10
-        carry = current_sum // 10
+        result[result_pos] = total % 10
+        carry = total // 10
         
         result_pos -= 1
-    
+
     # Set final carry if needed
     if carry > 0:
         result[result_pos] = carry

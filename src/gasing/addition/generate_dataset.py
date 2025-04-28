@@ -2,7 +2,7 @@
 """
 Generate a large dataset of random number addition problems.
 Creates a CSV file with 10000 pairs of numbers, where both numbers
-in each pair have exactly 4300 digits (right at Python's int conversion limit).
+in each pair have exactly 500 digits (large but well below Python's int conversion limit).
 """
 
 import random
@@ -39,8 +39,8 @@ def generate_dataset(num_pairs=10000, output_file="large_addition_dataset.csv"):
     dataset = []
     
     for i in range(num_pairs):
-        # Fixed digit size - right at Python's limit
-        num_digits = 4300
+        # Fixed digit size - a more moderate size for benchmarking
+        num_digits = 500
         
         # Generate a pair of random numbers with same digit count
         a = generate_random_number(num_digits)

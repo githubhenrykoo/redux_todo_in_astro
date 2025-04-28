@@ -58,7 +58,8 @@ def benchmark_single_case(a, b):
     try:
         if max(len(a), len(b)) >= 4300:
             old_limit = sys.get_int_max_str_digits()
-            sys.set_int_max_str_digits(max(len(a), len(b)) + 10)
+            # Use a higher limit for extremely large numbers
+            sys.set_int_max_str_digits(max(len(a), len(b)) * 2)
             
         int_result = str(int(a) + int(b))
         
@@ -72,7 +73,8 @@ def benchmark_single_case(a, b):
     # Decimal addition
     start = time.time()
     try:
-        getcontext().prec = max(len(a), len(b)) + 10
+        # Set precision high enough for very large numbers
+        getcontext().prec = max(len(a), len(b)) * 2
         dec_result = str(Decimal(a) + Decimal(b))
     except (ValueError, OverflowError):
         dec_result = gasing_result  # Fallback
@@ -164,4 +166,4 @@ def run_benchmark(num_tests_per_size=100, digit_sizes=[50, 100, 500, 1000, 4000]
     return overall_results
 
 if __name__ == "__main__":
-    run_benchmark(num_tests_per_size=20, digit_sizes=[50, 100, 500, 1000, 4000])
+    run_benchmark(num_tests_per_size=20, digit_sizes=[1, 5, 10, 50, 100, 500, 1000, 4000, 8000, 16000, 32000])

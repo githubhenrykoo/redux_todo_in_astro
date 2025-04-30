@@ -61,3 +61,6 @@ public/data/cards.db
 # public/data/cards.db
 
 google-calendar-mcp
+
+src/gasing/addition/large_addition_dataset.csv
+large_addition_dataset.csv

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redux-todo-astro
+  namespace: redux-todo-astro
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    # Add other ingress controller specific annotations as needed
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: todo.pkc.pub  # Using the domain from your .env file
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: redux-todo-astro
+            port:
+              number: 80

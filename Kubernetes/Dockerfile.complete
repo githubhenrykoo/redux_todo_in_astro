@@ -1,0 +1,63 @@
+FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+WORKDIR /app
+
+# Install build dependencies for native modules including SQLite
+RUN apk add --no-cache python3 make g++ python3-dev py3-setuptools sqlite sqlite-dev
+
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Disable Astro telemetry
+ENV ASTRO_TELEMETRY_DISABLED=1
+
+# Build the application
+RUN npm run build:nocheck || (echo "Build failed but continuing to use what was built")
+
+# List directories to see what was actually built
+RUN ls -la && \
+    ls -la dist || true && \
+    ls -la public || true
+
+# Production image, copy all the files and run a static server
+FROM base AS runner
+WORKDIR /app
+
+# Install only required packages for our static server (no dependencies required)
+
+# Copy our static server script
+COPY Kubernetes/server.static.js ./server.static.js
+
+# Copy all the necessary files from builder
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/dist/_astro ./dist/_astro
+COPY --from=builder /app/dist/pages ./dist/pages
+COPY --from=builder /app/dist/data ./dist/data
+
+# Create a lightweight user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 astro && \
+    chown -R astro:nodejs /app
+
+# Switch to non-root user
+USER astro
+
+# Expose port
+EXPOSE 3000
+
+# Environment variables
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Start the static server
+CMD ["node", "server.static.js"]

@@ -2,13 +2,11 @@
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import AstroPWA from '@vite-pwa/astro';
-import vercel from '@astrojs/vercel';
 import path from 'path';
 
 // https://astro.build/config
 export default defineConfig({
-  output: 'server', // Enable server-side rendering
-  adapter: vercel(), // Add Vercel adapter
+  output: 'static', // Change to static output
   integrations: [
     react(),
     AstroPWA({

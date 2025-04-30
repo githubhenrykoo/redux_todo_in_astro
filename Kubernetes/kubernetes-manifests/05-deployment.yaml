@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redux-todo-astro
+  namespace: redux-todo-astro
+  labels:
+    app: redux-todo-astro
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redux-todo-astro
+  template:
+    metadata:
+      labels:
+        app: redux-todo-astro
+    spec:
+      containers:
+      - name: redux-todo-astro
+        image: henry768/redux_todo_in_astro:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 20
+          periodSeconds: 15
+        envFrom:
+        - configMapRef:
+            name: redux-todo-astro-config
+        - secretRef:
+            name: redux-todo-astro-secrets
+        volumeMounts:
+        - mountPath: /app/public/data
+          name: data-volume
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: redux-todo-astro-data

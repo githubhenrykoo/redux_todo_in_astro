@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redux-todo-astro-dev
+  namespace: redux-todo-astro
+  labels:
+    app: redux-todo-astro-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redux-todo-astro-dev
+  template:
+    metadata:
+      labels:
+        app: redux-todo-astro-dev
+    spec:
+      containers:
+      - name: redux-todo-astro
+        image: redux-todo-complete
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        envFrom:
+        - configMapRef:
+            name: redux-todo-astro-config
+        - secretRef:
+            name: redux-todo-astro-secrets
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: ASTRO_TELEMETRY_DISABLED
+          value: "1"
+        volumeMounts:
+        - mountPath: /app/public/data
+          name: data-volume
+      volumes:
+      - name: data-volume
+        persistentVolumeClaim:
+          claimName: redux-todo-astro-data

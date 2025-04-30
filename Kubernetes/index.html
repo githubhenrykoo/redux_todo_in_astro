@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redux Todo in Astro</title>
+  <!-- PWA support -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script src="/registerSW.js"></script>
+</head>
+<body>
+  <div id="app"></div>
+  
+  <!-- Load client JS bundles - adjust these to match your actual files -->
+  <script type="module" src="/_astro/client.CCosssjk.js"></script>
+  
+  <script>
+    // Attempt to initialize the app
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('Redux Todo in Astro - Static version initialized');
+    });
+  </script>
+</body>
+</html>

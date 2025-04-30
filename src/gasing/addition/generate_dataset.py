@@ -31,39 +31,40 @@ def generate_random_number(num_digits):
     
     return number_str
 
-def generate_dataset(num_pairs=10000, output_file="large_addition_dataset.csv"):
+def generate_dataset(output_file="large_addition_dataset.csv"):
     """
-    Generate a dataset of random number addition problems where both
-    numbers in each pair have the same number of digits.
+    Generate a dataset of random number addition problems with varying digit lengths.
+    Each digit length will have 100 pairs of numbers.
     """
+    # Define the digit lengths we want to test
+    digit_lengths = [1, 5, 10, 50, 100, 500, 1000, 5000, 10000]
+    pairs_per_length = 100
     dataset = []
     
-    for i in range(num_pairs):
-        # Fixed digit size - a more moderate size for benchmarking
-        num_digits = 500
-        
-        # Generate a pair of random numbers with same digit count
-        a = generate_random_number(num_digits)
-        b = generate_random_number(num_digits)
-        
-        # Calculate the expected sum using a custom addition function
-        # instead of int conversion which could cause memory issues
-        sum_value = table_based_addition_optimized(a, b)
-        
-        # Create a name for this test case
-        name = f"Random_{i+1}_{len(a)}d+{len(b)}d"
-        
-        # Add to dataset
-        dataset.append({
-            "name": name,
-            "a": a,
-            "b": b,
-            "expected": sum_value
-        })
+    for num_digits in digit_lengths:
+        for i in range(pairs_per_length):
+            # Generate a pair of random numbers with same digit count
+            a = generate_random_number(num_digits)
+            b = generate_random_number(num_digits)
+            
+            # Calculate the expected sum
+            sum_value = table_based_addition_optimized(a, b)
+            
+            # Create a name for this test case
+            name = f"Random_{num_digits}d_{i+1}"
+            
+            # Add to dataset
+            dataset.append({
+                "name": name,
+                "digits": num_digits,
+                "a": a,
+                "b": b,
+                "expected": sum_value
+            })
     
     # Write to CSV file
     with open(output_file, 'w', newline='') as csvfile:
-        fieldnames = ['name', 'a', 'b', 'expected']
+        fieldnames = ['name', 'digits', 'a', 'b', 'expected']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         
         writer.writeheader()
@@ -74,61 +75,47 @@ def generate_dataset(num_pairs=10000, output_file="large_addition_dataset.csv"):
 
 def main():
     """Generate the dataset and provide statistics."""
-    print("Generating large addition dataset with equal-length numbers...")
+    print("Generating addition dataset with varying digit lengths...")
     
     # Generate the dataset
     dataset, output_file = generate_dataset()
     
-    # Provide some statistics
-    total_pairs = len(dataset)
-    avg_length = sum(len(pair['a']) for pair in dataset) / total_pairs
-    avg_result_length = sum(len(pair['expected']) for pair in dataset) / total_pairs
-    
-    # Calculate distribution of digit lengths
-    pair_lengths = [len(pair['a']) for pair in dataset]  # Since both numbers have same length
-    result_lengths = [len(pair['expected']) for pair in dataset]
-    
-    min_pair = min(pair_lengths)
-    max_pair = max(pair_lengths)
-    min_result = min(result_lengths)
-    max_result = max(result_lengths)
+    # Group data by digit length
+    by_digits = {}
+    for pair in dataset:
+        digits = pair['digits']
+        if digits not in by_digits:
+            by_digits[digits] = []
+        by_digits[digits].append(pair)
     
     # Print statistics
-    print(f"Dataset generation complete! Saved to {output_file}")
-    print(f"Generated {total_pairs} random addition problems")
-    print("\nDigit length statistics:")
-    print(f"Number pairs: Min = {min_pair}, Max = {max_pair}, Avg = {avg_length:.1f} digits")
-    print(f"Results:      Min = {min_result}, Max = {max_result}, Avg = {avg_result_length:.1f} digits")
+    print(f"\nDataset generation complete! Saved to {output_file}")
+    print(f"Generated {len(dataset)} total addition problems")
     
-    # Count distribution by digit length
-    length_distribution = {}
-    for length in pair_lengths:
-        length_distribution[length] = length_distribution.get(length, 0) + 1
+    print("\nDistribution by digit length:")
+    for digits in sorted(by_digits.keys()):
+        count = len(by_digits[digits])
+        print(f"{digits} digits: {count} pairs")
     
-    print("\nDigit length distribution:")
-    for length in sorted(length_distribution.keys()):
-        count = length_distribution[length]
-        percentage = (count / total_pairs) * 100
-        print(f"{length} digits: {count} pairs ({percentage:.1f}%)")
-    
-    # Generate a few examples
+    # Generate a few examples for each digit length
     print("\nExample addition problems:")
-    for i in range(min(3, len(dataset))):
-        print(f"Example {i+1}: {len(dataset[i]['a'])} digits")
-        # Show just the first and last few digits if the numbers are very long
-        if len(dataset[i]['a']) > 20:
-            a_display = dataset[i]['a'][:10] + "..." + dataset[i]['a'][-10:]
-            b_display = dataset[i]['b'][:10] + "..." + dataset[i]['b'][-10:]
-            sum_display = dataset[i]['expected'][:10] + "..." + dataset[i]['expected'][-10:]
-            print(f"  {a_display}")
-            print(f"+ {b_display}")
-            print(f"= {sum_display}")
+    for digits in sorted(by_digits.keys()):
+        print(f"\nDigit length: {digits}")
+        example = by_digits[digits][0]  # Show first example of each length
+        
+        if digits > 20:
+            a_display = example['a'][:10] + "..." + example['a'][-10:]
+            b_display = example['b'][:10] + "..." + example['b'][-10:]
+            sum_display = example['expected'][:10] + "..." + example['expected'][-10:]
         else:
-            print(f"  {dataset[i]['a']}")
-            print(f"+ {dataset[i]['b']}")
-            print(f"= {dataset[i]['expected']}")
+            a_display = example['a']
+            b_display = example['b']
+            sum_display = example['expected']
+            
+        print(f"  {a_display}")
+        print(f"+ {b_display}")
+        print(f"= {sum_display}")
     
-    # Provide instructions for using the dataset
     print("\nTo use this dataset with the comparison tool:")
     print("  python library_comparison.py [number_of_test_cases]")
 

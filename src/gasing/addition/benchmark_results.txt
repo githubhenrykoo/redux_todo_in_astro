@@ -1,31 +1,17 @@
-=== ALGORITHM BENCHMARK RESULTS ===
 
-OVERALL PERFORMANCE (Lower is better)
-=====================================
-
-gasing      | ################################################## 0.064025s
-traditional | ##### 0.006855s
-python_int  | ## 0.003321s
-decimal     | ####### 0.009650s
-
-=== PERFORMANCE BY DIGIT LENGTH ===
-
-DIGIT RANGE 41-50 - 1000 test cases (Lower is better)
-=====================================================
-
-gasing      | ################################################## 0.000064s
-traditional | ##### 0.000007s
-python_int  | ## 0.000003s
-decimal     | ####### 0.000010s
-
-=== ACCURACY RESULTS ===
-Gasing: 1000/1000 correct
-Traditional: 1000/1000 correct
-Python_int: 1000/1000 correct
-Decimal: 1000/1000 correct
-
-=== SPEEDUP COMPARISON ===
-Fastest algorithm: Python_int
-Python_int is 19.28x faster than gasing
-Python_int is 2.06x faster than traditional
-Python_int is 2.91x faster than decimal
+=== OVERALL SUMMARY ===
+Showing absolute time in milliseconds (lower is better)
+--------------------------------------------------------------------------------
+Digit Size | gasing         | traditional    | array_basic    | array_optimized | array_chunk    | python_int     | decimal       
+--------------------------------------------------------------------------------
+1          | 0.000          | 0.004          | 0.001          | 0.001          | 0.001          | 0.000          | 0.009          | 
+5          | 0.000          | 0.002          | 0.002          | 0.001          | 0.001          | 0.000          | 0.001          | 
+10         | 0.000          | 0.003          | 0.002          | 0.002          | 0.002          | 0.000          | 0.000          | 
+50         | 0.008          | 0.011          | 0.009          | 0.009          | 0.005          | 0.000          | 0.001          | 
+100        | 0.017          | 0.022          | 0.017          | 0.018          | 0.009          | 0.001          | 0.001          | 
+500        | 0.067          | 0.088          | 0.075          | 0.096          | 0.040          | 0.006          | 0.004          | 
+1000       | 0.121          | 0.160          | 0.129          | 0.162          | 0.082          | 0.018          | 0.007          | 
+4000       | 0.419          | 0.551          | 0.453          | 0.594          | 0.369          | 0.241          | 0.020          | 
+8000       | 0.849          | 1.090          | 0.897          | 1.177          | 0.980          | 0.935          | 0.036          | 
+16000      | 1.677          | 2.192          | 1.812          | 2.349          | 3.041          | 1.951          | 0.074          | 
+32000      | 3.384          | 4.414          | 3.713          | 4.758          | 10.294         | 5.691          | 0.145          | 

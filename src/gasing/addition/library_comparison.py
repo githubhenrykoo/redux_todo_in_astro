@@ -18,21 +18,32 @@ from decimal import Decimal
 # Set precision high enough for our large numbers
 decimal.getcontext().prec = 100
 
-def load_test_cases(filepath, limit=None):
-    """Load test cases from a CSV file."""
+def load_test_cases(csv_file):
+    """Load test cases from CSV file."""
     test_cases = []
-    with open(filepath, 'r') as f:
+    with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
-        for i, row in enumerate(reader):
-            if limit is not None and i >= limit:
-                break
+        for row in reader:
             test_cases.append({
                 'name': row['name'],
+                'digits': int(row['digits']),
                 'a': row['a'],
                 'b': row['b'],
-                'expected_sum': row['expected']
+                'expected_sum': row['expected']  # Changed from 'expected' to match CSV header
             })
     return test_cases
+
+def main():
+    """Run the benchmark comparison."""
+    try:
+        # Load all test cases without limiting the number
+        test_cases = load_test_cases('large_addition_dataset.csv')
+        # Run benchmark with all test cases
+        run_benchmark(test_cases, output_dir="testoutput")
+    except FileNotFoundError:
+        print("Error: Dataset file 'large_addition_dataset.csv' not found.")
+        print("Please run generate_dataset.py first to create the dataset.")
+        sys.exit(1)
 
 def python_int_addition(a_str, b_str):
     """Run Python's built-in integer addition."""
@@ -175,7 +186,7 @@ def create_text_visualizations(results, digit_ranges, output_dir):
         # Write overall performance chart
         f.write(overall_chart + "\n\n")
         
-        # Write per-digit-range charts
+        # Write per-digit-range charts - ensure all ranges are shown
         f.write("=== PERFORMANCE BY DIGIT LENGTH ===\n\n")
         for chart in range_charts:
             f.write(chart + "\n\n")
@@ -206,18 +217,17 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
         'decimal': {'total_time': 0, 'correct': 0}
     }
     
+    # Update digit ranges to match our dataset
     digit_ranges = {
-        '10-20': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '21-30': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '31-40': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '41-50': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '51-100': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '101-200': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '201-300': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '301-500': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '501-900': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '901-1000': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
-        '1001+': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0}
+        '1': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '5': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '10': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '50': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '100': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '500': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '1000': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '5000': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0},
+        '10000': {'count': 0, 'gasing': 0, 'traditional': 0, 'python_int': 0, 'decimal': 0}
     }
     
     if verbose:
@@ -227,32 +237,17 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
     for i, case in enumerate(test_cases):
         a, b = case['a'], case['b']
         expected = case['expected_sum']
+        # Extract digits from the length of the number instead of trying to access 'digits' key
         max_len = max(len(a), len(b))
         
-        # Determine digit range
+        # Find the closest digit range
         range_key = None
-        if max_len <= 20:
-            range_key = '10-20'
-        elif max_len <= 30:
-            range_key = '21-30'
-        elif max_len <= 40:
-            range_key = '31-40'
-        elif max_len <= 50:
-            range_key = '41-50'
-        elif max_len <= 100:
-            range_key = '51-100'
-        elif max_len <= 200:
-            range_key = '101-200'
-        elif max_len <= 300:
-            range_key = '201-300'
-        elif max_len <= 500:
-            range_key = '301-500'
-        elif max_len <= 900:
-            range_key = '501-900'
-        elif max_len <= 1000:
-            range_key = '901-1000'
-        else:
-            range_key = '1001+'
+        for key in sorted(digit_ranges.keys(), key=int):
+            if max_len <= int(key):
+                range_key = key
+                break
+        if not range_key:
+            range_key = max(digit_ranges.keys(), key=int)
         
         digit_ranges[range_key]['count'] += 1
         
@@ -336,18 +331,6 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
     print(f"\nDetailed results saved to {benchmark_file_path}")
     print("\nASCII Performance Chart:")
     print(chart)
-
-def main():
-    # Default to 20 test cases
-    limit = int(sys.argv[1]) if len(sys.argv) > 1 else 20
-    
-    try:
-        test_cases = load_test_cases('large_addition_dataset.csv', limit)
-        run_benchmark(test_cases, output_dir="testoutput")
-    except FileNotFoundError:
-        print("Error: Dataset file 'large_addition_dataset.csv' not found.")
-        print("Please run generate_dataset.py first to create the dataset.")
-        sys.exit(1)
 
 if __name__ == '__main__':
     main()

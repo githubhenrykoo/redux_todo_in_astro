@@ -52,7 +52,7 @@ services:
       dockerfile: Dockerfile
       target: deps
     ports:
-      - "3001:3001"
+      - "3005:3001"
     volumes:
       - .:/app
       - /app/node_modules

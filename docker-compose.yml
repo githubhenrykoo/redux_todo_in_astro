@@ -1,8 +1,11 @@
-version: '3.8'
-
 services:
   app:
-    image: henry768/redux_todo_in_astro:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+      args:
+        BUILD_MODE: nocheck
     ports:
       - "3000:3000"
     environment:
@@ -41,11 +44,11 @@ services:
     environment:
       - NODE_ENV=development
       - NOTION_PORT=3002
-      - NOTION_API_KEY=${NOTION_API_KEY}
-      - NOTION_DATABASE_ID=${NOTION_DATABASE_ID}
+      - NOTION_API_KEY=dummy_key
+      - NOTION_DATABASE_ID=dummy_id
     command: node server/notion-mcp-server.js
-    restart: unless-stopped
-
+    restart: "no"
+  
   terminal:
     build:
       context: .

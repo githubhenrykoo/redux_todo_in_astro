@@ -121,54 +121,66 @@ def optimized_traditional_addition(a_str, b_str):
     return str(result)
 
 
+def print_school_addition(a_str, b_str):
+    """
+    Prints the traditional school addition, showing carries, numbers, and sum in aligned format.
+    """
+    # Convert to lists of digits
+    a_digits = [int(d) for d in a_str]
+    b_digits = [int(d) for d in b_str]
+    max_len = max(len(a_digits), len(b_digits))
+    a_padded = [0] * (max_len - len(a_digits)) + a_digits
+    b_padded = [0] * (max_len - len(b_digits)) + b_digits
+    result_digits = [0] * max_len
+    carries = [0] * (max_len + 1)  # One extra for carry out
+    step_details = []
+    carry = 0
+    # Right to left addition
+    for i in range(max_len-1, -1, -1):
+        s = a_padded[i] + b_padded[i] + carry
+        result_digits[i] = s % 10
+        carries[i] = carry
+        step_details.append({
+            'pos': i+1,
+            'A': a_padded[i],
+            'B': b_padded[i],
+            'carry_in': carry,
+            'sum': s,
+            'digit': s % 10,
+            'carry_out': s // 10
+        })
+        carry = s // 10
+    carries[0] = carry  # Final carry out
+    # Prepare strings for display
+    carry_row = ''.join(str(c) for c in carries).rjust(max_len+1)
+    a_row = ''.join(str(d) for d in a_padded).rjust(max_len+1)
+    b_row = ''.join(str(d) for d in b_padded).rjust(max_len+1)
+    sum_row = (str(carry) if carry else '') + ''.join(str(d) for d in result_digits)
+    sum_row = sum_row.rjust(max_len+1)
+    sep_row = '-' * (max_len+1)
+    # Print carries
+    print("Carries:")
+    print(carry_row)
+    print(f"  {a_row}")
+    print(f"+ {b_row}")
+    print(sep_row)
+    print(f"  {sum_row}")
+    print()
+    # Print step by step for each column (optional, for learning)
+    print("Step-by-step calculation:")
+    for step in reversed(step_details):
+        print(f"Position {step['pos']}: {step['A']} + {step['B']} + carry_in {step['carry_in']} = {step['sum']} "
+              f"→ write {step['digit']}, carry {step['carry_out']}")
+    print()
+
+
 def main():
-    """Run interactive decimal addition with logging."""
-    print("Traditional Decimal Addition with carry detection and logging")
+    """Run interactive decimal addition with classic school-style display."""
+    print("Traditional School Addition (with carries)")
     a_str = input("Enter first number: ")
     b_str = input("Enter second number: ")
-    
-    # Perform carries detection using the traditional method
-    carry = traditional_carry_detection(a_str, b_str)
-    print("\nCarry results per position (1=carry):")
-    print(carry)
-    print(f"Total carries detected: {sum(carry)}")
-    
-    # Calculate and display results
-    try:
-        a_dec = int(a_str)
-        b_dec = int(b_str)
-        sum_dec = a_dec + b_dec
-        
-        print(f"\nResults:")
-        print(f"A: {a_dec}")
-        print(f"B: {b_dec}")
-        print(f"Sum: {sum_dec}")
-        
-        # Perform actual addition using the traditional method
-        sum_str, _ = traditional_addition(a_str, b_str)
-        print(f"Sum (calculated): {sum_str}")
-        
-        # Verify result
-        if sum_dec == int(sum_str):
-            print("Verification: Correct!")
-        else:
-            print("Verification: FAILED!")
-        
-        # Display step-by-step calculation with carries
-        print("\nStep-by-step calculation:")
-        
-        # Show carries on top
-        carry_str = "".join(str(c) for c in carry).rjust(max(len(a_str), len(b_str)))
-        if carry.count(1) > 0:
-            print(f"{' ' * (len(sum_str) - len(carry_str))}{carry_str}")
-        
-        print(f"{' ' * (len(sum_str) - len(a_str))}{a_str}")
-        print(f"{' ' * (len(sum_str) - len(b_str))}{b_str}")
-        print("-" * len(sum_str))
-        print(f"{sum_str}")
-        
-    except ValueError:
-        print("Could not compute sum - input must contain only digits")
+    print()
+    print_school_addition(a_str, b_str)
 
 
 if __name__ == "__main__":

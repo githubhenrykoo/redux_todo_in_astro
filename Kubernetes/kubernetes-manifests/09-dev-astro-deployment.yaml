@@ -4,7 +4,7 @@ metadata:
   name: redux-todo-astro-dev
   namespace: redux-todo-astro
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: redux-todo-astro-dev
@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
       - name: redux-todo-astro
-        image: redux-todo-dev
-        imagePullPolicy: IfNotPresent
+        image: henry768/redux-todo-in-astro:dev
+        imagePullPolicy: Always
         ports:
         - containerPort: 4321
           name: http

@@ -104,8 +104,8 @@ def traditional_addition(a_str, b_str):
 
 def optimized_traditional_addition(a_str, b_str):
     """
-    High-performance implementation of traditional addition with minimal operations.
-    Optimized for benchmarking without any print statements or carry tracking.
+    High-performance implementation of traditional school addition with minimal operations.
+    Performs digit-by-digit right-to-left addition as taught in schools.
     
     Args:
         a_str: First number as a string
@@ -114,11 +114,34 @@ def optimized_traditional_addition(a_str, b_str):
     Returns:
         The sum as a string
     """
-    # Use direct string-to-int conversion for performance
-    a = int(a_str) 
-    b = int(b_str)
-    result = a + b
-    return str(result)
+    # Convert to lists of digits
+    a_digits = [int(d) for d in a_str]
+    b_digits = [int(d) for d in b_str]
+    
+    # Pad to same length
+    max_len = max(len(a_digits), len(b_digits))
+    a_padded = [0] * (max_len - len(a_digits)) + a_digits
+    b_padded = [0] * (max_len - len(b_digits)) + b_digits
+    
+    # Initialize result array and carry
+    result_digits = [0] * max_len
+    carry = 0
+    
+    # Traditional right-to-left addition with carry
+    for i in range(max_len-1, -1, -1):  # Start from rightmost digit
+        # Sum the digits and carry
+        s = a_padded[i] + b_padded[i] + carry
+        # Store this digit of result
+        result_digits[i] = s % 10
+        # Carry for next digit
+        carry = s // 10
+    
+    # Handle final carry if any
+    if carry > 0:
+        result_digits = [carry] + result_digits
+    
+    # Convert back to string
+    return ''.join(str(d) for d in result_digits)
 
 
 def print_school_addition(a_str, b_str):

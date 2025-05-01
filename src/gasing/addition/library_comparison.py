@@ -23,14 +23,45 @@ def load_test_cases(csv_file):
     test_cases = []
     with open(csv_file, 'r') as f:
         reader = csv.DictReader(f)
-        for row in reader:
+        for i, row in enumerate(reader):
+            # Check for required fields
+            if 'a' not in row or 'b' not in row:
+                print(f"Warning: Row {i+1} missing required fields 'a' or 'b'. Skipping.")
+                continue
+                
+            # Handle missing 'digits' column by calculating from a and b
+            if 'digits' not in row:
+                digits = max(len(row['a']), len(row['b']))
+            else:
+                try:
+                    digits = int(row['digits']) 
+                except ValueError:
+                    digits = max(len(row['a']), len(row['b']))
+                    print(f"Warning: Row {i+1} has invalid 'digits' value. Using calculated length: {digits}")
+                    
+            # Handle other possible missing columns
+            name = row.get('name', f"TestCase_{i+1}")
+            expected = row.get('expected', None)
+            
+            # If expected sum is missing, compute it for verification
+            if not expected:
+                try:
+                    expected = str(int(row['a']) + int(row['b']))
+                except ValueError:
+                    # For very large numbers, use Gasing addition as fallback
+                    from gasingaddition import table_based_addition_optimized
+                    expected = table_based_addition_optimized(row['a'], row['b'])
+                    print(f"Warning: Row {i+1} missing 'expected' value. Calculated sum.")
+                
             test_cases.append({
-                'name': row['name'],
-                'digits': int(row['digits']),
+                'name': name,
+                'digits': digits,
                 'a': row['a'],
                 'b': row['b'],
-                'expected_sum': row['expected']  # Changed from 'expected' to match CSV header
+                'expected_sum': expected
             })
+    
+    print(f"Loaded {len(test_cases)} test cases from {csv_file}")
     return test_cases
 
 def main():

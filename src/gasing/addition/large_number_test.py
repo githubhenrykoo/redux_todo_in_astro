@@ -8,7 +8,7 @@ import time
 import csv
 import os
 import sys
-from gasing import carry_detection as gasing_method
+from gasing_verbose import table_based_addition_verbose
 from traditional import traditional_carry_detection as traditional_method
 
 def load_test_cases(csv_file="large_addition_dataset.csv", limit=None):
@@ -31,6 +31,11 @@ def load_test_cases(csv_file="large_addition_dataset.csv", limit=None):
         return []
         
     return test_cases
+
+def gasing_method(a_str, b_str, verbose=False):
+    """Wrapper for Gasing method to extract just the carries."""
+    _, carries = table_based_addition_verbose(a_str, b_str, verbose=verbose)
+    return carries
 
 def compare_methods(test_case, verbose=False):
     """Compare Gasing and Traditional addition methods for a single test case."""

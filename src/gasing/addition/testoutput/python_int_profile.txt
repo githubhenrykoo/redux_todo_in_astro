@@ -1,0 +1,16 @@
+DETAILED PROFILE FOR PYTHON_INT ALGORITHM
+Running 100,000 iterations on input size: 810 digits
+==================================================
+
+         900001 function calls in 1.134 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+   100000    1.089    0.000    1.134    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/library_comparison.py:82(python_int_addition)
+   400000    0.022    0.000    0.022    0.000 {built-in method builtins.len}
+   200000    0.013    0.000    0.013    0.000 {built-in method time.time}
+   200000    0.010    0.000    0.010    0.000 {built-in method builtins.max}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+
+

@@ -13,6 +13,9 @@ import time
 import decimal
 import os
 import datetime
+import cProfile
+import pstats
+import io
 from decimal import Decimal
 
 # Set precision high enough for our large numbers
@@ -265,6 +268,49 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
         print(f"RUNNING LIBRARY COMPARISON BENCHMARK ON {len(test_cases)} CASES")
         print("=" * 50)
     
+    # Sample data for profiling (use a subset of test cases)
+    profile_sample_size = min(5, len(test_cases))  # Reduced sample size since we'll run many more iterations
+    profile_samples = test_cases[:profile_sample_size]
+    profile_iterations = 100000  # Run 100,000 iterations for more accurate profiling
+    
+    # Profile each algorithm separately
+    print("\n=== RUNNING DETAILED PROFILING ({:,} iterations) ===".format(profile_iterations))
+    
+    # Profile Gasing Addition
+    print("Profiling Gasing Addition...")
+    pr_gasing = cProfile.Profile()
+    pr_gasing.enable()
+    # Use just the first case for repeated iterations (to ensure we're profiling algorithm not sample loading)
+    sample_case = profile_samples[0]
+    for _ in range(profile_iterations):
+        gasing_addition(sample_case['a'], sample_case['b'])
+    pr_gasing.disable()
+    
+    # Profile Traditional Addition 
+    print("Profiling Traditional Addition...")
+    pr_trad = cProfile.Profile()
+    pr_trad.enable()
+    for _ in range(profile_iterations):
+        traditional_addition(sample_case['a'], sample_case['b'])
+    pr_trad.disable()
+    
+    # Profile Python Int Addition
+    print("Profiling Python Int Addition...")
+    pr_int = cProfile.Profile()
+    pr_int.enable()
+    for _ in range(profile_iterations):
+        python_int_addition(sample_case['a'], sample_case['b'])
+    pr_int.disable()
+    
+    # Profile Decimal Addition
+    print("Profiling Decimal Addition...")
+    pr_dec = cProfile.Profile()
+    pr_dec.enable()
+    for _ in range(profile_iterations):
+        decimal_addition(sample_case['a'], sample_case['b'])
+    pr_dec.disable()
+    
+    # Now run the full benchmark as before
     for i, case in enumerate(test_cases):
         a, b = case['a'], case['b']
         expected = case['expected_sum']
@@ -358,6 +404,37 @@ def run_benchmark(test_cases, verbose=True, output_dir="testoutput"):
     timestamp = datetime.datetime.now().strftime("%Y.%m.%d.%H:%M:%S")
     output_filename = f"benchmark_results_{timestamp}.txt"
     benchmark_file_path = os.path.join(output_path, output_filename)
+    
+    # Save profiling results
+    print("\n=== SAVING DETAILED PROFILING RESULTS ===")
+    
+    # Create a sorting function (by cumulative time)
+    def sort_stats(stats):
+        return stats.sort_stats(pstats.SortKey.CUMULATIVE)
+    
+    # Process and save each profile
+    profile_data = {
+        'gasing': (pr_gasing, 'gasing_profile.txt'),
+        'traditional': (pr_trad, 'traditional_profile.txt'),
+        'python_int': (pr_int, 'python_int_profile.txt'),
+        'decimal': (pr_dec, 'decimal_profile.txt')
+    }
+    
+    for name, (profiler, filename) in profile_data.items():
+        # Create string buffer and save stats
+        s = io.StringIO()
+        ps = sort_stats(pstats.Stats(profiler, stream=s))
+        ps.print_stats(40)  # Show top 40 functions by time for more detail
+        
+        # Save to file
+        profile_path = os.path.join(output_path, filename)
+        with open(profile_path, 'w') as f:
+            f.write(f"DETAILED PROFILE FOR {name.upper()} ALGORITHM\n")
+            f.write(f"Running {profile_iterations:,} iterations on input size: {len(sample_case['a'])} digits\n")
+            f.write("=" * 50 + "\n\n")
+            f.write(s.getvalue())
+        
+        print(f"Saved {name} profile to {profile_path}")
     
     print(f"\nDetailed results saved to {benchmark_file_path}")
     print("\nASCII Performance Chart:")

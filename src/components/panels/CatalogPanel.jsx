@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import '../../styles/CatalogPanel.css';
 
 // Import subcomponents
-import CatalogHeader from './catalog/CatalogHeader';
 import GridView from './catalog/GridView';
+import ListView from './catalog/ListView';
 import DetailView from './catalog/DetailView';
+import CatalogHeader from './catalog/CatalogHeader';
 import AddItemForm from './catalog/AddItemForm';
 
 // Import specialized hooks
@@ -149,6 +151,21 @@ const CatalogPanel = () => {
       }}>
         {viewMode === 'grid' && (
           <GridView 
+            loading={loading || searchLoading}
+            error={error}
+            searchError={searchError}
+            isSearchMode={isSearchMode}
+            searchResults={searchResults}
+            sortedItems={sortedItems}
+            paginationInfo={paginationInfo}
+            onSelectItem={handleSelectItem}
+            onDeleteItem={handleDeleteItem}
+            onPageChange={handlePageChange}
+          />
+        )}
+        
+        {viewMode === 'list' && (
+          <ListView 
             loading={loading || searchLoading}
             error={error}
             searchError={searchError}

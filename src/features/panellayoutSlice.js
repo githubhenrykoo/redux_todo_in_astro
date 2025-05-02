@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import layoutConfig from "./panellayoutSlice.json";
 
 const initialState = {
-  panels: layoutConfig["clm_layout"],
+  panels: layoutConfig["catalog_layout"],
 };
 
 // Simplified function to trigger save

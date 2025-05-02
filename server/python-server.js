@@ -108,7 +108,7 @@ wss.on('connection', (ws) => {
   if (ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ 
       type: 'output', 
-      data: 'Initializing Python REPL...\r\n' 
+      data: '' 
     }));
   }
 });

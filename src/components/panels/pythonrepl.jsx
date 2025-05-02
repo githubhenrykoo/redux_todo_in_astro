@@ -365,20 +365,10 @@ const PythonREPL = ({ className = '' }) => {
       <div className="flex items-center justify-between px-3 py-1 bg-gray-800 text-white text-xs">
         <div className="flex items-center space-x-3">
           {isConnected ? (
-            <span className="text-green-400">Connected to Python REPL</span>
+            <span className="text-green-400">Connected</span>
           ) : (
             <span className="text-red-400">Disconnected</span>
           )}
-        </div>
-        <div className="flex items-center space-x-2">
-          <button 
-            onClick={restartPythonREPL}
-            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-            disabled={!isConnected}
-          >
-            Restart Python
-          </button>
-          {error && <span className="text-red-400">{error}</span>}
         </div>
       </div>
     </div>

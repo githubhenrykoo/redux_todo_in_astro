@@ -308,138 +308,78 @@ const PythonREPL = ({ className = '' }) => {
       }
     };
   }, []);
-  
-  // Connect to WebSocket server
-  const connectToServer = () => {
+
+  // Handle output from the Python server
+  const handleSocketMessage = (event) => {
     try {
-      // Close existing connection if open
+      const data = JSON.parse(event.data);
+      if (data.type === 'output') {
+        // Add to terminal
+        if (xtermRef.current) {
+          xtermRef.current.write(data.data);
+        }
+        
+        // Forward to the Script Execution Panel
+        window.postMessage({
+          type: 'pythonrepl/output',
+          output: data.data
+        }, '*');
+        
+        console.log('Python output:', data.data);
+      }
+    } catch (err) {
+      console.error('Error handling websocket message:', err);
+    }
+  };
+
+  // WebSocket connection for Python REPL
+  useEffect(() => {
+    // Only attempt to connect if the WebSocket isn't already connected
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      try {
+        console.log('Connecting to Python WebSocket server...');
+        socketRef.current = new WebSocket('ws://localhost:3010');
+        
+        socketRef.current.onopen = () => {
+          console.log('Connected to Python WebSocket server');
+          setIsConnected(true);
+          
+          if (xtermRef.current) {
+            xtermRef.current.writeln('\x1b[32m=== Connected to Python REPL ===\x1b[0m');
+          }
+        };
+        
+        socketRef.current.onmessage = handleSocketMessage;
+        
+        socketRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+          setIsConnected(false);
+          
+          if (xtermRef.current) {
+            xtermRef.current.writeln('\x1b[31m=== Error connecting to Python REPL ===\x1b[0m');
+          }
+        };
+        
+        socketRef.current.onclose = () => {
+          console.log('WebSocket connection closed');
+          setIsConnected(false);
+          
+          if (xtermRef.current) {
+            xtermRef.current.writeln('\x1b[31m=== Disconnected from Python REPL ===\x1b[0m');
+          }
+        };
+      } catch (err) {
+        console.error('Error establishing WebSocket connection:', err);
+        setIsConnected(false);
+      }
+    }
+    
+    return () => {
       if (socketRef.current) {
         socketRef.current.close();
       }
-      
-      // Clear reconnect timeout if set
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = null;
-      }
-      
-      // Create new WebSocket connection
-      const ws = new WebSocket('ws://localhost:3010');
-      socketRef.current = ws;
-      
-      ws.onopen = () => {
-        if (!mountedRef.current) return;
-        console.log('Connected to Python console server');
-        setIsConnected(true);
-        setError(null);
-        
-        if (xtermRef.current) {
-          // Send initial console size
-          const { cols, rows } = xtermRef.current;
-          ws.send(JSON.stringify({ 
-            type: 'resize', 
-            cols, 
-            rows 
-          }));
-          
-          // Python REPL will start automatically from the server
-        }
-      };
-      
-      ws.onmessage = (event) => {
-        if (!mountedRef.current) return;
-        
-        try {
-          const message = JSON.parse(event.data);
-          if (message.type === 'output' && xtermRef.current) {
-            xtermRef.current.write(message.data);
-            
-            // Check if Python REPL has started
-            if (message.data.includes('Python ') && message.data.includes('Type "help"')) {
-              setIsPythonMode(true);
-              dispatch(setStatus({ status: 'idle' }));
-            }
-            
-            // Detect input request
-            if (data.data.includes('input(') || data.data.endsWith(': ')) {
-              console.log('Detected input request:', data.data);
-              dispatch(setStatus({ status: 'waiting-for-input' }));
-            }
-          }
-        } catch (err) {
-          console.error('Error processing message from Python console server:', err);
-          
-          // If parsing fails, write raw data
-          if (xtermRef.current && event.data) {
-            try {
-              xtermRef.current.write(event.data);
-              // Try to add raw output to Redux
-              dispatch(addOutput({ output: String(event.data) }));
-              console.log('Raw output dispatch:', String(event.data));
-            } catch (e) {
-              console.error('Error writing to terminal:', e);
-            }
-          }
-        }
-      };
-      
-      ws.onerror = (error) => {
-        if (!mountedRef.current) return;
-        console.error('Python console WebSocket error:', error);
-        setError('Connection error: The Python console server may not be running');
-        setIsConnected(false);
-        setError('Failed to connect to Python console server. Make sure the server is running.');
-        
-        if (xtermRef.current) {
-          xtermRef.current.writeln('\x1b[31mError: Failed to connect to Python console server\x1b[0m');
-          xtermRef.current.writeln('\x1b[31mMake sure the server is running at ws://localhost:3010\x1b[0m');
-          xtermRef.current.writeln('\x1b[34mAttempting to reconnect in 5 seconds...\x1b[0m');
-        }
-        
-        // Set up reconnection
-        reconnectTimeoutRef.current = setTimeout(() => {
-          if (!mountedRef.current) return;
-          if (xtermRef.current) {
-            xtermRef.current.writeln('\x1b[34mAttempting to reconnect...\x1b[0m');
-          }
-          connectToServer();
-        }, 5000);
-      };
-
-      ws.onclose = () => {
-        if (!mountedRef.current) return;
-        console.log('WebSocket closed');
-        setIsConnected(false);
-        
-        if (xtermRef.current) {
-          xtermRef.current.writeln('\x1b[31mDisconnected from Python console server\x1b[0m');
-          xtermRef.current.writeln('\x1b[34mAttempting to reconnect in 5 seconds...\x1b[0m');
-        }
-        
-        // Set up reconnection
-        reconnectTimeoutRef.current = setTimeout(() => {
-          if (!mountedRef.current) return;
-          if (xtermRef.current) {
-            xtermRef.current.writeln('\x1b[34mAttempting to reconnect...\x1b[0m');
-          }
-          connectToServer();
-        }, 5000);
-      };
-    } catch (err) {
-      if (!mountedRef.current) return;
-      console.error('Python console connection error:', err);
-      setError(`Python console connection error: ${err.message}`);
-      
-      // Set up reconnection
-      reconnectTimeoutRef.current = setTimeout(() => {
-        if (!mountedRef.current) return;
-        if (xtermRef.current) {
-          xtermRef.current.writeln('\x1b[34mAttempting to reconnect...\x1b[0m');
-        }
-        connectToServer();
-      }, 5000);
-    }
-  };
+    };
+  }, []);
 
   // Function to restart Python REPL
   const restartPythonREPL = () => {

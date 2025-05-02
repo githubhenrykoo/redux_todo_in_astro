@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../styles/python-script-execution.css';
 
@@ -15,6 +15,8 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     const [executionStatus, setExecutionStatus] = useState('idle'); // idle, running, success, error
     const [executionHistory, setExecutionHistory] = useState([]);
     const [scriptOutput, setScriptOutput] = useState([]);
+    const [wsConnected, setWsConnected] = useState(false);
+    const wsRef = useRef(null);
     
     const dispatch = useDispatch();
     
@@ -180,40 +182,78 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         // Update execution status
         setExecutionStatus('running');
         
-        // Use multiple communication methods to ensure the message gets through
+        // Remove shebang line if present (causes issues in direct REPL execution)
+        let processedContent = scriptContent;
+        if (processedContent.startsWith('#!')) {
+            processedContent = processedContent.split('\n').slice(1).join('\n');
+        }
         
-        // 1. Dispatch to Redux
-        dispatch({
-            type: 'pythonrepl/executeScript',
-            payload: {
-                content: scriptContent,
-                hash: scriptInfo.hash,
-                filename: scriptInfo.filename
-            }
-        });
-        
-        // 2. Direct window messaging
-        window.postMessage({
-            type: 'pythonrepl/executeScript',
-            payload: {
-                content: scriptContent,
-                hash: scriptInfo.hash,
-                filename: scriptInfo.filename
-            }
-        }, '*');
-        
-        // 3. Store the action in a global variable for polling
-        window.lastReduxAction = {
-            type: 'pythonrepl/executeScript',
-            payload: {
-                content: scriptContent,
-                hash: scriptInfo.hash,
-                filename: scriptInfo.filename
-            }
-        };
+        // Execute directly through our WebSocket connection if available
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            console.log('Executing script directly via WebSocket');
+            
+            // Use __import__('runpy').run_module() for proper execution with correct indentation
+            const execCommand = `
+import sys, io
+original_stdout = sys.stdout
+sys.stdout = io.StringIO()
+try:
+    # Execute the script in a dedicated string IO to capture output
+    exec("""
+${processedContent}
+""")
+    print("\\n=== Script Output ===")
+    print(sys.stdout.getvalue())
+except Exception as e:
+    print(f"\\n=== Error executing script: {type(e).__name__} ===")
+    print(str(e))
+finally:
+    sys.stdout = original_stdout
+`;
+            
+            wsRef.current.send(JSON.stringify({
+                type: 'input',
+                data: execCommand
+            }));
+        } else {
+            // Fall back to dispatch-based execution
+            console.log('WebSocket not connected, using dispatch for execution');
+            
+            // Use multiple communication methods to ensure the message gets through
+            
+            // 1. Dispatch to Redux
+            dispatch({
+                type: 'pythonrepl/executeScript',
+                payload: {
+                    content: processedContent,
+                    hash: scriptInfo.hash,
+                    filename: scriptInfo.filename
+                }
+            });
+            
+            // 2. Direct window messaging
+            window.postMessage({
+                type: 'pythonrepl/executeScript',
+                payload: {
+                    content: processedContent,
+                    hash: scriptInfo.hash,
+                    filename: scriptInfo.filename
+                }
+            }, '*');
+            
+            // 3. Store the action in a global variable for polling
+            window.lastReduxAction = {
+                type: 'pythonrepl/executeScript',
+                payload: {
+                    content: processedContent,
+                    hash: scriptInfo.hash,
+                    filename: scriptInfo.filename
+                }
+            };
+        }
         
         console.log('Script execution requested:', scriptInfo.filename);
-        console.log('Script first 50 chars:', scriptContent.substring(0, 50));
+        console.log('Script first 50 chars:', processedContent.substring(0, 50));
         
         // Add to execution history
         const executionEntry = {
@@ -231,24 +271,67 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         }, 2000);
     };
     
-    // Send individual line to REPL
+    // Function to test the Python connection with a simple command
+    const testConnection = () => {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            // Send a simple Python print statement
+            wsRef.current.send(JSON.stringify({
+                type: 'input',
+                data: 'print("Hello from Python! This is a connection test.")\n'
+            }));
+            
+            setScriptOutput(prev => [...prev, "=== Testing Python connection... ==="])
+            console.log('Sent test command to Python server');
+        } else {
+            setScriptOutput(prev => [...prev, "=== ERROR: Not connected to Python server ==="])
+            console.error('Cannot test: WebSocket not connected');
+        }
+    };
+    
+    // Function to execute a line (or selected text)
     const executeSelectedLine = () => {
-        // Get selected text from script content
-        const selectedText = window.getSelection().toString();
+        // Get selected text from the pre element
+        const selection = window.getSelection();
+        let selectedText = '';
+        
+        if (selection.rangeCount > 0) {
+            selectedText = selection.toString().trim();
+        }
         
         if (!selectedText) {
             setError("No text selected to execute");
             return;
         }
         
-        // Dispatch event to execute the line in the PythonREPL panel
-        dispatch({
-            type: 'pythonrepl/executeLine',
-            payload: {
-                content: selectedText,
-                hash: scriptInfo.hash
-            }
-        });
+        // Update status
+        setExecutionStatus('running');
+        setScriptOutput(prev => [...prev, `=== Executing selected code: "${selectedText.length > 30 ? selectedText.substring(0, 30) + '...' : selectedText}" ===`]);
+        
+        // Send directly to Python REPL
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: 'input',
+                data: selectedText + '\n'
+            }));
+            
+            // Add to history
+            const executionEntry = {
+                timestamp: new Date().toLocaleString(),
+                hash: scriptInfo.hash,
+                filename: scriptInfo.filename,
+                status: 'line executed',
+                line: selectedText
+            };
+            
+            setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]);
+            
+            setTimeout(() => {
+                setExecutionStatus('success');
+            }, 1000);
+        } else {
+            setError("WebSocket not connected, cannot execute selection");
+            setExecutionStatus('error');
+        }
     };
     
     // Reset the REPL
@@ -267,6 +350,92 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         });
     };
     
+    // Direct WebSocket connection for script output
+    useEffect(() => {
+        // Connect to Python WebSocket server
+        try {
+            console.log('PythonScriptExecution: Connecting to WebSocket server');
+            const ws = new WebSocket('ws://localhost:3010');
+            wsRef.current = ws;
+            
+            ws.onopen = () => {
+                console.log('PythonScriptExecution: Connected to WebSocket server');
+                setWsConnected(true);
+                setScriptOutput(prev => [...prev, "=== Connected to Python server ==="])
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('PythonScriptExecution: Received message', data);
+                    
+                    if (data.type === 'output') {
+                        // Clean ANSI escape sequences
+                        const cleanOutput = data.data.replace(
+                            /\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, 
+                            ''
+                        );
+                        
+                        // Check if this is script output section
+                        if (cleanOutput.includes('=== Script Output ===')) {
+                            const outputSection = cleanOutput.split('=== Script Output ===')[1];
+                            if (outputSection && outputSection.trim()) {
+                                setScriptOutput(prev => [...prev, "=== Script Output ===", ...outputSection.trim().split('\n')]);
+                            }
+                            return;
+                        }
+                        
+                        // Check if this is an error message
+                        if (cleanOutput.includes('=== Error executing script:')) {
+                            const errorSection = cleanOutput.split('=== Error executing script:')[1];
+                            if (errorSection && errorSection.trim()) {
+                                setScriptOutput(prev => [...prev, "=== Error executing script ===", ...errorSection.trim().split('\n')]);
+                            }
+                            return;
+                        }
+                        
+                        // Filter out input echo lines (starting with >>> or ...)
+                        if (!cleanOutput.trim().startsWith('>>>') && 
+                            !cleanOutput.trim().startsWith('...') &&
+                            cleanOutput.trim()) {
+                            
+                            // Remove trailing prompts
+                            const filteredOutput = cleanOutput.replace(/>>>\s*$/, '').replace(/\.\.\.\s*$/, '');
+                            
+                            if (filteredOutput.trim()) {
+                                setScriptOutput(prev => [...prev, filteredOutput]);
+                                console.log('Added output:', filteredOutput);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Error handling WebSocket message:', err);
+                    // Try to handle raw data
+                    setScriptOutput(prev => [...prev, String(event.data)]);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('PythonScriptExecution: WebSocket error', error);
+                setScriptOutput(prev => [...prev, "=== Error connecting to Python server ==="])
+            };
+            
+            ws.onclose = () => {
+                console.log('PythonScriptExecution: WebSocket connection closed');
+                setWsConnected(false);
+                setScriptOutput(prev => [...prev, "=== Disconnected from Python server ==="])
+            };
+            
+            return () => {
+                if (wsRef.current) {
+                    wsRef.current.close();
+                }
+            };
+        } catch (err) {
+            console.error('PythonScriptExecution: Error setting up WebSocket', err);
+        }
+    }, []);
+
     // Add a listener to capture Python REPL output
     useEffect(() => {
         // Function to handle messages from the Python REPL
@@ -355,6 +524,13 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                     Execute Selected Line
                 </button>
                 
+                <button 
+                    className="pse-test-connection-btn"
+                    onClick={testConnection}
+                >
+                    Test Python Connection
+                </button>
+                
                 <div className="pse-repl-controls">
                     <button onClick={clearREPL}>Clear REPL</button>
                     <button onClick={resetREPL}>Reset REPL</button>
@@ -386,6 +562,13 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                                     </div>
                                 ))}
                             </div>
+                        )}
+                    </div>
+                    <div className="pse-connection-status">
+                        {wsConnected ? (
+                            <span className="pse-connected">Connected to Python server</span>
+                        ) : (
+                            <span className="pse-disconnected">Disconnected from Python server</span>
                         )}
                     </div>
                 </div>

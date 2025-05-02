@@ -32,10 +32,6 @@ def table_based_addition_optimized(a_str, b_str):
     Returns:
         The sum as a string
     """
-    # For small numbers, use built-in method (it's faster)
-    if len(a_str) < 20 and len(b_str) < 20:
-        return str(int(a_str) + int(b_str))
-    
     # Pre-pad numbers to avoid bounds checking during computation
     len_a, len_b = len(a_str), len(b_str)
     max_len = max(len_a, len_b)
@@ -94,10 +90,6 @@ def table_based_addition(a_str, b_str):
     Returns:
         The sum as a string
     """
-    # For small numbers, use built-in method (it's faster)
-    if len(a_str) < 20 and len(b_str) < 20:
-        return str(int(a_str) + int(b_str))
-    
     # Process directly from right to left (least significant digit first)
     len_a = len(a_str)
     len_b = len(b_str)

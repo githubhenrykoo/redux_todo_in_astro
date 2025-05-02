@@ -2,51 +2,51 @@ DETAILED PROFILE FOR GASING ALGORITHM
 Running 100,000 iterations on input size: 810 digits
 ==================================================
 
-         163100191 function calls in 24.314 seconds
+         163000227 function calls in 21.704 seconds
 
    Ordered by: cumulative time
-   List reduced from 107 to 40 due to restriction <40>
+   List reduced from 120 to 40 due to restriction <40>
 
    ncalls  tottime  percall  cumtime  percall filename:lineno(function)
-   100000    0.035    0.000   24.314    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/library_comparison.py:127(gasing_addition)
-   100000    0.015    0.000   24.265    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/gasingaddition.py:181(gasing_addition)
-   100000   12.466    0.000   24.250    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/gasingaddition.py:23(table_based_addition_optimized)
-   100008    3.826    0.000   11.760    0.000 {method 'join' of 'str' objects}
- 81100000    5.549    0.000    7.934    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/gasingaddition.py:82(<genexpr>)
- 81000000    2.385    0.000    2.385    0.000 {built-in method builtins.chr}
-   300007    0.019    0.000    0.019    0.000 {built-in method builtins.len}
-   200000    0.013    0.000    0.013    0.000 {built-in method time.time}
-   100002    0.005    0.000    0.005    0.000 {built-in method builtins.max}
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:1349(_find_and_load)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:911(_load_unlocked)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1020(exec_module)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1093(get_code)
+   100000    0.036    0.000   21.704    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/library_comparison.py:127(gasing_addition)
+   100000    0.015    0.000   21.652    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/gasingaddition.py:173(gasing_addition)
+   100000    9.848    0.000   21.637    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/gasingaddition.py:23(table_based_addition_optimized)
+   100008    3.897    0.000   11.774    0.000 {method 'join' of 'str' objects}
+ 81100000    5.584    0.000    7.876    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/src/gasing/addition/gasingaddition.py:78(<genexpr>)
+ 81000000    2.292    0.000    2.292    0.000 {built-in method builtins.chr}
+   200000    0.014    0.000    0.014    0.000 {built-in method time.time}
+   200008    0.010    0.000    0.010    0.000 {built-in method builtins.len}
+   100003    0.006    0.000    0.006    0.000 {built-in method builtins.max}
+        1    0.000    0.000    0.002    0.002 <frozen importlib._bootstrap>:1349(_find_and_load)
+        1    0.000    0.000    0.002    0.002 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
+        1    0.000    0.000    0.002    0.002 <frozen importlib._bootstrap>:911(_load_unlocked)
+        1    0.000    0.000    0.002    0.002 <frozen importlib._bootstrap_external>:1020(exec_module)
+        1    0.000    0.000    0.002    0.002 <frozen importlib._bootstrap_external>:1093(get_code)
+        3    0.000    0.000    0.001    0.000 <frozen importlib._bootstrap>:480(_call_with_frames_removed)
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:1085(source_to_code)
+        1    0.001    0.001    0.001    0.001 {built-in method builtins.compile}
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:1238(_cache_bytecode)
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:1243(set_data)
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:200(_write_atomic)
+        1    0.000    0.000    0.000    0.000 {built-in method posix.open}
+        1    0.000    0.000    0.000    0.000 {built-in method posix.replace}
+        1    0.000    0.000    0.000    0.000 {method 'write' of '_io.FileIO' objects}
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:1240(_find_spec)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1214(get_data)
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1551(find_spec)
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1522(_get_spec)
+        2    0.000    0.000    0.000    0.000 {built-in method _io.open_code}
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1624(find_spec)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1214(get_data)
-        1    0.000    0.000    0.000    0.000 {built-in method _io.open_code}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:795(_code_to_timestamp_pyc)
+        5    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:145(_path_stat)
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:416(__enter__)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:782(_compile_bytecode)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:806(module_from_spec)
-        1    0.000    0.000    0.000    0.000 {built-in method marshal.loads}
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:304(acquire)
         1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        5    0.000    0.000    0.000    0.000 {built-in method posix.stat}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:806(module_from_spec)
+        3    0.000    0.000    0.000    0.000 {method '__exit__' of '_io._IOBase' objects}
         1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:733(_init_module_attrs)
-        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:145(_path_stat)
-        3    0.000    0.000    0.000    0.000 {built-in method posix.stat}
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:632(cached)
+        1    0.000    0.000    0.000    0.000 {built-in method marshal.dumps}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:304(acquire)
         2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:513(cache_from_source)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:642(_get_cached)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:162(__enter__)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1619(_get_spec)
-        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:131(_path_join)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:124(setdefault)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:426(_get_module_lock)
-        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:164(_path_isfile)
-        1    0.000    0.000    0.000    0.000 /Users/Henrykoo/Documents/redux_todo_in_astro/.venv/lib/python3.13/site-packages/_distutils_hack/__init__.py:101(find_spec)
-        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:137(_path_split)
 
 

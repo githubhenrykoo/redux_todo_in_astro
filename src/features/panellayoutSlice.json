@@ -227,13 +227,13 @@
             "visible": true
         },
         "middle": {
-            "type": "pythonrepl", 
+            "type": "PythonScriptExecutionPanel", 
             "size": 50,
             "minSize": 30,
             "visible": true
         },
         "right": {
-            "type": "PythonScriptExecutionPanel",
+            "type": "pythonrepl",
             "size": 20,
             "minSize": 20,
             "visible": true

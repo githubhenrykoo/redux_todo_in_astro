@@ -1,40 +1,60 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { executeScript as executeScriptAction, resetREPL as resetREPLAction, 
-         clearREPL as clearREPLAction, submitInput as submitInputAction,
-         addToHistory as addToHistoryAction, addOutput } from '../../features/pythonreplSlice';
+import React, { useRef, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import '../../styles/python-script-execution.css';
 
-const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [scriptContent, setScriptContent] = useState('');
-    const [scriptOutput, setScriptOutput] = useState([]);
-    const [waitingForInput, setWaitingForInput] = useState(false);
-    const [userInput, setUserInput] = useState('');
-    const [scriptInfo, setScriptInfo] = useState({
-        contentType: null,
-        filename: 'No file selected',
-        hash: '',
-        timestamp: ''
-    });
-    const [executionStatus, setExecutionStatus] = useState('idle'); // idle, running, success, error
-    
-    const outputRef = useRef(null);
-    const inputRef = useRef(null);
-    const replFrameRef = useRef(null);
+// Import custom hooks
+import { usePythonScript } from '../../hooks/usePythonScript';
+import { usePythonExecution } from '../../hooks/usePythonExecution';
 
-    const dispatch = useDispatch();
+// Import components
+import ScriptHeader from '../python/ScriptHeader';
+import ExecutionControls from '../python/ExecutionControls';
+import ScriptContent from '../python/ScriptContent';
+import ExecutionOutput from '../python/ExecutionOutput';
+import DirectREPLFrame from '../python/DirectREPLFrame';
+import ExecutionHistory from '../python/ExecutionHistory';
+import DocumentationTips from '../python/DocumentationTips';
+
+/**
+ * Python Script Execution Panel - displays and executes Python scripts
+ */
+const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
+    // References
+    const inputRef = useRef(null);
+    const outputRef = useRef(null);
     
-    // Use Redux selectors to get the selected hash and cards
-    const selectedHash = useSelector(state => state?.content?.selectedHash || initialHash);
-    const cards = useSelector(state => state?.content?.cards || {});
+    // Use custom hooks
+    const { 
+        loading, 
+        error, 
+        scriptContent, 
+        scriptInfo, 
+        scriptFile,
+        setError
+    } = usePythonScript(initialHash);
+    
+    const {
+        scriptOutput,
+        waitingForInput,
+        userInput,
+        executionStatus,
+        executionHistory,
+        setScriptOutput,
+        setWaitingForInput,
+        setUserInput,
+        setExecutionStatus,
+        executeDirectly,
+        executeScript,
+        executeSelectedLine,
+        resetREPL,
+        clearREPL,
+        handleInputSubmit
+    } = usePythonExecution(scriptContent, scriptInfo);
+    
+    // Get REPL output and status from Redux
     const replOutput = useSelector(state => state?.pythonrepl?.output || []);
     const replStatus = useSelector(state => state?.pythonrepl?.status || 'idle');
     
-    // Keep track of execution history
-    const [executionHistory, setExecutionHistory] = useState([]);
-
     // Subscribe to REPL output changes
     useEffect(() => {
         // Debug the output changes
@@ -60,7 +80,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                 }
             }
         }
-    }, [replOutput]);
+    }, [replOutput, setScriptOutput, setWaitingForInput]);
     
     // Subscribe to REPL status changes
     useEffect(() => {
@@ -401,191 +421,8 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                 clearInterval(pollInterval);
             }
         };
-    }, [executionStatus]);
+    }, [executionStatus, setScriptOutput]);
 
-    // Directly execute the Python script using WebSocket - paste whole script at once
-    const executeDirectly = () => {
-        // Display execution starting
-        setScriptOutput(['=== Starting Direct Execution ===']);
-        setExecutionStatus('running');
-        
-        // Get the actual text content from the UI component
-        const displayedScriptContent = document.querySelector('.pse-script-content')?.textContent || scriptContent;
-        
-        // Prepare the script content for the REPL
-        const textContent = prepareScriptForREPL(displayedScriptContent);
-        
-        console.log('Using prepared script content');
-        console.log('Script content type:', typeof textContent);
-        console.log('First 50 chars:', textContent.substring(0, 50));
-        
-        // Send the script to the REPL iframe if it's available
-        if (replFrameRef.current && replFrameRef.current.contentWindow) {
-            console.log('Sending script to REPL iframe');
-            replFrameRef.current.contentWindow.postMessage(
-                { type: 'execute-script', script: textContent },
-                '*'
-            );
-        } else {
-            console.warn('REPL iframe not available');
-        }
-        
-        try {
-            // Create a direct WebSocket connection to the Python server
-            const ws = new WebSocket('ws://localhost:3010');
-            
-            // Track all output in this array
-            const outputLines = ['=== Starting Direct Execution ==='];
-            
-            ws.onopen = () => {
-                console.log('Direct WebSocket connection established');
-                
-                // First clear any existing state by sending a blank line
-                ws.send(JSON.stringify({
-                    type: 'input',
-                    data: '\r'
-                }));
-                
-                // Execute the entire script at once by pasting it directly
-                setTimeout(() => {
-                    console.log('Sending entire script at once');
-                    
-                    // Send the entire script as one message
-                    ws.send(JSON.stringify({
-                        type: 'input',
-                        data: textContent + '\r'
-                    }));
-                    
-                    // Wait for execution to complete
-                    setTimeout(() => {
-                        ws.close();
-                        
-                        // Mark execution as complete
-                        setExecutionStatus('idle');
-                        
-                        // Add completion marker
-                        outputLines.push('=== Script Execution Complete ===');
-                        setScriptOutput([...outputLines]);
-                        
-                        // Add to execution history
-                        const executionEntry = {
-                            timestamp: new Date().toLocaleString(),
-                            hash: scriptInfo.hash,
-                            filename: scriptInfo.filename,
-                            status: 'executed directly'
-                        };
-                        
-                        setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]);
-                    }, 2000);
-                }, 500);
-            };
-            
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    
-                    if (data.type === 'output') {
-                        // Process output data
-                        console.log('Received output:', data.data);
-                        
-                        // Split by newlines and add each line
-                        const lines = data.data.split(/\r?\n/);
-                        for (const line of lines) {
-                            if (line.trim()) {
-                                outputLines.push(line);
-                            }
-                        }
-                        
-                        // Update UI with latest output
-                        setScriptOutput([...outputLines]);
-                    }
-                } catch (err) {
-                    console.error('Error processing WebSocket message:', err);
-                }
-            };
-            
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                outputLines.push(`Error: WebSocket connection failed`);
-                outputLines.push('=== Script Execution Failed ===');
-                setScriptOutput([...outputLines]);
-                setExecutionStatus('error');
-            };
-            
-            ws.onclose = () => {
-                console.log('WebSocket connection closed');
-            };
-        } catch (error) {
-            console.error('Error in direct execution:', error);
-            setScriptOutput([
-                '=== Starting Direct Execution ===',
-                `Error: ${error.message}`,
-                '=== Script Execution Failed ==='
-            ]);
-            setExecutionStatus('error');
-        }
-    };
-
-    // Send individual line to REPL
-    const executeSelectedLine = () => {
-        // Get selected text or current line
-        const selection = window.getSelection();
-        let selectedText = '';
-        
-        if (selection.rangeCount > 0) {
-            selectedText = selection.toString();
-        }
-        
-        if (!selectedText) {
-            setError("No text selected");
-            return;
-        }
-        
-        // Dispatch to execute the selected line
-        dispatch({
-            type: 'pythonrepl/executeLine',
-            payload: {
-                content: selectedText,
-                hash: scriptInfo.hash,
-                filename: scriptInfo.filename
-            }
-        });
-    };
-
-    // Reset the REPL
-    const resetREPL = () => {
-        dispatch(resetREPLAction());
-        setScriptOutput([]);
-        setWaitingForInput(false);
-        setUserInput('');
-        setExecutionStatus('idle');
-    };
-
-    // Clear the REPL
-    const clearREPL = () => {
-        dispatch(clearREPLAction());
-        setScriptOutput([]);
-        setWaitingForInput(false);
-    };
-
-    // Handle user input submission
-    const handleInputSubmit = (e) => {
-        e.preventDefault();
-        if (!userInput.trim() && !waitingForInput) return;
-        
-        // Send input to REPL
-        dispatch(submitInputAction({
-            input: userInput
-        }));
-        
-        // Add to our local output display too
-        setScriptOutput(prev => [...prev, `> ${userInput}`]);
-        
-        // Clear input field and update state
-        setUserInput('');
-        setWaitingForInput(false);
-    };
-    
     // Loading state
     if (loading) {
         return <div className="pse-loading">Loading Python script...</div>;
@@ -622,51 +459,21 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     
     return (
         <div className="pse-panel">
-            <header className="pse-header">
-                <h2>Python Script: {scriptInfo.filename}</h2>
-                
-                <div className="pse-meta">
-                    <div className="pse-hash">
-                        <span className="pse-label">Hash:</span>
-                        <code>{scriptInfo.hash ? scriptInfo.hash.substring(0, 12) + '...' : 'N/A'}</code>
-                    </div>
-                    <div className="pse-timestamp">
-                        <span className="pse-label">Last Modified:</span>
-                        <span>{scriptInfo.timestamp}</span>
-                    </div>
-                </div>
-            </header>
+            {/* Script Header */}
+            <ScriptHeader scriptInfo={scriptInfo} />
             
-            <div className="pse-controls">
-                <button 
-                    className={`pse-execute-btn ${executionStatus === 'running' ? 'running' : ''}`}
-                    onClick={executeScript}
-                    disabled={executionStatus === 'running' || !scriptContent}
-                >
-                    {executionStatus === 'running' ? 'Executing...' : 'Execute Script'}
-                </button>
-                
-                <button
-                    onClick={executeDirectly}
-                    disabled={executionStatus === 'running'}
-                >
-                    Execute Locally
-                </button>
-                
-                <button 
-                    className="pse-execute-selected-btn"
-                    onClick={executeSelectedLine}
-                    disabled={executionStatus === 'running'}
-                >
-                    Execute Selected Line
-                </button>
-                
-                <div className="pse-repl-controls">
-                    <button onClick={clearREPL}>Clear REPL</button>
-                    <button onClick={resetREPL}>Reset REPL</button>
-                </div>
-            </div>
+            {/* Execution Controls */}
+            <ExecutionControls 
+                executionStatus={executionStatus} 
+                scriptContent={scriptContent}
+                executeScript={executeScript}
+                executeDirectly={executeDirectly}
+                executeSelectedLine={executeSelectedLine}
+                clearREPL={clearREPL}
+                resetREPL={resetREPL}
+            />
             
+            {/* Error Display */}
             {error && (
                 <div className="pse-warning">
                     <p>{error}</p>
@@ -674,81 +481,31 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             )}
             
             <div className="pse-container">
-                <div className="pse-script-container">
-                    <h3>Script Content</h3>
-                    <pre className="pse-script-content">{scriptContent}</pre>
-                </div>
+                {/* Script Content */}
+                <ScriptContent content={scriptContent} />
                 
                 <div className="pse-output-container">
-                    <h3>Execution Output</h3>
-                    <div className="pse-output" ref={outputRef}>
-                        {scriptOutput.length === 0 ? (
-                            <div className="pse-no-output">No output yet. Execute the script to see results here.</div>
-                        ) : (
-                            <div className="pse-output-content">
-                                {scriptOutput.map((line, index) => (
-                                    <div key={index} className={`pse-output-line ${line.includes('input(') ? 'input-prompt' : ''}`}>
-                                        {line}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                    {/* Execution Output */}
+                    <ExecutionOutput 
+                        output={scriptOutput}
+                        waitingForInput={waitingForInput}
+                        userInput={userInput}
+                        setUserInput={setUserInput}
+                        handleInputSubmit={handleInputSubmit}
+                        inputRef={inputRef}
+                        outputRef={outputRef}
+                    />
                     
-                    {/* Direct REPL output display */}
-                    <div className="pse-direct-repl">
-                        <h4>Direct REPL Output</h4>
-                        <iframe 
-                            src="/repl-frame.html" 
-                            className="pse-repl-frame"
-                            title="Python REPL"
-                            ref={replFrameRef}
-                        ></iframe>
-                    </div>
-                    
-                    {waitingForInput && (
-                        <form className="pse-input-form" onSubmit={handleInputSubmit}>
-                            <input 
-                                type="text"
-                                ref={inputRef}
-                                className="pse-input-field"
-                                value={userInput}
-                                onChange={(e) => setUserInput(e.target.value)}
-                                placeholder="Type your input here and press Enter"
-                                autoFocus
-                            />
-                            <button type="submit" className="pse-input-submit">Submit</button>
-                        </form>
-                    )}
+                    {/* Direct REPL Frame */}
+                    <DirectREPLFrame />
                 </div>
             </div>
             
-            <div className="pse-execution-history">
-                <h3>Execution History</h3>
-                {executionHistory.length === 0 ? (
-                    <p className="pse-no-history">No execution history yet</p>
-                ) : (
-                    <ul className="pse-history-list">
-                        {executionHistory.map((entry, index) => (
-                            <li key={index} className="pse-history-item">
-                                <span className="pse-history-time">{entry.timestamp}</span>
-                                <span className="pse-history-file">{entry.filename}</span>
-                                <span className="pse-history-status">{entry.status}</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
+            {/* Execution History */}
+            <ExecutionHistory history={executionHistory} />
             
-            <div className="pse-documentation">
-                <h3>Tips</h3>
-                <ul>
-                    <li>You can select a portion of the script and click "Execute Selected Line" to run just that part</li>
-                    <li>Input fields will appear when the script requests user input</li>
-                    <li>Variables defined in one execution are available in subsequent executions</li>
-                    <li>Click "Reset REPL" if you want to clear all defined variables and start fresh</li>
-                </ul>
-            </div>
+            {/* Documentation Tips */}
+            <DocumentationTips />
         </div>
     );
 };

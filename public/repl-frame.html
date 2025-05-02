@@ -57,6 +57,17 @@
         .success {
             color: #98c379;
         }
+        
+        .debug {
+            color: #61afef;
+            font-size: 0.9em;
+        }
+        
+        .debug-small {
+            color: #61afef;
+            font-size: 0.7em;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -73,12 +84,31 @@
         const input = document.getElementById('input');
         let ws = null;
         
+        // Clean ANSI escape codes from output
+        function cleanAnsiCodes(text) {
+            if (typeof text !== 'string') return String(text);
+            
+            // Remove ANSI color codes and other terminal control sequences
+            return text
+                .replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '') // ANSI escape sequences
+                .replace(/\r\n/g, '\n') // Normalize line endings
+                .replace(/\r/g, '\n');  // Convert remaining carriage returns
+        }
+
         function appendOutput(text, className = '') {
+            // Clean text if it's not a debug message
+            if (!className.includes('debug')) {
+                text = cleanAnsiCodes(text);
+            }
+            
             const line = document.createElement('div');
             line.className = `output-line ${className}`;
             line.textContent = text;
             terminal.appendChild(line);
             terminal.scrollTop = terminal.scrollHeight;
+            
+            // Also log to console for debugging
+            console.log(`[REPL-FRAME] ${className}: ${text}`);
         }
         
         function connectWebSocket() {
@@ -91,7 +121,13 @@
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
+                    appendOutput(`[Message received] Type: ${data.type}`, 'debug');
+                    
                     if (data.type === 'output') {
+                        // Explicitly show each character code to debug invisible characters
+                        const charCodes = Array.from(data.data).map(c => c.charCodeAt(0));
+                        appendOutput(`[Raw output] Chars: ${charCodes.join(',')}`, 'debug-small');
+                        
                         // Process and display output
                         const lines = data.data.split(/\r?\n/);
                         lines.forEach(line => {
@@ -139,11 +175,81 @@
             if (event.data && event.data.type === 'execute-script') {
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     const script = event.data.script;
+                    
                     appendOutput('--- Executing Script ---', 'success');
+                    appendOutput(`Script length: ${script.length} characters`, 'debug');
+                    appendOutput(`Script first 50 chars: ${script.substring(0, 50)}...`, 'debug');
+                    
+                    // Execute a simple test first to verify the REPL is working
                     ws.send(JSON.stringify({
                         type: 'input',
-                        data: script + '\r'
+                        data: 'print("TEST: REPL IS WORKING")\r'
                     }));
+                    
+                    // Wait a moment before sending the actual script
+                    setTimeout(() => {
+                        // For scripts with function definitions, we need to send them line by line
+                        const lines = script.split('\n');
+                        
+                        // First send all function definitions and imports
+                        let definitionsCode = '';
+                        for (let i = 0; i < lines.length; i++) {
+                            const line = lines[i].trim();
+                            if (line.startsWith('def ') || line.startsWith('class ') || 
+                                line.startsWith('import ') || line.startsWith('from ')) {
+                                definitionsCode += lines[i] + '\n';
+                            }
+                        }
+                        
+                        if (definitionsCode) {
+                            appendOutput('Sending definitions...', 'debug');
+                            ws.send(JSON.stringify({
+                                type: 'input',
+                                data: definitionsCode + '\r'
+                            }));
+                        }
+                        
+                        // Wait a moment before sending the main execution code
+                        setTimeout(() => {
+                            // Now send the main execution part - typically the if __name__ == "__main__": block
+                            let executionCode = '';
+                            let inMainBlock = false;
+                            
+                            for (let i = 0; i < lines.length; i++) {
+                                const line = lines[i].trim();
+                                if (line.includes('__name__') && line.includes('__main__')) {
+                                    inMainBlock = true;
+                                    executionCode += 'if True:  # Modified from __name__ == "__main__"\n';
+                                } else if (inMainBlock) {
+                                    executionCode += lines[i] + '\n';
+                                }
+                            }
+                            
+                            // If we found a main block, execute it, otherwise execute the whole script
+                            if (executionCode) {
+                                appendOutput('Executing main block...', 'debug');
+                                ws.send(JSON.stringify({
+                                    type: 'input',
+                                    data: executionCode + '\r'
+                                }));
+                            } else {
+                                // No main block found, just execute the whole script
+                                appendOutput('Executing entire script...', 'debug');
+                                ws.send(JSON.stringify({
+                                    type: 'input',
+                                    data: script + '\r'
+                                }));
+                            }
+                            
+                            // Force execution of main() function if it exists
+                            setTimeout(() => {
+                                ws.send(JSON.stringify({
+                                    type: 'input',
+                                    data: 'try:\n    main()\nexcept NameError:\n    pass\r'
+                                }));
+                            }, 500);
+                        }, 500);
+                    }, 500);
                 } else {
                     appendOutput('Not connected to REPL server', 'error');
                 }

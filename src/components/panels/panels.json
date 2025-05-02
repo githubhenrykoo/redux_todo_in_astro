@@ -70,5 +70,8 @@
   },
   "LlmVizPanel": {
     "component": "../components/panels/LlmVizPanel.jsx"
+  },
+  "PythonScriptExecutionPanel": {
+    "component": "../components/panels/PythonScriptExecutionPanel.jsx"
   }
 }

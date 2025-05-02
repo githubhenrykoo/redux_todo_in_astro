@@ -218,5 +218,25 @@
             "minSize": 0,
             "visible": false
         }
+    },
+    "python_repl_layout": {
+        "left": {
+            "type": "CatalogPanel",
+            "size": 30,
+            "minSize": 20,
+            "visible": true
+        },
+        "middle": {
+            "type": "pythonrepl", 
+            "size": 50,
+            "minSize": 30,
+            "visible": true
+        },
+        "right": {
+            "type": "PythonScriptExecutionPanel",
+            "size": 20,
+            "minSize": 20,
+            "visible": true
+        }
     }
 }

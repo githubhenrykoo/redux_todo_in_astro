@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import '../../styles/pythonrepl.css';
 
 // Python REPL Component
 const PythonREPL = ({ className = '' }) => {
@@ -7,6 +9,10 @@ const PythonREPL = ({ className = '' }) => {
   const [error, setError] = useState(null);
   const [xtermLoaded, setXtermLoaded] = useState(false);
   const [isPythonMode, setIsPythonMode] = useState(false);
+  const [scriptContent, setScriptContent] = useState('');
+  const [selectedHash, setSelectedHash] = useState('');
+  const [showScriptViewer, setShowScriptViewer] = useState(false);
+  const [scriptExecuting, setScriptExecuting] = useState(false);
   
   const consoleRef = useRef(null);
   const xtermRef = useRef(null);
@@ -15,6 +21,19 @@ const PythonREPL = ({ className = '' }) => {
   const reconnectTimeoutRef = useRef(null);
   const mountedRef = useRef(false);
 
+  // Get selected hash from Redux store
+  const storeSelectedHash = useSelector(state => state?.content?.selectedHash);
+  const cards = useSelector(state => state?.content?.cards || {});
+  const dispatch = useDispatch();
+
+  // Handle selection change from store
+  useEffect(() => {
+    if (storeSelectedHash && storeSelectedHash !== selectedHash) {
+      setSelectedHash(storeSelectedHash);
+      fetchScript(storeSelectedHash);
+    }
+  }, [storeSelectedHash]);
+  
   // Load xterm.js dynamically on client side
   useEffect(() => {
     // Set mounted flag
@@ -147,51 +166,30 @@ const PythonREPL = ({ className = '' }) => {
         
         window.addEventListener('resize', handleResize);
         
-        // Force a resize after a short delay
-        setTimeout(handleResize, 500);
-        
-        // Add resize observer for container size changes
-        const resizeObserver = new ResizeObserver(() => {
-          if (fitAddonRef.current && mountedRef.current) {
-            try {
-              fitAddonRef.current.fit();
-              
-              // Send console size to server
-              if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && xtermRef.current) {
-                const { cols, rows } = xtermRef.current;
-                socketRef.current.send(JSON.stringify({ 
-                  type: 'resize', 
-                  cols, 
-                  rows 
-                }));
-              }
-            } catch (e) {
-              console.error('Error during container resize:', e);
-            }
-          }
-        });
-        
-        if (consoleRef.current) {
-          resizeObserver.observe(consoleRef.current);
-        }
-        
+        // Clean up event listener on component unmount
+        return () => {
+          window.removeEventListener('resize', handleResize);
+        };
       } catch (err) {
         console.error('Failed to initialize Python console:', err);
         setError('Failed to initialize Python console: ' + err.message);
       }
     };
     
-    // Start with a simple console first
+    // Start by creating a simple console
     createSimpleConsole();
     
-    // Cleanup function
+    // Clean up on component unmount
     return () => {
+      console.log('Cleaning up Python console');
       mountedRef.current = false;
       
+      // Close WebSocket if it's open
       if (socketRef.current) {
         socketRef.current.close();
       }
       
+      // Clear reconnect timeout
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -205,24 +203,28 @@ const PythonREPL = ({ className = '' }) => {
       }
     };
   }, []);
-
+  
+  // Connect to WebSocket server
   const connectToServer = () => {
-    if (!mountedRef.current) return;
-    
     try {
-      // Clear any existing reconnect timeout
+      // Close existing connection if open
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+      
+      // Clear reconnect timeout if set
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
-
-      console.log('Connecting to Python console server...');
-      // Update the WebSocket URL to connect to the Python console server
+      
+      // Create new WebSocket connection
       const ws = new WebSocket('ws://localhost:3010');
       socketRef.current = ws;
-
+      
       ws.onopen = () => {
         if (!mountedRef.current) return;
-        console.log('WebSocket connected to Python console server');
+        console.log('Connected to Python console server');
         setIsConnected(true);
         setError(null);
         
@@ -238,7 +240,7 @@ const PythonREPL = ({ className = '' }) => {
           // Python REPL will start automatically from the server
         }
       };
-
+      
       ws.onmessage = (event) => {
         if (!mountedRef.current) return;
         
@@ -253,13 +255,23 @@ const PythonREPL = ({ className = '' }) => {
             }
           }
         } catch (err) {
-          console.error('Error processing message:', err);
+          console.error('Error processing message from Python console server:', err);
+          
+          // If parsing fails, write raw data
+          if (xtermRef.current && event.data) {
+            try {
+              xtermRef.current.write(event.data);
+            } catch (e) {
+              console.error('Error writing to terminal:', e);
+            }
+          }
         }
       };
-
+      
       ws.onerror = (error) => {
         if (!mountedRef.current) return;
-        console.error('WebSocket error:', error);
+        console.error('Python console WebSocket error:', error);
+        setError('Connection error: The Python console server may not be running');
         setIsConnected(false);
         setError('Failed to connect to Python console server. Make sure the server is running.');
         
@@ -341,34 +353,27 @@ const PythonREPL = ({ className = '' }) => {
   // Render a fallback UI while xterm is loading
   if (!xtermLoaded) {
     return (
-      <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 font-mono ${className}`}>
-        <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
-          <div className="text-center flex-grow">Python Console</div>
+      <div className="python-repl-panel">
+        <div className="repl-header">
+          <h2>Python REPL</h2>
+          <div className="connection-status">
+            <span className="status-text">Loading...</span>
+          </div>
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-gray-400">Loading Python console...</div>
+        <div className="terminal-section loading">
+          <div className="loading-indicator">Loading Python console...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`h-full flex flex-col ${className}`}>
-      {/* Console container */}
-      <div 
-        ref={consoleRef} 
-        className="flex-1 overflow-hidden bg-black"
-        style={{ width: '100%', height: '100%' }}
-      />
-      
-      {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-1 bg-gray-800 text-white text-xs">
-        <div className="flex items-center space-x-3">
-          {isConnected ? (
-            <span className="text-green-400">Connected</span>
-          ) : (
-            <span className="text-red-400">Disconnected</span>
-          )}
+    <div className="python-repl-panel">
+      <div className="repl-header">
+        <h2>Python REPL</h2>
+        <div className="connection-status">
+          <span className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}></span>
+          <span className="status-text">{isConnected ? 'Connected' : 'Disconnected'}</span>
         </div>
       </div>
     </div>

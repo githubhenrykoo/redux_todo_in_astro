@@ -6,7 +6,7 @@ import path from 'path';
 
 // https://astro.build/config
 export default defineConfig({
-  output: 'static', // Change to static output
+  output: 'server', // Changed from 'static' to 'server' to handle POST requests
   integrations: [
     react(),
     AstroPWA({

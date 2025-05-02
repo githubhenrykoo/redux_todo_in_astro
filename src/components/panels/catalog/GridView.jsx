@@ -245,7 +245,7 @@ const GridView = ({
                         {getFormattedContentType(displayItem)}
                       </span>
                       <span className="grid-item-date" style={{ color: '#000000', fontWeight: 'bold' }}>
-                        {new Date(item.timestamp).toLocaleDateString()}
+                        {item.timestamp || 'No timestamp'}
                       </span>
                     </div>
                   </div>

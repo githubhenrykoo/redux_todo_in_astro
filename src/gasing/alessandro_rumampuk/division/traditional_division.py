@@ -89,3 +89,7 @@ if __name__ == "__main__":
     ps = pstats.Stats(profiler, stream=s).sort_stats('cumtime')
     ps.print_stats(20)  # Show top 20 functions
     print(s.getvalue())
+
+    output_file = "src/gasing/alessandro_rumampuk/division/profile_output_traditional_division.prof"
+    profiler.dump_stats(output_file)
+    print(f"\nProfile data saved to {output_file}")

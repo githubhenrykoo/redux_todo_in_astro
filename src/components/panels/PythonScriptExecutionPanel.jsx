@@ -193,62 +193,55 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         // Update execution status
         setExecutionStatus('running');
         
-        // Prepare the script content
-        const lines = scriptContent.split('\n');
+        // Prepare the script - create a blob with the full content
+        let cleanedScript = scriptContent;
         
         // Remove shebang line if present
-        if (lines.length > 0 && lines[0].startsWith('#!')) {
-            lines.shift();
+        if (cleanedScript.startsWith('#!')) {
+            cleanedScript = cleanedScript.split('\n').slice(1).join('\n');
         }
         
         // Execute directly through our WebSocket connection if available
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log('Executing script directly via WebSocket, line by line');
+            console.log('Executing script via WebSocket using simple approach');
             
-            // This is a much simpler approach - just send each line one by one
-            // with a slight delay between lines to avoid overwhelming the REPL
-            let lineIndex = 0;
+            // This is a simple but very reliable approach - save script to temp file and run it
+            const tempFileName = '_temp_script_' + Date.now() + '.py';
             
-            // Function to send the next line
-            const sendNextLine = () => {
-                if (lineIndex < lines.length) {
-                    const line = lines[lineIndex].trim();
-                    lineIndex++;
-                    
-                    // Skip empty lines
-                    if (!line) {
-                        setTimeout(sendNextLine, 10);
-                        return;
-                    }
-                    
-                    // Send the line to the REPL
+            // First, write the script to a temporary file
+            wsRef.current.send(JSON.stringify({
+                type: 'input',
+                data: `with open('${tempFileName}', 'w') as f:\n    f.write('''${cleanedScript.replace(/'''/g, "\\'\\'\\'")}''')\n\n`
+            }));
+            
+            // Wait a moment for the file to be written
+            setTimeout(() => {
+                // Then run the script using direct execution - this is the most reliable method
+                wsRef.current.send(JSON.stringify({
+                    type: 'input',
+                    data: `print("\\n=== Running ${scriptInfo.filename} ==="); exec(open('${tempFileName}').read()); print("\\n=== Script execution complete ===")\n`
+                }));
+                
+                // Clean up the temp file after a delay
+                setTimeout(() => {
                     wsRef.current.send(JSON.stringify({
                         type: 'input',
-                        data: line + '\n'
+                        data: `import os\nif os.path.exists('${tempFileName}'): os.remove('${tempFileName}')\n`
                     }));
                     
-                    // Schedule the next line with a delay
-                    setTimeout(sendNextLine, 100);
-                } else {
-                    // All lines sent
-                    setScriptOutput(prev => [...prev, "✅ Script execution completed"]);
                     setExecutionStatus('success');
-                }
-            };
+                }, 2000);
+            }, 500);
             
-            // Start sending lines
-            sendNextLine();
         } else {
             // Fall back to dispatch-based execution
             console.log('WebSocket not connected, using dispatch for execution');
-            
-            // Use multiple communication methods to ensure the message gets through
             
             // 1. Dispatch to Redux
             dispatch({
                 type: 'pythonrepl/executeScript',
                 payload: {
-                    content: lines.join('\n'),
+                    content: cleanedScript,
                     hash: scriptInfo.hash,
                     filename: scriptInfo.filename
                 }
@@ -258,7 +251,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             window.postMessage({
                 type: 'pythonrepl/executeScript',
                 payload: {
-                    content: lines.join('\n'),
+                    content: cleanedScript,
                     hash: scriptInfo.hash,
                     filename: scriptInfo.filename
                 }
@@ -268,7 +261,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             window.lastReduxAction = {
                 type: 'pythonrepl/executeScript',
                 payload: {
-                    content: lines.join('\n'),
+                    content: cleanedScript,
                     hash: scriptInfo.hash,
                     filename: scriptInfo.filename
                 }
@@ -393,43 +386,35 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                             ''
                         );
                         
-                        // Handle script execution markers
-                        if (cleanOutput.includes('=== Executing script:')) {
-                            // Start of script execution - already added by our component
+                        // Look for script execution markers
+                        if (cleanOutput.includes('=== Running ') && cleanOutput.includes('.py ===')) {
+                            setScriptOutput(prev => [...prev, "Running script..."]);
                             return;
                         }
                         
-                        // Handle successful execution marker
-                        if (cleanOutput.includes('=== Script executed successfully ===')) {
-                            setScriptOutput(prev => [...prev, "✅ Script executed successfully"]);
+                        if (cleanOutput.includes('=== Script execution complete ===')) {
+                            setScriptOutput(prev => [...prev, "✅ Script execution completed"]);
                             return;
                         }
                         
-                        // Handle error messages
-                        if (cleanOutput.includes('=== Error:')) {
-                            const errorMatch = cleanOutput.match(/=== Error: ([^=]+) ===([\s\S]*)/);
-                            if (errorMatch) {
-                                const errorType = errorMatch[1].trim();
-                                const errorMessage = errorMatch[2].trim();
-                                setScriptOutput(prev => [...prev, `❌ Error: ${errorType}`, errorMessage]);
-                            } else {
-                                setScriptOutput(prev => [...prev, "❌ Error executing script"]);
-                            }
+                        // Look for Python REPL prompts
+                        if (cleanOutput.trim().startsWith('>>>') || cleanOutput.trim().startsWith('...')) {
+                            return; // Skip Python prompts
+                        }
+                        
+                        // Skip common system outputs
+                        if (cleanOutput.includes('with open(') || 
+                            cleanOutput.includes('import os') || 
+                            cleanOutput.includes('os.path.exists') || 
+                            cleanOutput.trim() === '') {
                             return;
                         }
                         
-                        // Filter out input echo lines (starting with >>> or ...)
-                        if (!cleanOutput.trim().startsWith('>>>') && 
-                            !cleanOutput.trim().startsWith('...') &&
-                            cleanOutput.trim()) {
-                            
-                            // Remove trailing prompts
-                            const filteredOutput = cleanOutput.replace(/>>>\s*$/, '').replace(/\.\.\.\s*$/, '');
-                            
-                            if (filteredOutput.trim()) {
-                                setScriptOutput(prev => [...prev, filteredOutput]);
-                                console.log('Added output:', filteredOutput);
-                            }
+                        // Process actual script output
+                        const filteredOutput = cleanOutput.trim();
+                        if (filteredOutput) {
+                            setScriptOutput(prev => [...prev, filteredOutput]);
+                            console.log('Added output:', filteredOutput);
                         }
                     }
                 } catch (err) {

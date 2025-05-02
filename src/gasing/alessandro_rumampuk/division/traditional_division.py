@@ -1,3 +1,8 @@
+import cProfile
+import pstats
+import time
+from io import StringIO
+
 def traditional_long_division(dividend, divisor, verbose=True):
     """
     Perform traditional long division (school method) with step-by-step output.
@@ -34,8 +39,53 @@ def traditional_long_division(dividend, divisor, verbose=True):
                   f"{divisor} × {s['q_digit']} = {s['sub']}, remainder = {s['remainder']}")
     return quotient, remainder
 
+def benchmark_division(iterations=1000000):
+    """Run benchmark on the traditional_long_division function"""
+    test_cases = [
+        (478698745, 5)
+    ]
+    
+    print("\nBENCHMARKING TRADITIONAL LONG DIVISION ALGORITHM")
+    print("=" * 60)
+    print(f"Running {iterations:,} iterations per test case")
+    
+    for dividend, divisor in test_cases:
+        print(f"\nTest case: {dividend} ÷ {divisor}")
+        
+        # Time the operation
+        start_time = time.time()
+        
+        for _ in range(iterations):
+            traditional_long_division(dividend, divisor, verbose=False)
+            
+        elapsed = time.time() - start_time
+        avg_time = elapsed / iterations
+        
+        print(f"Total time: {elapsed:.6f} seconds")
+        print(f"Average time per iteration: {avg_time:.10f} seconds")
+        
+        # Run once with verbose output to show the result
+        quotient, remainder = traditional_long_division(dividend, divisor, verbose=False)
+        print(f"Result: {quotient} remainder {remainder}")
+    
+    print("\nBenchmark complete!")
+
 if __name__ == "__main__":
-    # Example usage
-    dividend = 9876
-    divisor = 23
+    # First run a single example with detailed output
+    print("EXAMPLE RUN WITH DETAILED OUTPUT:")
+    dividend = 478698745
+    divisor = 5
     traditional_long_division(dividend, divisor, verbose=True)
+    
+    # Run with cProfile
+    print("\nRUNNING PERFORMANCE PROFILING")
+    profiler = cProfile.Profile()
+    profiler.enable()
+    benchmark_division(1000000)  # Run 1,000,000 iterations
+    profiler.disable()
+    
+    # Print profile stats
+    s = StringIO()
+    ps = pstats.Stats(profiler, stream=s).sort_stats('cumtime')
+    ps.print_stats(20)  # Show top 20 functions
+    print(s.getvalue())

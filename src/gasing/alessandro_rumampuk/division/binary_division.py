@@ -43,4 +43,4 @@ def binary_division(dividend_dec, divisor_dec):
 
 # Jalankan contoh pembagian 9835 ÷ 5
 if __name__ == "__main__":
-    binary_division(9835, 5)
+    binary_division(478698745, 5)

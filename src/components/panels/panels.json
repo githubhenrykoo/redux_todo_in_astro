@@ -62,6 +62,9 @@
   "CatalogPanel": {
     "component": "../components/panels/CatalogPanel.jsx"
   },
+  "pythonrepl": {
+    "component": "../components/panels/pythonrepl.jsx"
+  },
   "LlmVizPanel": {
     "component": "../components/panels/LlmVizPanel.jsx"
   }

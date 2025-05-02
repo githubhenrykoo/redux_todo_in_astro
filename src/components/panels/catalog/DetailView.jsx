@@ -5,6 +5,7 @@ import { processContent, isImageType } from '../../../utils/content-utils';
 import VideoPlayer from '../../viewers/VideoPlayer';
 import PDFViewer from '../../viewers/PDFViewer';
 import AudioViewer from '../../viewers/AudioViewer';
+import PythonViewer from '../../viewers/PythonViewer';
 import '../../viewers/video-player.css';
 import './detail-view.css';
 
@@ -543,6 +544,19 @@ const DetailView = ({
       return (
         <ContentWrapper className="json-wrapper">
           {renderJsonWithHighlighting(jsonContent)}
+        </ContentWrapper>
+      );
+    } else if (contentType.mimeType === 'text/x-python-script' || 
+               contentType.mimeType === 'text/x-python' || 
+               contentType.extension === 'py') {
+      // Use the specialized Python viewer for Python files
+      console.log("Rendering Python file with syntax highlighting");
+      return (
+        <ContentWrapper className="python-wrapper">
+          <PythonViewer 
+            content={selectedItem.content} 
+            hash={selectedItem.hash}
+          />
         </ContentWrapper>
       );
     } else if (contentType.mimeType === 'text/csv' || contentType.extension === 'csv') {

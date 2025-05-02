@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { addOutput, setStatus } from '../../features/pythonreplSlice';
 import '../../styles/pythonrepl.css';
 
 // Python REPL Component
@@ -20,10 +21,16 @@ const PythonREPL = ({ className = '' }) => {
   const socketRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const mountedRef = useRef(false);
+  const outputBufferRef = useRef([]);
+  const outputTimeoutRef = useRef(null);
 
   // Get selected hash from Redux store
   const storeSelectedHash = useSelector(state => state?.content?.selectedHash);
   const cards = useSelector(state => state?.content?.cards || {});
+  const executeScriptAction = useSelector(state => state?.pythonrepl?.executeScript);
+  const resetReplAction = useSelector(state => state?.pythonrepl?.resetREPL);
+  const clearReplAction = useSelector(state => state?.pythonrepl?.clearREPL);
+  const inputSubmission = useSelector(state => state?.pythonrepl?.submitInput);
   const dispatch = useDispatch();
 
   // Handle selection change from store
@@ -33,7 +40,81 @@ const PythonREPL = ({ className = '' }) => {
       fetchScript(storeSelectedHash);
     }
   }, [storeSelectedHash]);
-  
+
+  // Listen for executeScript Redux action
+  useEffect(() => {
+    if (executeScriptAction && executeScriptAction.payload) {
+      const { content } = executeScriptAction.payload;
+      if (content) {
+        setScriptContent(content);
+        executeScript(content);
+      }
+    }
+  }, [executeScriptAction]);
+
+  // Listen for resetREPL and clearREPL Redux actions
+  useEffect(() => {
+    if (resetReplAction) {
+      resetREPL();
+    }
+  }, [resetReplAction]);
+
+  useEffect(() => {
+    if (clearReplAction) {
+      clearTerminal();
+    }
+  }, [clearReplAction]);
+
+  // Listen for input submission
+  useEffect(() => {
+    if (inputSubmission && inputSubmission.payload && inputSubmission.payload.input) {
+      const { input } = inputSubmission.payload;
+      
+      // Send input to the terminal
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify({
+          type: 'input',
+          data: input + '\r'
+        }));
+        
+        // Add input to the terminal display
+        if (xtermRef.current) {
+          xtermRef.current.write(input + '\r');
+        }
+        
+        // Reset status to running
+        dispatch(setStatus({ status: 'running' }));
+      }
+    }
+  }, [inputSubmission]);
+
+  // Function to buffer and batch output updates to Redux
+  const addOutputToRedux = (text) => {
+    // Debug logging
+    console.log('Adding to Redux:', text);
+    
+    // Add to local buffer
+    outputBufferRef.current.push(text);
+    
+    // Clear existing timeout
+    if (outputTimeoutRef.current) {
+      clearTimeout(outputTimeoutRef.current);
+    }
+    
+    // Set new timeout to dispatch buffered output
+    outputTimeoutRef.current = setTimeout(() => {
+      // Dispatch all buffered output
+      if (outputBufferRef.current.length > 0) {
+        outputBufferRef.current.forEach(line => {
+          console.log('Dispatching output:', line);
+          dispatch(addOutput({ output: line }));
+        });
+        // Clear buffer
+        outputBufferRef.current = [];
+      }
+    }, 50); // Reduce batch time for more responsive updates
+  };
+
   // Load xterm.js dynamically on client side
   useEffect(() => {
     // Set mounted flag
@@ -252,6 +333,13 @@ const PythonREPL = ({ className = '' }) => {
             // Check if Python REPL has started
             if (message.data.includes('Python ') && message.data.includes('Type "help"')) {
               setIsPythonMode(true);
+              dispatch(setStatus({ status: 'idle' }));
+            }
+            
+            // Detect input request
+            if (data.data.includes('input(') || data.data.endsWith(': ')) {
+              console.log('Detected input request:', data.data);
+              dispatch(setStatus({ status: 'waiting-for-input' }));
             }
           }
         } catch (err) {
@@ -261,6 +349,9 @@ const PythonREPL = ({ className = '' }) => {
           if (xtermRef.current && event.data) {
             try {
               xtermRef.current.write(event.data);
+              // Try to add raw output to Redux
+              dispatch(addOutput({ output: String(event.data) }));
+              console.log('Raw output dispatch:', String(event.data));
             } catch (e) {
               console.error('Error writing to terminal:', e);
             }

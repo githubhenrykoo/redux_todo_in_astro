@@ -1,11 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { executeScript as executeScriptAction, resetREPL as resetREPLAction, 
+         clearREPL as clearREPLAction, submitInput as submitInputAction,
+         addToHistory as addToHistoryAction, addOutput } from '../../features/pythonreplSlice';
 import '../../styles/python-script-execution.css';
 
 const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [scriptContent, setScriptContent] = useState('');
+    const [scriptOutput, setScriptOutput] = useState([]);
+    const [waitingForInput, setWaitingForInput] = useState(false);
+    const [userInput, setUserInput] = useState('');
     const [scriptInfo, setScriptInfo] = useState({
         contentType: null,
         filename: 'No file selected',
@@ -13,15 +19,68 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         timestamp: ''
     });
     const [executionStatus, setExecutionStatus] = useState('idle'); // idle, running, success, error
+    
+    const outputRef = useRef(null);
+    const inputRef = useRef(null);
 
     const dispatch = useDispatch();
     
     // Use Redux selectors to get the selected hash and cards
     const selectedHash = useSelector(state => state?.content?.selectedHash || initialHash);
     const cards = useSelector(state => state?.content?.cards || {});
+    const replOutput = useSelector(state => state?.pythonrepl?.output || []);
+    const replStatus = useSelector(state => state?.pythonrepl?.status || 'idle');
     
     // Keep track of execution history
     const [executionHistory, setExecutionHistory] = useState([]);
+
+    // Subscribe to REPL output changes
+    useEffect(() => {
+        // Debug the output changes
+        console.log("REPL Output Changed:", replOutput);
+        
+        if (replOutput && replOutput.length > 0) {
+            // Force update the script output with the latest from Redux
+            setScriptOutput([...replOutput]);
+            
+            // Auto-scroll to the bottom of output
+            if (outputRef.current) {
+                outputRef.current.scrollTop = outputRef.current.scrollHeight;
+            }
+            
+            // Check if waiting for input
+            const lastLine = replOutput[replOutput.length - 1];
+            if (typeof lastLine === 'string' && 
+                (lastLine.includes('input(') || lastLine.endsWith(': '))) {
+                setWaitingForInput(true);
+                // Focus the input field
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }
+        }
+    }, [replOutput]);
+    
+    // Subscribe to REPL status changes
+    useEffect(() => {
+        console.log("REPL Status Changed:", replStatus);
+        setExecutionStatus(replStatus);
+        
+        if (replStatus === 'waiting-for-input') {
+            setWaitingForInput(true);
+            // Focus the input field
+            if (inputRef.current) {
+                setTimeout(() => {
+                    if (inputRef.current) {
+                        inputRef.current.focus();
+                    }
+                }, 100);
+            }
+        } else if (replStatus === 'idle' && executionStatus === 'running') {
+            // Script finished executing
+            setWaitingForInput(false);
+        }
+    }, [replStatus]);
 
     // Get the currently selected script file from Redux store
     const scriptFile = useMemo(() => {
@@ -40,6 +99,9 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     // Reset script state
     const resetScript = () => {
         setScriptContent('');
+        setScriptOutput([]);
+        setWaitingForInput(false);
+        setUserInput('');
         setScriptInfo({
             contentType: null,
             filename: 'No file selected',
@@ -162,76 +224,113 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         return 'script.py';
     };
     
-    // Execute script in the REPL
+    // Override executeScript to dispatch the action
     const executeScript = () => {
         if (!scriptContent) {
             setError("No script content to execute");
             return;
         }
         
-        // Update execution status
-        setExecutionStatus('running');
+        // Clear previous output
+        setScriptOutput([]);
         
-        // Dispatch event to execute script in the PythonREPL panel
-        dispatch({
-            type: 'pythonrepl/executeScript',
-            payload: {
+        // Reset the Python REPL first - using direct action creator
+        dispatch(resetREPLAction());
+        
+        // Wait for the reset to take effect
+        setTimeout(() => {
+            console.log("Executing script:", scriptInfo.filename);
+            setWaitingForInput(false);
+            
+            // Update execution status
+            setExecutionStatus('running');
+            
+            // Dispatch event to execute script in the PythonREPL panel - using direct action creator
+            dispatch(executeScriptAction({
                 content: scriptContent,
                 hash: scriptInfo.hash,
                 filename: scriptInfo.filename
-            }
-        });
-        
-        // Add to execution history
-        const executionEntry = {
-            timestamp: new Date().toLocaleString(),
-            hash: scriptInfo.hash,
-            filename: scriptInfo.filename,
-            status: 'executed'
-        };
-        
-        setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
-        
-        // After a delay, assume execution is done (since we don't have direct feedback)
-        setTimeout(() => {
-            setExecutionStatus('success');
-        }, 2000);
+            }));
+            
+            // Add to execution history
+            const executionEntry = {
+                timestamp: new Date().toLocaleString(),
+                hash: scriptInfo.hash,
+                filename: scriptInfo.filename,
+                status: 'executed'
+            };
+            
+            setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
+            
+            // Also add to Redux history
+            dispatch(addToHistoryAction({
+                status: 'executed',
+                details: {
+                    timestamp: new Date().toISOString(),
+                    filename: scriptInfo.filename
+                }
+            }));
+        }, 100);
     };
-    
+
     // Send individual line to REPL
     const executeSelectedLine = () => {
-        // Get selected text from script content (would need a textarea ref to implement)
-        const selectedText = window.getSelection().toString();
+        // Get selected text or current line
+        const selection = window.getSelection();
+        let selectedText = '';
+        
+        if (selection.rangeCount > 0) {
+            selectedText = selection.toString();
+        }
         
         if (!selectedText) {
-            setError("No text selected to execute");
+            setError("No text selected");
             return;
         }
         
-        // Dispatch event to execute the line in the PythonREPL panel
+        // Dispatch to execute the selected line
         dispatch({
             type: 'pythonrepl/executeLine',
             payload: {
                 content: selectedText,
-                hash: scriptInfo.hash
+                hash: scriptInfo.hash,
+                filename: scriptInfo.filename
             }
         });
     };
-    
+
     // Reset the REPL
     const resetREPL = () => {
-        dispatch({
-            type: 'pythonrepl/resetREPL',
-            payload: {}
-        });
+        dispatch(resetREPLAction());
+        setScriptOutput([]);
+        setWaitingForInput(false);
+        setUserInput('');
+        setExecutionStatus('idle');
     };
-    
+
     // Clear the REPL
     const clearREPL = () => {
-        dispatch({
-            type: 'pythonrepl/clearREPL',
-            payload: {}
-        });
+        dispatch(clearREPLAction());
+        setScriptOutput([]);
+        setWaitingForInput(false);
+    };
+
+    // Handle user input submission
+    const handleInputSubmit = (e) => {
+        e.preventDefault();
+        if (!userInput.trim() && !waitingForInput) return;
+        
+        // Send input to REPL
+        dispatch(submitInputAction({
+            input: userInput
+        }));
+        
+        // Add to our local output display too
+        setScriptOutput(prev => [...prev, `> ${userInput}`]);
+        
+        // Clear input field and update state
+        setUserInput('');
+        setWaitingForInput(false);
     };
     
     // Loading state
@@ -261,7 +360,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                         <li>Select a Python file from the catalog panel</li>
                         <li>Review the script in this panel</li>
                         <li>Click "Execute Script" to run it in the REPL</li>
-                        <li>View results in the Python REPL panel</li>
+                        <li>View results and interact with the script below</li>
                     </ol>
                 </div>
             </div>
@@ -314,9 +413,43 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                 </div>
             )}
             
-            <div className="pse-script-container">
-                <h3>Script Content</h3>
-                <pre className="pse-script-content">{scriptContent}</pre>
+            <div className="pse-container">
+                <div className="pse-script-container">
+                    <h3>Script Content</h3>
+                    <pre className="pse-script-content">{scriptContent}</pre>
+                </div>
+                
+                <div className="pse-output-container">
+                    <h3>Execution Output</h3>
+                    <div className="pse-output" ref={outputRef}>
+                        {scriptOutput.length === 0 ? (
+                            <div className="pse-no-output">No output yet. Execute the script to see results here.</div>
+                        ) : (
+                            <div className="pse-output-content">
+                                {scriptOutput.map((line, index) => (
+                                    <div key={index} className={`pse-output-line ${line.includes('input(') ? 'input-prompt' : ''}`}>
+                                        {line}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    
+                    {waitingForInput && (
+                        <form className="pse-input-form" onSubmit={handleInputSubmit}>
+                            <input 
+                                type="text"
+                                ref={inputRef}
+                                className="pse-input-field"
+                                value={userInput}
+                                onChange={(e) => setUserInput(e.target.value)}
+                                placeholder="Type your input here and press Enter"
+                                autoFocus
+                            />
+                            <button type="submit" className="pse-input-submit">Submit</button>
+                        </form>
+                    )}
+                </div>
             </div>
             
             <div className="pse-execution-history">
@@ -340,6 +473,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                 <h3>Tips</h3>
                 <ul>
                     <li>You can select a portion of the script and click "Execute Selected Line" to run just that part</li>
+                    <li>Input fields will appear when the script requests user input</li>
                     <li>Variables defined in one execution are available in subsequent executions</li>
                     <li>Click "Reset REPL" if you want to clear all defined variables and start fresh</li>
                 </ul>

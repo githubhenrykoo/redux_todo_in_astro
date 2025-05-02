@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import chatbotReducer from './features/chatbotSlice';
 import testLogsReducer from './features/testLogsSlice';
+import pythonreplReducer from './features/pythonreplSlice';
 
 // Core Reducers
 import themeReducer from './features/themeSlice';
@@ -31,6 +32,7 @@ export const store = configureStore({
     mqtt: mqttReducer,
     testLogs: testLogsReducer,
     chatbot: chatbotReducer,
+    pythonrepl: pythonreplReducer,
     
     // UI States
     panellayout: panellayoutReducer,
@@ -58,6 +60,3 @@ if (typeof window !== 'undefined') {
     window['getState'] = store.getState;
   }
 }
-
-// Remove this line since we already exported the store above
-// export { store };

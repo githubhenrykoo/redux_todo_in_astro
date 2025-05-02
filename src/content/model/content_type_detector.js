@@ -67,7 +67,9 @@ const EXTENSION_MAP = {
   'video/mp4': 'mp4',
   'audio/wav': 'wav',
   'audio/wave': 'wav',
-  'audio/x-wav': 'wav'
+  'audio/x-wav': 'wav',
+  'text/x-python-script': 'py',
+  'text/x-python': 'py'
 };
 
 function startsWith(content, signature) {
@@ -180,6 +182,34 @@ function detectContentType(content) {
           mimeType: 'text/plain', 
           extension: 'txt', 
           isValid: true 
+        };
+      }
+      
+      // Check for potential Python script
+      if (extractedText.startsWith('#!/usr/bin/env python') || 
+          extractedText.startsWith('#!/usr/bin/python') || 
+          extractedText.startsWith('# -*- coding:') ||
+          extractedText.match(/^(from|import) \w+ import/) ||
+          extractedText.includes('def ') && extractedText.includes(':') && extractedText.includes('return')) {
+        return {
+          mimeType: 'text/x-python-script',
+          extension: 'py',
+          isValid: true,
+          detectionMethod: 'pattern-match-python'
+        };
+      }
+      
+      // Check for Python script by looking at common patterns in the first few lines
+      if (extractedText.includes('#!/usr/bin/env python') ||
+          extractedText.includes('#!/usr/bin/python') ||
+          extractedText.includes('# -*- coding:') ||
+          extractedText.match(/import\s+[a-zA-Z0-9_]+/) ||
+          (extractedText.includes('def ') && extractedText.includes(':') && extractedText.includes('return '))) {
+        return {
+          mimeType: 'text/x-python-script',
+          extension: 'py',
+          isValid: true,
+          detectionMethod: 'syntax-pattern'
         };
       }
       

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python REPL</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: monospace;
+            background-color: #282c34;
+            color: #abb2bf;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+        
+        #terminal {
+            height: 100%;
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        #input-line {
+            display: flex;
+            margin-top: 8px;
+        }
+        
+        #prompt {
+            color: #98c379;
+            margin-right: 8px;
+        }
+        
+        #input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #abb2bf;
+            font-family: monospace;
+            flex-grow: 1;
+        }
+        
+        .output-line {
+            margin: 0;
+            padding: 0;
+            line-height: 1.4;
+        }
+        
+        .error {
+            color: #e06c75;
+        }
+        
+        .success {
+            color: #98c379;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal">
+        <div class="output-line">Connecting to Python REPL...</div>
+    </div>
+    <div id="input-line">
+        <div id="prompt">>>></div>
+        <input type="text" id="input" autofocus />
+    </div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        const input = document.getElementById('input');
+        let ws = null;
+        
+        function appendOutput(text, className = '') {
+            const line = document.createElement('div');
+            line.className = `output-line ${className}`;
+            line.textContent = text;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+        
+        function connectWebSocket() {
+            ws = new WebSocket('ws://localhost:3010');
+            
+            ws.onopen = () => {
+                appendOutput('Connected to Python REPL server', 'success');
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'output') {
+                        // Process and display output
+                        const lines = data.data.split(/\r?\n/);
+                        lines.forEach(line => {
+                            if (line.trim()) {
+                                appendOutput(line);
+                            }
+                        });
+                    }
+                } catch (err) {
+                    appendOutput('Error processing message: ' + err.message, 'error');
+                }
+            };
+            
+            ws.onerror = (error) => {
+                appendOutput('WebSocket error: ' + error.message, 'error');
+            };
+            
+            ws.onclose = () => {
+                appendOutput('Disconnected from Python REPL server. Reconnecting...', 'error');
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        // Send input when Enter is pressed
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const text = input.value;
+                
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    appendOutput('> ' + text);
+                    ws.send(JSON.stringify({
+                        type: 'input',
+                        data: text + '\r'
+                    }));
+                    input.value = '';
+                } else {
+                    appendOutput('Not connected to REPL server', 'error');
+                }
+            }
+        });
+        
+        // Listen for messages from parent window
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'execute-script') {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    const script = event.data.script;
+                    appendOutput('--- Executing Script ---', 'success');
+                    ws.send(JSON.stringify({
+                        type: 'input',
+                        data: script + '\r'
+                    }));
+                } else {
+                    appendOutput('Not connected to REPL server', 'error');
+                }
+            }
+        });
+        
+        // Connect when page loads
+        window.addEventListener('load', connectWebSocket);
+    </script>
+</body>
+</html>

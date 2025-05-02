@@ -22,6 +22,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     
     const outputRef = useRef(null);
     const inputRef = useRef(null);
+    const replFrameRef = useRef(null);
 
     const dispatch = useDispatch();
     
@@ -224,6 +225,67 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         return 'script.py';
     };
     
+    // Helper to ensure content is text, not binary
+    const ensureTextContent = (content) => {
+        // If content is already a string, return it
+        if (typeof content === 'string') {
+            return content;
+        }
+        
+        // Check if content is a Buffer or ArrayBuffer
+        if (content instanceof ArrayBuffer || 
+            (typeof Buffer !== 'undefined' && content instanceof Buffer) ||
+            (content && typeof content === 'object' && content.buffer instanceof ArrayBuffer)) {
+            // Convert to string using UTF-8 encoding
+            try {
+                if (typeof Buffer !== 'undefined') {
+                    return Buffer.from(content).toString('utf-8');
+                } else {
+                    return new TextDecoder('utf-8').decode(content);
+                }
+            } catch (e) {
+                console.error('Error converting binary content to text:', e);
+                return String(content);
+            }
+        }
+        
+        // Fallback - try to convert to string
+        return String(content);
+    };
+    
+    // Helper to prepare script content for REPL execution
+    const prepareScriptForREPL = (content) => {
+        // Ensure content is text
+        let textContent = ensureTextContent(content);
+        
+        // Remove shebang line if present
+        textContent = textContent.replace(/^#!.*?\n/, '');
+        
+        // Handle potential script structure issues
+        // If there are function definitions or imports, wrap execution in if __name__ block
+        if (!textContent.includes('if __name__ == "__main__"') && 
+            !textContent.includes("if __name__ == '__main__'")) {
+            
+            // Look for function definitions or imports at top level
+            const hasTopLevelDefs = /^\s*(def|class|import|from)\s+/m.test(textContent);
+            
+            if (hasTopLevelDefs) {
+                // Add explicit execution if there are top-level defs but no __main__ block
+                textContent += '\n\n# Auto-added by execution panel\nif __name__ == "__main__":\n';
+                
+                // Find all top-level function definitions
+                const funcMatches = textContent.match(/^\s*def\s+(\w+)/mg);
+                if (funcMatches && funcMatches.length > 0) {
+                    // Call the first defined function (often 'main')
+                    const funcName = funcMatches[0].trim().split(/\s+/)[1];
+                    textContent += `    ${funcName}()\n`;
+                }
+            }
+        }
+        
+        return textContent;
+    };
+
     // Override executeScript to dispatch the action
     const executeScript = () => {
         if (!scriptContent) {
@@ -237,6 +299,9 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         // Reset the Python REPL first - using direct action creator
         dispatch(resetREPLAction());
         
+        // Add a clear message to show execution is starting
+        dispatch(addOutput({ output: '=== Starting Script Execution ===' }));
+        
         // Wait for the reset to take effect
         setTimeout(() => {
             console.log("Executing script:", scriptInfo.filename);
@@ -245,7 +310,31 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             // Update execution status
             setExecutionStatus('running');
             
-            // Dispatch event to execute script in the PythonREPL panel - using direct action creator
+            // Use window.postMessage for direct inter-component communication
+            window.postMessage({
+                type: 'PYTHON_REPL_REQUEST',
+                action: 'EXECUTE_SCRIPT',
+                content: scriptContent
+            }, '*');
+            
+            // Force flush output after a delay to ensure we get results
+            setTimeout(() => {
+                window.postMessage({
+                    type: 'PYTHON_REPL_REQUEST',
+                    action: 'FLUSH_OUTPUT'
+                }, '*');
+                
+                // Check if we have output using window.pythonREPL if available
+                if (window.pythonREPL && window.pythonREPL.getLatestOutput) {
+                    const directOutput = window.pythonREPL.getLatestOutput();
+                    if (directOutput && directOutput.length > 0) {
+                        // Directly add any pending output to our local state
+                        setScriptOutput(prev => [...prev, ...directOutput]);
+                    }
+                }
+            }, 2000);
+            
+            // Also use normal Redux channels
             dispatch(executeScriptAction({
                 content: scriptContent,
                 hash: scriptInfo.hash,
@@ -270,7 +359,171 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                     filename: scriptInfo.filename
                 }
             }));
+            
+            // Add a fake "executing" message to show activity even if real output is delayed
+            dispatch(addOutput({ output: `Executing ${scriptInfo.filename || "script"}...` }));
         }, 100);
+    };
+    
+    // Create a polling mechanism to check for output
+    useEffect(() => {
+        let pollInterval;
+        
+        if (executionStatus === 'running') {
+            // Poll for output every second while running
+            pollInterval = setInterval(() => {
+                // Try to get output directly from the Python REPL
+                if (window.pythonREPL && window.pythonREPL.getLatestOutput) {
+                    const directOutput = window.pythonREPL.getLatestOutput();
+                    if (directOutput && directOutput.length > 0) {
+                        // Update our local output state
+                        setScriptOutput(prev => {
+                            // Only add new lines
+                            const newLines = directOutput.filter(line => !prev.includes(line));
+                            if (newLines.length > 0) {
+                                return [...prev, ...newLines];
+                            }
+                            return prev;
+                        });
+                    }
+                }
+                
+                // Also force flush output to Redux
+                window.postMessage({
+                    type: 'PYTHON_REPL_REQUEST',
+                    action: 'FLUSH_OUTPUT'
+                }, '*');
+            }, 1000);
+        }
+        
+        return () => {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+            }
+        };
+    }, [executionStatus]);
+
+    // Directly execute the Python script using WebSocket - paste whole script at once
+    const executeDirectly = () => {
+        // Display execution starting
+        setScriptOutput(['=== Starting Direct Execution ===']);
+        setExecutionStatus('running');
+        
+        // Get the actual text content from the UI component
+        const displayedScriptContent = document.querySelector('.pse-script-content')?.textContent || scriptContent;
+        
+        // Prepare the script content for the REPL
+        const textContent = prepareScriptForREPL(displayedScriptContent);
+        
+        console.log('Using prepared script content');
+        console.log('Script content type:', typeof textContent);
+        console.log('First 50 chars:', textContent.substring(0, 50));
+        
+        // Send the script to the REPL iframe if it's available
+        if (replFrameRef.current && replFrameRef.current.contentWindow) {
+            console.log('Sending script to REPL iframe');
+            replFrameRef.current.contentWindow.postMessage(
+                { type: 'execute-script', script: textContent },
+                '*'
+            );
+        } else {
+            console.warn('REPL iframe not available');
+        }
+        
+        try {
+            // Create a direct WebSocket connection to the Python server
+            const ws = new WebSocket('ws://localhost:3010');
+            
+            // Track all output in this array
+            const outputLines = ['=== Starting Direct Execution ==='];
+            
+            ws.onopen = () => {
+                console.log('Direct WebSocket connection established');
+                
+                // First clear any existing state by sending a blank line
+                ws.send(JSON.stringify({
+                    type: 'input',
+                    data: '\r'
+                }));
+                
+                // Execute the entire script at once by pasting it directly
+                setTimeout(() => {
+                    console.log('Sending entire script at once');
+                    
+                    // Send the entire script as one message
+                    ws.send(JSON.stringify({
+                        type: 'input',
+                        data: textContent + '\r'
+                    }));
+                    
+                    // Wait for execution to complete
+                    setTimeout(() => {
+                        ws.close();
+                        
+                        // Mark execution as complete
+                        setExecutionStatus('idle');
+                        
+                        // Add completion marker
+                        outputLines.push('=== Script Execution Complete ===');
+                        setScriptOutput([...outputLines]);
+                        
+                        // Add to execution history
+                        const executionEntry = {
+                            timestamp: new Date().toLocaleString(),
+                            hash: scriptInfo.hash,
+                            filename: scriptInfo.filename,
+                            status: 'executed directly'
+                        };
+                        
+                        setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]);
+                    }, 2000);
+                }, 500);
+            };
+            
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'output') {
+                        // Process output data
+                        console.log('Received output:', data.data);
+                        
+                        // Split by newlines and add each line
+                        const lines = data.data.split(/\r?\n/);
+                        for (const line of lines) {
+                            if (line.trim()) {
+                                outputLines.push(line);
+                            }
+                        }
+                        
+                        // Update UI with latest output
+                        setScriptOutput([...outputLines]);
+                    }
+                } catch (err) {
+                    console.error('Error processing WebSocket message:', err);
+                }
+            };
+            
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                outputLines.push(`Error: WebSocket connection failed`);
+                outputLines.push('=== Script Execution Failed ===');
+                setScriptOutput([...outputLines]);
+                setExecutionStatus('error');
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket connection closed');
+            };
+        } catch (error) {
+            console.error('Error in direct execution:', error);
+            setScriptOutput([
+                '=== Starting Direct Execution ===',
+                `Error: ${error.message}`,
+                '=== Script Execution Failed ==='
+            ]);
+            setExecutionStatus('error');
+        }
     };
 
     // Send individual line to REPL
@@ -393,6 +646,13 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                     {executionStatus === 'running' ? 'Executing...' : 'Execute Script'}
                 </button>
                 
+                <button
+                    onClick={executeDirectly}
+                    disabled={executionStatus === 'running'}
+                >
+                    Execute Locally
+                </button>
+                
                 <button 
                     className="pse-execute-selected-btn"
                     onClick={executeSelectedLine}
@@ -433,6 +693,17 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                                 ))}
                             </div>
                         )}
+                    </div>
+                    
+                    {/* Direct REPL output display */}
+                    <div className="pse-direct-repl">
+                        <h4>Direct REPL Output</h4>
+                        <iframe 
+                            src="/repl-frame.html" 
+                            className="pse-repl-frame"
+                            title="Python REPL"
+                            ref={replFrameRef}
+                        ></iframe>
                     </div>
                     
                     {waitingForInput && (

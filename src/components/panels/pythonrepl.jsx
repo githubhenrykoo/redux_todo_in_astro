@@ -14,6 +14,8 @@ const PythonREPL = ({ className = '' }) => {
   const [selectedHash, setSelectedHash] = useState('');
   const [showScriptViewer, setShowScriptViewer] = useState(false);
   const [scriptExecuting, setScriptExecuting] = useState(false);
+  const [terminalTitle, setTerminalTitle] = useState('Python REPL');
+  const [isTerminalLoading, setIsTerminalLoading] = useState(true);
   
   const consoleRef = useRef(null);
   const xtermRef = useRef(null);
@@ -113,6 +115,28 @@ const PythonREPL = ({ className = '' }) => {
         outputBufferRef.current = [];
       }
     }, 50); // Reduce batch time for more responsive updates
+  };
+
+  // Function to check if server is running via direct fetch
+  const checkServerConnection = async () => {
+    try {
+      console.log("Checking if Python server is running...");
+      const response = await fetch('http://localhost:3010/health', { 
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (response.ok) {
+        console.log("Python server is running!");
+        return true;
+      } else {
+        console.warn("Python server health check failed:", response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error("Python server is not running:", error);
+      return false;
+    }
   };
 
   // Load xterm.js dynamically on client side
@@ -440,6 +464,97 @@ const PythonREPL = ({ className = '' }) => {
       setError('Cannot restart Python: Console not connected');
     }
   };
+
+  useEffect(() => {
+    // Update the terminal title based on the selected hash
+    if (storeSelectedHash) {
+      const card = cards[storeSelectedHash];
+      const title = card?.metadata?.filename || card?.hash?.substring(0, 8);
+      setTerminalTitle(title ? `Python: ${title}` : 'Python REPL');
+    } else {
+      setTerminalTitle('Python REPL');
+    }
+
+    // Start Python REPL automatically when component loads
+    const autoStartREPL = () => {
+      console.log("Auto-starting Python REPL");
+      if (!isConnected && !isTerminalLoading) {
+        startPythonREPL();
+      }
+    };
+    
+    // Add a short delay to let terminal finish loading
+    if (xtermLoaded && !isPythonMode) {
+      setTimeout(autoStartREPL, 1000);
+    }
+  }, [storeSelectedHash, xtermLoaded, isPythonMode]);
+
+  // Function to get a direct copy of the latest REPL output
+  const getLatestOutput = () => {
+    return outputBufferRef.current.concat();
+  };
+
+  // Expose getLatestOutput method on window for direct panel communication
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.pythonREPL = window.pythonREPL || {};
+      window.pythonREPL.getLatestOutput = getLatestOutput;
+      window.pythonREPL.sendCommand = (command) => {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify({
+            type: 'input',
+            data: command + '\r'
+          }));
+          return true;
+        }
+        return false;
+      };
+      
+      // Force flush all output to Redux store every second
+      const intervalId = setInterval(() => {
+        if (outputBufferRef.current.length > 0 && dispatch) {
+          outputBufferRef.current.forEach(line => {
+            dispatch(addOutput({ output: line }));
+          });
+          outputBufferRef.current = [];
+        }
+      }, 1000);
+      
+      return () => {
+        clearInterval(intervalId);
+        delete window.pythonREPL;
+      };
+    }
+  }, [dispatch]);
+
+  // Helper to flush output immediately
+  const flushOutput = () => {
+    if (outputBufferRef.current.length > 0 && dispatch) {
+      outputBufferRef.current.forEach(line => {
+        dispatch(addOutput({ output: line }));
+      });
+      outputBufferRef.current = [];
+    }
+  };
+
+  // Add window message support for inter-component communication
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data?.type === 'PYTHON_REPL_REQUEST') {
+        if (event.data.action === 'FLUSH_OUTPUT') {
+          flushOutput();
+        } else if (event.data.action === 'EXECUTE_SCRIPT') {
+          const content = event.data.content;
+          if (content) {
+            executeScript(content);
+          }
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   // Render a fallback UI while xterm is loading
   if (!xtermLoaded) {

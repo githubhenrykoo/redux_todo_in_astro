@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
 A simple Hello World script for testing the Python script execution panel.
+No input required - runs automatically.
 """
 
 def main():
     """Print a friendly greeting to the world."""
     print("Hello, World!")
     
-    # Add some interactive elements to test input handling
-    name = input("What's your name? ")
+    # Using a predefined name instead of input
+    name = "Python User"
     print(f"Nice to meet you, {name}!")
     
     # Add some formatting to test terminal output

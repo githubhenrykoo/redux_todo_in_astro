@@ -405,6 +405,29 @@
 .python-number { color: #b5cea8; }
 .python-operator { color: #d4d4d4; }
 
+/* Direct REPL display */
+.pse-direct-repl {
+  margin-top: 20px;
+  border-top: 1px solid #ddd;
+  padding-top: 10px;
+}
+
+.pse-direct-repl h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+  font-size: 16px;
+}
+
+.pse-repl-frame {
+  width: 100%;
+  height: 300px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #282c34;
+  margin-bottom: 15px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .pse-meta {
@@ -435,5 +458,9 @@
   
   .pse-output-container {
     max-height: 60%;
+  }
+  
+  .pse-repl-frame {
+    height: 200px;
   }
 }

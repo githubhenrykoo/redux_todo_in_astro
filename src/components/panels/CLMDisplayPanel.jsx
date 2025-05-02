@@ -273,6 +273,100 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
         return String(content);
     };
     
+    // Helper function to detect and format file references
+    const formatLinkedFiles = (content) => {
+        if (!content) return null;
+        
+        // If content is a string but contains linkedFiles marker
+        if (typeof content === 'string' && content.includes('linkedFiles:')) {
+            const parts = content.split('linkedFiles:');
+            return (
+                <div>
+                    <div>{parts[0]}</div>
+                    <div className="linked-files-section">
+                        <h4>Linked Files</h4>
+                        <div className="linked-files-list">
+                            {parts[1].trim().split('\n').map((fileHash, idx) => (
+                                <div key={idx} className="linked-file-item">
+                                    <span className="file-hash">{fileHash.trim()}</span>
+                                    <button 
+                                        className="view-file-btn"
+                                        onClick={() => {
+                                            // Dispatch to view this file
+                                            dispatch({
+                                                type: 'content/setSelectedHash',
+                                                payload: fileHash.trim()
+                                            });
+                                        }}
+                                    >
+                                        View
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        // If content is an object with linkedFiles property
+        if (typeof content === 'object' && content.linkedFiles) {
+            const { linkedFiles, ...restContent } = content;
+            const mainContent = Object.keys(restContent).length > 0 
+                ? formatContent(restContent) 
+                : '';
+                
+            return (
+                <div>
+                    <div>{mainContent}</div>
+                    <div className="linked-files-section">
+                        <h4>Linked Files</h4>
+                        <div className="linked-files-list">
+                            {Array.isArray(linkedFiles) 
+                                ? linkedFiles.map((fileHash, idx) => (
+                                    <div key={idx} className="linked-file-item">
+                                        <span className="file-hash">{fileHash}</span>
+                                        <button 
+                                            className="view-file-btn"
+                                            onClick={() => {
+                                                // Dispatch to view this file
+                                                dispatch({
+                                                    type: 'content/setSelectedHash',
+                                                    payload: fileHash
+                                                });
+                                            }}
+                                        >
+                                            View
+                                        </button>
+                                    </div>
+                                ))
+                                : (
+                                    <div className="linked-file-item">
+                                        <span className="file-hash">{linkedFiles}</span>
+                                        <button 
+                                            className="view-file-btn"
+                                            onClick={() => {
+                                                // Dispatch to view this file
+                                                dispatch({
+                                                    type: 'content/setSelectedHash',
+                                                    payload: linkedFiles
+                                                });
+                                            }}
+                                        >
+                                            View
+                                        </button>
+                                    </div>
+                                )
+                            }
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        return formatContent(content);
+    };
+    
     // Extract content from dimensions for display
     const abstractSpec = dimensions.abstractSpecification || {};
     const context = abstractSpec.context;
@@ -352,13 +446,13 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                     </tr>
                     <tr>
                         <td colSpan={2} style={{ wordWrap: 'break-word' }}>
-                            {formatContent(inputs) || 'No inputs available'}
+                            {formatLinkedFiles(inputs) || 'No inputs available'}
                         </td>
                         <td colSpan={2} style={{ wordWrap: 'break-word' }}>
-                            {formatContent(activities) || 'No activities available'}
+                            {formatLinkedFiles(activities) || 'No activities available'}
                         </td>
                         <td colSpan={2} style={{ wordWrap: 'break-word' }}>
-                            {formatContent(outputs) || 'No outputs available'}
+                            {formatLinkedFiles(outputs) || 'No outputs available'}
                         </td>
                     </tr>
                 </tbody>

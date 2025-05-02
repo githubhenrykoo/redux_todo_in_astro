@@ -39,8 +39,9 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
             const uploadPromises = Array.from(files).map(async (file) => {
                 // Create a FormData object to send the file
                 const formData = new FormData();
+                // Add action FIRST - this may help ensure it's properly parsed
+                formData.append('action', 'add');
                 formData.append('file', file);
-                formData.append('action', 'add'); // Add the required action parameter
                 
                 // Add metadata as JSON
                 const metadata = {
@@ -48,13 +49,22 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
                     contentType: file.type || 'application/octet-stream',
                     size: file.size,
                     type: 'concrete_implementation',  // Mark this as the actual implementation, not just a reference
-                    dimensionType: 'concreteImplementation'
+                    dimensionType: 'concreteImplementation',
+                    action: 'add' // Include action in metadata as well for redundancy
                 };
                 formData.append('metadata', JSON.stringify(metadata));
                 
+                // Try a URL-encoded approach with query parameters as a more reliable method
+                const url = new URL('/api/card-collection', window.location.origin);
+                url.searchParams.append('action', 'add');
+                
                 // Upload the file to card-collection API
-                const response = await fetch('/api/card-collection', {
+                const response = await fetch(url.toString(), {
                     method: 'POST',
+                    headers: {
+                        // Add a custom header to ensure the action is properly received
+                        'X-Action': 'add'
+                    },
                     body: formData
                 });
                 

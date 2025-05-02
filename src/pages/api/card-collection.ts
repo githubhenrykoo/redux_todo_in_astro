@@ -45,6 +45,21 @@ export function processCardContent(content: any, contentType: string | null): an
             detectionMethod: 'direct-text-match'
           };
         }
+        
+        // Python detection - check for Python patterns
+        if (decodedText.includes('#!/usr/bin/env python') ||
+            decodedText.includes('#!/usr/bin/python') ||
+            decodedText.includes('# -*- coding:') ||
+            decodedText.match(/import\s+[a-zA-Z0-9_]+/) ||
+            (decodedText.includes('def ') && decodedText.includes(':') && decodedText.includes('return'))) {
+          console.log("Python script pattern match found");
+          return {
+            type: 'string',
+            data: decodedText,
+            originalType: 'text/x-python-script',
+            detectionMethod: 'python-pattern-match'
+          };
+        }
       } catch (e) {
         console.log("Error during text pre-detection:", e);
       }
@@ -262,6 +277,50 @@ export const GET: APIRoute = async ({ request }) => {
           console.log('Detected content type:', contentTypeInfo);
         }
         
+        // Special detection for Python files which might be misidentified as octet-stream
+        if (contentTypeInfo && 
+            (contentTypeInfo.mimeType === 'application/octet-stream' || !contentTypeInfo.isValid)) {
+          
+          console.log('Re-analyzing possible Python file...');
+          
+          // Convert Buffer to string for text analysis
+          try {
+            let textContent = '';
+            
+            // Handle Buffer JSON format
+            if (typeof card.content === 'object' && 
+                card.content !== null && 
+                card.content.type === 'Buffer' && 
+                Array.isArray(card.content.data)) {
+              const array = new Uint8Array(card.content.data);
+              textContent = new TextDecoder().decode(array);
+            } 
+            // Handle Buffer object
+            else if (Buffer.isBuffer(card.content)) {
+              textContent = card.content.toString('utf8');
+            }
+            
+            // Check for Python patterns in the content
+            if (textContent && 
+                (textContent.includes('#!/usr/bin/env python') ||
+                textContent.includes('#!/usr/bin/python') ||
+                textContent.includes('# -*- coding:') ||
+                textContent.match(/import\s+[a-zA-Z0-9_]+/) ||
+                textContent.includes('def ') && textContent.includes(':') && textContent.includes('return'))) {
+              
+              console.log('Python file detected based on content patterns!');
+              contentTypeInfo = {
+                mimeType: 'text/x-python-script',
+                extension: 'py',
+                isValid: true,
+                detectionMethod: 'direct-pattern-match'
+              };
+            }
+          } catch (e) {
+            console.error('Error during Python detection:', e);
+          }
+        }
+        
         // Handle raw response for PDF and binary files (for direct viewing/downloading)
         if (rawResponse) {
           console.log(`Serving raw content for ${hash}, content type:`, contentTypeInfo?.mimeType);
@@ -331,6 +390,9 @@ export const GET: APIRoute = async ({ request }) => {
         const pageNumber = parseInt(url.searchParams.get('pageNumber') || '1');
         const pageSize = parseInt(url.searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE));
         
+        // Add detailed logging for debugging
+        console.log(`getPage request with pageNumber=${pageNumber}, pageSize=${pageSize}`);
+        
         // Validate pagination parameters
         if (pageNumber < 1) {
           return new Response(
@@ -355,7 +417,15 @@ export const GET: APIRoute = async ({ request }) => {
         }
         
         try {
+          console.log('About to call cardCollection.get_page with params:', pageNumber, pageSize);
+          
+          // Let's check if the cardCollection is properly initialized
+          if (!cardCollection) {
+            throw new Error('Card collection not properly initialized');
+          }
+          
           const result = cardCollection.get_page(pageNumber, pageSize);
+          console.log('get_page result:', result);
           
           return new Response(
             JSON.stringify({
@@ -368,10 +438,14 @@ export const GET: APIRoute = async ({ request }) => {
         } catch (error) {
           // This catches cases where page number is beyond total pages
           const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('Error in get_page:', errorMessage);
+          
+          // Include the full error details for debugging
           return new Response(
             JSON.stringify({
               success: false,
               error: errorMessage,
+              details: error instanceof Error ? error.stack : 'No stack trace available',
               timestamp: new Date().toISOString()
             }),
             { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -449,13 +523,29 @@ export const POST: APIRoute = async ({ request }) => {
     let action;
     let cardData;
     
+    // First try to get action from URL query params for highest reliability
+    const url = new URL(request.url);
+    action = url.searchParams.get('action');
+    console.log(`Checking action from URL parameters: ${action}`);
+    
     // Check content type to determine how to process the request
     const contentType = request.headers.get('Content-Type') || '';
     
     if (contentType.includes('multipart/form-data')) {
       // Handle FormData for binary uploads
       const formData = await request.formData();
-      action = formData.get('action')?.toString();
+      
+      // If no action from URL, try FormData
+      if (!action) {
+        action = formData.get('action')?.toString();
+        console.log(`URL action not found, using FormData action: ${action}`);
+      }
+      
+      // Fallback to X-Action header if action is not in FormData or URL
+      if (!action) {
+        action = request.headers.get('X-Action') || null;
+        console.log(`FormData action not found, using X-Action header: ${action}`);
+      }
       
       if (action === 'add') {
         const file = formData.get('file');
@@ -483,17 +573,35 @@ export const POST: APIRoute = async ({ request }) => {
           );
         }
         
-        const metadata = JSON.parse(metadataStr);
-        const { fileName, mimeType, size } = metadata;
-        
-        // Convert file to ArrayBuffer
-        const arrayBuffer = await file.arrayBuffer();
-        
-        // Create the content object - use SafeBuffer for binary data to ensure compatibility
-        cardData = {
-          content: SafeBuffer.from(new Uint8Array(arrayBuffer)), // Convert ArrayBuffer to SafeBuffer for proper binary handling
-          hash_algorithm: 'sha256'
-        };
+        try {
+          const metadata = JSON.parse(metadataStr);
+          
+          // Final fallback: check for action in metadata
+          if (!action && metadata.action) {
+            action = metadata.action;
+            console.log(`Using action from metadata: ${action}`);
+          }
+          
+          const { fileName, mimeType, size } = metadata;
+          
+          // Convert file to ArrayBuffer
+          const arrayBuffer = await file.arrayBuffer();
+          
+          // Create the content object - use SafeBuffer for binary data to ensure compatibility
+          cardData = {
+            content: SafeBuffer.from(new Uint8Array(arrayBuffer)), // Convert ArrayBuffer to SafeBuffer for proper binary handling
+            hash_algorithm: 'sha256'
+          };
+        } catch (e) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: 'Invalid metadata JSON',
+              timestamp: new Date().toISOString()
+            }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
       }
     } else {
       // Handle JSON data

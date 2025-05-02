@@ -187,6 +187,58 @@ const DetailView = ({
     return getFormattedContentType(selectedItem.contentType.mimeType);
   };
 
+  // Format content for display
+  const getFormattedContent = (content, contentType) => {
+    // Check if content is a buffer represented as JSON
+    if (content && typeof content === 'object' && content.type === 'Buffer' && Array.isArray(content.data)) {
+      // For Python files, convert to text
+      if (contentType && 
+          (contentType.mimeType === 'text/x-python-script' || 
+           contentType.mimeType === 'text/x-python' ||
+           (contentType.extension === 'py'))) {
+        try {
+          // Convert buffer data to text
+          const array = new Uint8Array(content.data);
+          return new TextDecoder().decode(array);
+        } catch (e) {
+          console.error('Error decoding Python file content:', e);
+        }
+      }
+
+      // For image types, return the content as is
+      if (contentType && contentType.mimeType && contentType.mimeType.startsWith('image/')) {
+        return content;
+      }
+
+      // For text files that might be incorrectly stored as buffers
+      if (contentType && 
+          (contentType.mimeType?.startsWith('text/') || 
+           contentType.mimeType === 'application/json')) {
+        try {
+          const array = new Uint8Array(content.data);
+          return new TextDecoder().decode(array);
+        } catch (e) {
+          console.error('Error decoding text content:', e);
+        }
+      }
+    }
+
+    // If content is a string, try to parse it if it looks like JSON
+    if (typeof content === 'string' && 
+        (content.startsWith('{') || content.startsWith('[')) && 
+        contentType?.mimeType === 'application/json') {
+      try {
+        return JSON.stringify(JSON.parse(content), null, 2);
+      } catch (e) {
+        // If parsing fails, just return the original string
+        return content;
+      }
+    }
+
+    // Return as is for all other cases
+    return content;
+  };
+
   // Render item details section
   const renderItemDetails = () => {
     return (
@@ -516,6 +568,7 @@ const DetailView = ({
       );
     } else {
       // Default text display
+      const content = getFormattedContent(selectedItem.content, contentType);
       return (
         <ContentWrapper className="text-wrapper">
           <div className="content-controls">
@@ -530,9 +583,7 @@ const DetailView = ({
               </label>
             </div>
             <pre className={`content-text ${!wordWrap ? 'wrap-text' : 'nowrap-text'}`}>
-              {typeof selectedItem.content === 'string' 
-                ? selectedItem.content 
-                : JSON.stringify(selectedItem.content, null, 2)}
+              {content}
             </pre>
           </div>
         </ContentWrapper>

@@ -343,60 +343,91 @@ class SQLiteEngine {
    * @returns {Page} Page of cards
    */
   get_page(page_number = 1, page_size = DEFAULT_PAGE_SIZE) {
-    if (page_number < 1 || page_size < 1) {
-      throw new Error('Page number and size must be >= 1');
-    }
+    try {
+      console.log(`SQLiteEngine.get_page called with page_number=${page_number}, page_size=${page_size}`);
+      
+      if (page_number < 1 || page_size < 1) {
+        throw new Error('Page number and size must be >= 1');
+      }
 
-    const offset = (page_number - 1) * page_size;
+      // Ensure we have a valid connection
+      if (!this.connection || !this.connection.conn) {
+        console.error('No valid database connection!');
+        throw new Error('Database connection not established');
+      }
 
-    // Get total count of items
-    const countStmt = this.connection.conn.prepare(
-      'SELECT COUNT(*) as total FROM card'
-    );
-    const { total } = countStmt.get();
+      const offset = (page_number - 1) * page_size;
 
-    // Get page of items
-    const stmt = this.connection.conn.prepare(`
-      SELECT content, g_time, hash 
-      FROM card 
-      ORDER BY g_time DESC 
-      LIMIT ? OFFSET ?
-    `);
-    
-    const rows = stmt.all(page_size, offset);
-
-    // Convert rows to cards
-    const items = [];
-    for (const row of rows) {
-        const [content, g_time, hash] = [row.content, row.g_time, row.hash];
-        
-        // Parse content if it's a JSON string
-        let parsedContent = content;
-        if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('['))) {
-          try {
-            parsedContent = JSON.parse(content);
-          } catch (e) {
-            console.warn('Failed to parse JSON content for hash:', hash);
-          }
+      // Get total count of items
+      const countStmt = this.connection.conn.prepare(
+        'SELECT COUNT(*) as total FROM card'
+      );
+      const { total } = countStmt.get();
+      console.log('Total cards:', total);
+      
+      // If the page number is beyond available pages and there are items,
+      // return the last available page instead of throwing an error
+      if (total > 0) {
+        const total_pages = Math.ceil(total / page_size);
+        if (page_number > total_pages) {
+          console.log(`Requested page ${page_number} is beyond total pages ${total_pages}, adjusting to last page`);
+          page_number = total_pages;
         }
-        
-        // Create card with properly parsed content
-        const card = new MCardFromData(parsedContent, hash, g_time);
-        items.push(card);
+      }
+
+      // Get page of items
+      const stmt = this.connection.conn.prepare(`
+        SELECT content, g_time, hash 
+        FROM card 
+        ORDER BY g_time DESC 
+        LIMIT ? OFFSET ?
+      `);
+      
+      const rows = stmt.all(page_size, offset);
+      console.log('Rows found:', rows.length);
+
+      // Convert rows to cards
+      const items = [];
+      for (const row of rows) {
+          try {
+            const { content, g_time, hash } = row;
+            
+            // Parse content if it's a JSON string
+            let parsedContent = content;
+            if (typeof content === 'string' && (content.startsWith('{') || content.startsWith('['))) {
+              try {
+                parsedContent = JSON.parse(content);
+              } catch (e) {
+                console.warn('Failed to parse JSON content for hash:', hash);
+              }
+            }
+            
+            // Create card with properly parsed content
+            const card = new MCardFromData(parsedContent, hash, g_time);
+            items.push(card);
+          } catch (error) {
+            console.error('Error processing row:', error, row);
+            // Continue with other rows rather than failing completely
+          }
+      }
+
+      // Calculate total pages
+      const total_pages = Math.ceil(total / page_size);
+
+      return new Page({
+        items,
+        total_items: total,
+        page_number,
+        page_size,
+        has_next: offset + page_size < total,
+        has_previous: page_number > 1,
+        total_pages
+      });
+    } catch (error) {
+      console.error('Error in SQLiteEngine.get_page:', error);
+      // Re-throw with more context
+      throw new Error(`Database error in get_page: ${error.message}`);
     }
-
-    // Calculate total pages
-    const total_pages = Math.ceil(total / page_size);
-
-    return new Page({
-      items,
-      total_items: total,
-      page_number,
-      page_size,
-      has_next: offset + page_size < total,
-      has_previous: page_number > 1,
-      total_pages
-    });
   }
 
   /**

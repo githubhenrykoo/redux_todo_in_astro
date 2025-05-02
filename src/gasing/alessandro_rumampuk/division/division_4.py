@@ -62,6 +62,6 @@ ps = pstats.Stats(profiler, stream=s).sort_stats('cumtime')
 ps.print_stats()
 print(s.getvalue())
 
-output_file = "/Users/alessandrorumampuk/Documents/GitHub/redux_todo_in_astro/src/gasing/alessandro_rumampuk/division/profile_output_division_4.prof"
+output_file = "src/gasing/alessandro_rumampuk/division/profile_output_division_4.prof"
 profiler.dump_stats(output_file)
 print(f"\nProfile data saved to {output_file}")

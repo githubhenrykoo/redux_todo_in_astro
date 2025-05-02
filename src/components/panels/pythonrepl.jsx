@@ -556,6 +556,67 @@ const PythonREPL = ({ className = '' }) => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  // Add a listener for dispatched events from the Script Execution Panel
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data && event.data.type === 'pythonrepl/executeScript') {
+        console.log('REPL received script execution request:', event.data);
+        // Get the script content from the event
+        const { content, filename } = event.data.payload;
+        
+        if (content && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          console.log(`Executing script: ${filename}`);
+          
+          // Clear any previous output
+          if (xtermRef.current) {
+            xtermRef.current.writeln('\x1b[33m--- Executing script: ' + filename + ' ---\x1b[0m');
+          }
+          
+          // Execute the script directly
+          socketRef.current.send(JSON.stringify({
+            type: 'input',
+            data: content + '\n'
+          }));
+        }
+      }
+    };
+    
+    // Add window event listener for message events
+    window.addEventListener('message', handleMessage);
+    
+    // Also listen for Redux actions (direct dispatch events)
+    const handleReduxAction = () => {
+      console.log('Checking Redux action:', window.lastReduxAction);
+      if (window.lastReduxAction && window.lastReduxAction.type === 'pythonrepl/executeScript') {
+        console.log('Handling Redux action:', window.lastReduxAction);
+        const { content, filename } = window.lastReduxAction.payload;
+        
+        if (content && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          console.log(`Executing script from Redux action: ${filename}`);
+          
+          // Clear any previous output
+          if (xtermRef.current) {
+            xtermRef.current.writeln('\x1b[33m--- Executing script: ' + filename + ' ---\x1b[0m');
+          }
+          
+          // Execute the script directly
+          socketRef.current.send(JSON.stringify({
+            type: 'input',
+            data: content + '\n'
+          }));
+        }
+      }
+    };
+    
+    // Check for Redux actions every 500ms
+    const checkInterval = setInterval(handleReduxAction, 500);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearInterval(checkInterval);
+    };
+  }, []);
+
   // Render a fallback UI while xterm is loading
   if (!xtermLoaded) {
     return (

@@ -1,108 +1,26 @@
-import React, { useRef, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import '../../styles/python-script-execution.css';
 
-// Import custom hooks
-import { usePythonScript } from '../../hooks/usePythonScript';
-import { usePythonExecution } from '../../hooks/usePythonExecution';
-
-// Import components
-import ScriptHeader from '../python/ScriptHeader';
-import ExecutionControls from '../python/ExecutionControls';
-import ScriptContent from '../python/ScriptContent';
-import ExecutionOutput from '../python/ExecutionOutput';
-import DirectREPLFrame from '../python/DirectREPLFrame';
-import ExecutionHistory from '../python/ExecutionHistory';
-import DocumentationTips from '../python/DocumentationTips';
-
-/**
- * Python Script Execution Panel - displays and executes Python scripts
- */
 const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
-    // References
-    const inputRef = useRef(null);
-    const outputRef = useRef(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [scriptContent, setScriptContent] = useState('');
+    const [scriptInfo, setScriptInfo] = useState({
+        contentType: null,
+        filename: 'No file selected',
+        hash: '',
+        timestamp: ''
+    });
+    const [executionStatus, setExecutionStatus] = useState('idle'); // idle, running, success, error
+    const [executionHistory, setExecutionHistory] = useState([]);
     
-    // Use custom hooks
-    const { 
-        loading, 
-        error, 
-        scriptContent, 
-        scriptInfo, 
-        scriptFile,
-        setError
-    } = usePythonScript(initialHash);
+    const dispatch = useDispatch();
     
-    const {
-        scriptOutput,
-        waitingForInput,
-        userInput,
-        executionStatus,
-        executionHistory,
-        setScriptOutput,
-        setWaitingForInput,
-        setUserInput,
-        setExecutionStatus,
-        executeDirectly,
-        executeScript,
-        executeSelectedLine,
-        resetREPL,
-        clearREPL,
-        handleInputSubmit
-    } = usePythonExecution(scriptContent, scriptInfo);
+    // Use Redux selectors to get the selected hash and cards
+    const selectedHash = useSelector(state => state?.content?.selectedHash || initialHash);
+    const cards = useSelector(state => state?.content?.cards || {});
     
-    // Get REPL output and status from Redux
-    const replOutput = useSelector(state => state?.pythonrepl?.output || []);
-    const replStatus = useSelector(state => state?.pythonrepl?.status || 'idle');
-    
-    // Subscribe to REPL output changes
-    useEffect(() => {
-        // Debug the output changes
-        console.log("REPL Output Changed:", replOutput);
-        
-        if (replOutput && replOutput.length > 0) {
-            // Force update the script output with the latest from Redux
-            setScriptOutput([...replOutput]);
-            
-            // Auto-scroll to the bottom of output
-            if (outputRef.current) {
-                outputRef.current.scrollTop = outputRef.current.scrollHeight;
-            }
-            
-            // Check if waiting for input
-            const lastLine = replOutput[replOutput.length - 1];
-            if (typeof lastLine === 'string' && 
-                (lastLine.includes('input(') || lastLine.endsWith(': '))) {
-                setWaitingForInput(true);
-                // Focus the input field
-                if (inputRef.current) {
-                    inputRef.current.focus();
-                }
-            }
-        }
-    }, [replOutput, setScriptOutput, setWaitingForInput]);
-    
-    // Subscribe to REPL status changes
-    useEffect(() => {
-        console.log("REPL Status Changed:", replStatus);
-        setExecutionStatus(replStatus);
-        
-        if (replStatus === 'waiting-for-input') {
-            setWaitingForInput(true);
-            // Focus the input field
-            if (inputRef.current) {
-                setTimeout(() => {
-                    if (inputRef.current) {
-                        inputRef.current.focus();
-                    }
-                }, 100);
-            }
-        } else if (replStatus === 'idle' && executionStatus === 'running') {
-            // Script finished executing
-            setWaitingForInput(false);
-        }
-    }, [replStatus]);
-
     // Get the currently selected script file from Redux store
     const scriptFile = useMemo(() => {
         return selectedHash ? cards[selectedHash] : null;
@@ -120,9 +38,6 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     // Reset script state
     const resetScript = () => {
         setScriptContent('');
-        setScriptOutput([]);
-        setWaitingForInput(false);
-        setUserInput('');
         setScriptInfo({
             contentType: null,
             filename: 'No file selected',
@@ -145,30 +60,12 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             }
             
             console.log('File object:', file);
+            console.log('File name:', file.name || file.filename);
+            console.log('File type:', file.type || file.contentType?.mimeType);
+            console.log('File hash:', file.hash);
             
-            // Check if file is a Python script based on content type
-            const isPythonScript = file.contentType && 
-                (file.contentType.mimeType === 'text/x-python-script' || 
-                 file.contentType.mimeType === 'text/x-python' ||
-                 file.contentType.extension === 'py' ||
-                 (file.contentType.extension && file.contentType.extension.toLowerCase() === 'py') ||
-                 (file.name && file.name.toLowerCase().endsWith('.py')));
-            
-            console.log('File content type:', file.contentType);
-            console.log('Is Python script?', isPythonScript);
-            
-            if (!isPythonScript) {
-                // Let's be more lenient - try to check if content looks like Python
-                if (typeof file.content === 'string' && 
-                    (file.content.includes('def ') || 
-                     file.content.includes('import ') || 
-                     file.content.includes('print(') || 
-                     file.content.includes('class '))) {
-                    console.log('Content appears to be Python based on keywords');
-                } else {
-                    throw new Error("Selected file is not a Python script");
-                }
-            }
+            // Always try to load the content regardless of file type
+            // We'll be very lenient about what we consider a Python script
             
             // Extract content from file
             let content = '';
@@ -180,14 +77,18 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                     ? file.content 
                     : new Uint8Array(file.content.data);
                 content = new TextDecoder().decode(buffer);
+                console.log('Decoded from buffer, first 50 chars:', content.substring(0, 50));
             } else if (typeof file.content === 'string') {
                 content = file.content;
+                console.log('Content is string, first 50 chars:', content.substring(0, 50));
             } else {
                 // Try to convert other formats to string
                 try {
                     content = JSON.stringify(file.content, null, 2);
+                    console.log('Converted from JSON, first 50 chars:', content.substring(0, 50));
                 } catch (e) {
                     content = String(file.content);
+                    console.log('Converted with String(), first 50 chars:', content.substring(0, 50));
                 }
             }
             
@@ -196,7 +97,27 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                            .replace(/class="py-\w+"/g, '')
                            .replace(/<\/?[^>]+(>|$)/g, '');
                            
-            console.log('Cleaned content:', content.substring(0, 100) + '...');
+            console.log('Cleaned content (first 100 chars):', content.substring(0, 100));
+            
+            // Check if content looks like Python after cleaning
+            const looksLikePython = 
+                content.includes('def ') || 
+                content.includes('import ') || 
+                content.includes('print(') || 
+                content.includes('class ') ||
+                content.includes('#!') ||
+                content.includes('"""') ||
+                content.includes("'''") ||
+                content.includes('if __name__') ||
+                /^\s*#.*/.test(content) || // Has Python-style comments
+                /for\s+\w+\s+in\s+/.test(content); // Has for loops
+                
+            console.log('Content looks like Python?', looksLikePython);
+            
+            if (!looksLikePython) {
+                console.warn('Content does not look like Python, treating as generic text.');
+                // But we'll still show it anyway
+            }
             
             // Update script content and info
             setScriptContent(content);
@@ -245,184 +166,103 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         return 'script.py';
     };
     
-    // Helper to ensure content is text, not binary
-    const ensureTextContent = (content) => {
-        // If content is already a string, return it
-        if (typeof content === 'string') {
-            return content;
-        }
-        
-        // Check if content is a Buffer or ArrayBuffer
-        if (content instanceof ArrayBuffer || 
-            (typeof Buffer !== 'undefined' && content instanceof Buffer) ||
-            (content && typeof content === 'object' && content.buffer instanceof ArrayBuffer)) {
-            // Convert to string using UTF-8 encoding
-            try {
-                if (typeof Buffer !== 'undefined') {
-                    return Buffer.from(content).toString('utf-8');
-                } else {
-                    return new TextDecoder('utf-8').decode(content);
-                }
-            } catch (e) {
-                console.error('Error converting binary content to text:', e);
-                return String(content);
-            }
-        }
-        
-        // Fallback - try to convert to string
-        return String(content);
-    };
-    
-    // Helper to prepare script content for REPL execution
-    const prepareScriptForREPL = (content) => {
-        // Ensure content is text
-        let textContent = ensureTextContent(content);
-        
-        // Remove shebang line if present
-        textContent = textContent.replace(/^#!.*?\n/, '');
-        
-        // Handle potential script structure issues
-        // If there are function definitions or imports, wrap execution in if __name__ block
-        if (!textContent.includes('if __name__ == "__main__"') && 
-            !textContent.includes("if __name__ == '__main__'")) {
-            
-            // Look for function definitions or imports at top level
-            const hasTopLevelDefs = /^\s*(def|class|import|from)\s+/m.test(textContent);
-            
-            if (hasTopLevelDefs) {
-                // Add explicit execution if there are top-level defs but no __main__ block
-                textContent += '\n\n# Auto-added by execution panel\nif __name__ == "__main__":\n';
-                
-                // Find all top-level function definitions
-                const funcMatches = textContent.match(/^\s*def\s+(\w+)/mg);
-                if (funcMatches && funcMatches.length > 0) {
-                    // Call the first defined function (often 'main')
-                    const funcName = funcMatches[0].trim().split(/\s+/)[1];
-                    textContent += `    ${funcName}()\n`;
-                }
-            }
-        }
-        
-        return textContent;
-    };
-
-    // Override executeScript to dispatch the action
+    // Execute script in the REPL
     const executeScript = () => {
         if (!scriptContent) {
             setError("No script content to execute");
             return;
         }
         
-        // Clear previous output
-        setScriptOutput([]);
+        // Update execution status
+        setExecutionStatus('running');
         
-        // Reset the Python REPL first - using direct action creator
-        dispatch(resetREPLAction());
+        // Use multiple communication methods to ensure the message gets through
         
-        // Add a clear message to show execution is starting
-        dispatch(addOutput({ output: '=== Starting Script Execution ===' }));
-        
-        // Wait for the reset to take effect
-        setTimeout(() => {
-            console.log("Executing script:", scriptInfo.filename);
-            setWaitingForInput(false);
-            
-            // Update execution status
-            setExecutionStatus('running');
-            
-            // Use window.postMessage for direct inter-component communication
-            window.postMessage({
-                type: 'PYTHON_REPL_REQUEST',
-                action: 'EXECUTE_SCRIPT',
-                content: scriptContent
-            }, '*');
-            
-            // Force flush output after a delay to ensure we get results
-            setTimeout(() => {
-                window.postMessage({
-                    type: 'PYTHON_REPL_REQUEST',
-                    action: 'FLUSH_OUTPUT'
-                }, '*');
-                
-                // Check if we have output using window.pythonREPL if available
-                if (window.pythonREPL && window.pythonREPL.getLatestOutput) {
-                    const directOutput = window.pythonREPL.getLatestOutput();
-                    if (directOutput && directOutput.length > 0) {
-                        // Directly add any pending output to our local state
-                        setScriptOutput(prev => [...prev, ...directOutput]);
-                    }
-                }
-            }, 2000);
-            
-            // Also use normal Redux channels
-            dispatch(executeScriptAction({
+        // 1. Dispatch to Redux
+        dispatch({
+            type: 'pythonrepl/executeScript',
+            payload: {
                 content: scriptContent,
                 hash: scriptInfo.hash,
                 filename: scriptInfo.filename
-            }));
-            
-            // Add to execution history
-            const executionEntry = {
-                timestamp: new Date().toLocaleString(),
+            }
+        });
+        
+        // 2. Direct window messaging
+        window.postMessage({
+            type: 'pythonrepl/executeScript',
+            payload: {
+                content: scriptContent,
                 hash: scriptInfo.hash,
-                filename: scriptInfo.filename,
-                status: 'executed'
-            };
-            
-            setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
-            
-            // Also add to Redux history
-            dispatch(addToHistoryAction({
-                status: 'executed',
-                details: {
-                    timestamp: new Date().toISOString(),
-                    filename: scriptInfo.filename
-                }
-            }));
-            
-            // Add a fake "executing" message to show activity even if real output is delayed
-            dispatch(addOutput({ output: `Executing ${scriptInfo.filename || "script"}...` }));
-        }, 100);
-    };
-    
-    // Create a polling mechanism to check for output
-    useEffect(() => {
-        let pollInterval;
+                filename: scriptInfo.filename
+            }
+        }, '*');
         
-        if (executionStatus === 'running') {
-            // Poll for output every second while running
-            pollInterval = setInterval(() => {
-                // Try to get output directly from the Python REPL
-                if (window.pythonREPL && window.pythonREPL.getLatestOutput) {
-                    const directOutput = window.pythonREPL.getLatestOutput();
-                    if (directOutput && directOutput.length > 0) {
-                        // Update our local output state
-                        setScriptOutput(prev => {
-                            // Only add new lines
-                            const newLines = directOutput.filter(line => !prev.includes(line));
-                            if (newLines.length > 0) {
-                                return [...prev, ...newLines];
-                            }
-                            return prev;
-                        });
-                    }
-                }
-                
-                // Also force flush output to Redux
-                window.postMessage({
-                    type: 'PYTHON_REPL_REQUEST',
-                    action: 'FLUSH_OUTPUT'
-                }, '*');
-            }, 1000);
-        }
-        
-        return () => {
-            if (pollInterval) {
-                clearInterval(pollInterval);
+        // 3. Store the action in a global variable for polling
+        window.lastReduxAction = {
+            type: 'pythonrepl/executeScript',
+            payload: {
+                content: scriptContent,
+                hash: scriptInfo.hash,
+                filename: scriptInfo.filename
             }
         };
-    }, [executionStatus, setScriptOutput]);
-
+        
+        console.log('Script execution requested:', scriptInfo.filename);
+        console.log('Script first 50 chars:', scriptContent.substring(0, 50));
+        
+        // Add to execution history
+        const executionEntry = {
+            timestamp: new Date().toLocaleString(),
+            hash: scriptInfo.hash,
+            filename: scriptInfo.filename,
+            status: 'executed'
+        };
+        
+        setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
+        
+        // After a delay, assume execution is done (since we don't have direct feedback)
+        setTimeout(() => {
+            setExecutionStatus('success');
+        }, 2000);
+    };
+    
+    // Send individual line to REPL
+    const executeSelectedLine = () => {
+        // Get selected text from script content
+        const selectedText = window.getSelection().toString();
+        
+        if (!selectedText) {
+            setError("No text selected to execute");
+            return;
+        }
+        
+        // Dispatch event to execute the line in the PythonREPL panel
+        dispatch({
+            type: 'pythonrepl/executeLine',
+            payload: {
+                content: selectedText,
+                hash: scriptInfo.hash
+            }
+        });
+    };
+    
+    // Reset the REPL
+    const resetREPL = () => {
+        dispatch({
+            type: 'pythonrepl/resetREPL',
+            payload: {}
+        });
+    };
+    
+    // Clear the REPL
+    const clearREPL = () => {
+        dispatch({
+            type: 'pythonrepl/clearREPL',
+            payload: {}
+        });
+    };
+    
     // Loading state
     if (loading) {
         return <div className="pse-loading">Loading Python script...</div>;
@@ -450,7 +290,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                         <li>Select a Python file from the catalog panel</li>
                         <li>Review the script in this panel</li>
                         <li>Click "Execute Script" to run it in the REPL</li>
-                        <li>View results and interact with the script below</li>
+                        <li>View results in the Python REPL panel</li>
                     </ol>
                 </div>
             </div>
@@ -459,53 +299,80 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     
     return (
         <div className="pse-panel">
-            {/* Script Header */}
-            <ScriptHeader scriptInfo={scriptInfo} />
+            <header className="pse-header">
+                <h2>Python Script: {scriptInfo.filename}</h2>
+                
+                <div className="pse-meta">
+                    <div className="pse-hash">
+                        <span className="pse-label">Hash:</span>
+                        <code>{scriptInfo.hash ? scriptInfo.hash.substring(0, 12) + '...' : 'N/A'}</code>
+                    </div>
+                    <div className="pse-timestamp">
+                        <span className="pse-label">Last Modified:</span>
+                        <span>{scriptInfo.timestamp}</span>
+                    </div>
+                </div>
+            </header>
             
-            {/* Execution Controls */}
-            <ExecutionControls 
-                executionStatus={executionStatus} 
-                scriptContent={scriptContent}
-                executeScript={executeScript}
-                executeDirectly={executeDirectly}
-                executeSelectedLine={executeSelectedLine}
-                clearREPL={clearREPL}
-                resetREPL={resetREPL}
-            />
+            <div className="pse-controls">
+                <button 
+                    className={`pse-execute-btn ${executionStatus === 'running' ? 'running' : ''}`}
+                    onClick={executeScript}
+                    disabled={executionStatus === 'running' || !scriptContent}
+                >
+                    {executionStatus === 'running' ? 'Executing...' : 'Execute Script'}
+                </button>
+                
+                <button 
+                    className="pse-execute-selected-btn"
+                    onClick={executeSelectedLine}
+                    disabled={executionStatus === 'running'}
+                >
+                    Execute Selected Line
+                </button>
+                
+                <div className="pse-repl-controls">
+                    <button onClick={clearREPL}>Clear REPL</button>
+                    <button onClick={resetREPL}>Reset REPL</button>
+                </div>
+            </div>
             
-            {/* Error Display */}
             {error && (
                 <div className="pse-warning">
                     <p>{error}</p>
                 </div>
             )}
             
-            <div className="pse-container">
-                {/* Script Content */}
-                <ScriptContent content={scriptContent} />
-                
-                <div className="pse-output-container">
-                    {/* Execution Output */}
-                    <ExecutionOutput 
-                        output={scriptOutput}
-                        waitingForInput={waitingForInput}
-                        userInput={userInput}
-                        setUserInput={setUserInput}
-                        handleInputSubmit={handleInputSubmit}
-                        inputRef={inputRef}
-                        outputRef={outputRef}
-                    />
-                    
-                    {/* Direct REPL Frame */}
-                    <DirectREPLFrame />
-                </div>
+            <div className="pse-script-container">
+                <h3>Script Content</h3>
+                <pre className="pse-script-content">{scriptContent}</pre>
             </div>
             
-            {/* Execution History */}
-            <ExecutionHistory history={executionHistory} />
+            <div className="pse-execution-history">
+                <h3>Execution History</h3>
+                {executionHistory.length === 0 ? (
+                    <p className="pse-no-history">No execution history yet</p>
+                ) : (
+                    <ul className="pse-history-list">
+                        {executionHistory.map((entry, index) => (
+                            <li key={index} className="pse-history-item">
+                                <span className="pse-history-time">{entry.timestamp}</span>
+                                <span className="pse-history-file">{entry.filename}</span>
+                                <span className="pse-history-status">{entry.status}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
             
-            {/* Documentation Tips */}
-            <DocumentationTips />
+            <div className="pse-documentation">
+                <h3>Tips</h3>
+                <ul>
+                    <li>You can select a portion of the script and click "Execute Selected Line" to run just that part</li>
+                    <li>Variables defined in one execution are available in subsequent executions</li>
+                    <li>Click "Reset REPL" if you want to clear all defined variables and start fresh</li>
+                </ul>
+            </div>
         </div>
     );
 };

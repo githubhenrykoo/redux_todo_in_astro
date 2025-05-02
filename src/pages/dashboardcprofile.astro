@@ -1,0 +1,11 @@
+---
+import Layout from '../layouts/BaseLayout.astro';
+import DashboardcProfile from '../components/panels/DashboardcProfile';
+---
+
+<Layout title="Algorithm Performance Dashboard - PKC">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6 text-center">Algorithm Performance Dashboard</h1>
+    <DashboardcProfile client:load />
+  </div>
+</Layout>

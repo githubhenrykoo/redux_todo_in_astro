@@ -65,6 +65,9 @@
   "pythonrepl": {
     "component": "../components/panels/pythonrepl.jsx"
   },
+  "DashboardcProfile": {
+    "component": "../components/panels/DashboardcProfile.jsx"
+  },
   "LlmVizPanel": {
     "component": "../components/panels/LlmVizPanel.jsx"
   }

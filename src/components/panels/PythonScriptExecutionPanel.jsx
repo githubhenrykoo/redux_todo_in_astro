@@ -203,30 +203,79 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         
         // Execute directly through our WebSocket connection if available
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log('Executing script via WebSocket using simple approach');
+            console.log('Executing script via WebSocket using subprocess approach');
             
-            // This is a simple but very reliable approach - save script to temp file and run it
-            const tempFileName = '_temp_script_' + Date.now() + '.py';
+            // Create a temporary script file with unique name
+            const tempFileName = `_temp_script_${Date.now()}.py`;
             
-            // First, write the script to a temporary file
+            // Step 1: First write script to a file
+            const writeCommand = `
+# Write script to temporary file
+with open('${tempFileName}', 'w') as f:
+    f.write('''${cleanedScript.replace(/'''/g, "\\'\\'\\'")}''')
+print("Script prepared for execution.")
+`;
+
             wsRef.current.send(JSON.stringify({
                 type: 'input',
-                data: `with open('${tempFileName}', 'w') as f:\n    f.write('''${cleanedScript.replace(/'''/g, "\\'\\'\\'")}''')\n\n`
+                data: writeCommand
             }));
             
-            // Wait a moment for the file to be written
+            // Step 2: Execute the script with subprocess to capture clean output
             setTimeout(() => {
-                // Then run the script using direct execution - this is the most reliable method
+                const runCommand = `
+# Execute script as subprocess for clean output capture
+import subprocess
+import sys
+
+print("\\n=== Executing ${scriptInfo.filename} ===")
+
+try:
+    # Use subprocess to run script and capture output
+    result = subprocess.run(
+        [sys.executable, '${tempFileName}'],
+        capture_output=True, 
+        text=True,
+        check=True
+    )
+    
+    # Print stdout (this will be clean output)
+    print(result.stdout)
+    
+    # Print any stderr if present
+    if result.stderr:
+        print("=== Errors ===")
+        print(result.stderr)
+        
+    print("=== Script execution complete ===")
+    
+except subprocess.CalledProcessError as e:
+    print("=== Script execution failed ===")
+    if e.stdout:
+        print(e.stdout)
+    if e.stderr:
+        print("=== Error output ===")
+        print(e.stderr)
+except Exception as e:
+    print(f"=== Error: {str(e)} ===")
+`;
+
                 wsRef.current.send(JSON.stringify({
                     type: 'input',
-                    data: `print("\\n=== Running ${scriptInfo.filename} ==="); exec(open('${tempFileName}').read()); print("\\n=== Script execution complete ===")\n`
+                    data: runCommand
                 }));
                 
-                // Clean up the temp file after a delay
+                // Step 3: Clean up the temporary file
                 setTimeout(() => {
                     wsRef.current.send(JSON.stringify({
                         type: 'input',
-                        data: `import os\nif os.path.exists('${tempFileName}'): os.remove('${tempFileName}')\n`
+                        data: `
+# Clean up temporary file
+import os
+if os.path.exists('${tempFileName}'):
+    os.remove('${tempFileName}')
+    print("Temporary script file removed.")
+`
                     }));
                     
                     setExecutionStatus('success');
@@ -377,7 +426,6 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('PythonScriptExecution: Received message', data);
                     
                     if (data.type === 'output') {
                         // Clean ANSI escape sequences
@@ -386,41 +434,66 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                             ''
                         );
                         
-                        // Look for script execution markers
-                        if (cleanOutput.includes('=== Running ') && cleanOutput.includes('.py ===')) {
-                            setScriptOutput(prev => [...prev, "Running script..."]);
+                        // Skip Python prompts
+                        if (cleanOutput.trim().startsWith('>>>') || cleanOutput.trim().startsWith('...')) {
                             return;
                         }
                         
+                        // Execution markers
+                        if (cleanOutput.includes('=== Executing ') && cleanOutput.includes('.py ===')) {
+                            setScriptOutput(prev => [...prev, "Executing script..."]);
+                            return;
+                        }
+                        
+                        // Skip preparation/cleanup messages
+                        if (cleanOutput.includes('Script prepared for execution') ||
+                            cleanOutput.includes('Temporary script file removed')) {
+                            return;
+                        }
+                        
+                        // Skip common setup code
+                        if (cleanOutput.includes('import subprocess') ||
+                            cleanOutput.includes('import sys') || 
+                            cleanOutput.includes('import os') ||
+                            cleanOutput.includes('with open(') || 
+                            cleanOutput.includes('os.path.exists') || 
+                            cleanOutput.trim() === '' ||
+                            cleanOutput.includes('# ')) {
+                            return;
+                        }
+                        
+                        // Completion marker
                         if (cleanOutput.includes('=== Script execution complete ===')) {
                             setScriptOutput(prev => [...prev, "✅ Script execution completed"]);
                             return;
                         }
                         
-                        // Look for Python REPL prompts
-                        if (cleanOutput.trim().startsWith('>>>') || cleanOutput.trim().startsWith('...')) {
-                            return; // Skip Python prompts
-                        }
-                        
-                        // Skip common system outputs
-                        if (cleanOutput.includes('with open(') || 
-                            cleanOutput.includes('import os') || 
-                            cleanOutput.includes('os.path.exists') || 
-                            cleanOutput.trim() === '') {
+                        // Error marker
+                        if (cleanOutput.includes('=== Script execution failed ===') || 
+                            cleanOutput.includes('=== Error: ') ||
+                            cleanOutput.includes('=== Error output ===')) {
+                            setScriptOutput(prev => [...prev, "❌ Script execution failed"]);
                             return;
                         }
                         
-                        // Process actual script output
-                        const filteredOutput = cleanOutput.trim();
-                        if (filteredOutput) {
-                            setScriptOutput(prev => [...prev, filteredOutput]);
-                            console.log('Added output:', filteredOutput);
-                        }
+                        // Process actual script output - clean up any remaining prompts/markers
+                        let outputLines = cleanOutput
+                            .replace(/>>>\s*$/, '')
+                            .replace(/\.\.\.\s*$/, '')
+                            .trim()
+                            .split('\n');
+                        
+                        outputLines.forEach(line => {
+                            if (line.trim() && 
+                                !line.includes('>>>') && 
+                                !line.includes('subprocess.run') &&
+                                !line.trim().startsWith('#')) {
+                                setScriptOutput(prev => [...prev, line.trim()]);
+                            }
+                        });
                     }
                 } catch (err) {
                     console.error('Error handling WebSocket message:', err);
-                    // Try to handle raw data
-                    setScriptOutput(prev => [...prev, String(event.data)]);
                 }
             };
             

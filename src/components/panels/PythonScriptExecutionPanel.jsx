@@ -51,6 +51,19 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         setError(null);
     };
 
+    // Function to clean HTML/class attributes from script content
+    const cleanScriptContent = (content) => {
+        if (!content) return '';
+        
+        // Remove HTML-like class attributes and tags
+        return content
+            .replace(/class=["'][\w\s-]+["']/g, '') // Remove class attributes
+            .replace(/class="py-\w+"/g, '')         // Remove specific py-* classes
+            .replace(/<\/?[^>]+(>|$)/g, '')         // Remove HTML tags
+            .replace(/["']py-\w+["']/g, '')         // Remove quoted py-* classes
+            .trim();
+    };
+
     // Load script content from the selected file
     const loadScriptContent = async (file) => {
         try {
@@ -96,9 +109,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             }
             
             // Clean any HTML-like content that might be in the script
-            content = content.replace(/class=/g, 'data-class=')
-                           .replace(/class="py-\w+"/g, '')
-                           .replace(/<\/?[^>]+(>|$)/g, '');
+            content = cleanScriptContent(content);
                            
             console.log('Cleaned content (first 100 chars):', content.substring(0, 100));
             
@@ -182,39 +193,51 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         // Update execution status
         setExecutionStatus('running');
         
-        // Remove shebang line if present (causes issues in direct REPL execution)
-        let processedContent = scriptContent;
-        if (processedContent.startsWith('#!')) {
-            processedContent = processedContent.split('\n').slice(1).join('\n');
+        // Prepare the script content
+        const lines = scriptContent.split('\n');
+        
+        // Remove shebang line if present
+        if (lines.length > 0 && lines[0].startsWith('#!')) {
+            lines.shift();
         }
         
         // Execute directly through our WebSocket connection if available
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log('Executing script directly via WebSocket');
+            console.log('Executing script directly via WebSocket, line by line');
             
-            // Use __import__('runpy').run_module() for proper execution with correct indentation
-            const execCommand = `
-import sys, io
-original_stdout = sys.stdout
-sys.stdout = io.StringIO()
-try:
-    # Execute the script in a dedicated string IO to capture output
-    exec("""
-${processedContent}
-""")
-    print("\\n=== Script Output ===")
-    print(sys.stdout.getvalue())
-except Exception as e:
-    print(f"\\n=== Error executing script: {type(e).__name__} ===")
-    print(str(e))
-finally:
-    sys.stdout = original_stdout
-`;
+            // This is a much simpler approach - just send each line one by one
+            // with a slight delay between lines to avoid overwhelming the REPL
+            let lineIndex = 0;
             
-            wsRef.current.send(JSON.stringify({
-                type: 'input',
-                data: execCommand
-            }));
+            // Function to send the next line
+            const sendNextLine = () => {
+                if (lineIndex < lines.length) {
+                    const line = lines[lineIndex].trim();
+                    lineIndex++;
+                    
+                    // Skip empty lines
+                    if (!line) {
+                        setTimeout(sendNextLine, 10);
+                        return;
+                    }
+                    
+                    // Send the line to the REPL
+                    wsRef.current.send(JSON.stringify({
+                        type: 'input',
+                        data: line + '\n'
+                    }));
+                    
+                    // Schedule the next line with a delay
+                    setTimeout(sendNextLine, 100);
+                } else {
+                    // All lines sent
+                    setScriptOutput(prev => [...prev, "✅ Script execution completed"]);
+                    setExecutionStatus('success');
+                }
+            };
+            
+            // Start sending lines
+            sendNextLine();
         } else {
             // Fall back to dispatch-based execution
             console.log('WebSocket not connected, using dispatch for execution');
@@ -225,7 +248,7 @@ finally:
             dispatch({
                 type: 'pythonrepl/executeScript',
                 payload: {
-                    content: processedContent,
+                    content: lines.join('\n'),
                     hash: scriptInfo.hash,
                     filename: scriptInfo.filename
                 }
@@ -235,7 +258,7 @@ finally:
             window.postMessage({
                 type: 'pythonrepl/executeScript',
                 payload: {
-                    content: processedContent,
+                    content: lines.join('\n'),
                     hash: scriptInfo.hash,
                     filename: scriptInfo.filename
                 }
@@ -245,7 +268,7 @@ finally:
             window.lastReduxAction = {
                 type: 'pythonrepl/executeScript',
                 payload: {
-                    content: processedContent,
+                    content: lines.join('\n'),
                     hash: scriptInfo.hash,
                     filename: scriptInfo.filename
                 }
@@ -253,7 +276,6 @@ finally:
         }
         
         console.log('Script execution requested:', scriptInfo.filename);
-        console.log('Script first 50 chars:', processedContent.substring(0, 50));
         
         // Add to execution history
         const executionEntry = {
@@ -264,11 +286,6 @@ finally:
         };
         
         setExecutionHistory(prev => [executionEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
-        
-        // After a delay, assume execution is done (since we don't have direct feedback)
-        setTimeout(() => {
-            setExecutionStatus('success');
-        }, 2000);
     };
     
     // Function to test the Python connection with a simple command
@@ -376,20 +393,27 @@ finally:
                             ''
                         );
                         
-                        // Check if this is script output section
-                        if (cleanOutput.includes('=== Script Output ===')) {
-                            const outputSection = cleanOutput.split('=== Script Output ===')[1];
-                            if (outputSection && outputSection.trim()) {
-                                setScriptOutput(prev => [...prev, "=== Script Output ===", ...outputSection.trim().split('\n')]);
-                            }
+                        // Handle script execution markers
+                        if (cleanOutput.includes('=== Executing script:')) {
+                            // Start of script execution - already added by our component
                             return;
                         }
                         
-                        // Check if this is an error message
-                        if (cleanOutput.includes('=== Error executing script:')) {
-                            const errorSection = cleanOutput.split('=== Error executing script:')[1];
-                            if (errorSection && errorSection.trim()) {
-                                setScriptOutput(prev => [...prev, "=== Error executing script ===", ...errorSection.trim().split('\n')]);
+                        // Handle successful execution marker
+                        if (cleanOutput.includes('=== Script executed successfully ===')) {
+                            setScriptOutput(prev => [...prev, "✅ Script executed successfully"]);
+                            return;
+                        }
+                        
+                        // Handle error messages
+                        if (cleanOutput.includes('=== Error:')) {
+                            const errorMatch = cleanOutput.match(/=== Error: ([^=]+) ===([\s\S]*)/);
+                            if (errorMatch) {
+                                const errorType = errorMatch[1].trim();
+                                const errorMessage = errorMatch[2].trim();
+                                setScriptOutput(prev => [...prev, `❌ Error: ${errorType}`, errorMessage]);
+                            } else {
+                                setScriptOutput(prev => [...prev, "❌ Error executing script"]);
                             }
                             return;
                         }

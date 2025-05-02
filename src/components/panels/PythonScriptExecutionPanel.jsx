@@ -14,6 +14,7 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
     });
     const [executionStatus, setExecutionStatus] = useState('idle'); // idle, running, success, error
     const [executionHistory, setExecutionHistory] = useState([]);
+    const [scriptOutput, setScriptOutput] = useState([]);
     
     const dispatch = useDispatch();
     
@@ -173,6 +174,9 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
             return;
         }
         
+        // Clear previous output
+        setScriptOutput(['=== Executing script: ' + scriptInfo.filename + ' ===']);
+        
         // Update execution status
         setExecutionStatus('running');
         
@@ -263,6 +267,26 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
         });
     };
     
+    // Add a listener to capture Python REPL output
+    useEffect(() => {
+        // Function to handle messages from the Python REPL
+        const handleReplOutput = (event) => {
+            if (event.data && event.data.type === 'pythonrepl/output') {
+                console.log('Received output from REPL:', event.data);
+                // Add the output line to our scriptOutput state
+                setScriptOutput(prev => [...prev, event.data.output]);
+            }
+        };
+        
+        // Add event listener
+        window.addEventListener('message', handleReplOutput);
+        
+        // Cleanup
+        return () => {
+            window.removeEventListener('message', handleReplOutput);
+        };
+    }, []);
+
     // Loading state
     if (loading) {
         return <div className="pse-loading">Loading Python script...</div>;
@@ -343,9 +367,28 @@ const PythonScriptExecutionPanel = ({ initialHash = '' }) => {
                 </div>
             )}
             
-            <div className="pse-script-container">
-                <h3>Script Content</h3>
-                <pre className="pse-script-content">{scriptContent}</pre>
+            <div className="pse-container">
+                <div className="pse-script-container">
+                    <h3>Script Content</h3>
+                    <pre className="pse-script-content">{scriptContent}</pre>
+                </div>
+
+                <div className="pse-output-container">
+                    <h3>Execution Output</h3>
+                    <div className="pse-output">
+                        {scriptOutput.length === 0 ? (
+                            <div className="pse-no-output">No output yet. Execute the script to see results here.</div>
+                        ) : (
+                            <div className="pse-output-content">
+                                {scriptOutput.map((line, index) => (
+                                    <div key={index} className="pse-output-line">
+                                        {line}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
             
             <div className="pse-execution-history">

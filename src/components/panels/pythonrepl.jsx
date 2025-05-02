@@ -617,6 +617,51 @@ const PythonREPL = ({ className = '' }) => {
     };
   }, []);
 
+  // Add message handler to forward output to the Script Execution Panel
+  useEffect(() => {
+    // Function to handle terminal output and forward it
+    const forwardOutput = (output) => {
+      // Clean the output text
+      const cleanOutput = output.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
+      
+      // Forward the cleaned output to the Script Execution Panel
+      window.postMessage({
+        type: 'pythonrepl/output',
+        output: cleanOutput
+      }, '*');
+      
+      console.log('Forwarding output to Script Panel:', cleanOutput);
+    };
+    
+    // Modify ws.onmessage to forward output
+    const originalWsHandler = socketRef.current?.onmessage;
+    if (socketRef.current) {
+      socketRef.current.onmessage = (event) => {
+        // Call the original handler first
+        if (originalWsHandler) {
+          originalWsHandler(event);
+        }
+        
+        // Then forward the output
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'output') {
+            forwardOutput(data.data);
+          }
+        } catch (err) {
+          console.error('Error forwarding output:', err);
+        }
+      };
+    }
+    
+    return () => {
+      // Restore the original handler when unmounting
+      if (socketRef.current && originalWsHandler) {
+        socketRef.current.onmessage = originalWsHandler;
+      }
+    };
+  }, [socketRef.current]);
+
   // Render a fallback UI while xterm is loading
   if (!xtermLoaded) {
     return (

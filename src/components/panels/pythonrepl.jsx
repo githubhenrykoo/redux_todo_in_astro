@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-// Client-side only component
-const XtermPanel = ({ className = '' }) => {
+// Python REPL Component
+const PythonREPL = ({ className = '' }) => {
   // State variables
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
@@ -56,9 +56,9 @@ const XtermPanel = ({ className = '' }) => {
         
         if (!mountedRef.current) return;
         
-        console.log('Initializing console...');
+        console.log('Initializing Python console...');
         
-        // Initialize console
+        // Initialize console with Python-friendly colors
         const Terminal = xtermModule.Terminal;
         const FitAddon = fitAddonModule.FitAddon;
         
@@ -67,10 +67,28 @@ const XtermPanel = ({ className = '' }) => {
           theme: {
             background: '#1e1e1e',
             foreground: '#f0f0f0',
+            // Python syntax highlighting colors
+            black: '#000000',
+            red: '#cd3131',
+            green: '#0dbc79',
+            yellow: '#e5e510',
+            blue: '#2472c8',
+            magenta: '#bc3fbc',
+            cyan: '#11a8cd',
+            white: '#e5e5e5',
+            brightBlack: '#666666',
+            brightRed: '#f14c4c',
+            brightGreen: '#23d18b',
+            brightYellow: '#f5f543',
+            brightBlue: '#3b8eea',
+            brightMagenta: '#d670d6',
+            brightCyan: '#29b8db',
+            brightWhite: '#e5e5e5'
           },
           fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", "Source Code Pro", Menlo, Monaco, "Courier New", monospace',
-          fontSize: 12,
+          fontSize: 14,
           convertEol: true,
+          scrollback: 1000,
         });
         
         const fitAddon = new FitAddon();
@@ -80,7 +98,7 @@ const XtermPanel = ({ className = '' }) => {
         fitAddonRef.current = fitAddon;
         
         // Open console in the container
-        console.log('Opening console...');
+        console.log('Opening Python console...');
         terminal.open(consoleRef.current);
         
         terminal.element.style.padding = "10px";
@@ -158,8 +176,8 @@ const XtermPanel = ({ className = '' }) => {
         }
         
       } catch (err) {
-        console.error('Failed to initialize console:', err);
-        setError('Failed to initialize console: ' + err.message);
+        console.error('Failed to initialize Python console:', err);
+        setError('Failed to initialize Python console: ' + err.message);
       }
     };
     
@@ -182,7 +200,7 @@ const XtermPanel = ({ className = '' }) => {
         try {
           xtermRef.current.dispose();
         } catch (err) {
-          console.error('Error disposing console:', err);
+          console.error('Error disposing Python console:', err);
         }
       }
     };
@@ -209,7 +227,6 @@ const XtermPanel = ({ className = '' }) => {
         setError(null);
         
         if (xtermRef.current) {
-          
           // Send initial console size
           const { cols, rows } = xtermRef.current;
           ws.send(JSON.stringify({ 
@@ -218,8 +235,7 @@ const XtermPanel = ({ className = '' }) => {
             rows 
           }));
           
-          // Start Python3 immediately without delay
-          startPythonREPL();
+          // Python REPL will start automatically from the server
         }
       };
 
@@ -229,24 +245,11 @@ const XtermPanel = ({ className = '' }) => {
         try {
           const message = JSON.parse(event.data);
           if (message.type === 'output' && xtermRef.current) {
-            // Check if output contains exit commands that succeeded
-            if (isPythonMode && 
-                (message.data.includes('exit()') || 
-                 message.data.includes('quit()') || 
-                 message.data.includes('sys.exit'))) {
-              // If there's an exit attempt, send warning message
-              xtermRef.current.write('\r\n\x1b[33mExit command blocked. This Python console cannot be closed.\x1b[0m\r\n>>> ');
-              return;
-            }
-            
             xtermRef.current.write(message.data);
             
-            // Check if Python REPL has started or exited
+            // Check if Python REPL has started
             if (message.data.includes('Python ') && message.data.includes('Type "help"')) {
               setIsPythonMode(true);
-            } else if (message.data.includes('exit') && isPythonMode) {
-              // If Python somehow exited, immediately restart it
-              startPythonREPL();
             }
           }
         } catch (err) {
@@ -258,10 +261,10 @@ const XtermPanel = ({ className = '' }) => {
         if (!mountedRef.current) return;
         console.error('WebSocket error:', error);
         setIsConnected(false);
-        setError('Failed to connect to console server. Make sure the server is running.');
+        setError('Failed to connect to Python console server. Make sure the server is running.');
         
         if (xtermRef.current) {
-          xtermRef.current.writeln('\x1b[31mError: Failed to connect to console server\x1b[0m');
+          xtermRef.current.writeln('\x1b[31mError: Failed to connect to Python console server\x1b[0m');
           xtermRef.current.writeln('\x1b[31mMake sure the server is running at ws://localhost:3010\x1b[0m');
           xtermRef.current.writeln('\x1b[34mAttempting to reconnect in 5 seconds...\x1b[0m');
         }
@@ -282,7 +285,7 @@ const XtermPanel = ({ className = '' }) => {
         setIsConnected(false);
         
         if (xtermRef.current) {
-          xtermRef.current.writeln('\x1b[31mDisconnected from console server\x1b[0m');
+          xtermRef.current.writeln('\x1b[31mDisconnected from Python console server\x1b[0m');
           xtermRef.current.writeln('\x1b[34mAttempting to reconnect in 5 seconds...\x1b[0m');
         }
         
@@ -311,36 +314,27 @@ const XtermPanel = ({ className = '' }) => {
     }
   };
 
-  // Function to start Python REPL
-  const startPythonREPL = () => {
+  // Function to restart Python REPL
+  const restartPythonREPL = () => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && xtermRef.current) {
-      // Send command to start Python
+      // Send command to restart Python
       socketRef.current.send(JSON.stringify({
         type: 'input',
-        data: 'python3\r'
+        data: '\x03\r' // Ctrl+C to interrupt any running code
       }));
       
-      if (xtermRef.current) {
-      }
-    } else {
-      setError('Cannot start Python: Console not connected');
-    }
-  };
-
-  // Function to exit Python REPL
-  const exitPythonREPL = () => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN && xtermRef.current) {
-      // Send exit() command to Python
-      socketRef.current.send(JSON.stringify({
-        type: 'input',
-        data: 'exit()\r'
-      }));
+      setTimeout(() => {
+        socketRef.current.send(JSON.stringify({
+          type: 'input',
+          data: 'python3\r'
+        }));
+      }, 100);
       
       if (xtermRef.current) {
-        xtermRef.current.writeln('\x1b[33mExiting Python REPL...\x1b[0m');
+        xtermRef.current.writeln('\x1b[33mRestarting Python REPL...\x1b[0m');
       }
     } else {
-      setIsPythonMode(false);
+      setError('Cannot restart Python: Console not connected');
     }
   };
 
@@ -371,22 +365,19 @@ const XtermPanel = ({ className = '' }) => {
       <div className="flex items-center justify-between px-3 py-1 bg-gray-800 text-white text-xs">
         <div className="flex items-center space-x-3">
           {isConnected ? (
-            <span className="text-green-400">Connected</span>
+            <span className="text-green-400">Connected to Python REPL</span>
           ) : (
             <span className="text-red-400">Disconnected</span>
           )}
         </div>
         <div className="flex items-center space-x-2">
-          {!isPythonMode && (
-            <button 
-              onClick={startPythonREPL}
-              className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
-              disabled={!isConnected}
-            >
-              Restart Python
-            </button>
-          )}
-          {/* Remove the Exit Python button */}
+          <button 
+            onClick={restartPythonREPL}
+            className="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs"
+            disabled={!isConnected}
+          >
+            Restart Python
+          </button>
           {error && <span className="text-red-400">{error}</span>}
         </div>
       </div>
@@ -394,6 +385,6 @@ const XtermPanel = ({ className = '' }) => {
   );
 };
 
-// Rename the component to match the file name
-const ConsoleServerPython = XtermPanel;
-export default ConsoleServerPython;
+// Export the component
+const PythonREPLPanel = PythonREPL;
+export default PythonREPLPanel;

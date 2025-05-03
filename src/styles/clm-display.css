@@ -557,18 +557,43 @@
 
 .python-output-container {
     margin-top: 15px;
+    border: 1px solid #e1e4e8;
+    border-radius: 5px;
+    background-color: #f6f8fa;
+}
+
+.python-output-wrapper {
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .python-output {
-    background-color: #1e1e1e;
-    color: #ddd;
-    padding: 15px;
-    border-radius: 4px;
-    overflow: auto;
-    max-height: 400px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 10px;
+    color: #24292e;
     white-space: pre-wrap;
-    line-height: 1.5;
+    word-break: break-word;
+}
+
+.python-output-wrapper::-webkit-scrollbar {
+    width: 10px;
+}
+
+.python-output-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.python-output-wrapper::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.python-output-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #555;
 }
 
 .python-instructions {
@@ -634,6 +659,29 @@
     color: #e74c3c;
     margin-top: 5px;
     font-size: 14px;
+}
+
+.scroll-to-bottom-btn {
+    display: block;
+    margin: 10px auto 0;
+    padding: 6px 12px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.scroll-to-bottom-btn:hover {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.scroll-to-bottom-btn:focus {
+    outline: 2px solid #0366d6;
+    outline-offset: 2px;
 }
 
 @media (max-width: 768px) {

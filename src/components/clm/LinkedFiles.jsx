@@ -127,7 +127,7 @@ const LinkedFiles = ({
     const renderLinkedFile = (fileHash, idx) => {
         // Check if the file exists in cards
         const file = cards[fileHash.trim()] || {};
-        const fileFound = Object.keys(file).length > 0;
+        const fileFound = Object.keys(file).length > 0 && file.content;
         
         console.log('Rendering linked file:', fileHash, 'File data:', file);
         console.log('File content exists?', !!file.content);

@@ -1,5 +1,189 @@
 import React, { useState, useEffect } from 'react';
-import { cleanScriptContent } from '../../utils/pythonScriptUtils';
+
+/**
+ * Clean Python script content function
+ * This function fixes common Python syntax issues like excessive docstring quotes, indentation problems, and commands executed as python code
+ */
+const cleanScriptContent = (content) => {
+    // Fix common syntax issues
+    let cleaned = content;
+    
+    // Replace excessive docstring quotes with standard triple quotes
+    cleaned = cleaned.replace(/"{6,}/g, '"""');
+    cleaned = cleaned.replace(/'{6,}/g, "'''");
+    
+    // Fix indentation in common cases
+    const lines = cleaned.split('\n');
+    let fixedLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        
+        // Fix common indentation issues
+        if (line.match(/^\s*def\s+/) && !line.endsWith(':')) {
+            line = line + ':';
+        }
+        
+        fixedLines.push(line);
+    }
+    
+    cleaned = fixedLines.join('\n');
+    
+    // Fix other common errors
+    cleaned = cleaned.replace(/^python3$/m, '');
+    
+    return cleaned;
+};
+
+const executeScript = async (wsRef, scriptContent, setPythonScriptOutput, setExecutionStatus) => {
+    try {
+        // Clean the script content
+        const cleanedContent = cleanScriptContent(scriptContent);
+        console.log('Executing Python script with content:', cleanedContent);
+        
+        // Start Python execution sequence
+        console.log('Starting Python execution sequence');
+        
+        // Reset output and clear state
+        setPythonScriptOutput(["=== Script Input ===", cleanedContent, "=== End Input ===", "=== Starting Execution ==="]);
+        setExecutionStatus('running');
+        
+        // Flag to track if we've already sent the script
+        let scriptSent = false;
+        
+        // Flag to track if we've detected Python running
+        let pythonRunning = false;
+        
+        // Set up message handler for this execution
+        const originalOnMessage = wsRef.onmessage;
+        
+        // Add a specialized timer to automatically end execution
+        const executionTimer = setTimeout(() => {
+            // Restore original handler
+            wsRef.onmessage = originalOnMessage;
+            
+            // Mark execution as complete
+            setPythonScriptOutput(prev => [...prev, "=== Execution completed (timeout) ==="]);
+            setExecutionStatus('timeout');
+        }, 10000); // 10 second timeout
+        
+        // Create a handler for WebSocket messages during script execution
+        wsRef.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.type === 'output') {
+                    // Clean ANSI escape sequences
+                    const cleanOutput = data.data.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
+                    console.log('Raw output:', JSON.stringify(cleanOutput));
+                    
+                    // Check if Python is running
+                    if (cleanOutput.includes('Python') || cleanOutput.includes('>>>')) {
+                        pythonRunning = true;
+                        
+                        // Only send the script once, and only after detecting Python
+                        if (!scriptSent && pythonRunning) {
+                            console.log('Python detected, sending complete script');
+                            
+                            // Wrap the script properly to avoid execution issues
+                            const wrappedScript = `
+exec('''
+${cleanedContent}
+''')
+`;
+                            
+                            // Send as a single payload
+                            wsRef.send(JSON.stringify({
+                                type: 'input',
+                                data: wrappedScript
+                            }));
+                            
+                            // Mark that we've sent the script
+                            scriptSent = true;
+                        }
+                    }
+                    
+                    // Process the output
+                    const lines = cleanOutput.split('\n');
+                    for (const line of lines) {
+                        const trimmedLine = line.trim();
+                        
+                        // Skip prompts and input echoes
+                        if (trimmedLine.startsWith('>>>') || 
+                            trimmedLine.startsWith('...') || 
+                            trimmedLine === '' ||
+                            trimmedLine === '\\') {
+                            continue;
+                        }
+                        
+                        // Add real output
+                        setPythonScriptOutput(prev => {
+                            // Avoid duplicates
+                            if (prev.length > 0 && prev[prev.length - 1] === trimmedLine) {
+                                return prev;
+                            }
+                            return [...prev, trimmedLine];
+                        });
+                        
+                        // Check for errors
+                        if (trimmedLine.includes('Error:') || 
+                            trimmedLine.includes('Exception:') ||
+                            trimmedLine.includes('Traceback')) {
+                            setExecutionStatus('error');
+                        }
+                    }
+                    
+                    // Check for execution completion
+                    if (scriptSent && cleanOutput.includes('>>>') && !cleanOutput.includes('...')) {
+                        // Code has finished executing when we see the prompt again
+                        clearTimeout(executionTimer);
+                        
+                        // Restore original handler
+                        wsRef.onmessage = originalOnMessage;
+                        
+                        // Final success message
+                        setPythonScriptOutput(prev => {
+                            // Only add completion message if not already there
+                            if (prev[prev.length - 1].includes("=== Execution completed")) {
+                                return prev;
+                            }
+                            
+                            const hasError = prev.some(line => 
+                                line.includes("Error") || 
+                                line.includes("Exception") || 
+                                line.includes("Traceback")
+                            );
+                            
+                            if (hasError) {
+                                return [...prev, "=== Execution completed with errors ==="];
+                            } else {
+                                return [...prev, "=== Execution completed successfully ==="];
+                            }
+                        });
+                        
+                        // Set final status
+                        setExecutionStatus(prevStatus => prevStatus === 'error' ? 'error' : 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing WebSocket message:', error);
+            }
+        };
+        
+        // Start by sending the 'python3' command if needed
+        if (!pythonRunning) {
+            console.log('Sending initial python3 command');
+            wsRef.send(JSON.stringify({ 
+                type: 'input', 
+                data: 'python3\n' 
+            }));
+        }
+        
+    } catch (error) {
+        console.error('Error executing Python script:', error);
+        setPythonScriptOutput(prev => [...prev, `Error: ${error.message}`]);
+        setExecutionStatus('error');
+    }
+};
 
 /**
  * Execute Python script function
@@ -87,242 +271,7 @@ export const executePythonScript = async (fileHash, wsRef, setPythonScriptOutput
             throw new Error('Failed to extract script content');
         }
         
-        // Clean the script content
-        const cleanedContent = cleanScriptContent(scriptContent);
-        console.log('Executing Python script with content:', cleanedContent);
-        
-        // Detect script type for special handling
-        const isHelloWorldScript = 
-            cleanedContent.includes('print("Hello, World!")') || 
-            cleanedContent.includes('print("Hello World")');
-            
-        const isVisualizationScript = 
-            cleanedContent.includes('Visualization Test Script') || 
-            cleanedContent.includes('interactive_demo');
-            
-        // Handle special case scripts for better output
-        if (isHelloWorldScript) {
-            console.log('Detected Hello World script, using optimized output');
-            
-            // For simple scripts, provide a clean simulated output while still executing the real script
-            setTimeout(() => {
-                setPythonScriptOutput(['=== Starting Execution ===', 'Hello, World!', '=== Execution completed successfully ===']);
-                setExecutionStatus('success');
-            }, 1000);
-            
-            // Still execute the script in the background
-            wsRef.send(JSON.stringify({ 
-                type: 'input', 
-                data: 'python3\n' 
-            }));
-            
-            setTimeout(() => {
-                wsRef.send(JSON.stringify({
-                    type: 'input',
-                    data: cleanedContent + '\n'
-                }));
-            }, 500);
-            
-            return; // Skip the detailed WebSocket handling
-        }
-        
-        if (isVisualizationScript) {
-            console.log('Detected Visualization Test script, using specialized output');
-            
-            // Create a simulation of what we'd expect to see for this script
-            setTimeout(() => {
-                setPythonScriptOutput([
-                    '=== Starting Execution ===',
-                    `Test script running at: ${new Date().toLocaleString()}`,
-                    
-                    '\n=== Color Test ===',
-                    'Green Bold Text',
-                    'Red Bold Text',
-                    'Blue Bold Text',
-                    'Yellow Bold Text',
-                    
-                    '\n=== Data Structures Test ===',
-                    "Dictionary: {'name': 'Test User', 'age': 30, 'skills': ['Python', 'JavaScript', 'React']}",
-                    'List comprehension result: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]',
-                    "Set from string: {'a', 'b', 'c', 'd', 'r'}",
-                    
-                    '\n=== Interactive Test ===',
-                    'Starting processing...',
-                    'Processing batch 1/5...',
-                    'Batch 1 complete! ',
-                    'Processing batch 2/5...',
-                    'Batch 2 complete! ',
-                    'Processing batch 3/5...',
-                    'Batch 3 complete! ',
-                    'Processing batch 4/5...',
-                    'Batch 4 complete! ',
-                    'Processing batch 5/5...',
-                    'Batch 5 complete! ',
-                    
-                    '\nFinal Results:',
-                    '┌─────────────────────────────┐',
-                    '│ Processing complete!        │',
-                    '│ • All batches processed     │',
-                    '│ • No errors detected        │',
-                    '│ • Execution time: 2.5s      │',
-                    '└─────────────────────────────┘',
-                    
-                    '\nAll tests completed successfully! ',
-                    '=== Execution completed successfully ==='
-                ]);
-                setExecutionStatus('success');
-            }, 2000);
-            
-            // Still execute the script in the background
-            wsRef.send(JSON.stringify({ 
-                type: 'input', 
-                data: 'python3\n' 
-            }));
-            
-            setTimeout(() => {
-                wsRef.send(JSON.stringify({
-                    type: 'input',
-                    data: cleanedContent + '\n'
-                }));
-            }, 500);
-            
-            return; // Skip the detailed WebSocket handling
-        }
-        
-        // Set up message handler for this execution
-        const originalOnMessage = wsRef.onmessage;
-        
-        // Add a more specialized timer to automatically end execution
-        const executionTimer = setTimeout(() => {
-            // Restore original handler
-            wsRef.onmessage = originalOnMessage;
-            
-            // Mark execution as complete with a nicer message
-            setPythonScriptOutput(prev => {
-                // Don't add completion message if no real output was generated
-                if (prev.length <= 1) { // Only has the "Starting Execution" message
-                    return [...prev, "No output was generated by the script."];
-                }
-                
-                // Check if there was an error message in the output
-                const hasError = prev.some(line => 
-                    line.includes("Error") || 
-                    line.includes("Exception") || 
-                    line.includes("Traceback")
-                );
-                
-                if (hasError) {
-                    setExecutionStatus('error');
-                    return [...prev, "=== Execution completed with errors ==="];
-                } else {
-                    return [...prev, "=== Execution completed successfully ==="];
-                }
-            });
-            
-            // Set the appropriate status
-            setExecutionStatus(prevStatus => prevStatus === 'error' ? 'error' : 'success');
-        }, 8000); // 8 second timeout
-        
-        // Create a handler for WebSocket messages during script execution
-        wsRef.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.type === 'output') {
-                    // Clean ANSI escape sequences
-                    const cleanOutput = data.data.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
-                    console.log('Raw output:', JSON.stringify(cleanOutput));
-                    
-                    // Process the output to filter out echoed input and system messages
-                    if (cleanOutput.includes('Python') || cleanOutput.includes('>>>')) {
-                        // Detected Python environment, send the script
-                        setTimeout(() => {
-                            wsRef.send(JSON.stringify({
-                                type: 'input',
-                                data: cleanedContent + '\n'
-                            }));
-                        }, 500);
-                    }
-                    
-                    // Skip echoed input and REPL prompts
-                    if (cleanOutput.includes('>>> ') || 
-                        cleanOutput.includes('... ') || 
-                        cleanOutput.trim() === '' ||
-                        cleanOutput.startsWith('>>>') ||
-                        cleanOutput.trim() === '\\'
-                    ) {
-                        // Skip REPL prompts and empty lines
-                        return;
-                    }
-                    
-                    // Parse actual Python output
-                    if (cleanOutput.includes('Hello, World!') || 
-                        cleanOutput.includes('Hello World')) {
-                        // Clear the timeout since we found real output
-                        clearTimeout(executionTimer);
-                        setPythonScriptOutput(['=== Starting Execution ===', 'Hello, World!', '=== Execution completed successfully ===']);
-                        setExecutionStatus('success');
-                        
-                        // Restore original handler
-                        wsRef.onmessage = originalOnMessage;
-                        return;
-                    }
-                    
-                    // Process output line by line, filtering out noise
-                    const lines = cleanOutput.split('\n');
-                    for (const line of lines) {
-                        const trimmedLine = line.trim();
-                        
-                        // Skip REPL prompts and input echoes
-                        if (trimmedLine.startsWith('>>>') || 
-                            trimmedLine.startsWith('...') || 
-                            trimmedLine === '' ||
-                            trimmedLine === '\\' ||
-                            (cleanedContent.includes(trimmedLine) && trimmedLine.length > 3) ||
-                            trimmedLine.match(/^[a-zA-Z_]+$/) // Skip single word echoes
-                        ) {
-                            continue;
-                        }
-                        
-                        // Add the filtered line to output
-                        setPythonScriptOutput(prev => {
-                            // Avoid adding duplicates - only add this line if it's not already the last line
-                            if (prev.length > 0 && prev[prev.length - 1] === trimmedLine) {
-                                return prev;
-                            }
-                            return [...prev, trimmedLine];
-                        });
-                        
-                        // If we found a Python output, clear the timeout
-                        if (trimmedLine.length > 0 && 
-                            !trimmedLine.includes('>>>') && 
-                            !trimmedLine.includes('...')) {
-                            clearTimeout(executionTimer);
-                            // Set a new timeout for final cleanup
-                            setTimeout(() => {
-                                // Restore original handler
-                                wsRef.onmessage = originalOnMessage;
-                                // Final success message (only add if not already there)
-                                setPythonScriptOutput(prev => {
-                                    if (prev[prev.length - 1] === "=== Execution completed successfully ===") {
-                                        return prev;
-                                    }
-                                    return [...prev, "=== Execution completed successfully ==="]
-                                }); 
-                                setExecutionStatus('success');
-                            }, 2000);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error('Error processing WebSocket message:', err);
-            }
-        };
-        
-        // Start Python if needed
-        wsRef.send(JSON.stringify({ 
-            type: 'input', 
-            data: 'python3\n' 
-        }));
+        await executeScript(wsRef, scriptContent, setPythonScriptOutput, setExecutionStatus);
         
     } catch (error) {
         console.error('Error executing Python script:', error);
@@ -377,13 +326,15 @@ const PythonExecutionArea = () => {
                         executionStatus === 'success' ? 'Completed Successfully' : 'Error'}
             </div>
             
-            {/* Output display */}
+            {/* Output display with scrolling capability */}
             {pythonScriptOutput.length > 0 && (
                 <div className="python-output-container">
                     <h4>Script Output:</h4>
-                    <pre className="python-output">
-                        {pythonScriptOutput.join('\n')}
-                    </pre>
+                    <div className="python-output-wrapper" style={{ maxHeight: '400px', overflow: 'auto' }}>
+                        <pre className="python-output" tabIndex="0">
+                            {pythonScriptOutput.join('\n')}
+                        </pre>
+                    </div>
                 </div>
             )}
             
@@ -392,6 +343,21 @@ const PythonExecutionArea = () => {
                 <div className="python-instructions">
                     <p>Click the "Execute Python" button next to a Python file in the Concrete Implementation section to run a script.</p>
                 </div>
+            )}
+            
+            {/* Optional: Add scroll-to-bottom button if needed */}
+            {pythonScriptOutput.length > 20 && (
+                <button 
+                    className="scroll-to-bottom-btn"
+                    onClick={() => {
+                        const outputWrapper = document.querySelector('.python-output-wrapper');
+                        if (outputWrapper) {
+                            outputWrapper.scrollTop = outputWrapper.scrollHeight;
+                        }
+                    }}
+                >
+                    Scroll to Bottom
+                </button>
             )}
         </div>
     );

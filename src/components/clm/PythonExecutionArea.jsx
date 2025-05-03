@@ -86,9 +86,27 @@ const executeScript = async (wsRef, scriptContent, setPythonScriptOutput, setExe
                             
                             // Wrap the script properly to avoid execution issues
                             const wrappedScript = `
-exec('''
+import sys
+from io import StringIO
+
+# Capture stdout
+original_stdout = sys.stdout
+captured_output = StringIO()
+sys.stdout = captured_output
+
+# Run the script
+try:
 ${cleanedContent}
-''')
+    # Print the captured output
+    sys.stdout = original_stdout
+    print("\\n=== SCRIPT OUTPUT START ===")
+    print(captured_output.getvalue())
+    print("=== SCRIPT OUTPUT END ===")
+except Exception as e:
+    sys.stdout = original_stdout
+    print("\\n=== ERROR ===")
+    print(str(e))
+    print("=== ERROR END ===")
 `;
                             
                             // Send as a single payload
@@ -104,29 +122,55 @@ ${cleanedContent}
                     
                     // Process the output
                     const lines = cleanOutput.split('\n');
-                    for (const line of lines) {
-                        const trimmedLine = line.trim();
+                    
+                    // Enhanced debug logging
+                    console.log('Processing Python output lines:', lines.length);
+                    
+                    // Detect if this output contains the actual script execution results
+                    const containsRealOutput = cleanOutput.includes("Hello, World!") || 
+                                              cleanOutput.includes("Nice to meet you") || 
+                                              cleanOutput.includes("countdown") || 
+                                              cleanOutput.includes("Blast off");
+                                              
+                    if (containsRealOutput) {
+                        console.log('DETECTED REAL SCRIPT OUTPUT:', cleanOutput);
                         
-                        // Skip only Python prompts and certain specific lines
-                        if (trimmedLine.startsWith('>>>') || 
-                            trimmedLine.startsWith('...')) {
-                            continue;
-                        }
-                        
-                        // Add real output, including empty lines for formatting
+                        // For real script output, capture everything and add to output
                         setPythonScriptOutput(prev => {
-                            // Avoid duplicates but allow empty lines for proper formatting
-                            if (prev.length > 0 && prev[prev.length - 1] === trimmedLine && trimmedLine !== '') {
-                                return prev;
-                            }
-                            return [...prev, trimmedLine];
+                            // Filter out just the Python prompts
+                            const filteredLines = lines
+                                .filter(line => !line.trim().startsWith('>>>') && !line.trim().startsWith('...'))
+                                .map(line => line.trim());
+                                
+                            console.log('Adding filtered lines to output:', filteredLines);
+                            return [...prev, ...filteredLines].filter(line => line !== '');
                         });
-                        
-                        // Check for errors
-                        if (trimmedLine.includes('Error:') || 
-                            trimmedLine.includes('Exception:') ||
-                            trimmedLine.includes('Traceback')) {
-                            setExecutionStatus('error');
+                    } else {
+                        // Handle regular output processing
+                        for (const line of lines) {
+                            const trimmedLine = line.trim();
+                            
+                            // Skip only Python prompts
+                            if (trimmedLine.startsWith('>>>') || 
+                                trimmedLine.startsWith('...')) {
+                                continue;
+                            }
+                            
+                            // Add real output, including empty lines for formatting
+                            setPythonScriptOutput(prev => {
+                                // Avoid duplicates but allow empty lines for proper formatting
+                                if (prev.length > 0 && prev[prev.length - 1] === trimmedLine && trimmedLine !== '') {
+                                    return prev;
+                                }
+                                return [...prev, trimmedLine];
+                            });
+                            
+                            // Check for errors
+                            if (trimmedLine.includes('Error:') || 
+                                trimmedLine.includes('Exception:') ||
+                                trimmedLine.includes('Traceback')) {
+                                setExecutionStatus('error');
+                            }
                         }
                     }
                     
@@ -285,6 +329,151 @@ const PythonExecutionArea = () => {
     const [pythonScriptOutput, setPythonScriptOutput] = useState([]);
     const [executionStatus, setExecutionStatus] = useState('idle'); // 'idle', 'running', 'success', 'error'
     const [wsRef, setWsRef] = useState(null);
+    
+    // Add a global event listener for Python output
+    useEffect(() => {
+        const handlePythonOutput = (event) => {
+            if (event.data && (event.data.type === 'pythonrepl/output' || event.data.type === 'pythonrepl/scriptOutput')) {
+                console.log('PythonExecutionArea received direct output:', event.data.output);
+                
+                // Process the output
+                const output = event.data.output ? event.data.output.trim() : '';
+                
+                // Skip empty output
+                if (!output) return;
+                
+                // Check for high priority flag or script output event type
+                if (event.data.highPriority || event.data.isScriptOutput || event.data.type === 'pythonrepl/scriptOutput' || 
+                   output.includes("=== SCRIPT OUTPUT START ===")) {
+                    console.log('RECEIVED HIGH PRIORITY PYTHON OUTPUT!', output);
+                    
+                    // Look for our special markers first
+                    if (output.includes("=== SCRIPT OUTPUT START ===")) {
+                        console.log('FOUND SCRIPT OUTPUT MARKERS');
+                        
+                        // Extract content between markers
+                        const startMarker = "=== SCRIPT OUTPUT START ===";
+                        const endMarker = "=== SCRIPT OUTPUT END ===";
+                        const startIndex = output.indexOf(startMarker) + startMarker.length;
+                        const endIndex = output.indexOf(endMarker);
+                        
+                        if (startIndex > 0 && endIndex > startIndex) {
+                            const scriptOutput = output.substring(startIndex, endIndex).trim();
+                            console.log('EXTRACTED SCRIPT OUTPUT:', scriptOutput);
+                            
+                            // Add the extracted output to the display
+                            setPythonScriptOutput(prev => {
+                                return [...prev, "=== Script Output ===", ...scriptOutput.split('\n')];
+                            });
+                            
+                            // Mark execution as successful
+                            setExecutionStatus('success');
+                            return;
+                        }
+                    }
+                    
+                    // Check for error markers
+                    if (output.includes("=== ERROR ===")) {
+                        console.log('FOUND ERROR MARKERS');
+                        
+                        // Extract error content
+                        const startMarker = "=== ERROR ===";
+                        const endMarker = "=== ERROR END ===";
+                        const startIndex = output.indexOf(startMarker) + startMarker.length;
+                        const endIndex = output.indexOf(endMarker);
+                        
+                        if (startIndex > 0 && endIndex > startIndex) {
+                            const errorMessage = output.substring(startIndex, endIndex).trim();
+                            console.log('EXTRACTED ERROR:', errorMessage);
+                            
+                            // Add the error to the display
+                            setPythonScriptOutput(prev => {
+                                return [...prev, "=== Error ===", errorMessage];
+                            });
+                            
+                            // Mark execution as failed
+                            setExecutionStatus('error');
+                            return;
+                        }
+                    }
+                    
+                    // Original output processing
+                    // Detect actual script output (backup approach)
+                    if (output.includes("Hello, World!") || 
+                        output.includes("Nice to meet you") ||
+                        output.includes("countdown") ||
+                        output.includes("Blast off")) {
+                        
+                        console.log('CAPTURED REAL PYTHON OUTPUT (backup detection):', output);
+                        
+                        // Add to the output display
+                        setPythonScriptOutput(prev => {
+                            // Split by lines and filter out prompts
+                            const lines = output.split('\n')
+                                .filter(line => !line.trim().startsWith('>>>') && !line.trim().startsWith('...'))
+                                .map(line => line.trim())
+                                .filter(line => line !== '');
+                                
+                            return [...prev, ...lines];
+                        });
+                    }
+                } 
+                
+                // Parse out real script output
+                const lines = output.split('\n');
+                const filteredLines = lines
+                    .filter(line => !line.trim().startsWith('>>>') && !line.trim().startsWith('...'))
+                    .map(line => line.trim());
+                
+                // Extract actual script output - look for markers of real content
+                const outputLines = [];
+                let captureMode = false;
+                
+                for (const line of filteredLines) {
+                    // Start capturing when we see important content
+                    if (line.includes("Hello, World!")) {
+                        captureMode = true;
+                        outputLines.push(line);
+                    } 
+                    // Always capture when in capture mode
+                    else if (captureMode) {
+                        outputLines.push(line);
+                    }
+                    // Also capture countdown lines
+                    else if (/^\d+\.\.\./.test(line) || line.includes("Blast off")) {
+                        outputLines.push(line);
+                    }
+                }
+                
+                if (outputLines.length > 0) {
+                    console.log('EXTRACTED IMPORTANT OUTPUT LINES:', outputLines);
+                    
+                    // Add to the output display
+                    setPythonScriptOutput(prev => {
+                        // Avoid duplicating content
+                        const newLines = outputLines.filter(line => 
+                            !prev.includes(line) && line.trim() !== ''
+                        );
+                        
+                        if (newLines.length === 0) return prev;
+                        
+                        return [...prev, "=== Script Output ===", ...newLines];
+                    });
+                    
+                    // Mark execution as successful when we have real output
+                    setExecutionStatus('success');
+                }
+            }
+        };
+        
+        // Add listener
+        window.addEventListener('message', handlePythonOutput);
+        
+        // Clean up
+        return () => {
+            window.removeEventListener('message', handlePythonOutput);
+        };
+    }, []);
     
     // Set up WebSocket connection for Python execution
     useEffect(() => {

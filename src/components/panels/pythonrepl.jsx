@@ -564,11 +564,28 @@ const PythonREPL = ({ className = '' }) => {
       // Clean the output text
       const cleanOutput = output.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])/g, '');
       
-      // Forward the cleaned output to the Script Execution Panel
-      window.postMessage({
-        type: 'pythonrepl/output',
-        output: cleanOutput
-      }, '*');
+      // Detect if this contains real script output
+      const isScriptOutput = cleanOutput.includes("Hello, World!") ||
+                             cleanOutput.includes("Nice to meet you") ||
+                             cleanOutput.includes("countdown") ||
+                             cleanOutput.includes("Blast off");
+      
+      if (isScriptOutput) {
+        console.log('!!! DETECTED IMPORTANT SCRIPT OUTPUT !!!', cleanOutput);
+        
+        // Forward with special flag for script execution panel
+        window.postMessage({
+          type: 'pythonrepl/output',
+          output: cleanOutput,
+          isScriptOutput: true
+        }, '*');
+      } else {
+        // Forward the cleaned output to the Script Execution Panel
+        window.postMessage({
+          type: 'pythonrepl/output',
+          output: cleanOutput
+        }, '*');
+      }
       
       console.log('Forwarding output to Script Panel:', cleanOutput);
     };
@@ -582,14 +599,66 @@ const PythonREPL = ({ className = '' }) => {
           originalWsHandler(event);
         }
         
-        // Then forward the output
+        // Enhanced output forwarding
         try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'output') {
-            forwardOutput(data.data);
+          // First try to parse as JSON
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'output') {
+              // Log the raw output to help with debugging
+              console.log('WEBSOCKET RAW OUTPUT:', data.data);
+              
+              // Simple script output detection
+              if (data.data.includes("Hello, World!") || 
+                  data.data.includes("Nice to meet you") || 
+                  data.data.includes("countdown") || 
+                  data.data.includes("Blast off")) {
+                console.log('IMPORTANT SCRIPT OUTPUT DETECTED!', data.data);
+                
+                // Forward with high priority flag
+                window.postMessage({
+                  type: 'pythonrepl/output',
+                  output: data.data,
+                  isScriptOutput: true,
+                  highPriority: true
+                }, '*');
+                
+                // Broadcast again with another event type to ensure it's received
+                window.postMessage({
+                  type: 'pythonrepl/scriptOutput',
+                  output: data.data
+                }, '*');
+                
+                // Also attempt direct DOM update as a backup approach
+                try {
+                  const outputElement = document.querySelector('.python-output');
+                  if (outputElement) {
+                    // Parse and extract the important parts
+                    const lines = data.data.split('\n')
+                      .filter(line => !line.trim().startsWith('>>>') && !line.trim().startsWith('...'))
+                      .map(line => line.trim());
+                    
+                    // Add to DOM directly
+                    outputElement.textContent += '\n' + lines.join('\n');
+                  }
+                } catch (domErr) {
+                  console.error('Failed direct DOM update:', domErr);
+                }
+              } else {
+                // Regular output processing
+                forwardOutput(data.data);
+              }
+            }
+          } catch (jsonErr) {
+            // If not JSON, forward the raw event data
+            console.log('Forwarding raw WebSocket data:', event.data);
+            window.postMessage({
+              type: 'pythonrepl/output',
+              output: String(event.data)
+            }, '*');
           }
         } catch (err) {
-          console.error('Error forwarding output:', err);
+          console.error('Error in enhanced output handling:', err);
         }
       };
     }

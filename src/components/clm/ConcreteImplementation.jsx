@@ -8,11 +8,7 @@ const ConcreteImplementation = ({
     inputs, 
     activities, 
     outputs, 
-    cards, 
-    wsRef, 
-    executionStatus, 
-    setPythonScriptOutput, 
-    setExecutionStatus 
+    cards
 }) => {
     return (
         <>
@@ -29,10 +25,6 @@ const ConcreteImplementation = ({
                     <LinkedFiles 
                         content={inputs} 
                         cards={cards} 
-                        wsRef={wsRef}
-                        executionStatus={executionStatus} 
-                        setPythonScriptOutput={setPythonScriptOutput} 
-                        setExecutionStatus={setExecutionStatus}
                         sectionName="inputs"
                     />
                 </td>
@@ -40,10 +32,6 @@ const ConcreteImplementation = ({
                     <LinkedFiles 
                         content={activities} 
                         cards={cards} 
-                        wsRef={wsRef}
-                        executionStatus={executionStatus} 
-                        setPythonScriptOutput={setPythonScriptOutput} 
-                        setExecutionStatus={setExecutionStatus}
                         sectionName="activities"
                     />
                 </td>
@@ -51,10 +39,6 @@ const ConcreteImplementation = ({
                     <LinkedFiles 
                         content={outputs} 
                         cards={cards} 
-                        wsRef={wsRef}
-                        executionStatus={executionStatus} 
-                        setPythonScriptOutput={setPythonScriptOutput} 
-                        setExecutionStatus={setExecutionStatus}
                         sectionName="outputs"
                     />
                 </td>

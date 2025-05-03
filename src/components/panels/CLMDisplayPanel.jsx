@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../styles/clm-display.css';
-import PythonExecutionArea from '../clm/PythonExecutionArea';
-import LinkedFiles from '../clm/LinkedFiles';
 import AbstractSpecification from '../clm/AbstractSpecification';
 import ConcreteImplementation from '../clm/ConcreteImplementation';
 import BalancedExpectations from '../clm/BalancedExpectations';
-import { executePythonScript } from '../clm/PythonExecutionArea';
+import PythonREPLPanel from './PythonREPLPanel';
 
 const CLMDisplayPanel = ({ initialHash = '' }) => {
     const [loading, setLoading] = useState(false);
@@ -24,55 +22,12 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
         apiResponse: null,
         dimensionData: null
     });
-    // Python script execution state
-    const [pythonScriptOutput, setPythonScriptOutput] = useState([]);
-    const [executionStatus, setExecutionStatus] = useState('idle'); // 'idle', 'running', 'success', 'error'
-    const [wsRef, setWsRef] = useState(null);
-
+    
     const dispatch = useDispatch();
     
     // Use Redux selectors to get the selected hash and cards
     const selectedHash = useSelector(state => state?.content?.selectedHash || initialHash);
     const cards = useSelector(state => state?.content?.cards || {});
-    
-    // Set up WebSocket connection for Python execution
-    useEffect(() => {
-        console.log('CLMDisplayPanel: Setting up WebSocket connection for Python execution');
-        
-        // Force wsRef to be non-null initially so buttons can render
-        // This is a temporary fix until we fix the WebSocket connection
-        setWsRef({readyState: -1});
-        
-        try {
-            const ws = new WebSocket('ws://localhost:3010');
-            
-            ws.onopen = () => {
-                console.log('CLMDisplayPanel: WebSocket connected');
-                setWsRef(ws);
-            };
-            
-            ws.onerror = (error) => {
-                console.error('CLMDisplayPanel: WebSocket connection error:', error);
-                // Keep the fallback wsRef so buttons still show
-            };
-            
-            ws.onclose = () => {
-                console.log('CLMDisplayPanel: WebSocket connection closed');
-                // Keep a dummy wsRef so buttons still show
-                setWsRef({readyState: -1});
-            };
-            
-            // Clean up on unmount
-            return () => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.close();
-                }
-            };
-        } catch (error) {
-            console.error('Failed to create WebSocket:', error);
-            // Keep the fallback wsRef so buttons can still render
-        }
-    }, []);
     
     // Get the root CLM card from Redux store
     const rootClmMemo = useMemo(() => {
@@ -381,10 +336,6 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                         activities={activities}
                         outputs={outputs}
                         cards={cards}
-                        wsRef={wsRef}
-                        executionStatus={executionStatus}
-                        setPythonScriptOutput={setPythonScriptOutput}
-                        setExecutionStatus={setExecutionStatus}
                     />
                 </tbody>
             </table>
@@ -403,33 +354,7 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
             </div>
             
             {/* Python Script Execution Output Section */}
-            <div className="python-execution-area">
-                <h3>Python Script Execution</h3>
-                
-                {/* Show execution status */}
-                <div className={`execution-status ${executionStatus}`}>
-                    Status: {executionStatus === 'idle' ? 'Ready' : 
-                            executionStatus === 'running' ? 'Running...' : 
-                            executionStatus === 'success' ? 'Completed Successfully' : 'Error'}
-                </div>
-                
-                {/* Output display */}
-                {pythonScriptOutput.length > 0 && (
-                    <div className="python-output-container">
-                        <h4>Script Output:</h4>
-                        <pre className="python-output">
-                            {pythonScriptOutput.join('\n')}
-                        </pre>
-                    </div>
-                )}
-                
-                {/* Show instructions if no output */}
-                {pythonScriptOutput.length === 0 && (
-                    <div className="python-instructions">
-                        <p>Click the "Execute Python" button next to a Python file in the Concrete Implementation section to run a script.</p>
-                    </div>
-                )}
-            </div>
+            <PythonREPLPanel />
             
             {/* Balanced Expectations Section */}
             <BalancedExpectations 

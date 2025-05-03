@@ -1,6 +1,5 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
-import { executePythonScript } from './PythonExecutionArea';
 import PythonFileUploader from './PythonFileUploader';
 
 /**
@@ -9,10 +8,6 @@ import PythonFileUploader from './PythonFileUploader';
 const LinkedFiles = ({ 
     content, 
     cards, 
-    wsRef, 
-    executionStatus, 
-    setPythonScriptOutput, 
-    setExecutionStatus,
     sectionName = ''
 }) => {
     const dispatch = useDispatch();
@@ -66,33 +61,54 @@ const LinkedFiles = ({
         return String(content);
     };
     
-    // Handle button click to execute Python script
-    const handleExecuteScript = async (fileHash) => {
-        if (!wsRef) {
-            console.error('WebSocket not connected for executing Python script');
-            setPythonScriptOutput(['Error: Python server not connected. Please check your WebSocket connection.']);
-            setExecutionStatus('error');
-            return;
-        }
+    // Handle executing a Python script for a linked file
+    const handleExecutePython = async (fileHash) => {
+        console.log('Executing Python script for file hash:', fileHash);
         
-        // First clear any previous output and set status to running
-        setPythonScriptOutput(['=== Starting Execution ===']);
-        setExecutionStatus('running');
+        // Get the file from Redux store
+        const file = cards[fileHash.trim()];
         
-        console.log('Executing Python script:', fileHash);
-        
-        // Check if the file exists in cards
-        const scriptFile = cards[fileHash.trim()];
-        if (scriptFile && scriptFile.content) {
-            console.log('Found script file in cards with content:', scriptFile);
+        if (file && file.content) {
+            // We already have the file in Redux, prepare and dispatch to execute it
+            let scriptContent = '';
             
-            // Pass the file content directly to prevent an extra API call
-            executePythonScript(fileHash, wsRef, setPythonScriptOutput, setExecutionStatus, scriptFile);
+            // Handle binary or text content properly
+            if (file.content instanceof Uint8Array || 
+                (typeof file.content === 'object' && file.content.type === 'Buffer')) {
+                // Convert binary content to string
+                const buffer = file.content instanceof Uint8Array 
+                    ? file.content 
+                    : new Uint8Array(file.content.data);
+                scriptContent = new TextDecoder().decode(buffer);
+            } else if (typeof file.content === 'string') {
+                // Already a string
+                scriptContent = file.content;
+            } else {
+                // Try to convert other formats to string
+                try {
+                    scriptContent = JSON.stringify(file.content, null, 2);
+                } catch (e) {
+                    scriptContent = String(file.content);
+                }
+            }
+            
+            console.log('Dispatching script execution with content length:', scriptContent.length);
+            
+            // Dispatch action to execute the script
+            dispatch({
+                type: 'pythonrepl/executeScript',
+                payload: {
+                    content: scriptContent,
+                    hash: fileHash,
+                    filename: file.metadata?.filename || fileHash.substring(0, 8)
+                }
+            });
         } else {
-            console.log('File not found in cards or has no content, fetching from API');
+            // We don't have the file yet, fetch it first
             try {
-                // Fetch the file content directly
+                console.log('Fetching file content for execution:', fileHash);
                 const response = await fetch(`/api/card-collection?action=get&hash=${fileHash.trim()}`);
+                
                 if (!response.ok) {
                     throw new Error(`API returned ${response.status}: ${response.statusText}`);
                 }
@@ -110,15 +126,47 @@ const LinkedFiles = ({
                         }
                     });
                     
+                    // Prepare the script content
+                    let scriptContent = '';
+                    
+                    // Handle binary or text content properly
+                    if (data.card.content instanceof Uint8Array || 
+                        (typeof data.card.content === 'object' && data.card.content.type === 'Buffer')) {
+                        // Convert binary content to string
+                        const buffer = data.card.content instanceof Uint8Array 
+                            ? data.card.content 
+                            : new Uint8Array(data.card.content.data);
+                        scriptContent = new TextDecoder().decode(buffer);
+                    } else if (typeof data.card.content === 'string') {
+                        // Already a string
+                        scriptContent = data.card.content;
+                    } else {
+                        // Try to convert other formats to string
+                        try {
+                            scriptContent = JSON.stringify(data.card.content, null, 2);
+                        } catch (e) {
+                            scriptContent = String(data.card.content);
+                        }
+                    }
+                    
+                    console.log('Dispatching script execution with content length:', scriptContent.length);
+                    
                     // Execute with the fetched file
-                    executePythonScript(fileHash, wsRef, setPythonScriptOutput, setExecutionStatus, data.card);
+                    dispatch({
+                        type: 'pythonrepl/executeScript',
+                        payload: {
+                            content: scriptContent,
+                            hash: fileHash,
+                            filename: data.card.metadata?.filename || fileHash.substring(0, 8)
+                        }
+                    });
                 } else {
                     throw new Error('Failed to fetch file content');
                 }
             } catch (error) {
                 console.error('Error fetching file for execution:', error);
-                setPythonScriptOutput(prev => [...prev, `Error: ${error.message}`]);
-                setExecutionStatus('error');
+                // Show error through global notification or toast
+                alert(`Error executing Python script: ${error.message}`);
             }
         }
     };
@@ -157,10 +205,9 @@ const LinkedFiles = ({
                     {isPythonFile && (
                         <button 
                             className="execute-python-btn"
-                            onClick={() => handleExecuteScript(fileHash.trim())}
-                            disabled={executionStatus === 'running'}
+                            onClick={() => handleExecutePython(fileHash.trim())}
                         >
-                            {executionStatus === 'running' ? 'Running...' : 'Execute Python'}
+                            Execute Python
                         </button>
                     )}
                 </div>

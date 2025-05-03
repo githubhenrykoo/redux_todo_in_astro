@@ -21,6 +21,8 @@ const PythonREPLPanel = () => {
   // Get selected hash from Redux store
   const storeSelectedHash = useSelector(state => state?.content?.selectedHash);
   const cards = useSelector(state => state?.content?.cards || {});
+  const pythonReplState = useSelector(state => state?.pythonrepl);
+  const { currentScript, status } = pythonReplState || {};
   const dispatch = useDispatch();
   
   // Initialize terminal
@@ -92,6 +94,23 @@ const PythonREPLPanel = () => {
       };
     }
   }, []);
+  
+  // Listen for executeScript action from Redux
+  useEffect(() => {
+    if (currentScript && currentScript.content && status === 'running') {
+      console.log('REPL Panel detected script execution:', currentScript.filename);
+      
+      // Set the script content
+      setScriptContent(currentScript.content);
+      setShowScriptViewer(true);
+      setScriptExecuting(true);
+      
+      // Execute the script after a short delay to ensure the UI updates
+      setTimeout(() => {
+        executeScript(currentScript.content);
+      }, 100);
+    }
+  }, [currentScript, status]);
   
   // Handle selection change from store
   useEffect(() => {
@@ -234,46 +253,127 @@ const PythonREPLPanel = () => {
     }
   };
   
+  // Preprocess script content to remove problematic characters and shebang lines
+  const preprocessScriptContent = (content) => {
+    if (!content) return '';
+    
+    // Convert from binary array if needed
+    let scriptText = content;
+    if (content instanceof Uint8Array || 
+        (typeof content === 'object' && content.type === 'Buffer')) {
+      const buffer = content instanceof Uint8Array 
+        ? content 
+        : new Uint8Array(content.data);
+      scriptText = new TextDecoder().decode(buffer);
+    } else if (typeof content !== 'string') {
+      // Try to convert other formats to string
+      try {
+        scriptText = JSON.stringify(content, null, 2);
+      } catch (e) {
+        scriptText = String(content);
+      }
+    }
+    
+    // Remove shebang line if present since it causes issues in REPL
+    const lines = scriptText.split('\n');
+    if (lines[0] && lines[0].startsWith('#!')) {
+      lines.shift(); // Remove the first line (shebang)
+    }
+    
+    // Remove any null bytes or other control characters that might cause issues
+    return lines.join('\n').replace(/\x00/g, '');
+  };
+  
   // Execute the current script
-  const executeScript = () => {
-    if (!connected || !scriptContent) return;
+  const executeScript = (scriptToExecute) => {
+    if (!connected) return;
+    
+    // Get the script content, either passed in or from state
+    let scriptToRun = scriptToExecute || scriptContent;
+    if (!scriptToRun) return;
+    
+    // Preprocess the script content to ensure it's clean and runnable
+    scriptToRun = preprocessScriptContent(scriptToRun);
+    
+    // Log that we're executing
+    console.log('Executing script:', scriptToRun.substring(0, 100) + '...');
     
     setScriptExecuting(true);
     
-    // Break script into lines
-    const lines = scriptContent.split('\n');
+    // Clear terminal first
+    clearTerminal();
     
-    // Function to send lines one by one with some delay
-    const sendLine = (index) => {
-      if (index >= lines.length) {
-        setScriptExecuting(false);
-        return;
-      }
+    // Send initial python3 command if needed
+    if (terminalRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      terminalRef.current.write('\r\nRunning Python script...\r\n\r\n');
       
-      const line = lines[index];
-      
-      // Skip empty lines
-      if (!line.trim()) {
-        setTimeout(() => sendLine(index + 1), 10);
-        return;
-      }
-      
-      // Send this line to the REPL
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      // Try a different execution approach - using a single exec() command
+      // This is more reliable than line-by-line execution
+      try {
+        // Format the script to be passed to exec()
+        // We'll escape any quotes and newlines
+        const escapedScript = scriptToRun
+          .replace(/\\/g, '\\\\')  // Escape backslashes
+          .replace(/"/g, '\\"')    // Escape double quotes
+          .replace(/\n/g, '\\n');  // Replace newlines with \n string
+        
+        // Create an exec() command
+        const execCommand = `exec("""${escapedScript}""")\r`;
+        
+        console.log('Sending exec command');
+        
+        // Send the exec command
         wsRef.current.send(JSON.stringify({
           type: 'input',
-          data: line + '\r'
+          data: execCommand
         }));
         
-        // Wait for execution before sending next line
-        setTimeout(() => sendLine(index + 1), 100);
-      } else {
-        setScriptExecuting(false);
+        // Set a timeout to mark execution as complete
+        setTimeout(() => {
+          setScriptExecuting(false);
+        }, 500);
+        
+        return;
+      } catch (err) {
+        console.error('Error with exec approach, falling back to line-by-line:', err);
+        // Fall back to line-by-line approach
       }
-    };
-    
-    // Start sending lines
-    sendLine(0);
+      
+      // Break script into lines for line-by-line execution (fallback)
+      const lines = scriptToRun.split('\n');
+      
+      // Function to send lines one by one with some delay
+      const sendLine = (index) => {
+        if (index >= lines.length) {
+          setScriptExecuting(false);
+          return;
+        }
+        
+        const line = lines[index];
+        
+        // Skip empty lines
+        if (!line.trim()) {
+          setTimeout(() => sendLine(index + 1), 10);
+          return;
+        }
+        
+        // Send this line to the REPL
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'input',
+            data: line + '\r'
+          }));
+          
+          // Wait for execution before sending next line
+          setTimeout(() => sendLine(index + 1), 100);
+        } else {
+          setScriptExecuting(false);
+        }
+      };
+      
+      // Start sending lines
+      sendLine(0);
+    }
   };
   
   // Clear the terminal

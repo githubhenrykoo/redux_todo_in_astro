@@ -67,55 +67,107 @@ const LinkedFiles = ({
     };
     
     // Handle button click to execute Python script
-    const handleExecuteScript = (fileHash) => {
+    const handleExecuteScript = async (fileHash) => {
         if (!wsRef) {
             console.error('WebSocket not connected for executing Python script');
             setPythonScriptOutput(['Error: Python server not connected. Please check your WebSocket connection.']);
             setExecutionStatus('error');
             return;
         }
+        
+        // First clear any previous output and set status to running
+        setPythonScriptOutput(['=== Starting Execution ===']);
+        setExecutionStatus('running');
+        
         console.log('Executing Python script:', fileHash);
-        executePythonScript(fileHash, wsRef, setPythonScriptOutput, setExecutionStatus);
+        
+        // Check if the file exists in cards
+        const scriptFile = cards[fileHash.trim()];
+        if (scriptFile && scriptFile.content) {
+            console.log('Found script file in cards with content:', scriptFile);
+            
+            // Pass the file content directly to prevent an extra API call
+            executePythonScript(fileHash, wsRef, setPythonScriptOutput, setExecutionStatus, scriptFile);
+        } else {
+            console.log('File not found in cards or has no content, fetching from API');
+            try {
+                // Fetch the file content directly
+                const response = await fetch(`/api/card-collection?action=get&hash=${fileHash.trim()}`);
+                if (!response.ok) {
+                    throw new Error(`API returned ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('API response:', data);
+                
+                if (data.success && data.card) {
+                    // Store in Redux for future use
+                    dispatch({
+                        type: 'content/addCard',
+                        payload: {
+                            hash: fileHash.trim(),
+                            card: data.card
+                        }
+                    });
+                    
+                    // Execute with the fetched file
+                    executePythonScript(fileHash, wsRef, setPythonScriptOutput, setExecutionStatus, data.card);
+                } else {
+                    throw new Error('Failed to fetch file content');
+                }
+            } catch (error) {
+                console.error('Error fetching file for execution:', error);
+                setPythonScriptOutput(prev => [...prev, `Error: ${error.message}`]);
+                setExecutionStatus('error');
+            }
+        }
     };
     
     // Render a single linked file item
     const renderLinkedFile = (fileHash, idx) => {
         // Check if the file exists in cards
         const file = cards[fileHash.trim()] || {};
-        console.log('Rendering linked file:', fileHash, 'File data:', file);
+        const fileFound = Object.keys(file).length > 0;
         
-        // Determine if this is a Python file
-        const isPythonFile = 
-            file.type === 'text/x-python-script' || 
-            file.type === 'X-PYTHON-SCRIPT' ||
-            (file.name && file.name.toLowerCase().endsWith('.py')) ||
-            fileHash.includes('.py');
-            
-        console.log('Is Python file?', isPythonFile, 'File type:', file.type, 'File name:', file.name);
+        console.log('Rendering linked file:', fileHash, 'File data:', file);
+        console.log('File content exists?', !!file.content);
+        
+        // IMPORTANT: For now, assume all linked files can be executed as Python
+        // This is a temporary fix to ensure the Execute button appears
+        const isPythonFile = true;
         
         return (
-            <div key={idx} className="linked-file-item">
-                <span className="file-hash">{fileHash.trim()}</span>
-                <button 
-                    className="view-file-btn"
-                    onClick={() => {
-                        // Dispatch to view this file
-                        dispatch({
-                            type: 'content/setSelectedHash',
-                            payload: fileHash.trim()
-                        });
-                    }}
-                >
-                    View
-                </button>
-                {isPythonFile && (
+            <div key={idx} className={`linked-file-item ${fileFound ? 'file-found' : 'file-missing'}`}>
+                <span className="file-hash" title={fileHash.trim()}>
+                    {fileHash.substring(0, 16)}...
+                </span>
+                <div className="file-actions">
                     <button 
-                        className="execute-python-btn"
-                        onClick={() => handleExecuteScript(fileHash.trim())}
-                        disabled={executionStatus === 'running'}
+                        className="view-file-btn"
+                        onClick={() => {
+                            // Dispatch to view this file
+                            dispatch({
+                                type: 'content/setSelectedHash',
+                                payload: fileHash.trim()
+                            });
+                        }}
                     >
-                        {executionStatus === 'running' ? 'Running...' : 'Execute Python'}
+                        View
                     </button>
+                    {isPythonFile && (
+                        <button 
+                            className="execute-python-btn"
+                            onClick={() => handleExecuteScript(fileHash.trim())}
+                            disabled={executionStatus === 'running'}
+                        >
+                            {executionStatus === 'running' ? 'Running...' : 'Execute Python'}
+                        </button>
+                    )}
+                </div>
+                {!fileFound && (
+                    <div className="file-warning">
+                        File not found in cache - will fetch during execution
+                    </div>
                 )}
             </div>
         );

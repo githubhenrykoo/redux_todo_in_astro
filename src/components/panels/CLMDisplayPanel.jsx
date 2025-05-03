@@ -8,6 +8,7 @@ import LinkedFiles from '../clm/LinkedFiles';
 import AbstractSpecification from '../clm/AbstractSpecification';
 import ConcreteImplementation from '../clm/ConcreteImplementation';
 import BalancedExpectations from '../clm/BalancedExpectations';
+import { executePythonScript } from '../clm/PythonExecutionArea';
 
 const CLMDisplayPanel = ({ initialHash = '' }) => {
     const [loading, setLoading] = useState(false);
@@ -37,28 +38,40 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
     // Set up WebSocket connection for Python execution
     useEffect(() => {
         console.log('CLMDisplayPanel: Setting up WebSocket connection for Python execution');
-        const ws = new WebSocket('ws://localhost:3010');
         
-        ws.onopen = () => {
-            console.log('CLMDisplayPanel: WebSocket connected');
-            setWsRef(ws);
-        };
+        // Force wsRef to be non-null initially so buttons can render
+        // This is a temporary fix until we fix the WebSocket connection
+        setWsRef({readyState: -1});
         
-        ws.onerror = (error) => {
-            console.error('CLMDisplayPanel: WebSocket connection error:', error);
-        };
-        
-        ws.onclose = () => {
-            console.log('CLMDisplayPanel: WebSocket connection closed');
-            setWsRef(null);
-        };
-        
-        // Clean up on unmount
-        return () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.close();
-            }
-        };
+        try {
+            const ws = new WebSocket('ws://localhost:3010');
+            
+            ws.onopen = () => {
+                console.log('CLMDisplayPanel: WebSocket connected');
+                setWsRef(ws);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('CLMDisplayPanel: WebSocket connection error:', error);
+                // Keep the fallback wsRef so buttons still show
+            };
+            
+            ws.onclose = () => {
+                console.log('CLMDisplayPanel: WebSocket connection closed');
+                // Keep a dummy wsRef so buttons still show
+                setWsRef({readyState: -1});
+            };
+            
+            // Clean up on unmount
+            return () => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+            };
+        } catch (error) {
+            console.error('Failed to create WebSocket:', error);
+            // Keep the fallback wsRef so buttons can still render
+        }
     }, []);
     
     // Get the root CLM card from Redux store

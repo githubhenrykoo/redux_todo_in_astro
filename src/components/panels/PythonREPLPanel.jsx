@@ -12,6 +12,7 @@ const PythonREPLPanel = () => {
   const [selectedHash, setSelectedHash] = useState('');
   const [scriptExecuting, setScriptExecuting] = useState(false);
   const [showScriptViewer, setShowScriptViewer] = useState(false);
+  const [scriptViewerCollapsed, setScriptViewerCollapsed] = useState(false);
   
   const wsRef = useRef(null);
   const terminalRef = useRef(null);
@@ -415,35 +416,71 @@ const PythonREPLPanel = () => {
       </div>
       
       {showScriptViewer && (
-        <div className="script-viewer">
-          <div className="script-header">
-            <h3>Selected Script</h3>
+        <div className="script-viewer" style={{
+          marginBottom: '15px',
+          border: '1px solid #444',
+          borderRadius: '4px',
+          overflow: 'hidden',
+          backgroundColor: '#252525',
+          transition: 'all 0.3s ease'
+        }}>
+          <div className="script-header" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 12px',
+            backgroundColor: '#333',
+            borderBottom: scriptViewerCollapsed ? 'none' : '1px solid #444'
+          }}>
+            <h3 style={{ margin: 0 }}>
+              <span style={{ cursor: 'pointer' }} onClick={() => setScriptViewerCollapsed(!scriptViewerCollapsed)}>
+                {scriptViewerCollapsed ? '▶' : '▼'} Selected Script
+              </span>
+            </h3>
             <div className="script-actions">
               <button 
                 className="execute-button" 
                 onClick={executeScript} 
                 disabled={!connected || scriptExecuting}
+                style={{
+                  marginRight: '8px',
+                  padding: '4px 10px',
+                  backgroundColor: '#2c7d23',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer'
+                }}
               >
                 {scriptExecuting ? 'Executing...' : 'Execute Script'}
               </button>
               <button 
-                className="hide-button" 
-                onClick={() => setShowScriptViewer(false)}
+                className="collapse-button" 
+                onClick={() => setScriptViewerCollapsed(!scriptViewerCollapsed)}
+                style={{
+                  padding: '4px 10px',
+                  backgroundColor: '#555',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '3px',
+                  cursor: 'pointer'
+                }}
               >
-                Hide
+                {scriptViewerCollapsed ? 'Expand' : 'Collapse'}
               </button>
             </div>
           </div>
-          <pre className="script-content" style={{
-            maxHeight: '300px',
-            overflowY: 'auto',
-            padding: '10px',
-            backgroundColor: '#252525',
-            border: '1px solid #444',
-            borderRadius: '4px',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
-          }}>{scriptContent}</pre>
+          {!scriptViewerCollapsed && (
+            <pre className="script-content" style={{
+              maxHeight: '300px',
+              overflowY: 'auto',
+              padding: '10px',
+              margin: 0,
+              backgroundColor: '#252525',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word'
+            }}>{scriptContent}</pre>
+          )}
         </div>
       )}
       

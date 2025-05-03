@@ -434,7 +434,16 @@ const PythonREPLPanel = () => {
               </button>
             </div>
           </div>
-          <pre className="script-content">{scriptContent}</pre>
+          <pre className="script-content" style={{
+            maxHeight: '300px',
+            overflowY: 'auto',
+            padding: '10px',
+            backgroundColor: '#252525',
+            border: '1px solid #444',
+            borderRadius: '4px',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word'
+          }}>{scriptContent}</pre>
         </div>
       )}
       
@@ -449,7 +458,14 @@ const PythonREPLPanel = () => {
             )}
           </div>
         </div>
-        <div className="terminal-container" ref={terminalDivRef}></div>
+        <div className="terminal-container" ref={terminalDivRef} style={{
+          height: '350px',
+          overflowY: 'auto',
+          backgroundColor: '#1e1e1e',
+          border: '1px solid #444',
+          borderRadius: '4px',
+          padding: '5px'
+        }}></div>
       </div>
       
       <div className="panel-footer">

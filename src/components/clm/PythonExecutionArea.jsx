@@ -107,18 +107,16 @@ ${cleanedContent}
                     for (const line of lines) {
                         const trimmedLine = line.trim();
                         
-                        // Skip prompts and input echoes
+                        // Skip only Python prompts and certain specific lines
                         if (trimmedLine.startsWith('>>>') || 
-                            trimmedLine.startsWith('...') || 
-                            trimmedLine === '' ||
-                            trimmedLine === '\\') {
+                            trimmedLine.startsWith('...')) {
                             continue;
                         }
                         
-                        // Add real output
+                        // Add real output, including empty lines for formatting
                         setPythonScriptOutput(prev => {
-                            // Avoid duplicates
-                            if (prev.length > 0 && prev[prev.length - 1] === trimmedLine) {
+                            // Avoid duplicates but allow empty lines for proper formatting
+                            if (prev.length > 0 && prev[prev.length - 1] === trimmedLine && trimmedLine !== '') {
                                 return prev;
                             }
                             return [...prev, trimmedLine];

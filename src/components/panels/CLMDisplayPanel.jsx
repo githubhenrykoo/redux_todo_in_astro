@@ -3,10 +3,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../styles/clm-display.css';
+import PythonExecutionArea from '../clm/PythonExecutionArea';
+import LinkedFiles from '../clm/LinkedFiles';
+import AbstractSpecification from '../clm/AbstractSpecification';
+import ConcreteImplementation from '../clm/ConcreteImplementation';
+import BalancedExpectations from '../clm/BalancedExpectations';
 
 const CLMDisplayPanel = ({ initialHash = '' }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [rootClm, setRootClm] = useState(null);
     const [dimensions, setDimensions] = useState({
         abstractSpecification: null,
         concreteImplementation: null
@@ -17,6 +23,10 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
         apiResponse: null,
         dimensionData: null
     });
+    // Python script execution state
+    const [pythonScriptOutput, setPythonScriptOutput] = useState([]);
+    const [executionStatus, setExecutionStatus] = useState('idle'); // 'idle', 'running', 'success', 'error'
+    const [wsRef, setWsRef] = useState(null);
 
     const dispatch = useDispatch();
     
@@ -24,8 +34,35 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
     const selectedHash = useSelector(state => state?.content?.selectedHash || initialHash);
     const cards = useSelector(state => state?.content?.cards || {});
     
+    // Set up WebSocket connection for Python execution
+    useEffect(() => {
+        console.log('CLMDisplayPanel: Setting up WebSocket connection for Python execution');
+        const ws = new WebSocket('ws://localhost:3010');
+        
+        ws.onopen = () => {
+            console.log('CLMDisplayPanel: WebSocket connected');
+            setWsRef(ws);
+        };
+        
+        ws.onerror = (error) => {
+            console.error('CLMDisplayPanel: WebSocket connection error:', error);
+        };
+        
+        ws.onclose = () => {
+            console.log('CLMDisplayPanel: WebSocket connection closed');
+            setWsRef(null);
+        };
+        
+        // Clean up on unmount
+        return () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+        };
+    }, []);
+    
     // Get the root CLM card from Redux store
-    const rootClm = useMemo(() => {
+    const rootClmMemo = useMemo(() => {
         // Find the card by hash
         const selectedCard = selectedHash ? cards[selectedHash] : null;
         if (selectedCard && selectedCard.content) {
@@ -48,20 +85,20 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
 
     // Load dimensions when root CLM changes
     useEffect(() => {
-        console.log('Root CLM:', rootClm);
+        console.log('Root CLM:', rootClmMemo);
         // Clear any previous error
         setError(null);
         
-        if (rootClm) {
-            if (rootClm.dimensions) {
-                loadDimensions(rootClm.dimensions);
+        if (rootClmMemo) {
+            if (rootClmMemo.dimensions) {
+                loadDimensions(rootClmMemo.dimensions);
                 // Search for related Balanced Expectations
                 if (selectedHash) {
                     searchBalancedExpectations(selectedHash);
                 }
-            } else if (rootClm.type === 'clm_document' && rootClm.dimensions) {
+            } else if (rootClmMemo.type === 'clm_document' && rootClmMemo.dimensions) {
                 // Special handling for clm_document type
-                loadDimensions(rootClm.dimensions);
+                loadDimensions(rootClmMemo.dimensions);
                 // Search for related Balanced Expectations
                 if (selectedHash) {
                     searchBalancedExpectations(selectedHash);
@@ -74,7 +111,7 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                 });
                 
                 // Set error for debugging
-                setError(`Invalid CLM format: dimensions property is missing. Content type: ${typeof rootClm}, Keys: ${Object.keys(rootClm).join(', ')}`);
+                setError(`Invalid CLM format: dimensions property is missing. Content type: ${typeof rootClmMemo}, Keys: ${Object.keys(rootClmMemo).join(', ')}`);
             }
         } else {
             // Reset dimensions if no root CLM
@@ -85,7 +122,7 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
             // Reset balanced expectations too
             setBalancedExpectations([]);
         }
-    }, [rootClm]);
+    }, [rootClmMemo]);
 
     // Load all dimensions from the Redux store or fetch if needed
     const loadDimensions = async (dimensionHashes) => {
@@ -273,100 +310,6 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
         return String(content);
     };
     
-    // Helper function to detect and format file references
-    const formatLinkedFiles = (content) => {
-        if (!content) return null;
-        
-        // If content is a string but contains linkedFiles marker
-        if (typeof content === 'string' && content.includes('linkedFiles:')) {
-            const parts = content.split('linkedFiles:');
-            return (
-                <div>
-                    <div>{parts[0]}</div>
-                    <div className="linked-files-section">
-                        <h4>Linked Files</h4>
-                        <div className="linked-files-list">
-                            {parts[1].trim().split('\n').map((fileHash, idx) => (
-                                <div key={idx} className="linked-file-item">
-                                    <span className="file-hash">{fileHash.trim()}</span>
-                                    <button 
-                                        className="view-file-btn"
-                                        onClick={() => {
-                                            // Dispatch to view this file
-                                            dispatch({
-                                                type: 'content/setSelectedHash',
-                                                payload: fileHash.trim()
-                                            });
-                                        }}
-                                    >
-                                        View
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-        
-        // If content is an object with linkedFiles property
-        if (typeof content === 'object' && content.linkedFiles) {
-            const { linkedFiles, ...restContent } = content;
-            const mainContent = Object.keys(restContent).length > 0 
-                ? formatContent(restContent) 
-                : '';
-                
-            return (
-                <div>
-                    <div>{mainContent}</div>
-                    <div className="linked-files-section">
-                        <h4>Linked Files</h4>
-                        <div className="linked-files-list">
-                            {Array.isArray(linkedFiles) 
-                                ? linkedFiles.map((fileHash, idx) => (
-                                    <div key={idx} className="linked-file-item">
-                                        <span className="file-hash">{fileHash}</span>
-                                        <button 
-                                            className="view-file-btn"
-                                            onClick={() => {
-                                                // Dispatch to view this file
-                                                dispatch({
-                                                    type: 'content/setSelectedHash',
-                                                    payload: fileHash
-                                                });
-                                            }}
-                                        >
-                                            View
-                                        </button>
-                                    </div>
-                                ))
-                                : (
-                                    <div className="linked-file-item">
-                                        <span className="file-hash">{linkedFiles}</span>
-                                        <button 
-                                            className="view-file-btn"
-                                            onClick={() => {
-                                                // Dispatch to view this file
-                                                dispatch({
-                                                    type: 'content/setSelectedHash',
-                                                    payload: linkedFiles
-                                                });
-                                            }}
-                                        >
-                                            View
-                                        </button>
-                                    </div>
-                                )
-                            }
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-        
-        return formatContent(content);
-    };
-    
     // Extract content from dimensions for display
     const abstractSpec = dimensions.abstractSpecification || {};
     const context = abstractSpec.context;
@@ -389,19 +332,19 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                 <p>{error}</p>
                 <div className="debug-info">
                     <h3>Debug Information</h3>
-                    <pre>{JSON.stringify({rootClm, debug}, null, 2)}</pre>
+                    <pre>{JSON.stringify({rootClm: rootClmMemo, debug}, null, 2)}</pre>
                 </div>
             </div>
         );
     }
     
-    if (!rootClm) {
-        return <div className="clm-display-empty">No CLM selected. Please select a CLM to view.</div>;
+    if (!rootClmMemo) {
+        return <div className="clm-display-empty" style={{ overflowY: 'auto' }}>No CLM selected. Please select a CLM to view.</div>;
     }
     
     return (
-        <div className="clm-display-panel">
-            <h2>{rootClm.title || 'Untitled CLM'}</h2>
+        <div className="clm-display-panel" style={{ overflowY: 'auto' }}>
+            <h2>{rootClmMemo.title || 'Untitled CLM'}</h2>
             
             {/* Debug Info - Comment out in production */}
             <div className="clm-debug-info" style={{ display: 'none' }}>
@@ -411,50 +354,25 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
             
             {/* Display CLM in table format */}
             <table className="clm-table" width="600">
-                {/* Abstract Specification Section */}
                 <tbody>
-                    <tr>
-                        <th colSpan={6}><a href="#abstract-specification">Abstract Specification</a></th>
-                    </tr>
-                    <tr>
-                        <th colSpan={1}><a href="#context">Context</a></th>
-                        <td colSpan={5} style={{ wordWrap: 'break-word' }}>
-                            {formatContent(context) || 'No context available'}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th colSpan={1}><a href="#goal">Goal</a></th>
-                        <td colSpan={5} style={{ wordWrap: 'break-word' }}>
-                            {formatContent(goal) || 'No goal available'}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th colSpan={1}><a href="#success-criteria">Success Criteria</a></th>
-                        <td colSpan={5} style={{ wordWrap: 'break-word' }}>
-                            {formatContent(successCriteria) || 'No success criteria available'}
-                        </td>
-                    </tr>
+                    {/* Abstract Specification Section */}
+                    <AbstractSpecification 
+                        context={context}
+                        goal={goal}
+                        successCriteria={successCriteria}
+                    />
                     
                     {/* Concrete Implementation Section */}
-                    <tr>
-                        <th colSpan={6}><a href="#concrete-implementation">Concrete Implementation</a></th>
-                    </tr>
-                    <tr>
-                        <th colSpan={2}><a href="#inputs">Inputs</a></th>
-                        <th colSpan={2}><a href="#activities">Activities</a></th>
-                        <th colSpan={2}><a href="#outputs">Outputs</a></th>
-                    </tr>
-                    <tr>
-                        <td colSpan={2} style={{ wordWrap: 'break-word' }}>
-                            {formatLinkedFiles(inputs) || 'No inputs available'}
-                        </td>
-                        <td colSpan={2} style={{ wordWrap: 'break-word' }}>
-                            {formatLinkedFiles(activities) || 'No activities available'}
-                        </td>
-                        <td colSpan={2} style={{ wordWrap: 'break-word' }}>
-                            {formatLinkedFiles(outputs) || 'No outputs available'}
-                        </td>
-                    </tr>
+                    <ConcreteImplementation 
+                        inputs={inputs}
+                        activities={activities}
+                        outputs={outputs}
+                        cards={cards}
+                        wsRef={wsRef}
+                        executionStatus={executionStatus}
+                        setPythonScriptOutput={setPythonScriptOutput}
+                        setExecutionStatus={setExecutionStatus}
+                    />
                 </tbody>
             </table>
             
@@ -462,139 +380,60 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
             <div className="clm-dimension-hashes">
                 <h3>Dimension Hash References</h3>
                 <ul>
-                    {rootClm?.dimensions?.abstractSpecification && (
-                        <li><strong>Abstract Specification:</strong> <code>{rootClm.dimensions.abstractSpecification}</code></li>
+                    {rootClmMemo?.dimensions?.abstractSpecification && (
+                        <li><strong>Abstract Specification:</strong> <code>{rootClmMemo.dimensions.abstractSpecification}</code></li>
                     )}
-                    {rootClm?.dimensions?.concreteImplementation && (
-                        <li><strong>Concrete Implementation:</strong> <code>{rootClm.dimensions.concreteImplementation}</code></li>
+                    {rootClmMemo?.dimensions?.concreteImplementation && (
+                        <li><strong>Concrete Implementation:</strong> <code>{rootClmMemo.dimensions.concreteImplementation}</code></li>
                     )}
                 </ul>
             </div>
             
-            {/* Balanced Expectations Section - Shows any found Balanced Expectations that reference this CLM */}
-            {balancedExpectations.length > 0 && (
-                <div className="balanced-expectations-section">
-                    <h3>Balanced Expectations Catalog</h3>
-                    <p>The following Balanced Expectations reference this CLM:</p>
-                    
-                    <table className="be-catalog-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Hash</th>
-                                <th>Output Reference</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {balancedExpectations.map((beCard, index) => {
-                                const beContent = typeof beCard.content === 'string' 
-                                    ? JSON.parse(beCard.content) 
-                                    : beCard.content;
-                                
-                                // Format timestamp if available
-                                const timestamp = beCard.g_time || beCard.timestamp || '';
-                                const formattedDate = timestamp ? new Date(timestamp).toLocaleString() : 'N/A';
-                                
-                                return (
-                                    <tr key={index} className="be-catalog-item">
-                                        <td>{index + 1}</td>
-                                        <td>
-                                            <code className="hash-value">{beCard.hash?.substring(0, 12)}...</code>
-                                        </td>
-                                        <td>
-                                            {beContent.outputReference ? (
-                                                <code className="hash-value">{beContent.outputReference.substring(0, 12)}...</code>
-                                            ) : 'N/A'}
-                                        </td>
-                                        <td>{formattedDate}</td>
-                                        <td>
-                                            <button 
-                                                className="be-view-button"
-                                                onClick={() => {
-                                                    // Dispatch to view this BE card
-                                                    dispatch({
-                                                        type: 'content/setSelectedHash',
-                                                        payload: beCard.hash
-                                                    });
-                                                }}
-                                            >
-                                                View
-                                            </button>
-                                            {beContent.outputReference && (
-                                                <button 
-                                                    className="output-view-button"
-                                                    onClick={() => {
-                                                        // Dispatch to view the output
-                                                        dispatch({
-                                                            type: 'content/setSelectedHash',
-                                                            payload: beContent.outputReference
-                                                        });
-                                                    }}
-                                                >
-                                                    View Output
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                    
-                    {/* Add a button to create a new Balanced Expectation for this CLM */}
-                    <div className="be-actions">
-                        <button 
-                            className="create-be-button"
-                            onClick={() => {
-                                // Dispatch an action to open the Balanced Expectations creation form
-                                dispatch({
-                                    type: 'ui/openCreateBEForm',
-                                    payload: {
-                                        clmHash: selectedHash
-                                    }
-                                });
-                            }}
-                        >
-                            Create New Balanced Expectation
-                        </button>
+            {/* Python Script Execution Output Section */}
+            <div className="python-execution-area">
+                <h3>Python Script Execution</h3>
+                
+                {/* Show execution status */}
+                <div className={`execution-status ${executionStatus}`}>
+                    Status: {executionStatus === 'idle' ? 'Ready' : 
+                            executionStatus === 'running' ? 'Running...' : 
+                            executionStatus === 'success' ? 'Completed Successfully' : 'Error'}
+                </div>
+                
+                {/* Output display */}
+                {pythonScriptOutput.length > 0 && (
+                    <div className="python-output-container">
+                        <h4>Script Output:</h4>
+                        <pre className="python-output">
+                            {pythonScriptOutput.join('\n')}
+                        </pre>
                     </div>
-                </div>
-            )}
+                )}
+                
+                {/* Show instructions if no output */}
+                {pythonScriptOutput.length === 0 && (
+                    <div className="python-instructions">
+                        <p>Click the "Execute Python" button next to a Python file in the Concrete Implementation section to run a script.</p>
+                    </div>
+                )}
+            </div>
             
-            {/* Display empty message if no Balanced Expectations found */}
-            {balancedExpectations.length === 0 && selectedHash && (
-                <div className="balanced-expectations-empty">
-                    <h3>Balanced Expectations Catalog</h3>
-                    <p>No Balanced Expectations found for this CLM.</p>
-                    <button 
-                        className="create-be-button"
-                        onClick={() => {
-                            // Dispatch an action to open the Balanced Expectations creation form
-                            dispatch({
-                                type: 'ui/openCreateBEForm',
-                                payload: {
-                                    clmHash: selectedHash
-                                }
-                            });
-                        }}
-                    >
-                        Create New Balanced Expectation
-                    </button>
-                </div>
-            )}
+            {/* Balanced Expectations Section */}
+            <BalancedExpectations 
+                balancedExpectations={balancedExpectations} 
+                selectedHash={selectedHash}
+            />
 
             {/* JSON Structure Display - Optional, can be commented out if not needed */}
             <div className="clm-root-json">
                 <h3>Root CLM Structure</h3>
                 <pre className="json-display">
 {JSON.stringify({
-  title: rootClm?.title || 'Cubical Logic Model',
-  type: rootClm?.type || '',
+  title: rootClmMemo?.title || 'Cubical Logic Model',
+  type: rootClmMemo?.type || '',
   dimensions: {
-    abstractSpecification: rootClm?.dimensions?.abstractSpecification || '',
-    concreteImplementation: rootClm?.dimensions?.concreteImplementation || ''
+    abstractSpecification: rootClmMemo?.dimensions?.abstractSpecification || '',
+    concreteImplementation: rootClmMemo?.dimensions?.concreteImplementation || ''
   }
 }, null, 2)}
                 </pre>

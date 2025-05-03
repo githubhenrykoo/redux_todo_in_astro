@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addLog, addScreenshot, setStatus, clearLogs } from '../../features/testLogsSlice';
 import { writeToJsonl } from '../../utils/logWriter';

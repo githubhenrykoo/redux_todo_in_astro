@@ -52,12 +52,28 @@ import { chromium } from 'playwright';
   await page.waitForTimeout(3000);
 
 
-  const runningText1 = await page.locator('h3', { hasText: 'Python Interactive Console' }).first();
-  await runningText1.scrollIntoViewIfNeeded();
-  await runningText1.focus();
-  await page.waitForTimeout(500);
-  await page.screenshot({ path: 'step4.png' });
-  await page.waitForTimeout(3000);
+  await page.waitForSelector('h3', { timeout: 10000 });
+  const h3s = await page.$$('h3');
+  let found = false;
+  for (const el of h3s) {
+    const text = await el.textContent();
+    console.log('H3 found:', text);
+    if (text?.includes('Python Interactive Console')) {
+      await el.scrollIntoViewIfNeeded();
+      await el.focus();
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: 'step4.png' });
+      await page.waitForTimeout(3000);
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    console.error('❌ Tidak menemukan "Python Interactive Console" di halaman.');
+    await browser.close();
+    process.exit(1);
+  }
 
   await page.click('button:has-text("Execute CLM")');
   await page.waitForTimeout(500);

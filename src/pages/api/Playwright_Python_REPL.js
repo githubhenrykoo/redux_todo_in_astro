@@ -39,7 +39,7 @@ import { chromium } from 'playwright';
   await page.evaluate(() => {
     window.scrollTo(0, document.body.scrollHeight);
   });
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(5000);
 
   const runningText2 = await page.locator('span', { hasText: 'Running Python script...' }).first();
   await runningText2.scrollIntoViewIfNeeded();

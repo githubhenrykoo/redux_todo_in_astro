@@ -3,9 +3,18 @@ import { chromium } from 'playwright';
 (async () => {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
-    viewport: null
+    viewport: { width: 1920, height: 1080 },
+    screen: { width: 1920, height: 1080 }
   });
   const page = await context.newPage();
+
+  // Set window to fullscreen
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.evaluate(() => {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen();
+    }
+  });
 
   await page.goto('http://localhost:4321');
   await page.waitForTimeout(500);

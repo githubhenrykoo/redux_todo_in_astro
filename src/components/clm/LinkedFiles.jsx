@@ -1,5 +1,5 @@
-import React from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import PythonFileUploader from './PythonFileUploader';
 
 /**
@@ -8,17 +8,18 @@ import PythonFileUploader from './PythonFileUploader';
 const LinkedFiles = ({ 
     content, 
     cards, 
-    sectionName = ''
+    sectionName = '',
+    onFileLinked = null // New prop to handle file linking
 }) => {
     const dispatch = useDispatch();
+    const [linkingFile, setLinkingFile] = useState(false);
+    const selectedHash = useSelector(state => state?.content?.selectedHash);
+    const rootClm = useSelector(state => selectedHash ? state?.content?.cards[selectedHash] : null);
     
     // Handle callback when a Python file is uploaded
-    const handlePythonFileUploaded = (fileData) => {
+    const handlePythonFileUploaded = async (fileData) => {
         // Notify about successful upload
         console.log('Python file uploaded:', fileData);
-        
-        // Update content if needed - this would be handled by parent component
-        // or through Redux in a real implementation
         
         // Show the new file in the catalog immediately
         dispatch({
@@ -29,11 +30,186 @@ const LinkedFiles = ({
             }
         });
 
-        // Optionally select the new file
-        dispatch({
-            type: 'content/setSelectedHash',
-            payload: fileData.hash
-        });
+        if (selectedHash && sectionName) {
+            setLinkingFile(true);
+            try {
+                // Get current CLM structure
+                const clmData = rootClm?.content || {};
+                
+                // Prepare updated version of the specific dimension
+                let dimensionHash = null;
+                let dimensionData = null;
+                let updatedDimension = null;
+                
+                // Find the correct dimension hash based on section name
+                if (sectionName === 'inputs' || sectionName === 'activities' || sectionName === 'outputs') {
+                    dimensionHash = clmData.dimensions?.concreteImplementation;
+                    
+                    // Fetch the concrete implementation dimension if needed
+                    if (dimensionHash) {
+                        // Check if the dimension is in Redux store
+                        if (cards[dimensionHash]) {
+                            dimensionData = cards[dimensionHash].content;
+                            if (typeof dimensionData === 'string') {
+                                try {
+                                    dimensionData = JSON.parse(dimensionData);
+                                } catch (e) {
+                                    console.error('Failed to parse dimension data:', e);
+                                }
+                            }
+                        } else {
+                            // Fetch dimension data
+                            const response = await fetch(`/api/card-collection?action=get&hash=${dimensionHash}`);
+                            if (response.ok) {
+                                const result = await response.json();
+                                dimensionData = result.card?.content;
+                                if (typeof dimensionData === 'string') {
+                                    try {
+                                        dimensionData = JSON.parse(dimensionData);
+                                    } catch (e) {
+                                        console.error('Failed to parse dimension data:', e);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Create updated dimension data with new linked file
+                        if (dimensionData) {
+                            updatedDimension = { ...dimensionData };
+                            
+                            // Handle different formats of section data
+                            let currentSection = updatedDimension[sectionName] || {};
+                            
+                            // If it's a string, first convert to object with linkedFiles
+                            if (typeof currentSection === 'string') {
+                                // Check if it contains linkedFiles format
+                                if (currentSection.includes('linkedFiles:')) {
+                                    const parts = currentSection.split('linkedFiles:');
+                                    const content = parts[0];
+                                    const files = parts[1].trim().split('\n').map(f => f.trim()).filter(f => f);
+                                    
+                                    // Add new file
+                                    files.push(fileData.hash);
+                                    
+                                    // Reconstruct the string
+                                    updatedDimension[sectionName] = `${content}linkedFiles:\n${files.join('\n')}`;
+                                } else {
+                                    // Convert to object with linkedFiles array
+                                    updatedDimension[sectionName] = {
+                                        content: currentSection,
+                                        linkedFiles: [fileData.hash]
+                                    };
+                                }
+                            } 
+                            // If it's an object, add to linkedFiles array
+                            else if (typeof currentSection === 'object') {
+                                if (!currentSection.linkedFiles) {
+                                    currentSection.linkedFiles = [];
+                                } else if (typeof currentSection.linkedFiles === 'string') {
+                                    currentSection.linkedFiles = [currentSection.linkedFiles];
+                                }
+                                
+                                currentSection.linkedFiles.push(fileData.hash);
+                                updatedDimension[sectionName] = currentSection;
+                            }
+                            // If there's no existing section data, create it
+                            else {
+                                updatedDimension[sectionName] = {
+                                    linkedFiles: [fileData.hash]
+                                };
+                            }
+                            
+                            // Send updated dimension to server
+                            const updateResponse = await fetch('/api/card-collection', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    action: 'add',
+                                    card: {
+                                        content: updatedDimension
+                                    }
+                                })
+                            });
+                            
+                            if (updateResponse.ok) {
+                                const updateResult = await updateResponse.json();
+                                if (updateResult.success) {
+                                    console.log('Successfully linked Python file to CLM:', updateResult);
+                                    
+                                    // Update dimension hash in the CLM
+                                    const clmUpdate = {
+                                        ...clmData,
+                                        dimensions: {
+                                            ...(clmData.dimensions || {}),
+                                            concreteImplementation: updateResult.hash
+                                        }
+                                    };
+                                    
+                                    // Update the root CLM with new dimension hash
+                                    const rootClmResponse = await fetch('/api/card-collection', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            action: 'add',
+                                            card: {
+                                                content: clmUpdate
+                                            }
+                                        })
+                                    });
+                                    
+                                    if (rootClmResponse.ok) {
+                                        const rootClmResult = await rootClmResponse.json();
+                                        if (rootClmResult.success) {
+                                            console.log('Updated root CLM with new dimension hash:', rootClmResult);
+                                            
+                                            // Update Redux store with new CLM and dimension
+                                            dispatch({
+                                                type: 'content/addCard',
+                                                payload: {
+                                                    hash: updateResult.hash,
+                                                    card: {
+                                                        content: updatedDimension
+                                                    }
+                                                }
+                                            });
+                                            
+                                            dispatch({
+                                                type: 'content/addCard',
+                                                payload: {
+                                                    hash: rootClmResult.hash,
+                                                    card: {
+                                                        content: clmUpdate
+                                                    }
+                                                }
+                                            });
+                                            
+                                            // Update selected hash to the new CLM
+                                            dispatch({
+                                                type: 'content/setSelectedHash',
+                                                payload: rootClmResult.hash
+                                            });
+                                            
+                                            // Call onFileLinked callback if provided
+                                            if (onFileLinked) {
+                                                onFileLinked(fileData, sectionName);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error linking Python file to CLM:', error);
+            } finally {
+                setLinkingFile(false);
+            }
+        }
     };
     
     // Helper function to format content based on type

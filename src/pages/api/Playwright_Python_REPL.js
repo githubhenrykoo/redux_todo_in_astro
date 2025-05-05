@@ -24,32 +24,19 @@ import { chromium } from 'playwright';
   await page.click('a.enter-button');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'step2.png' });
+  await page.waitForTimeout(2000);
+
+  const clmElement = await page.locator('pre', { hasText: '"type":"clm_document"' }).first();
+  await clmElement.scrollIntoViewIfNeeded();
+  await clmElement.click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'step3.png' });
   await page.waitForTimeout(3000);
 
-  try {
-    await page.waitForSelector('h3.grid-item-title', { timeout: 10000 });
-    const elements = await page.$$('h3.grid-item-title');
-  
-    for (const el of elements) {
-      const text = await el.textContent();
-      if (text?.includes('6adb5387')) {
-        await el.scrollIntoViewIfNeeded();
-        try {
-          await el.click();
-        } catch (e) {
-          await page.evaluate(el => el.click(), el);
-        }
-        await page.waitForTimeout(500);
-        await page.screenshot({ path: 'step3.png' });
-        await page.waitForTimeout(3000);
-        break;
-      }
-    }
-  } catch (err) {
-    console.error('Gagal menemukan atau mengklik elemen 6adb5387:', err);
-  }
-
-
+  const runningText1 = await page.locator('h3', { hasText: 'Python Interactive Console' }).first();
+  await runningText1.scrollIntoViewIfNeeded();
+  await runningText1.focus();
+  await page.waitForTimeout(500);
   await page.screenshot({ path: 'step4.png' });
   await page.waitForTimeout(3000);
 

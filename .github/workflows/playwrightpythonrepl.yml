@@ -32,11 +32,11 @@ jobs:
         NODE_ENV: development
 
     - name: Start Python REPL server
-      run: node python-server.js &
+      run: node server/python-server.js &
       env:
         NODE_ENV: development
 
-    - name: ⏱ Wait for servers to be ready
+    - name: Wait for servers to be ready
       run: |
         echo "Waiting for servers to start..."
         sleep 10
@@ -45,7 +45,7 @@ jobs:
       run: node src/pages/api/Playwright_Python_REPL.js
 
     - name: Upload screenshots
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: playwright-screenshots
         path: |

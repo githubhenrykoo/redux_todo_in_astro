@@ -57,9 +57,13 @@ tests/data
 # public/data/cards.db
 
 google-calendar-mcp
+<<<<<<< HEAD
 
 src/gasing/addition/large_addition_dataset.csv
 large_addition_dataset.csv
 src/gasing/division/testoutput
 src/gasing/subtraction/benchmark_million_dataset.csv
 src/gasing/subtraction/extended_subtraction_dataset.csv
+=======
+.qodo
+>>>>>>> 97dcea9 (Added changes on Studio.)

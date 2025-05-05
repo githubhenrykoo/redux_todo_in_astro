@@ -26,8 +26,28 @@ import { chromium } from 'playwright';
   await page.screenshot({ path: 'step2.png' });
   await page.waitForTimeout(3000);
 
-  await page.getByText('6adb5387', { exact: true }).click();
-  await page.waitForTimeout(500);
+    // Tunggu sampai semua h3 muncul
+  await page.waitForSelector('h3.grid-item-title', { timeout: 10000 });
+  
+  // Ambil semua elemen dan cari yang isinya termasuk "6adb5387"
+  const elements = await page.$$('h3.grid-item-title');
+  
+  for (const el of elements) {
+    const text = await el.textContent();
+    if (text?.includes('6adb5387')) {
+      await el.scrollIntoViewIfNeeded();
+      try {
+        await el.click(); // klik biasa dulu
+      } catch (e) {
+        // fallback jika elemen tidak bisa diklik secara langsung
+        await page.evaluate(el => el.click(), el);
+      }
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: 'step3.png' });
+      await page.waitForTimeout(3000);
+      break;
+    }
+  }
   await page.screenshot({ path: 'step3.png' });
   await page.waitForTimeout(3000);
 

@@ -39,6 +39,11 @@ import { chromium } from 'playwright';
   const runningText2 = await page.locator('h3', { hasText: 'Python Interactive Console' }).first();
   await runningText2.scrollIntoViewIfNeeded();
   await runningText2.focus();
+  await page.waitForTimeout(3000);
+
+  const runningText3 = await page.locator('span', { hasText: 'Running Python script...' }).first();
+  await runningText3.scrollIntoViewIfNeeded();
+  await runningText3.focus();
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'step6.png' });
   await page.waitForTimeout(3000);

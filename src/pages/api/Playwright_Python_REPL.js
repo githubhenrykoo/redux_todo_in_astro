@@ -26,7 +26,7 @@ import { chromium } from 'playwright';
   await page.screenshot({ path: 'step2.png' });
   await page.waitForTimeout(2000);
 
-  const clmElement = page.locator('h3.grid-item-title', { hasText: /6adb5387/ });
+  await page.getByText('6adb5387', { exact: true }).click();
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'step3.png' });
   await page.waitForTimeout(3000);

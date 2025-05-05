@@ -17,14 +17,14 @@ import { chromium } from 'playwright';
   await page.screenshot({ path: 'step2.png' });
   await page.waitForTimeout(2000);
 
-  const clmElement = await page.locator('pre', { hasText: '"type":"clm_document"' });
+  const clmElement = await page.locator('pre', { hasText: '"type":"clm_document"' }).first();
   await clmElement.scrollIntoViewIfNeeded();
   await clmElement.click();
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'step3.png' });
   await page.waitForTimeout(3000);
 
-  const runningText1 = await page.locator('h3', { hasText: 'Python Interactive Console' });
+  const runningText1 = await page.locator('h3', { hasText: 'Python Interactive Console' }).first();
   await runningText1.scrollIntoViewIfNeeded();
   await runningText1.focus();
   await page.waitForTimeout(500);

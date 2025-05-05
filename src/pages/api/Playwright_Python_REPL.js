@@ -41,9 +41,9 @@ import { chromium } from 'playwright';
   await runningText2.focus();
   await page.waitForTimeout(3000);
 
-  const runningText3 = await page.locator('span', { hasText: 'Running Python script...' }).first();
-  await runningText3.scrollIntoViewIfNeeded();
-  await runningText3.focus();
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(1000);
+  await page.locator("text=Running Python script...").waitFor({ timeout: 10000 });
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'step6.png' });
   await page.waitForTimeout(3000);

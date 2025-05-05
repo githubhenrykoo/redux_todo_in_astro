@@ -31,7 +31,7 @@ import { chromium } from 'playwright';
   await page.screenshot({ path: 'step4.png' });
   await page.waitForTimeout(3000);
 
-  await page.click('button.execute-python-btn');
+  await page.click('button:has-text("Execute CLM")');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'step5.png' });
   await page.waitForTimeout(3000);

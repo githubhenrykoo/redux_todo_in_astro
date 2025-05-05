@@ -24,7 +24,7 @@ import { chromium } from 'playwright';
   await page.click('a.enter-button');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'step2.png' });
-  await page.waitForTimeout(2000);
+  await page.waitForTimeout(3000);
 
   await page.getByText('6adb5387', { exact: true }).click();
   await page.waitForTimeout(500);

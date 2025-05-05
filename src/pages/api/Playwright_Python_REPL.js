@@ -41,7 +41,7 @@ import { chromium } from 'playwright';
   });
   await page.waitForTimeout(1000);
 
-  const runningText2 = await page.locator('span', { hasText: 'Running Python script...' });
+  const runningText2 = await page.locator('span', { hasText: 'Running Python script...' }).first();
   await runningText2.scrollIntoViewIfNeeded();
   await runningText2.focus();
   await page.waitForTimeout(500);

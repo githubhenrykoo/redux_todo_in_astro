@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, createContext } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import '../../styles/clm-display.css';
 import AbstractSpecification from '../clm/AbstractSpecification';
 import ConcreteImplementation from '../clm/ConcreteImplementation';
 import BalancedExpectations from '../clm/BalancedExpectations';
 import PythonREPLPanel from './PythonREPLPanel';
+
+// Create a context to share the hideExecuteButtons state
+export const CLMContext = createContext({ hideExecuteButtons: false });
 
 const CLMDisplayPanel = ({ initialHash = '' }) => {
     const [loading, setLoading] = useState(false);
@@ -278,6 +281,243 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
         return String(content);
     };
     
+    // Handle execution of the CLM
+    const handleExecuteCLM = () => {
+        console.log('Executing CLM:', rootClmMemo?.title);
+        
+        // First, dispatch action to clear the REPL output
+        dispatch({
+            type: 'pythonrepl/clearREPL'
+        });
+        
+        // Add header showing which CLM is being executed
+        dispatch({
+            type: 'pythonrepl/addOutput',
+            payload: {
+                output: `====== EXECUTING CLM: ${rootClmMemo.title || 'Untitled CLM'} ======\n`
+            }
+        });
+
+        // Find all Python files referenced in the CLM
+        let pythonFiles = [];
+        
+        // Direct debug output to see what we're working with
+        console.log('Dimensions data:', dimensions);
+        
+        // Check the concrete implementation for linked files
+        if (dimensions.concreteImplementation) {
+            console.log('Found concrete implementation:', dimensions.concreteImplementation);
+            
+            // Check inputs section
+            if (dimensions.concreteImplementation.inputs) {
+                console.log('Processing inputs:', dimensions.concreteImplementation.inputs);
+                const inputFiles = extractLinkedFiles(dimensions.concreteImplementation.inputs);
+                console.log('Found input files:', inputFiles);
+                pythonFiles = [...pythonFiles, ...inputFiles];
+            }
+            
+            // Check activities section
+            if (dimensions.concreteImplementation.activities) {
+                console.log('Processing activities:', dimensions.concreteImplementation.activities);
+                const activityFiles = extractLinkedFiles(dimensions.concreteImplementation.activities);
+                console.log('Found activity files:', activityFiles);
+                pythonFiles = [...pythonFiles, ...activityFiles];
+            }
+        }
+        
+        // If no files found, check for linkedFiles directly in the root CLM
+        if (pythonFiles.length === 0 && rootClmMemo.linkedFiles) {
+            console.log('Checking root CLM for linkedFiles:', rootClmMemo.linkedFiles);
+            if (Array.isArray(rootClmMemo.linkedFiles)) {
+                pythonFiles = rootClmMemo.linkedFiles;
+            } else if (typeof rootClmMemo.linkedFiles === 'string') {
+                pythonFiles = [rootClmMemo.linkedFiles];
+            }
+        }
+        
+        console.log('Total Python files found:', pythonFiles.length, pythonFiles);
+        
+        if (pythonFiles.length > 0) {
+            // Execute each file in sequence
+            pythonFiles.forEach((fileHash, index) => {
+                if (index > 0) {
+                    // Add separator between files
+                    dispatch({
+                        type: 'pythonrepl/addOutput',
+                        payload: {
+                            output: "\n----- Next Python File -----\n"
+                        }
+                    });
+                }
+                
+                // Clean up the file hash
+                const cleanHash = fileHash.trim();
+                console.log(`Executing file ${index + 1}:`, cleanHash);
+                
+                // Attempt to get the file from Redux cache
+                const pythonFile = cards[cleanHash];
+                if (pythonFile && pythonFile.content) {
+                    console.log('Found file in Redux cache:', pythonFile);
+                    
+                    // Convert content to string if needed
+                    let scriptContent = '';
+                    if (typeof pythonFile.content === 'string') {
+                        scriptContent = pythonFile.content;
+                    } else if (pythonFile.content && pythonFile.content.type === 'Buffer') {
+                        // Handle Buffer JSON format
+                        const buffer = new Uint8Array(pythonFile.content.data);
+                        scriptContent = new TextDecoder().decode(buffer);
+                    } else if (pythonFile.content instanceof Uint8Array) {
+                        scriptContent = new TextDecoder().decode(pythonFile.content);
+                    }
+                    
+                    // Execute the script
+                    dispatch({
+                        type: 'pythonrepl/executeScript',
+                        payload: {
+                            content: scriptContent,
+                            hash: cleanHash,
+                            filename: pythonFile.metadata?.filename || `File ${index + 1}`
+                        }
+                    });
+                } else {
+                    // File not in cache, tell user we need to fetch it
+                    console.log('File not found in cache:', cleanHash);
+                    dispatch({
+                        type: 'pythonrepl/addOutput',
+                        payload: {
+                            output: `Attempting to fetch file ${cleanHash.substring(0, 16)}... from database`
+                        }
+                    });
+                    
+                    // Fetch the file content
+                    fetchAndExecuteFile(cleanHash, index);
+                }
+            });
+        } else {
+            // No Python files found
+            console.log('No Python files found in the CLM');
+            dispatch({
+                type: 'pythonrepl/addOutput',
+                payload: {
+                    output: "No Python files found in this CLM"
+                }
+            });
+        }
+    };
+    
+    // Async function to fetch and execute a file
+    const fetchAndExecuteFile = async (fileHash, index) => {
+        try {
+            // Fetch the file
+            const response = await fetch(`/api/card-collection?action=get&hash=${fileHash}`);
+            
+            if (!response.ok) {
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Fetched file:', data);
+            
+            if (data.card && data.card.content) {
+                // Cache the card in Redux
+                dispatch({
+                    type: 'content/addCard',
+                    payload: {
+                        hash: fileHash,
+                        card: data.card
+                    }
+                });
+                
+                // Convert content to string if needed
+                let scriptContent = '';
+                if (typeof data.card.content === 'string') {
+                    scriptContent = data.card.content;
+                } else if (data.card.content && data.card.content.type === 'Buffer') {
+                    // Handle Buffer JSON format
+                    const buffer = new Uint8Array(data.card.content.data);
+                    scriptContent = new TextDecoder().decode(buffer);
+                } else if (data.card.content instanceof Uint8Array) {
+                    scriptContent = new TextDecoder().decode(data.card.content);
+                }
+                
+                // Execute the script
+                dispatch({
+                    type: 'pythonrepl/executeScript',
+                    payload: {
+                        content: scriptContent,
+                        hash: fileHash,
+                        filename: data.card.metadata?.filename || `File ${index + 1}`
+                    }
+                });
+            } else {
+                throw new Error('File content not found in API response');
+            }
+        } catch (error) {
+            console.error('Error fetching file:', error);
+            dispatch({
+                type: 'pythonrepl/addOutput',
+                payload: {
+                    output: `Error fetching file: ${error.message}`
+                }
+            });
+        }
+    };
+    
+    // Helper function to extract linked files from content
+    const extractLinkedFiles = (content) => {
+        const files = [];
+        
+        // No content
+        if (!content) return files;
+        
+        console.log('Extracting linked files from:', content, 'Type:', typeof content);
+        
+        // Check if content is a string with linkedFiles marker
+        if (typeof content === 'string') {
+            // Check for "linkedFiles:" format
+            if (content.includes('linkedFiles:')) {
+                const parts = content.split('linkedFiles:');
+                if (parts.length > 1) {
+                    const fileLines = parts[1].trim().split('\n');
+                    fileLines.forEach(line => {
+                        const trimmedLine = line.trim();
+                        if (trimmedLine) {
+                            files.push(trimmedLine);
+                        }
+                    });
+                }
+            } 
+            // Check if the string itself is a file hash (common pattern)
+            else if (content.match(/^[0-9a-f]{16,64}$/i)) {
+                files.push(content);
+            }
+        }
+        
+        // Check if content is an object with linkedFiles property
+        else if (typeof content === 'object' && content !== null) {
+            // Direct linkedFiles property
+            if (content.linkedFiles) {
+                if (Array.isArray(content.linkedFiles)) {
+                    content.linkedFiles.forEach(hash => {
+                        if (hash && hash.trim()) {
+                            files.push(hash.trim());
+                        }
+                    });
+                } else if (typeof content.linkedFiles === 'string') {
+                    files.push(content.linkedFiles.trim());
+                }
+            }
+            
+            // Handle case where content itself is a file hash object
+            else if (content.hash && typeof content.hash === 'string') {
+                files.push(content.hash.trim());
+            }
+        }
+        
+        return files;
+    };
+    
     // Extract content from dimensions for display
     const abstractSpec = dimensions.abstractSpecification || {};
     const context = abstractSpec.context;
@@ -312,7 +552,32 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
     
     return (
         <div className="clm-display-panel" style={{ overflowY: 'auto' }}>
-            <h2>{rootClmMemo.title || 'Untitled CLM'}</h2>
+            <div className="clm-header" style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '1rem'
+            }}>
+                <h2 style={{ margin: 0 }}>{rootClmMemo.title || 'Untitled CLM'}</h2>
+                <button 
+                    onClick={handleExecuteCLM} 
+                    style={{
+                        backgroundColor: '#4CAF50',
+                        border: 'none',
+                        color: 'white',
+                        padding: '8px 16px',
+                        textAlign: 'center',
+                        textDecoration: 'none',
+                        display: 'inline-block',
+                        fontSize: '14px',
+                        margin: '4px 2px',
+                        cursor: 'pointer',
+                        borderRadius: '4px'
+                    }}
+                >
+                    Execute CLM
+                </button>
+            </div>
             
             {/* Debug Info - Comment out in production */}
             <div className="clm-debug-info" style={{ display: 'none' }}>

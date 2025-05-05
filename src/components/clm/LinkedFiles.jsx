@@ -202,14 +202,7 @@ const LinkedFiles = ({
                     >
                         View
                     </button>
-                    {isPythonFile && (
-                        <button 
-                            className="execute-python-btn"
-                            onClick={() => handleExecutePython(fileHash.trim())}
-                        >
-                            Execute Python
-                        </button>
-                    )}
+                    {/* Hide the execute buttons - we now use the top-level Execute CLM button */}
                 </div>
                 {!fileFound && (
                     <div className="file-warning">

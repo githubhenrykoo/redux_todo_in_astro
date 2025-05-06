@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 
 export async function POST({ request }) {
     const browser = await chromium.launch({
-        headless: false
+        headless: true
     });
     const context = await browser.newContext({
         viewport: null,
@@ -59,11 +59,8 @@ export async function POST({ request }) {
             }
             
             await waitForTextareaReady();
-            
-            await page.screenshot({ 
-                path: path.join(screenshotsDir, `after-response-${Date.now()}.png`),
-                fullPage: true 
-            });
+
+            await page.screenshot({ path: 'step${Date.now()}.png' });
             // Ketik pesan karakter per karakter
             for (const char of message) {
                 await textarea.type(char, { delay: 100 });

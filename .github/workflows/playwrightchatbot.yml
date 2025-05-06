@@ -42,24 +42,24 @@ jobs:
     - name: Run Playwright script
       run: curl -X POST http://localhost:4321/api/run-saved-chatbot-cicd
 
-    - name: Upload screenshots as artifacts
+    - name: Upload logs as artifacts
       uses: actions/upload-artifact@v4
       with:
         name: playwright-screenshots
-        path: step*.png  # Mengambil semua screenshot langsung dari direktori kerja
+        path: step*.png
 
-    - name: Commit screenshots to repo
+    - name: Commit logs to repo
       if: success()
       run: |
-        mkdir -p screenshots
-        cp step*.png screenshots/ || echo "No screenshots found"
+        mkdir -p playwright_logs/playwrightchatbot
+        cp step*.png playwright_logs/playwrightchatbot/ || echo "No logs found"
 
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
         git pull origin main
-        git add screenshots/
-        git commit -m "chore(ci): add latest screenshots [CI]" || echo "No changes to commit"
+        git add playwright_logs/
+        git commit -m "chore(ci): add latest playwright_logs [CI]" || echo "No changes to commit"
         git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,65 @@
+name: Playwright Chatbot
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+
+    - name: Start dev server (localhost:4321)
+      run: npm run dev &
+      env:
+        NODE_ENV: development
+
+    - name: Wait for servers to be ready
+      run: |
+        echo "Waiting for servers to start..."
+        sleep 10
+
+    - name: Run Playwright script
+      run: node src/pages/api/run-saved-chatbot-cicd.js
+
+    - name: Upload screenshots as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: playwright-screenshots
+        path: step*.png  # Mengambil semua screenshot langsung dari direktori kerja
+
+    - name: Commit screenshots to repo
+      if: success()
+      run: |
+        mkdir -p screenshots
+        cp step*.png screenshots/ || echo "No screenshots found"
+
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+        git pull origin main
+        git add screenshots/
+        git commit -m "chore(ci): add latest screenshots [CI]" || echo "No changes to commit"
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

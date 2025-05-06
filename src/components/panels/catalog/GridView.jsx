@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import GridItemPreview from './GridItemPreview';
 import PaginationControls from './PaginationControls';
-import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import { getSimpleContentType, getContentTypeDisplay, detectCLMContent } from './utils';
 import './grid-item-preview.css';
+
+// Import React Icons
+import { FaFilePdf, FaImage, FaVideo, FaVolumeUp, FaPython, FaTable, 
+         FaCode, FaGlobe, FaFileAlt, FaFile, FaCube } from 'react-icons/fa';
 
 /**
  * Grid view component for catalog items
@@ -93,13 +97,22 @@ const GridView = ({
       fetch(`/api/card-collection?action=get&hash=${item.id}`)
         .then(response => response.json())
         .then(data => {
-          if (data.success && data.card && data.card.contentType) {
+          if (data.success && data.card) {
+            // Check if it's a CLM by examining content
+            let isCLM = false;
+            if (data.card.content) {
+              isCLM = detectCLMContent(data.card.content);
+            }
+            
             // Update with accurate content type from API
             setVerifiedItems(prev => ({
               ...prev,
               [item.id]: {
-                contentType: data.card.contentType,
-                isVerified: true
+                contentType: isCLM 
+                  ? { mimeType: 'text/clm' }  // Use custom CLM MIME type
+                  : data.card.contentType,
+                isVerified: true,
+                isCLM: isCLM
               }
             }));
           } else {
@@ -129,8 +142,65 @@ const GridView = ({
     });
   }, [sortedItems, detectViaImageLoading]);
 
+  // Helper to check if an item is a CLM
+  const isCLMItem = (item) => {
+    const verifiedItem = verifiedItems[item.id];
+    if (verifiedItem && verifiedItem.isVerified && verifiedItem.isCLM) {
+      return true;
+    }
+    return verifiedItem?.contentType?.mimeType === 'text/clm';
+  };
+  
+  // Helper to get content type icon using React Icons
+  const getContentTypeIcon = (item) => {
+    // Check if it's a CLM first
+    if (isCLMItem(item)) {
+      return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD' }} />;
+    }
+    
+    const verifiedItem = verifiedItems[item.id];
+    const contentType = verifiedItem && verifiedItem.isVerified 
+      ? verifiedItem.contentType 
+      : item.contentType;
+    
+    if (!contentType || !contentType.mimeType) {
+      return <FaFileAlt className="react-icon" />;
+    }
+    
+    const mimeType = contentType.mimeType.toLowerCase();
+    
+    if (mimeType === 'text/clm') {
+      return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD' }} />;
+    } else if (mimeType.startsWith('image/')) {
+      return <FaImage className="react-icon image-icon" style={{ color: '#2196F3' }} />;
+    } else if (mimeType.startsWith('video/')) {
+      return <FaVideo className="react-icon video-icon" style={{ color: '#E91E63' }} />;
+    } else if (mimeType.startsWith('audio/')) {
+      return <FaVolumeUp className="react-icon audio-icon" style={{ color: '#673AB7' }} />;
+    } else if (mimeType === 'application/pdf') {
+      return <FaFilePdf className="react-icon pdf-icon" style={{ color: '#F44336' }} />;
+    } else if (mimeType === 'text/x-python-script' || mimeType === 'text/x-python' || contentType.extension === 'py') {
+      return <FaPython className="react-icon python-icon" style={{ color: '#3F51B5' }} />;
+    } else if (mimeType === 'text/csv' || contentType.extension === 'csv') {
+      return <FaTable className="react-icon table-icon" style={{ color: '#4CAF50' }} />;
+    } else if (mimeType === 'application/json') {
+      return <FaCode className="react-icon json-icon" style={{ color: '#FF9800' }} />;
+    } else if (mimeType === 'text/html') {
+      return <FaGlobe className="react-icon html-icon" style={{ color: '#FF5722' }} />;
+    } else if (mimeType.includes('text/')) {
+      return <FaFileAlt className="react-icon text-icon" style={{ color: '#795548' }} />;
+    }
+    
+    return <FaFile className="react-icon" style={{ color: '#757575' }} />;
+  };
+
   // Helper function to get proper content type display
   const getFormattedContentType = (item) => {
+    // Special case for CLM
+    if (isCLMItem(item)) {
+      return 'CLM (text/clm)';
+    }
+    
     // If we've verified this item's content type, use that instead
     const verifiedItem = verifiedItems[item.id];
     if (verifiedItem && verifiedItem.isVerified) {
@@ -240,9 +310,17 @@ const GridView = ({
                         color: '#000000', 
                         fontWeight: 'bold',
                         backgroundColor: '#ffffff',
-                        border: '1px solid #000000'
+                        border: '1px solid #000000',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '4px'
                       }}>
-                        {getFormattedContentType(displayItem)}
+                        <span style={{ fontSize: '14px', display: 'flex', alignItems: 'center' }}>
+                          {getContentTypeIcon(item)}
+                        </span>
+                        {getFormattedContentType(item)}
                       </span>
                       <span className="grid-item-date" style={{ color: '#000000', fontWeight: 'bold' }}>
                         {item.timestamp || 'No timestamp'}

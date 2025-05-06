@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import GridItemPreview from './GridItemPreview';
 import PaginationControls from './PaginationControls';
-import { getSimpleContentType, getContentTypeDisplay } from './utils';
+import { getSimpleContentType, getContentTypeDisplay, detectCLMContent } from './utils';
 import './grid-item-preview.css';
+
+// Import React Icons
+import { FaFilePdf, FaImage, FaVideo, FaVolumeUp, FaPython, FaTable, 
+         FaCode, FaGlobe, FaFileAlt, FaFile, FaCube } from 'react-icons/fa';
 
 /**
  * TypeGridView - Organizes catalog items by content type
@@ -58,12 +62,26 @@ const TypeGridView = ({
   const getFileType = (item) => {
     if (!item || !item.contentType) return 'Unknown';
     
+    // Check if it's a CLM document by examining content
+    if (item.content && detectCLMContent(item.content)) {
+      return 'CLM';
+    }
+    
     const contentType = typeof item.contentType === 'string'
       ? item.contentType
       : item.contentType.mimeType || '';
     
     // Extract the specific file type from the content type
     const simpleType = getSimpleContentType(contentType);
+    
+    // Special check for CLM files stored as CSV
+    if (simpleType === 'csv') {
+      // CSV files that contain CLM data should be categorized as CLM
+      const content = item.content || '';
+      if (content && detectCLMContent(content)) {
+        return 'CLM';
+      }
+    }
     
     // Map of specific file types for grouping
     const typeMap = {
@@ -88,7 +106,8 @@ const TypeGridView = ({
       'application/json': 'JSON',
       'application/javascript': 'JavaScript',
       'text/javascript': 'JavaScript',
-      'application/pdf': 'PDF'
+      'application/pdf': 'PDF',
+      'clm': 'CLM'
     };
     
     return typeMap[simpleType] || simpleType;
@@ -97,6 +116,7 @@ const TypeGridView = ({
   // Get a color for each category
   const getCategoryColor = (category) => {
     const colorMap = {
+      'CLM': '#8E44AD',         // Purple for CLM
       'CSV': '#4CAF50',         // Green
       'Python': '#3F51B5',      // Indigo
       'Binary': '#607D8B',      // Blue Grey
@@ -117,6 +137,45 @@ const TypeGridView = ({
     };
     
     return colorMap[category] || '#757575';
+  };
+
+  // Helper to get content type icon using React Icons
+  const getContentTypeIcon = (category) => {
+    switch(category) {
+      case 'CLM':
+        return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD' }} />;
+      case 'CSV':
+        return <FaTable className="react-icon table-icon" style={{ color: '#4CAF50' }} />;
+      case 'Python':
+        return <FaPython className="react-icon python-icon" style={{ color: '#3F51B5' }} />;
+      case 'Binary':
+        return <FaFile className="react-icon" style={{ color: '#607D8B' }} />;
+      case 'JSON':
+        return <FaCode className="react-icon json-icon" style={{ color: '#FF9800' }} />;
+      case 'JavaScript':
+        return <FaCode className="react-icon js-icon" style={{ color: '#FFC107' }} />;
+      case 'Text':
+        return <FaFileAlt className="react-icon text-icon" style={{ color: '#795548' }} />;
+      case 'HTML':
+        return <FaGlobe className="react-icon html-icon" style={{ color: '#FF5722' }} />;
+      case 'PDF':
+        return <FaFilePdf className="react-icon pdf-icon" style={{ color: '#F44336' }} />;
+      case 'PNG':
+      case 'JPEG':
+      case 'GIF':
+      case 'SVG':
+        return <FaImage className="react-icon image-icon" style={{ color: '#2196F3' }} />;
+      case 'MP4':
+      case 'QuickTime':
+      case 'WebM':
+        return <FaVideo className="react-icon video-icon" style={{ color: '#E91E63' }} />;
+      case 'MP3':
+      case 'WAV':
+      case 'OGG':
+        return <FaVolumeUp className="react-icon audio-icon" style={{ color: '#673AB7' }} />;
+      default:
+        return <FaFile className="react-icon" style={{ color: '#757575' }} />;
+    }
   };
 
   // Memoize the detection function to avoid recreating it on every render
@@ -178,7 +237,19 @@ const TypeGridView = ({
       groups[fileType].push(displayItem);
     });
     
-    setGroupedItems(groups);
+    // Ensure CLM category is first if it exists
+    const typeOrder = Object.keys(groups).sort((a, b) => {
+      if (a === 'CLM') return -1;  // CLM comes first
+      if (b === 'CLM') return 1;   // CLM comes first
+      return a.localeCompare(b);   // Alphabetical for the rest
+    });
+    
+    const orderedGroups = {};
+    typeOrder.forEach(type => {
+      orderedGroups[type] = groups[type];
+    });
+    
+    setGroupedItems(orderedGroups);
   }, [sortedItems, verifiedItems]);
 
   // Detect actual content types by fetching and examining item data
@@ -209,13 +280,22 @@ const TypeGridView = ({
       fetch(`/api/card-collection?action=get&hash=${item.id}`)
         .then(response => response.json())
         .then(data => {
-          if (data.success && data.card && data.card.contentType) {
+          if (data.success && data.card) {
+            // Check if it's a CLM by examining content
+            let isCLM = false;
+            if (data.card.content) {
+              isCLM = detectCLMContent(data.card.content);
+            }
+            
             // Update with accurate content type from API
             setVerifiedItems(prev => ({
               ...prev,
               [item.id]: {
-                contentType: data.card.contentType,
-                isVerified: true
+                contentType: isCLM 
+                  ? { mimeType: 'text/clm' }  // Use custom CLM MIME type
+                  : data.card.contentType,
+                isVerified: true,
+                isCLM: isCLM
               }
             }));
           } else {
@@ -279,7 +359,7 @@ const TypeGridView = ({
   }
 
   // Get an array of type categories
-  const typeCategories = Object.keys(groupedItems).sort();
+  const typeCategories = Object.keys(groupedItems);
 
   return (
     <div style={{
@@ -338,8 +418,14 @@ const TypeGridView = ({
                 <h2 style={{
                   margin: 0,
                   fontSize: '18px',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
                 }}>
+                  <span style={{ fontSize: '22px', display: 'flex', alignItems: 'center' }}>
+                    {getContentTypeIcon(category)}
+                  </span>
                   {category} Files
                 </h2>
                 <div style={{
@@ -452,9 +538,15 @@ const TypeGridView = ({
                             color: 'var(--text-muted, #a0a0a0)',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis'
+                            textOverflow: 'ellipsis',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
                           }}>
-                            {getFormattedContentType(displayItem)}
+                            <span style={{ fontSize: '10px', display: 'flex', alignItems: 'center' }}>
+                              {category === 'CLM' && <FaCube style={{ marginRight: '2px' }} />}
+                            </span>
+                            {category === 'CLM' ? 'CLM Document' : getFormattedContentType(displayItem)}
                           </div>
                         </div>
                       </div>

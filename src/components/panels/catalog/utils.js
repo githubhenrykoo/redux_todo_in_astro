@@ -19,6 +19,7 @@ export const getSimpleContentType = (mimeType) => {
   if (subtype === 'html') return 'html';
   if (subtype === 'css') return 'css';
   if (subtype === 'svg+xml') return 'svg';
+  if (subtype === 'csv' && mimeType.includes('clm')) return 'clm';  // CLM often stored as CSV
   
   // Return the subtype as-is for common formats (gif, png, jpg, etc.)
   return subtype;
@@ -29,6 +30,7 @@ export const getContentTypeDisplay = () => ({
   'json': 'JSON',
   'txt': 'TXT',
   'csv': 'CSV',
+  'clm': '📊 CLM',  // Added CLM type
   'pdf': 'PDF',
   'mp3': '🎵 Audio',
   'wav': '🎵 Audio',
@@ -68,6 +70,25 @@ export const determineCorrectContentType = (item) => {
   const mimeType = item.contentType.mimeType;
   const filename = item.name || '';
   const hash = item.hash || '';
+  const content = item.content || '';
+  
+  // CLM detection - inspect content for CLM-specific patterns
+  if (typeof content === 'string' || content?.data) {
+    const contentStr = typeof content === 'string' 
+      ? content 
+      : (content.data && Array.isArray(content.data)) 
+        ? String.fromCharCode.apply(null, content.data) 
+        : '';
+        
+    // Check for CLM indicators in content
+    if (contentStr.includes('"type":"clm_document"') || 
+        contentStr.includes('"dimensionType"') ||
+        contentStr.includes('abstractSpecification') ||
+        contentStr.includes('concreteImplementation') ||
+        contentStr.includes('balancedExpectations')) {
+      return 'CLM (text/csv)';
+    }
+  }
   
   // Special handling for QuickTime videos that are actually MP4s
   if (mimeType === 'video/quicktime') {
@@ -87,4 +108,54 @@ export const determineCorrectContentType = (item) => {
   
   // For all other content types, use the standard formatting
   return getFormattedContentType(mimeType);
+};
+
+// Special function to detect CLM content by analyzing the content
+export const detectCLMContent = (content) => {
+  if (!content) return false;
+  
+  try {
+    // If content is a string, try to parse it as JSON
+    if (typeof content === 'string') {
+      // Check for CLM indicators without parsing (for performance)
+      if (content.includes('"type":"clm_document"') || 
+          content.includes('"dimensionType"') ||
+          content.includes('abstractSpecification') ||
+          content.includes('concreteImplementation') ||
+          content.includes('balancedExpectations')) {
+        return true;
+      }
+      
+      // Try parsing as JSON for more accurate detection
+      try {
+        const parsed = JSON.parse(content);
+        return (
+          parsed.type === 'clm_document' ||
+          parsed.dimensionType ||
+          (parsed.dimensions && (
+            parsed.dimensions.abstractSpecification ||
+            parsed.dimensions.concreteImplementation ||
+            parsed.dimensions.balancedExpectations
+          ))
+        );
+      } catch (e) {
+        // Not valid JSON, check for other CLM indicators
+        return false;
+      }
+    }
+    
+    // If content is a Buffer JSON representation
+    if (content && content.type === 'Buffer' && Array.isArray(content.data)) {
+      const contentStr = String.fromCharCode.apply(null, content.data);
+      return contentStr.includes('"type":"clm_document"') || 
+             contentStr.includes('"dimensionType"') ||
+             contentStr.includes('abstractSpecification') ||
+             contentStr.includes('concreteImplementation') ||
+             contentStr.includes('balancedExpectations');
+    }
+  } catch (error) {
+    console.error('Error detecting CLM content:', error);
+  }
+  
+  return false;
 };

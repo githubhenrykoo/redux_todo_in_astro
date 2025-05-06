@@ -78,6 +78,19 @@ jobs:
         mkdir -p screenshots/playwrightclmconversationalprogramming
         cp step*.png screenshots/playwrightclmconversationalprogramming/ || echo "No screenshots found"
 
+        echo "Process logs:" > screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Checkout repository" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Setup Node.js" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Install dependencies" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Install Playwright browsers" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Remove cards.db file" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Start dev server" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Start Python REPL server" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Wait for servers" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Run Playwright script" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Upload screenshots as artifacts" >> screenshots/playwrightclmconversationalprogramming/log.txt
+        echo "Commit screenshots to repo" >> screenshots/playwrightclmconversationalprogramming/log.txt
+
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 

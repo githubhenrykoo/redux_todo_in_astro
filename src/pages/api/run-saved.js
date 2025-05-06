@@ -38,15 +38,37 @@ export async function POST({ request }) {
         
         for (const action of inputActions) {
             const message = action.value;
+            
+            // Tunggu sampai textarea siap untuk menerima input
+            await page.waitForSelector('textarea[placeholder="Type your message here..."]', { state: 'visible' });
             const textarea = await page.locator('textarea[placeholder="Type your message here..."]');
+            
+            // Cek apakah textarea bisa digunakan
+            async function waitForTextareaReady() {
+                let isReady = false;
+                while (!isReady) {
+                    isReady = await textarea.evaluate(el => !el.disabled && !el.readOnly);
+                    if (!isReady) {
+                        await page.waitForTimeout(1000); // Cek setiap 1 detik
+                    }
+                }
+            }
+            
+            await waitForTextareaReady();
+            
+            // Ketik pesan karakter per karakter
             for (const char of message) {
                 await textarea.type(char, { delay: 100 });
             }
             await page.waitForTimeout(1000);
 
-            // Click Send Message Button
-            await page.click('button.bg-blue-600.text-white');
-            await page.waitForTimeout(6000);
+            // Tunggu tombol kirim bisa diklik
+            const sendButton = await page.locator('button.bg-blue-600.text-white');
+            await sendButton.waitFor({ state: 'visible' });
+            await sendButton.click();
+            
+            // Tunggu sampai pesan terkirim dan textarea siap untuk pesan berikutnya
+            await waitForTextareaReady();
         }
 
         await browser.close();

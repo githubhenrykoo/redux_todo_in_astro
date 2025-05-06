@@ -60,7 +60,7 @@ export async function POST({ request }) {
             
             await waitForTextareaReady();
 
-            await page.screenshot({ path: 'step${Date.now()}.png' });
+            await page.screenshot({ path: `step${Date.now()}.png` });
             // Ketik pesan karakter per karakter
             for (const char of message) {
                 await textarea.type(char, { delay: 100 });

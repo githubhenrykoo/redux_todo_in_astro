@@ -49,7 +49,7 @@ import { chromium } from 'playwright';
   await page.waitForTimeout(1000);
 
   const fileInput = await page.locator('input[type="file"]').first();
-  await fileInput.setInputFiles('src/pages/api/Playwright_Testing.py');
+  await fileInput.setInputFiles('playwright_logs/Playwright_Testing.py');
   await page.waitForTimeout(1000);
   await page.screenshot({ path: 'step7.png' });
   await page.waitForTimeout(1000);

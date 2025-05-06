@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import DimensionPanel from './DimensionPanel';
+import { updateInputs, updateActivities, updateOutputs } from '../../../features/concreteImplementationSlice';
 
 const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
-    console.log("ConcreteImplementation rendered with data:", data);
+    const dispatch = useDispatch();
+    const { inputs, activities, outputs } = useSelector(state => state.concreteImplementation);
     
-    // Add state for file uploads and linking
-    const [uploadedFiles, setUploadedFiles] = useState([]);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadError, setUploadError] = useState(null);
+    // Add default empty array if state.files or uploadedFiles is undefined
+    const uploadedFiles = useSelector(state => state?.files?.uploadedFiles || []);
+    const isUploading = useSelector(state => state?.files?.isUploading || false);
+    const uploadError = useSelector(state => state?.files?.uploadError || null);
+    
+    console.log("ConcreteImplementation rendered with data:", data);
     
     // Define fields according to CLM_for_CLM_Mcard.md spec
     const fields = [
@@ -32,8 +37,8 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
     const handleFileUpload = async (files) => {
         if (!files || files.length === 0) return;
         
-        setIsUploading(true);
-        setUploadError(null);
+        dispatch({ type: 'files/setIsUploading', payload: true });
+        dispatch({ type: 'files/setUploadError', payload: null });
         
         try {
             const uploadPromises = Array.from(files).map(async (file) => {
@@ -102,8 +107,11 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
             // Wait for all uploads to complete
             const uploadedResults = await Promise.all(uploadPromises);
             
-            // Update state with new files
-            setUploadedFiles(prev => [...prev, ...uploadedResults]);
+            // Update Redux store with new files
+            dispatch({ 
+                type: 'files/addUploadedFiles', 
+                payload: uploadedResults 
+            });
             
             // Format a simple list of hashes for the activities field
             const allFiles = [...uploadedFiles, ...uploadedResults];
@@ -115,16 +123,31 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
             console.log('Files uploaded successfully:', uploadedResults);
         } catch (error) {
             console.error('Error uploading files:', error);
-            setUploadError(error.message || 'Failed to upload files');
+            dispatch({ 
+                type: 'files/setUploadError', 
+                payload: error.message || 'Failed to upload files' 
+            });
         } finally {
-            setIsUploading(false);
+            dispatch({ type: 'files/setIsUploading', payload: false });
         }
     };
 
     // Add dimensionType to local data before passing to parent
     const handleChange = (key, value) => {
         console.log(`ConcreteImplementation handleChange: ${key} = "${value}"`);
-        // Important: DO NOT include section parameter for dimension components
+        switch(key) {
+            case 'inputs':
+                dispatch(updateInputs(value));
+                break;
+            case 'activities':
+                dispatch(updateActivities(value));
+                break;
+            case 'outputs':
+                dispatch(updateOutputs(value));
+                break;
+            default:
+                break;
+        }
         onChange('concreteImplementation', null, key, value);
     };
 
@@ -138,9 +161,9 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
         // Create a clean object for JSON preview
         return {
             dimensionType: "concreteImplementation",
-            inputs: data.inputs || "",
-            activities: data.activities || "",
-            outputs: data.outputs || ""
+            inputs: inputs || "",
+            activities: activities || "",
+            outputs: outputs || ""
         };
     };
 
@@ -236,7 +259,7 @@ const ConcreteImplementation = ({ data, onChange, generateJsonData }) => {
             <DimensionPanel
                 title="Concrete Implementation"
                 fields={fields}
-                data={data || {}}
+                data={{ inputs, activities, outputs }}
                 onChange={handleChange}
                 jsonData={getDimensionData()}
             />

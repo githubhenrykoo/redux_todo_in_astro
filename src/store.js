@@ -2,6 +2,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import chatbotReducer from './features/chatbotSlice';
 import testLogsReducer from './features/testLogsSlice';
 import pythonreplReducer from './features/pythonreplSlice';
+import clmReducer from './features/clmSlice';
+import concreteImplementationReducer from './features/concreteImplementationSlice';
 
 // Core Reducers
 import themeReducer from './features/themeSlice';
@@ -33,24 +35,11 @@ export const store = configureStore({
     testLogs: testLogsReducer,
     chatbot: chatbotReducer,
     pythonrepl: pythonreplReducer,
-    
-    // UI States
+    clm: clmReducer,
     panellayout: panellayoutReducer,
-    activePanel: activePanelReducer,
-    resizeable: resizeableReducer,
-    selectedItem: selectedItemReducer,
-  },
-  middleware: (getDefaultMiddleware) => 
-    getDefaultMiddleware({
-      serializableCheck: false
-    }),
-  devTools: {
-    name: 'Progressive Knowledge Container',
-    trace: true,
-    traceLimit: 25
+    concreteImplementation: concreteImplementationReducer,
   }
 });
-
 // Make store globally accessible in browser environments
 if (typeof window !== 'undefined') {
   window['store'] = store;

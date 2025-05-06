@@ -1,7 +1,12 @@
 import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateAbstractSpecification } from '../../../features/clmSlice';
 import DimensionPanel from './DimensionPanel';
 
-const AbstractSpecification = ({ data, onChange, generateJsonData }) => {
+const AbstractSpecification = ({ generateJsonData }) => {
+    const dispatch = useDispatch();
+    const data = useSelector(state => state.clm.abstractSpecification);
+    
     console.log("AbstractSpecification rendered with data:", data);
     
     // Define fields according to CLM_for_CLM_Mcard.md spec
@@ -26,8 +31,7 @@ const AbstractSpecification = ({ data, onChange, generateJsonData }) => {
     // Add dimensionType to local data before passing to parent
     const handleChange = (key, value) => {
         console.log(`AbstractSpecification handleChange: ${key} = "${value}"`);
-        // Important: DO NOT include section parameter for dimension components
-        onChange('abstractSpecification', null, key, value);
+        dispatch(updateAbstractSpecification({ field: key, value }));
     };
 
     // Build the dimension data with proper structure - directly return object

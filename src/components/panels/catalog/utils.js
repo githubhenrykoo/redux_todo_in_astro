@@ -124,8 +124,9 @@ export const detectCLMContent = (content) => {
       contentStr = content;
     } else if (content.type === 'Buffer' && Array.isArray(content.data)) {
       // Handle JSON Buffer representation
-      contentStr = String.fromCharCode.apply(null, content.data);
-    } else if (Buffer.isBuffer(content)) {
+      // Use a safe approach to avoid stack overflow
+      contentStr = content.data.map(c => String.fromCharCode(c)).join('');
+    } else if (typeof content.toString === 'function') {
       contentStr = content.toString();
     } else {
       contentStr = String(content);

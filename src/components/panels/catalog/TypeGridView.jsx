@@ -33,6 +33,45 @@ const TypeGridView = ({
   // Get content type display mapping
   const contentTypeMap = getContentTypeDisplay();
 
+  // Memoize the detectViaImageLoading function to avoid recreating it on every render
+  const detectViaImageLoading = useCallback((item) => {
+    const img = new Image();
+    
+    img.onload = () => {
+      // If it loads, it's an image - try to determine specific type
+      let imgType = 'image/png'; // Default
+      
+      // Try to infer specific type from URL or response
+      if (img.src.includes('.gif')) {
+        imgType = 'image/gif';
+      } else if (img.src.includes('.jpg') || img.src.includes('.jpeg')) {
+        imgType = 'image/jpeg';
+      }
+      
+      setVerifiedItems(prev => ({
+        ...prev,
+        [item.id]: {
+          contentType: { mimeType: imgType },
+          isVerified: true
+        }
+      }));
+    };
+    
+    img.onerror = () => {
+      // If it fails to load as an image, keep original content type
+      setVerifiedItems(prev => ({
+        ...prev,
+        [item.id]: {
+          contentType: item.contentType,
+          isVerified: true
+        }
+      }));
+    };
+    
+    // Try to load the item as an image
+    img.src = `/api/card-collection?action=get&hash=${item.id}`;
+  }, []);
+
   // Helper function to determine if an item is an image
   const isImageItem = (item) => {
     if (!item || !item.contentType) return false;
@@ -120,7 +159,7 @@ const TypeGridView = ({
       'clm': 'CLM'
     };
     
-    return typeMap[simpleType] || simpleType;
+    return typeMap[getSimpleContentType(contentType)] || getSimpleContentType(contentType);
   };
 
   // Detect actual content types by fetching and examining item data
@@ -302,45 +341,6 @@ const TypeGridView = ({
         return <FaFile className="react-icon" style={{ color: '#757575' }} />;
     }
   };
-
-  // Memoize the detection function to avoid recreating it on every render
-  const detectViaImageLoading = useCallback((item) => {
-    const img = new Image();
-    
-    img.onload = () => {
-      // If it loads, it's an image - try to determine specific type
-      let imgType = 'image/png'; // Default
-      
-      // Try to infer specific type from URL or response
-      if (img.src.includes('.gif')) {
-        imgType = 'image/gif';
-      } else if (img.src.includes('.jpg') || img.src.includes('.jpeg')) {
-        imgType = 'image/jpeg';
-      }
-      
-      setVerifiedItems(prev => ({
-        ...prev,
-        [item.id]: {
-          contentType: { mimeType: imgType },
-          isVerified: true
-        }
-      }));
-    };
-    
-    img.onerror = () => {
-      // If it fails to load as an image, keep original content type
-      setVerifiedItems(prev => ({
-        ...prev,
-        [item.id]: {
-          contentType: item.contentType,
-          isVerified: true
-        }
-      }));
-    };
-    
-    // Try to load the item as an image
-    img.src = `/api/card-collection?action=get&hash=${item.id}`;
-  }, []);
 
   // Render loading state
   if (loading || (isSearchMode && searchLoading)) {

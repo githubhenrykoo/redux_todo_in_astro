@@ -29,6 +29,11 @@ jobs:
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
 
+    - name: Remove cards.db file
+      run: |
+        echo "Deleting public/data/cards.db if exists..."
+        rm -f public/data/cards.db
+
     - name: Start dev server (localhost:4321)
       run: npm run dev &
       env:

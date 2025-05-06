@@ -1,0 +1,12 @@
+Process logs
+Checkout repository
+Setup Node.js
+Install dependencies
+Install Playwright browsers
+Remove cards.db file
+Start dev server
+Start Python REPL server
+Wait for servers
+Run Playwright script
+Upload screenshots as artifacts
+Commit playwright_logs to repo

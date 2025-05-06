@@ -300,10 +300,10 @@ const TypeGridView = ({
         overflowX: 'hidden',
         padding: '16px'
       }}>
-        {/* Main grid for category cards */}
+        {/* Main column for category cards */}
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          display: 'flex',
+          flexDirection: 'column',
           gap: '24px',
           width: '100%',
           padding: '16px 0'

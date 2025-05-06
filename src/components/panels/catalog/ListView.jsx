@@ -101,8 +101,11 @@ const ListView = ({
           if (data.success && data.card) {
             // Check if it's a CLM by examining content
             let isCLM = false;
+            let clmType = null;
             if (data.card.content) {
-              isCLM = detectCLMContent(data.card.content);
+              const clmDetection = detectCLMContent(data.card.content);
+              isCLM = clmDetection.isClm;
+              clmType = clmDetection.type;
             }
             
             // Update with accurate content type from API
@@ -110,10 +113,11 @@ const ListView = ({
               ...prev,
               [item.hash || item.id]: {
                 contentType: isCLM 
-                  ? { mimeType: 'text/clm' }  // Use custom CLM MIME type 
+                  ? { mimeType: clmType === 'main' ? 'text/csv' : 'text/clm' }  
                   : data.card.contentType,
                 isVerified: true,
-                isCLM: isCLM
+                isCLM: isCLM,
+                clmType: clmType
               }
             }));
           } else {
@@ -158,8 +162,9 @@ const ListView = ({
       let fileType = 'Unknown';
       
       // Check if it's a CLM first
-      if (isCLMItem(item)) {
-        fileType = 'CLM';
+      const clmInfo = isCLMItem(item);
+      if (clmInfo.isClm) {
+        fileType = clmInfo.type === 'main' ? 'CLM' : 'CLM Dimension';
       } else if (displayItem.contentType && displayItem.contentType.mimeType) {
         const mimeType = displayItem.contentType.mimeType;
         
@@ -232,15 +237,29 @@ const ListView = ({
   const isCLMItem = (item) => {
     const verifiedItem = verifiedItems[item.hash || item.id];
     if (verifiedItem && verifiedItem.isVerified && verifiedItem.isCLM) {
-      return true;
+      return { isClm: true, type: verifiedItem.clmType || 'dimension' };
     }
-    return verifiedItem?.contentType?.mimeType === 'text/clm';
+    return verifiedItem?.contentType?.mimeType === 'text/clm' 
+      ? { isClm: true, type: 'dimension' } 
+      : { isClm: false, type: null };
+  };
+
+  // Helper to check if an item is a main CLM
+  const isMainCLM = (item) => {
+    const clmInfo = isCLMItem(item);
+    return clmInfo.isClm && clmInfo.type === 'main';
+  };
+
+  // Helper to check if an item is a dimension CLM
+  const isDimensionCLM = (item) => {
+    const clmInfo = isCLMItem(item);
+    return clmInfo.isClm && clmInfo.type === 'dimension';
   };
   
   // Get a color for each category
   const getCategoryColor = (category) => {
     const colorMap = {
-      'CLM': '#8E44AD',         // Purple for CLM
+      'CLM': '#FFC107',         // Yellow for CLM
       'CSV': '#4CAF50',         // Green
       'Python': '#3F51B5',      // Indigo
       'Images': '#2196F3',      // Blue
@@ -260,7 +279,7 @@ const ListView = ({
   // Get folder icon for a category
   const getCategoryIcon = (category) => {
     const iconMap = {
-      'CLM': <FaCube style={{ color: '#8E44AD', fontSize: '18px' }} />,
+      'CLM': <FaCube style={{ color: '#FFC107', fontSize: '18px' }} />,
       'Images': <FaImage style={{ color: '#2196F3', fontSize: '18px' }} />,
       'Videos': <FaVideo style={{ color: '#E91E63', fontSize: '18px' }} />,
       'Audio': <FaVolumeUp style={{ color: '#673AB7', fontSize: '18px' }} />,
@@ -278,8 +297,15 @@ const ListView = ({
   // Helper to get content type icon using React Icons
   const getContentTypeIcon = (contentType, item) => {
     // Check if it's a CLM first
-    if (item && isCLMItem(item)) {
-      return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD', fontSize: '16px' }} />;
+    if (item) {
+      const clmInfo = isCLMItem(item);
+      if (clmInfo.isClm) {
+        if (clmInfo.type === 'main') {
+          return <FaCube className="react-icon clm-icon" style={{ color: '#FFC107', fontSize: '16px' }} />;
+        } else {
+          return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD', fontSize: '16px' }} />;
+        }
+      }
     }
     
     if (!contentType || !contentType.mimeType) {
@@ -291,6 +317,8 @@ const ListView = ({
     // Check for CLM MIME type
     if (mimeType === 'text/clm') {
       return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD', fontSize: '16px' }} />;
+    } else if (mimeType === 'text/csv' && item && isMainCLM(item)) {
+      return <FaCube className="react-icon clm-icon" style={{ color: '#FFC107', fontSize: '16px' }} />;
     }
     
     if (mimeType.startsWith('image/')) {

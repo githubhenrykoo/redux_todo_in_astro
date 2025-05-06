@@ -63,23 +63,32 @@ const TypeGridView = ({
     if (!item || !item.contentType) return 'Unknown';
     
     // Check if it's a CLM document by examining content
-    if (item.content && detectCLMContent(item.content)) {
-      return 'CLM';
+    if (item.content) {
+      const clmDetection = detectCLMContent(item.content);
+      if (clmDetection.isClm) {
+        return clmDetection.type === 'main' ? 'CLM' : 'CLM Dimension';
+      }
+    }
+    
+    // Check for verified CLM
+    const verifiedItem = verifiedItems[item.id];
+    if (verifiedItem && verifiedItem.isVerified && verifiedItem.isCLM) {
+      return verifiedItem.clmType === 'main' ? 'CLM' : 'CLM Dimension';
     }
     
     const contentType = typeof item.contentType === 'string'
       ? item.contentType
       : item.contentType.mimeType || '';
     
-    // Extract the specific file type from the content type
-    const simpleType = getSimpleContentType(contentType);
-    
     // Special check for CLM files stored as CSV
-    if (simpleType === 'csv') {
+    if (contentType === 'text/csv' || getSimpleContentType(contentType) === 'csv') {
       // CSV files that contain CLM data should be categorized as CLM
       const content = item.content || '';
-      if (content && detectCLMContent(content)) {
-        return 'CLM';
+      if (content) {
+        const clmDetection = detectCLMContent(content);
+        if (clmDetection.isClm) {
+          return clmDetection.type === 'main' ? 'CLM' : 'CLM Dimension';
+        }
       }
     }
     
@@ -107,33 +116,147 @@ const TypeGridView = ({
       'application/javascript': 'JavaScript',
       'text/javascript': 'JavaScript',
       'application/pdf': 'PDF',
+      'text/clm': 'CLM Dimension',
       'clm': 'CLM'
     };
     
     return typeMap[simpleType] || simpleType;
   };
 
+  // Detect actual content types by fetching and examining item data
+  useEffect(() => {
+    if (!sortedItems || sortedItems.length === 0) return;
+    
+    // Create a new map of items to verify
+    const itemsToVerify = sortedItems
+      .filter(item => !verifiedItems[item.id] && !pendingVerifications[item.id])
+      .slice(0, 5);
+    
+    if (itemsToVerify.length === 0) return;
+    
+    // Create a copy of the pending verifications
+    const newPendingVerifications = { ...pendingVerifications };
+    
+    // Add each item to the pending list
+    itemsToVerify.forEach(item => {
+      newPendingVerifications[item.id] = true;
+    });
+    
+    // Update the pending verifications state once
+    setPendingVerifications(newPendingVerifications);
+    
+    // Process each item
+    itemsToVerify.forEach(item => {
+      // Fetch the detailed item info with accurate content type
+      fetch(`/api/card-collection?action=get&hash=${item.id}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.card) {
+            // Check if it's a CLM by examining content
+            let isCLM = false;
+            let clmType = null;
+            if (data.card.content) {
+              const clmDetection = detectCLMContent(data.card.content);
+              isCLM = clmDetection.isClm;
+              clmType = clmDetection.type;
+            }
+            
+            // Update with accurate content type from API
+            setVerifiedItems(prev => ({
+              ...prev,
+              [item.id]: {
+                contentType: isCLM 
+                  ? { mimeType: clmType === 'main' ? 'text/csv' : 'text/clm' }
+                  : data.card.contentType,
+                isVerified: true,
+                isCLM: isCLM,
+                clmType: clmType
+              }
+            }));
+          } else {
+            // Fallback to type detection via image loading if API doesn't return contentType
+            detectViaImageLoading(item);
+          }
+          
+          // Remove from pending status
+          setPendingVerifications(prev => {
+            const updated = { ...prev };
+            delete updated[item.id];
+            return updated;
+          });
+        })
+        .catch(error => {
+          console.error(`Error fetching details for item ${item.id}:`, error);
+          // Fallback to type detection via image loading if API fails
+          detectViaImageLoading(item);
+          
+          // Remove from pending status
+          setPendingVerifications(prev => {
+            const updated = { ...prev };
+            delete updated[item.id];
+            return updated;
+          });
+        });
+    });
+  }, [sortedItems, verifiedItems, pendingVerifications, detectViaImageLoading]);
+
+  // Group items by their specific file type
+  useEffect(() => {
+    const groups = {};
+    
+    sortedItems.forEach(item => {
+      // Use verified content type if available
+      const verifiedItem = verifiedItems[item.id];
+      const displayItem = verifiedItem && verifiedItem.isVerified
+        ? { ...item, contentType: verifiedItem.contentType }
+        : item;
+      
+      const fileType = getFileType(displayItem);
+      
+      if (!groups[fileType]) {
+        groups[fileType] = [];
+      }
+      
+      groups[fileType].push(displayItem);
+    });
+    
+    // Ensure CLM category is first if it exists
+    const typeOrder = Object.keys(groups).sort((a, b) => {
+      if (a === 'CLM') return -1;  // CLM comes first
+      if (b === 'CLM') return 1;   // CLM comes first
+      return a.localeCompare(b);   // Alphabetical for the rest
+    });
+    
+    const orderedGroups = {};
+    typeOrder.forEach(type => {
+      orderedGroups[type] = groups[type];
+    });
+    
+    setGroupedItems(orderedGroups);
+  }, [sortedItems, verifiedItems]);
+
   // Get a color for each category
   const getCategoryColor = (category) => {
     const colorMap = {
-      'CLM': '#8E44AD',         // Purple for CLM
-      'CSV': '#4CAF50',         // Green
-      'Python': '#3F51B5',      // Indigo
-      'Binary': '#607D8B',      // Blue Grey
-      'JSON': '#FF9800',        // Orange
-      'JavaScript': '#FFC107',  // Amber
-      'Text': '#795548',        // Brown
-      'HTML': '#FF5722',        // Deep Orange
-      'PDF': '#F44336',         // Red
-      'PNG': '#2196F3',         // Blue
-      'JPEG': '#03A9F4',        // Light Blue
-      'GIF': '#00BCD4',         // Cyan
-      'SVG': '#009688',         // Teal
-      'MP4': '#E91E63',         // Pink
-      'QuickTime': '#9C27B0',   // Purple
-      'MP3': '#673AB7',         // Deep Purple
-      'WAV': '#3F51B5',         // Indigo
-      'Unknown': '#757575'      // Grey
+      'CLM': '#FFC107',              // Yellow for main CLM
+      'CLM Dimension': '#8E44AD',    // Purple for CLM dimensions
+      'CSV': '#4CAF50',              // Green
+      'Python': '#3F51B5',           // Indigo
+      'Binary': '#607D8B',           // Blue Grey
+      'JSON': '#FF9800',             // Orange
+      'JavaScript': '#FFC107',       // Amber
+      'Text': '#795548',             // Brown
+      'HTML': '#FF5722',             // Deep Orange
+      'PDF': '#F44336',              // Red
+      'PNG': '#2196F3',              // Blue
+      'JPEG': '#03A9F4',             // Light Blue
+      'GIF': '#00BCD4',              // Cyan
+      'SVG': '#009688',              // Teal
+      'MP4': '#E91E63',              // Pink
+      'QuickTime': '#9C27B0',        // Purple
+      'MP3': '#673AB7',              // Deep Purple
+      'WAV': '#3F51B5',              // Indigo
+      'Unknown': '#757575'           // Grey
     };
     
     return colorMap[category] || '#757575';
@@ -143,6 +266,8 @@ const TypeGridView = ({
   const getContentTypeIcon = (category) => {
     switch(category) {
       case 'CLM':
+        return <FaCube className="react-icon clm-icon" style={{ color: '#FFC107' }} />;
+      case 'CLM Dimension':
         return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD' }} />;
       case 'CSV':
         return <FaTable className="react-icon table-icon" style={{ color: '#4CAF50' }} />;
@@ -216,114 +341,6 @@ const TypeGridView = ({
     // Try to load the item as an image
     img.src = `/api/card-collection?action=get&hash=${item.id}`;
   }, []);
-
-  // Group items by their specific file type
-  useEffect(() => {
-    const groups = {};
-    
-    sortedItems.forEach(item => {
-      // Use verified content type if available
-      const verifiedItem = verifiedItems[item.id];
-      const displayItem = verifiedItem && verifiedItem.isVerified
-        ? { ...item, contentType: verifiedItem.contentType }
-        : item;
-      
-      const fileType = getFileType(displayItem);
-      
-      if (!groups[fileType]) {
-        groups[fileType] = [];
-      }
-      
-      groups[fileType].push(displayItem);
-    });
-    
-    // Ensure CLM category is first if it exists
-    const typeOrder = Object.keys(groups).sort((a, b) => {
-      if (a === 'CLM') return -1;  // CLM comes first
-      if (b === 'CLM') return 1;   // CLM comes first
-      return a.localeCompare(b);   // Alphabetical for the rest
-    });
-    
-    const orderedGroups = {};
-    typeOrder.forEach(type => {
-      orderedGroups[type] = groups[type];
-    });
-    
-    setGroupedItems(orderedGroups);
-  }, [sortedItems, verifiedItems]);
-
-  // Detect actual content types by fetching and examining item data
-  useEffect(() => {
-    if (!sortedItems || sortedItems.length === 0) return;
-    
-    // Create a new map of items to verify
-    const itemsToVerify = sortedItems
-      .filter(item => !verifiedItems[item.id] && !pendingVerifications[item.id])
-      .slice(0, 5);
-    
-    if (itemsToVerify.length === 0) return;
-    
-    // Create a copy of the pending verifications
-    const newPendingVerifications = { ...pendingVerifications };
-    
-    // Add each item to the pending list
-    itemsToVerify.forEach(item => {
-      newPendingVerifications[item.id] = true;
-    });
-    
-    // Update the pending verifications state once
-    setPendingVerifications(newPendingVerifications);
-    
-    // Process each item
-    itemsToVerify.forEach(item => {
-      // Fetch the detailed item info with accurate content type
-      fetch(`/api/card-collection?action=get&hash=${item.id}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.success && data.card) {
-            // Check if it's a CLM by examining content
-            let isCLM = false;
-            if (data.card.content) {
-              isCLM = detectCLMContent(data.card.content);
-            }
-            
-            // Update with accurate content type from API
-            setVerifiedItems(prev => ({
-              ...prev,
-              [item.id]: {
-                contentType: isCLM 
-                  ? { mimeType: 'text/clm' }  // Use custom CLM MIME type
-                  : data.card.contentType,
-                isVerified: true,
-                isCLM: isCLM
-              }
-            }));
-          } else {
-            // Fallback to type detection via image loading if API doesn't return contentType
-            detectViaImageLoading(item);
-          }
-          
-          // Remove from pending status
-          setPendingVerifications(prev => {
-            const updated = { ...prev };
-            delete updated[item.id];
-            return updated;
-          });
-        })
-        .catch(error => {
-          console.error(`Error fetching details for item ${item.id}:`, error);
-          // Fallback to type detection via image loading if API fails
-          detectViaImageLoading(item);
-          
-          // Remove from pending status
-          setPendingVerifications(prev => {
-            const updated = { ...prev };
-            delete updated[item.id];
-            return updated;
-          });
-        });
-    });
-  }, [sortedItems, verifiedItems, pendingVerifications, detectViaImageLoading]);
 
   // Render loading state
   if (loading || (isSearchMode && searchLoading)) {
@@ -546,7 +563,11 @@ const TypeGridView = ({
                             <span style={{ fontSize: '10px', display: 'flex', alignItems: 'center' }}>
                               {category === 'CLM' && <FaCube style={{ marginRight: '2px' }} />}
                             </span>
-                            {category === 'CLM' ? 'CLM Document' : getFormattedContentType(displayItem)}
+                            {category === 'CLM' 
+                              ? '📊 CLM Main Document' 
+                              : category === 'CLM Dimension'
+                                ? '📊 CLM Dimension' 
+                                : getFormattedContentType(displayItem)}
                           </div>
                         </div>
                       </div>

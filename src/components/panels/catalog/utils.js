@@ -81,12 +81,9 @@ export const determineCorrectContentType = (item) => {
         : '';
         
     // Check for CLM indicators in content
-    if (contentStr.includes('"type":"clm_document"') || 
-        contentStr.includes('"dimensionType"') ||
-        contentStr.includes('abstractSpecification') ||
-        contentStr.includes('concreteImplementation') ||
-        contentStr.includes('balancedExpectations')) {
-      return 'CLM (text/csv)';
+    const detectedCLM = detectCLMContent(contentStr);
+    if (detectedCLM.isClm) {
+      return `CLM (${detectedCLM.type === 'main' ? 'text/csv' : 'text/clm-dimension'})`;
     }
   }
   
@@ -110,52 +107,81 @@ export const determineCorrectContentType = (item) => {
   return getFormattedContentType(mimeType);
 };
 
-// Special function to detect CLM content by analyzing the content
+/**
+ * Detect CLM (Cubical Logic Model) content based on patterns and keywords
+ * @param {string} content - The content to analyze
+ * @returns {object} - Object with isClm flag and type (main or dimension)
+ */
 export const detectCLMContent = (content) => {
-  if (!content) return false;
-  
-  try {
-    // If content is a string, try to parse it as JSON
-    if (typeof content === 'string') {
-      // Check for CLM indicators without parsing (for performance)
-      if (content.includes('"type":"clm_document"') || 
-          content.includes('"dimensionType"') ||
-          content.includes('abstractSpecification') ||
-          content.includes('concreteImplementation') ||
-          content.includes('balancedExpectations')) {
-        return true;
-      }
-      
-      // Try parsing as JSON for more accurate detection
-      try {
-        const parsed = JSON.parse(content);
-        return (
-          parsed.type === 'clm_document' ||
-          parsed.dimensionType ||
-          (parsed.dimensions && (
-            parsed.dimensions.abstractSpecification ||
-            parsed.dimensions.concreteImplementation ||
-            parsed.dimensions.balancedExpectations
-          ))
-        );
-      } catch (e) {
-        // Not valid JSON, check for other CLM indicators
-        return false;
-      }
-    }
-    
-    // If content is a Buffer JSON representation
-    if (content && content.type === 'Buffer' && Array.isArray(content.data)) {
-      const contentStr = String.fromCharCode.apply(null, content.data);
-      return contentStr.includes('"type":"clm_document"') || 
-             contentStr.includes('"dimensionType"') ||
-             contentStr.includes('abstractSpecification') ||
-             contentStr.includes('concreteImplementation') ||
-             contentStr.includes('balancedExpectations');
-    }
-  } catch (error) {
-    console.error('Error detecting CLM content:', error);
+  if (!content) {
+    return { isClm: false, type: null };
   }
   
-  return false;
+  // Convert binary or Buffer to string if needed
+  let contentStr = '';
+  try {
+    if (typeof content === 'string') {
+      contentStr = content;
+    } else if (content.type === 'Buffer' && Array.isArray(content.data)) {
+      // Handle JSON Buffer representation
+      contentStr = String.fromCharCode.apply(null, content.data);
+    } else if (Buffer.isBuffer(content)) {
+      contentStr = content.toString();
+    } else {
+      contentStr = String(content);
+    }
+  } catch (e) {
+    console.warn('Error converting content:', e);
+    return { isClm: false, type: null };
+  }
+  
+  // Try parsing as JSON if it looks like JSON
+  let jsonData = null;
+  if (contentStr.trim().startsWith('{') && contentStr.trim().endsWith('}')) {
+    try {
+      jsonData = JSON.parse(contentStr);
+    } catch (e) {
+      // Not valid JSON, continue with string analysis
+    }
+  }
+  
+  // Check for the root CLM structure (main CLM) in JSON
+  if (jsonData) {
+    if (jsonData.dimensions && 
+        (jsonData.dimensions.abstractSpecification || 
+         jsonData.dimensions.concreteImplementation)) {
+      return { isClm: true, type: 'main' };
+    }
+    
+    if (jsonData.dimensionType) {
+      return { isClm: true, type: 'dimension' };
+    }
+  }
+  
+  // Check for the root CLM structure (main CLM) in string
+  const isMainClm = contentStr.includes('"dimensions"') && 
+    (contentStr.includes('"abstractSpecification"') || contentStr.includes('"concreteImplementation"'));
+  
+  // Check for dimension CLM patterns
+  const isDimensionClm = 
+    (contentStr.includes('"dimensionType"') && 
+     (contentStr.includes('"abstractSpecification"') || 
+      contentStr.includes('"concreteImplementation"'))) ||
+    (contentStr.includes('Abstract Specification') && 
+     contentStr.includes('Concrete Implementation')) ||
+    (contentStr.includes('Context') && 
+     contentStr.includes('Goal') && 
+     contentStr.includes('Success Criteria') &&
+     contentStr.includes('Inputs') &&
+     contentStr.includes('Activities') &&
+     contentStr.includes('Outputs'));
+  
+  // Return appropriate type
+  if (isMainClm) {
+    return { isClm: true, type: 'main' };
+  } else if (isDimensionClm) {
+    return { isClm: true, type: 'dimension' };
+  }
+  
+  return { isClm: false, type: null };
 };

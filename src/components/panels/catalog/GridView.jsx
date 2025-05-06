@@ -100,8 +100,11 @@ const GridView = ({
           if (data.success && data.card) {
             // Check if it's a CLM by examining content
             let isCLM = false;
+            let clmType = null;
             if (data.card.content) {
-              isCLM = detectCLMContent(data.card.content);
+              const clmDetection = detectCLMContent(data.card.content);
+              isCLM = clmDetection.isClm;
+              clmType = clmDetection.type;
             }
             
             // Update with accurate content type from API
@@ -109,10 +112,11 @@ const GridView = ({
               ...prev,
               [item.id]: {
                 contentType: isCLM 
-                  ? { mimeType: 'text/clm' }  // Use custom CLM MIME type
+                  ? { mimeType: clmType === 'main' ? 'text/csv' : 'text/clm' }
                   : data.card.contentType,
                 isVerified: true,
-                isCLM: isCLM
+                isCLM: isCLM,
+                clmType: clmType
               }
             }));
           } else {
@@ -146,16 +150,35 @@ const GridView = ({
   const isCLMItem = (item) => {
     const verifiedItem = verifiedItems[item.id];
     if (verifiedItem && verifiedItem.isVerified && verifiedItem.isCLM) {
-      return true;
+      return { isClm: true, type: verifiedItem.clmType || 'dimension' };
     }
-    return verifiedItem?.contentType?.mimeType === 'text/clm';
+    return verifiedItem?.contentType?.mimeType === 'text/clm' 
+      ? { isClm: true, type: 'dimension' } 
+      : { isClm: false, type: null };
+  };
+
+  // Helper to check if an item is a main CLM
+  const isMainCLM = (item) => {
+    const clmInfo = isCLMItem(item);
+    return clmInfo.isClm && clmInfo.type === 'main';
+  };
+
+  // Helper to check if an item is a dimension CLM
+  const isDimensionCLM = (item) => {
+    const clmInfo = isCLMItem(item);
+    return clmInfo.isClm && clmInfo.type === 'dimension';
   };
   
   // Helper to get content type icon using React Icons
   const getContentTypeIcon = (item) => {
     // Check if it's a CLM first
-    if (isCLMItem(item)) {
-      return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD' }} />;
+    const clmInfo = isCLMItem(item);
+    if (clmInfo.isClm) {
+      if (clmInfo.type === 'main') {
+        return <FaCube className="react-icon clm-icon" style={{ color: '#FFC107' }} />;
+      } else {
+        return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD' }} />;
+      }
     }
     
     const verifiedItem = verifiedItems[item.id];
@@ -171,6 +194,8 @@ const GridView = ({
     
     if (mimeType === 'text/clm') {
       return <FaCube className="react-icon clm-icon" style={{ color: '#8E44AD' }} />;
+    } else if (mimeType === 'text/csv' && isMainCLM(item)) {
+      return <FaCube className="react-icon clm-icon" style={{ color: '#FFC107' }} />;
     } else if (mimeType.startsWith('image/')) {
       return <FaImage className="react-icon image-icon" style={{ color: '#2196F3' }} />;
     } else if (mimeType.startsWith('video/')) {
@@ -197,8 +222,9 @@ const GridView = ({
   // Helper function to get proper content type display
   const getFormattedContentType = (item) => {
     // Special case for CLM
-    if (isCLMItem(item)) {
-      return 'CLM (text/clm)';
+    const clmInfo = isCLMItem(item);
+    if (clmInfo.isClm) {
+      return `CLM (${clmInfo.type === 'main' ? 'Main' : 'Dimension'})`;
     }
     
     // If we've verified this item's content type, use that instead

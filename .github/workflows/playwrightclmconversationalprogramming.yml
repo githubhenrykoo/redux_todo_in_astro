@@ -75,8 +75,8 @@ jobs:
     - name: Commit screenshots to repo
       if: success()
       run: |
-        mkdir -p screenshots
-        cp step*.png screenshots/ || echo "No screenshots found"
+        mkdir -p screenshots/playwrightclmconversationalprogramming
+        cp step*.png screenshots/playwrightclmconversationalprogramming/ || echo "No screenshots found"
 
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"

@@ -8,6 +8,7 @@ import ListView from './catalog/ListView';
 import DetailView from './catalog/DetailView';
 import CatalogHeader from './catalog/CatalogHeader';
 import AddItemForm from './catalog/AddItemForm';
+import TypeGridView from './catalog/TypeGridView';
 
 // Import specialized hooks
 import { useItemActions } from './catalog/ItemActions';
@@ -22,7 +23,7 @@ import { useDataFetcher } from './catalog/DataFetcher';
 const CatalogPanel = () => {
   // Main state
   const [items, setItems] = useState([]);
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('cards');
   const [selectedItem, setSelectedItem] = useState(null);
   
   // Loading and error states
@@ -149,8 +150,23 @@ const CatalogPanel = () => {
         padding: '0',
         backgroundColor: 'var(--bg-color, #1e1e1e)' /* Use CSS variable for background */
       }}>
-        {viewMode === 'grid' && (
+        {viewMode === 'cards' && (
           <GridView 
+            loading={loading || searchLoading}
+            error={error}
+            searchError={searchError}
+            isSearchMode={isSearchMode}
+            searchResults={searchResults}
+            sortedItems={sortedItems}
+            paginationInfo={paginationInfo}
+            onSelectItem={handleSelectItem}
+            onDeleteItem={handleDeleteItem}
+            onPageChange={handlePageChange}
+          />
+        )}
+        
+        {viewMode === 'types' && (
+          <TypeGridView 
             loading={loading || searchLoading}
             error={error}
             searchError={searchError}
@@ -184,7 +200,7 @@ const CatalogPanel = () => {
             itemLoading={itemLoading}
             itemError={itemError}
             selectedItem={selectedItem}
-            onBack={() => setViewMode('grid')}
+            onBack={() => setViewMode('cards')}
             onDeleteItem={handleDeleteItem}
           />
         )}
@@ -194,7 +210,7 @@ const CatalogPanel = () => {
             loading={loading}
             error={error}
             onSubmit={handleAddItem}
-            onCancel={() => setViewMode('grid')}
+            onCancel={() => setViewMode('cards')}
           />
         )}
       </div>

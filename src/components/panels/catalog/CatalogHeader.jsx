@@ -37,13 +37,19 @@ const CatalogHeader = ({
               List
             </button>
             <button
-              className={`btn-toggle ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => setViewMode('grid')}
+              className={`btn-toggle ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setViewMode('cards')}
             >
-              Grid
+              Cards
+            </button>
+            <button
+              className={`btn-toggle ${viewMode === 'types' ? 'active' : ''}`}
+              onClick={() => setViewMode('types')}
+            >
+              Types
             </button>
           </div>
-          {['list', 'grid'].includes(viewMode) && (
+          {['list', 'cards', 'types'].includes(viewMode) && (
             <button
               className="btn btn-primary"
               onClick={() => setViewMode('add')}
@@ -54,7 +60,7 @@ const CatalogHeader = ({
         </div>
       </div>
       
-      {['list', 'grid'].includes(viewMode) && (
+      {['list', 'cards', 'types'].includes(viewMode) && (
         <div className="catalog-controls">
           <form className="search-container" onSubmit={handleSearchSubmit}>
             <input

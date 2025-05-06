@@ -59,6 +59,13 @@ jobs:
           step5.png
           step6.png
           step7.png
+          step8.png
+          step9.png
+          step10.png
+          step11.png
+          step12.png
+          step13.png
+          step14.png
 
     - name: Commit screenshots to repo
       if: success()

@@ -1,4 +1,4 @@
-a=10
-b=10
+a=100
+b=100
 result=a+b
 print(result)

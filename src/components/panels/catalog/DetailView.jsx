@@ -583,6 +583,12 @@ const DetailView = ({
     } else {
       // Default text display
       const content = getFormattedContent(selectedItem.content, contentType);
+      
+      // Convert content to string if it's an object (including Buffer)
+      const displayContent = typeof content === 'object' && content !== null
+        ? JSON.stringify(content, null, 2) // Pretty print if it's an object
+        : content;
+        
       return (
         <ContentWrapper className="text-wrapper">
           <div className="content-controls">
@@ -597,7 +603,7 @@ const DetailView = ({
               </label>
             </div>
             <pre className={`content-text ${!wordWrap ? 'wrap-text' : 'nowrap-text'}`}>
-              {content}
+              {displayContent}
             </pre>
           </div>
         </ContentWrapper>

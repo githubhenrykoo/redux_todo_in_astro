@@ -6,6 +6,8 @@ import {
   setUpdateInProgress,
   setLastError 
 } from '../../features/jsonStateUpdaterSlice';
+// Import theme actions directly
+import { toggleTheme } from '../../features/themeSlice';
 import '../../styles/json-state-updater.css';
 
 const JSONStateUpdaterPanel = () => {
@@ -111,9 +113,6 @@ const JSONStateUpdaterPanel = () => {
         
         // Handle theme slice specially
         if (target === 'theme') {
-          // Import the action we need
-          const { toggleTheme } = require('../../features/themeSlice');
-          
           // If the theme mode is different, toggle it
           if (stateData.mode && storeState.theme.mode !== stateData.mode) {
             dispatch(toggleTheme());
@@ -144,8 +143,6 @@ const JSONStateUpdaterPanel = () => {
         
         // Handle theme slice specially
         if (target === 'theme') {
-          const { toggleTheme } = require('../../features/themeSlice');
-          
           // Look for mode update
           const modeUpdate = updates.find(update => update.path === 'mode');
           if (modeUpdate && ['light', 'dark'].includes(modeUpdate.value)) {
@@ -177,7 +174,6 @@ const JSONStateUpdaterPanel = () => {
         // Process each action in sequence
         data.actions.forEach(actionItem => {
           if (actionItem.type === 'theme/toggleTheme') {
-            const { toggleTheme } = require('../../features/themeSlice');
             dispatch(toggleTheme());
           }
           // Add handlers for other action types here
@@ -221,9 +217,6 @@ const JSONStateUpdaterPanel = () => {
       if (sliceKey === 'theme') {
         // If the theme mode is specified, update it directly
         if (sliceData.mode && ['light', 'dark'].includes(sliceData.mode)) {
-          // Import the action we need
-          const { toggleTheme } = require('../../features/themeSlice');
-          
           // If current theme mode doesn't match desired mode, toggle it
           if (storeState.theme.mode !== sliceData.mode) {
             dispatch(toggleTheme());

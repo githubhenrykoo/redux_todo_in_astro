@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addLog, addScreenshot, setStatus, clearLogs } from '../../features/testLogsSlice';
-import { writeToJsonl } from '../../utils/logWriter';
 
 const Playwright = () => {
     const dispatch = useDispatch();
@@ -51,8 +50,20 @@ const Playwright = () => {
             status: status
         };
         
-        await writeToJsonl(logEntry);
-        dispatch(addLog(message));
+        try {
+            // Send log entry to server instead of writing directly to file
+            await fetch('/api/log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(logEntry)
+            });
+            dispatch(addLog(message));
+        } catch (error) {
+            console.error('Error logging to server:', error);
+            dispatch(addLog(message)); // Still dispatch the log even if server logging fails
+        }
     };
 
     const runTest5 = async () => {

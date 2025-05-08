@@ -238,5 +238,25 @@
             "minSize": 20,
             "visible": true
         }
+    },
+    "json_state_updater_layout": {
+        "left": {
+            "type": "CatalogPanel",
+            "size": 30,
+            "minSize": 20,
+            "visible": true
+        },
+        "middle": {
+            "type": "JSONStateUpdaterPanel",
+            "size": 70,
+            "minSize": 50,
+            "visible": true
+        },
+        "right": {
+            "type": "chatbot",
+            "size": 0,
+            "minSize": 0,
+            "visible": false
+        }
     }
 }

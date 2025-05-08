@@ -1,0 +1,9 @@
+{
+  "action": "SEQUENCE",
+  "actions": [
+    {
+      "type": "theme/toggleTheme",
+      "payload": {}
+    }
+  ]
+}

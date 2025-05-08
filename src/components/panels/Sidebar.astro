@@ -143,9 +143,19 @@ const { class: className, ...props } = Astro.props;
         title="AI Training Data"
         class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative hidden"
       >
-        <FaBrain className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
+        <FaMicrophone className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
         <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           AI Training Data
+        </span>
+      </button>
+      <button
+        id="jsonStateUpdaterLayoutBtn"
+        title="JSON State Updater"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <FaCog className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          JSON State Updater
         </span>
       </button>
     </div>
@@ -174,6 +184,7 @@ const { class: className, ...props } = Astro.props;
   const testingLayoutBtn = document.getElementById('testingLayoutBtn');
   const pythonReplLayoutBtn = document.getElementById('pythonReplLayoutBtn');
   const transcriptionLayoutBtn = document.getElementById('transcriptionLayoutBtn');
+  const jsonStateUpdaterLayoutBtn = document.getElementById('jsonStateUpdaterLayoutBtn');
 
   // Add click handlers
   todoLayoutBtn?.addEventListener('click', () => {
@@ -222,6 +233,10 @@ const { class: className, ...props } = Astro.props;
 
   transcriptionLayoutBtn?.addEventListener('click', () => {
     store.dispatch(changeLayout('transcription_layout'));
+  });
+  
+  jsonStateUpdaterLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('json_state_updater_layout'));
   });
 
   // Function to update active button styles

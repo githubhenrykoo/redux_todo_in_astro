@@ -4,6 +4,7 @@ import testLogsReducer from './features/testLogsSlice';
 import pythonreplReducer from './features/pythonreplSlice';
 import clmReducer from './features/clmSlice';
 import concreteImplementationReducer from './features/concreteImplementationSlice';
+import jsonStateUpdaterReducer from './features/jsonStateUpdaterSlice';
 
 // Core Reducers
 import themeReducer from './features/themeSlice';
@@ -38,6 +39,19 @@ export const store = configureStore({
     clm: clmReducer,
     panellayout: panellayoutReducer,
     concreteImplementation: concreteImplementationReducer,
+    activePanel: activePanelReducer,
+    jsonStateUpdater: jsonStateUpdaterReducer,
+    resizeable: resizeableReducer,
+    selectedItem: selectedItemReducer,
+  },
+  middleware: (getDefaultMiddleware) => 
+    getDefaultMiddleware({
+      serializableCheck: false
+    }),
+  devTools: {
+    name: 'Progressive Knowledge Container',
+    trace: true,
+    traceLimit: 25
   }
 });
 // Make store globally accessible in browser environments

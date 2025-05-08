@@ -1,0 +1,7 @@
+{
+  "action": "REPLACE_STATE",
+  "target": "theme",
+  "data": {
+    "mode": "dark"
+  }
+}

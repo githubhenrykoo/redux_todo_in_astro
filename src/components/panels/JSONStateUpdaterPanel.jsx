@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   setLastUploadedJson, 
@@ -9,6 +9,15 @@ import {
 // Import theme actions directly
 import { toggleTheme } from '../../features/themeSlice';
 import '../../styles/json-state-updater.css';
+
+// Helper function to apply theme changes to document (visual only)
+const applyThemeToDocument = (themeMode) => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(themeMode);
+    // Do not store in localStorage - changes are session-only
+  }
+};
 
 const JSONStateUpdaterPanel = () => {
   const dispatch = useDispatch();
@@ -24,6 +33,55 @@ const JSONStateUpdaterPanel = () => {
     // Filter out the jsonStateUpdater slice itself
     key !== 'jsonStateUpdater'
   );
+  
+  // Get selected card from catalog
+  const selectedCardHash = useSelector(state => state.catalog?.selectedCardHash);
+  const selectedCard = useSelector(state => {
+    if (!selectedCardHash || !state.catalog?.cards) return null;
+    return state.catalog.cards.find(card => card.hash === selectedCardHash);
+  });
+  
+  // Load JSON content when a JSON file is selected in catalog
+  useEffect(() => {
+    if (selectedCard && 
+        (selectedCard.contentType === 'application/json' || 
+         selectedCard.filename?.endsWith('.json'))) {
+      try {
+        // Parse the JSON content from the card
+        let jsonContent;
+        
+        // Handle different content formats
+        if (typeof selectedCard.content === 'string') {
+          jsonContent = JSON.parse(selectedCard.content);
+        } else if (selectedCard.content && typeof selectedCard.content === 'object') {
+          // If content is already an object, use it directly
+          jsonContent = selectedCard.content;
+        }
+        
+        if (jsonContent) {
+          // Format the JSON with proper indentation
+          const formattedJson = JSON.stringify(jsonContent, null, 2);
+          setJsonInput(formattedJson);
+          setParsedJson(jsonContent);
+          setJsonError(null);
+          setUpdateStatus({ 
+            type: 'info', 
+            message: `Loaded JSON from catalog: ${selectedCard.filename || 'Selected file'}` 
+          });
+          
+          // Store in redux
+          dispatch(setLastUploadedJson({
+            content: jsonContent,
+            fileName: selectedCard.filename || 'catalog-selection',
+            timestamp: new Date().toISOString()
+          }));
+        }
+      } catch (error) {
+        setJsonError(`Failed to parse JSON from catalog: ${error.message}`);
+        console.error('Error loading JSON from catalog:', error);
+      }
+    }
+  }, [selectedCardHash, selectedCard, dispatch]);
 
   // Handle file upload
   const handleFileUpload = (event) => {
@@ -70,6 +128,9 @@ const JSONStateUpdaterPanel = () => {
   };
 
   // Apply the JSON data to update Redux store
+  // Track current visual theme (not persisted)
+  const [currentVisualTheme, setCurrentVisualTheme] = useState(null);
+
   const applyJsonToState = () => {
     if (!parsedJson) {
       setUpdateStatus({ type: 'error', message: 'No valid JSON data to apply' });
@@ -79,12 +140,27 @@ const JSONStateUpdaterPanel = () => {
     try {
       dispatch(setUpdateInProgress(true));
       
-      // Check if the JSON is structured as a specialized state update
+      // First check if there's a theme update to apply
+      const hasThemeUpdate = checkForThemeUpdate(parsedJson);
+      
+      // Process other state changes
       if (parsedJson.action && parsedJson.target) {
-        handleStructuredStateUpdate(parsedJson);
+        if (!(parsedJson.target === 'theme' && hasThemeUpdate)) {
+          // Only process non-theme structured updates
+          handleStructuredStateUpdate(parsedJson);
+        }
       } else {
-        // Default behavior: Assume the JSON is a direct state representation
-        handleDirectStateUpdate(parsedJson);
+        // Process direct state representation
+        const nonThemeUpdates = {};
+        Object.keys(parsedJson).forEach(key => {
+          if (key !== 'theme') {
+            nonThemeUpdates[key] = parsedJson[key];
+          }
+        });
+        
+        if (Object.keys(nonThemeUpdates).length > 0) {
+          handleDirectStateUpdate(nonThemeUpdates);
+        }
       }
       
       dispatch(setUpdateInProgress(false));
@@ -96,6 +172,38 @@ const JSONStateUpdaterPanel = () => {
       setUpdateStatus({ type: 'error', message: `Failed to update state: ${error.message}` });
     }
   };
+  
+  // Check and apply theme updates without persisting them
+  const checkForThemeUpdate = (data) => {
+    // Check for direct theme update
+    if (data.theme && data.theme.mode && ['light', 'dark'].includes(data.theme.mode)) {
+      const newTheme = data.theme.mode;
+      applyThemeToDocument(newTheme);
+      setCurrentVisualTheme(newTheme);
+      return true;
+    }
+    
+    // Check for structured theme update
+    if (data.action && data.target === 'theme') {
+      if (data.action === 'REPLACE_STATE' && data.data && data.data.mode && ['light', 'dark'].includes(data.data.mode)) {
+        const newTheme = data.data.mode;
+        applyThemeToDocument(newTheme);
+        setCurrentVisualTheme(newTheme);
+        return true;
+      }
+      
+      if (data.action === 'UPDATE_STATE' && data.updates) {
+        const modeUpdate = data.updates.find(update => update.path === 'mode');
+        if (modeUpdate && ['light', 'dark'].includes(modeUpdate.value)) {
+          applyThemeToDocument(modeUpdate.value);
+          setCurrentVisualTheme(modeUpdate.value);
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
 
   // Handle structured state update with specific actions
   const handleStructuredStateUpdate = (data) => {
@@ -149,11 +257,13 @@ const JSONStateUpdaterPanel = () => {
             // If current mode doesn't match the desired mode, toggle it
             if (storeState.theme.mode !== modeUpdate.value) {
               dispatch(toggleTheme());
-              setUpdateStatus({
-                type: 'success',
-                message: `Theme updated to ${modeUpdate.value} mode`
-              });
+              applyThemeToDocument(modeUpdate.value);
             }
+            
+            setUpdateStatus({
+              type: 'success',
+              message: `Theme updated to ${modeUpdate.value} mode`
+            });
           }
         }
         
@@ -175,6 +285,10 @@ const JSONStateUpdaterPanel = () => {
         data.actions.forEach(actionItem => {
           if (actionItem.type === 'theme/toggleTheme') {
             dispatch(toggleTheme());
+            
+            // Apply theme change to document
+            const newThemeMode = storeState.theme.mode === 'light' ? 'dark' : 'light';
+            applyThemeToDocument(newThemeMode);
           }
           // Add handlers for other action types here
         });
@@ -217,15 +331,18 @@ const JSONStateUpdaterPanel = () => {
       if (sliceKey === 'theme') {
         // If the theme mode is specified, update it directly
         if (sliceData.mode && ['light', 'dark'].includes(sliceData.mode)) {
-          // If current theme mode doesn't match desired mode, toggle it
+          // Apply visual update directly first for immediate feedback
+          applyThemeToDocument(sliceData.mode);
+          
+          // Then dispatch Redux action if needed
           if (storeState.theme.mode !== sliceData.mode) {
             dispatch(toggleTheme());
+            
+            setUpdateStatus({
+              type: 'success',
+              message: `Theme changed to ${sliceData.mode} mode`
+            });
           }
-          
-          setUpdateStatus({
-            type: 'success',
-            message: `Theme changed to ${sliceData.mode} mode`
-          });
         }
       }
       

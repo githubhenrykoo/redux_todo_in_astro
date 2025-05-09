@@ -242,19 +242,19 @@
     "json_state_updater_layout": {
         "left": {
             "type": "CatalogPanel",
-            "size": 30,
-            "minSize": 20,
+            "size": 40,
+            "minSize": 0,
             "visible": true
         },
         "middle": {
             "type": "JSONStateUpdaterPanel",
-            "size": 70,
-            "minSize": 50,
-            "visible": true
+            "size": 30,
+            "minSize": 0,
+            "visible": false
         },
         "right": {
             "type": "chatbot",
-            "size": 0,
+            "size": 30,
             "minSize": 0,
             "visible": false
         }

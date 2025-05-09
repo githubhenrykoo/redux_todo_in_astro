@@ -2,13 +2,20 @@
 import '../styles/globals.css';
 import ResizablePanels from '../components/panels/ResizablePanels.astro';
 import PanelGroupLayout from './PanelGroupLayout';
-import TopBar from '../components/panels/TopBar';
+import RegularTopBar from '../components/panels/TopBar';
+import KubernetesTopBar from '../components/panels/KubernetesTopBar';
 import Sidebar from '../components/panels/Sidebar.astro';
 import { store } from '../store';
 
 interface Props {
 	title: string;
 }
+
+// Check if we're running in Kubernetes (env var would be set in the container)
+const isKubernetes = process.env.KUBERNETES_SERVICE_HOST || process.env.IS_KUBERNETES || false;
+
+// Use the appropriate TopBar component
+const TopBar = isKubernetes ? KubernetesTopBar : RegularTopBar;
 
 const { title } = Astro.props;
 const initialTheme = store.getState().theme?.mode || 'light';

@@ -29,18 +29,24 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        # Increase the initial delay and add more buffer time for the dev server to start
         readinessProbe:
           httpGet:
             path: /
             port: 4321
-          initialDelaySeconds: 10
-          periodSeconds: 5
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10
         livenessProbe:
           httpGet:
             path: /
             port: 4321
-          initialDelaySeconds: 15
-          periodSeconds: 10
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 5
         env:
         - name: NODE_ENV
           value: "development"
@@ -50,6 +56,8 @@ spec:
           value: "4321"
         - name: ASTRO_TELEMETRY_DISABLED
           value: "1"
+        - name: IS_KUBERNETES
+          value: "true"
         - name: VITE_HMR_PROTOCOL
           value: "ws"
         - name: VITE_HMR_HOST

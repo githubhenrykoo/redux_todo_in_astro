@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: redux-todo-astro-prod-svc
+  name: redux-todo-astro-prod-service
   namespace: redux-todo-astro
 spec:
   selector:
     app: redux-todo-astro-prod
   ports:
   - name: http
-    port: 80
+    port: 4321
     targetPort: 4321
   - name: websocket
     port: 24678

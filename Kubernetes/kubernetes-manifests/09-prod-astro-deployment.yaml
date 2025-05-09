@@ -4,7 +4,7 @@ metadata:
   name: redux-todo-astro-prod
   namespace: redux-todo-astro
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: redux-todo-astro-prod
@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: redux-todo-astro
-        image: redux-todo-prod:latest
+        image: redux-todo-astro:latest
         imagePullPolicy: Never
         ports:
         - containerPort: 4321
@@ -23,12 +23,24 @@ spec:
         - containerPort: 24678
           name: websocket
         resources:
-          limits:
-            cpu: "1"
-            memory: "512Mi"
           requests:
-            cpu: "0.5"
             memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 4321
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 4321
+          initialDelaySeconds: 15
+          periodSeconds: 10
         env:
         - name: NODE_ENV
           value: "development"

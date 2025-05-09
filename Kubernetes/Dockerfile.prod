@@ -11,7 +11,7 @@ RUN apk add --no-cache python3 make g++ python3-dev py3-setuptools sqlite sqlite
 COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Create build image
+# Build stage
 FROM base AS builder
 WORKDIR /app
 
@@ -19,10 +19,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# We're not building the app, just running it in dev mode
-# No need to modify astro.config.mjs
+# We're keeping the app in development mode since it's configured for SSR
+# and doesn't have a static adapter installed
 
-# Create runner image (same as builder since we're not building)
+# Create runner image
 FROM base AS runner
 WORKDIR /app
 
@@ -34,11 +34,16 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Create the .astro directory with proper permissions
+RUN mkdir -p /app/.astro && \
+    chown -R astro:nodejs /app && \
+    chmod -R 755 /app
+
 # Switch to non-root user
 USER astro
 
-# Expose port
-EXPOSE 4321
+# Expose ports - both HTTP and WebSocket
+EXPOSE 4321 24678
 
 # Environment variables
 ENV NODE_ENV=development

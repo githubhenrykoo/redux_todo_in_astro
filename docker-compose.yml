@@ -12,6 +12,28 @@ services:
       - PORT=3000
     restart: unless-stopped
     
+  k8s-app:
+    build:
+      context: .
+      dockerfile: Kubernetes/Dockerfile.k8s
+    ports:
+      - "4321:4321"
+      - "24678:24678"
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=4321
+      - ASTRO_TELEMETRY_DISABLED=1
+      - IS_KUBERNETES=true
+      - THEME_DEFAULT=dark
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.astro
+    # Use polling for file watching to work in Docker
+    command: npm run dev -- --host 0.0.0.0 --watch.usePolling
+    restart: unless-stopped
+    
   dev:
     build:
       context: .

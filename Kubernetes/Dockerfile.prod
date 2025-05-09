@@ -39,8 +39,9 @@ RUN mkdir -p /app/.astro && \
     chown -R astro:nodejs /app && \
     chmod -R 755 /app
 
-# Our application is now designed to work in Kubernetes by using K8sTopBar instead of TopBar
-# No need for special entrypoint scripts or mocking authentik client anymore
+# Using mock authentik client from the source code
+# No need for custom entrypoint scripts anymore
+# The mock client.js is already in the correct location
 
 # Switch to non-root user
 USER astro

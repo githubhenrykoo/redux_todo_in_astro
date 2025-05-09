@@ -1,0 +1,69 @@
+# Use Node.js v18 Alpine as the base image
+FROM node:18-alpine as base
+
+# Create the deps stage for installing dependencies
+FROM base as deps
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ python3-dev py3-setuptools sqlite sqlite-dev
+
+# Copy package.json and lock files
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm ci
+
+# Create the runner stage for the application
+FROM base as runner
+
+# Add non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 astro
+
+# Set working directory
+WORKDIR /app
+
+# Copy the deps from the previous stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy application code
+COPY . .
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/.astro && \
+    chown -R astro:nodejs /app && \
+    chmod -R 755 /app
+
+# Create the authentik client directory if it doesn't exist
+RUN mkdir -p /app/src/lib/authentik
+
+# Create a mock authentik client to prevent import errors
+RUN echo 'export function createClient() { console.log("Mock client"); return { login: () => {}, logout: () => {}, getUserInfo: () => ({}) }; }' > /app/src/lib/authentik/client.js
+
+# Update DefaultLayout to use K8sTopBar
+RUN sed -i "s/import TopBar from .*$/import TopBar from \"\.\.\/components\/panels\/K8sTopBar\";/g" /app/src/layouts/DefaultLayout.astro || true
+
+# Switch to non-root user
+USER astro
+
+# Environment variables
+ENV NODE_ENV=development
+ENV HOST=0.0.0.0
+ENV PORT=4321
+ENV ASTRO_TELEMETRY_DISABLED=1
+ENV IS_KUBERNETES=true
+
+# Add Vite specific configurations for external access
+ENV VITE_HMR_PROTOCOL=ws
+ENV VITE_HMR_HOST=0.0.0.0
+ENV VITE_HMR_PORT=24678
+ENV VITE_HMR_CLIENT_PORT=24678
+
+# Set environment variable for dark mode
+ENV THEME_DEFAULT=dark
+
+# Start the development server with appropriate flags
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

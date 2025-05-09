@@ -1,0 +1,98 @@
+# Stage 1: Build dependencies
+FROM node:18-alpine AS deps
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ python3-dev py3-setuptools sqlite sqlite-dev bash
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install all dependencies including dev dependencies
+RUN npm ci
+
+# Make sure tailwind is installed
+RUN npm install @astrojs/tailwind@latest
+
+# Stage 2: Build the application
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependencies from previous stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy application code
+COPY . .
+
+# Create mock authentik client
+RUN mkdir -p /app/src/lib/authentik/
+COPY docker-build/authentik-client.js /app/src/lib/authentik/client.js
+
+# Copy K8sTopBar component
+RUN mkdir -p /app/src/components/panels/
+COPY docker-build/K8sTopBar.tsx /app/src/components/panels/K8sTopBar.tsx
+
+# Update DefaultLayout to use K8sTopBar
+RUN sed -i "s/import TopBar from .*$/import TopBar from \"\.\.\/components\/panels\/K8sTopBar\";/g" /app/src/layouts/DefaultLayout.astro || true
+
+# Create lib directory and copy utils.js
+RUN mkdir -p /app/src/lib/
+COPY docker-build/utils.js /app/src/lib/
+
+# Copy astro config
+COPY docker-build/astro.config.mjs /app/astro.config.mjs
+
+# Stage 3: Final image
+FROM node:18-alpine AS runner
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 astro
+
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ python3-dev py3-setuptools sqlite sqlite-dev bash
+
+# Install production dependencies only
+COPY package.json package-lock.json* ./
+RUN npm ci --production
+
+# Copy app from builder stage
+COPY --from=builder --chown=astro:nodejs /app ./
+
+# Create entry point script without using multiline echo
+COPY docker-build/docker-entrypoint.sh /app/docker-entrypoint.sh
+
+# Make the entrypoint script executable
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/.astro && \
+    chown -R astro:nodejs /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user
+USER astro
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV HOST=0.0.0.0
+ENV PORT=4321
+ENV ASTRO_TELEMETRY_DISABLED=1
+ENV IS_KUBERNETES=true
+ENV VITE_HMR_PROTOCOL=ws
+ENV VITE_HMR_HOST=0.0.0.0
+ENV VITE_HMR_PORT=24678
+ENV VITE_HMR_CLIENT_PORT=24678
+ENV THEME_DEFAULT=dark
+
+# Expose ports
+EXPOSE 4321
+EXPOSE 24678
+
+# Use our custom entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

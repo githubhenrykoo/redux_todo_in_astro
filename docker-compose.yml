@@ -1,6 +1,9 @@
 services:
   k8s-app:
-    image: henry768/redux-todo-astro:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: henry768/redux-todo-astro:v1.2.0
     ports:
       - "4321:4321"
       - "24678:24678"
@@ -11,9 +14,4 @@ services:
       - ASTRO_TELEMETRY_DISABLED=1
       - IS_KUBERNETES=true
       - THEME_DEFAULT=dark
-    volumes:
-      - .:/app
-      - /app/node_modules
-      - /app/.astro
-    command: npm run dev -- --host 0.0.0.0 --watch.usePolling
     restart: unless-stopped

@@ -1,0 +1,154 @@
+# Use Node.js v18 Alpine as the base image
+FROM node:18-alpine
+
+# Add non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 astro
+
+# Set working directory
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++ python3-dev py3-setuptools sqlite sqlite-dev bash
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy application code
+COPY . .
+
+# Create the improved authentik mock client directory
+RUN mkdir -p /app/src/lib/authentik/
+
+# Create K8sTopBar.tsx file properly
+RUN mkdir -p /app/src/components/panels/
+
+# Write the mock client file
+RUN echo 'export function createClient(config) {
+  console.log("Using mock authentik client for Docker/K8s");
+  
+  return {
+    login: async () => Promise.resolve(null),
+    logout: async () => Promise.resolve(null),
+    getUserInfo: async () => Promise.resolve({
+      sub: "docker-user",
+      name: "Docker User",
+      email: "docker-user@example.com",
+      email_verified: true,
+      preferred_username: "docker-user"
+    })
+  };
+}
+
+export default { createClient };' > /app/src/lib/authentik/client.js
+
+# Write the K8sTopBar component correctly
+RUN echo 'import { useState } from "react";
+import "../styles/TopBar.css";
+
+export default function K8sTopBar() {
+  const [darkMode, setDarkMode] = useState(true);
+  
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.body.classList.toggle("dark-mode");
+  };
+  
+  return (
+    <header className={`topbar ${darkMode ? "dark" : "light"}`}>
+      <div className="topbar-left">
+        <div className="app-title">Redux Todo in Astro (Docker)</div>
+      </div>
+      
+      <div className="topbar-right">
+        <button 
+          onClick={toggleDarkMode} 
+          className="theme-toggle"
+          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {darkMode ? "☀️" : "🌙"}
+        </button>
+        
+        <div className="user-info">
+          <span className="username">Docker User</span>
+        </div>
+      </div>
+    </header>
+  );
+}' > /app/src/components/panels/K8sTopBar.tsx
+
+# Update DefaultLayout to use K8sTopBar
+RUN sed -i "s/import TopBar from .*$/import TopBar from \"\.\.\/components\/panels\/K8sTopBar\";/g" /app/src/layouts/DefaultLayout.astro || true
+
+# Create a custom astro.config.mjs for Docker
+RUN echo 'import { defineConfig } from "astro/config";
+import react from "@astrojs/react";
+import tailwind from "@astrojs/tailwind";
+
+export default defineConfig({
+  integrations: [react(), tailwind()],
+  output: "server",
+  server: {
+    host: "0.0.0.0",
+    port: 4321,
+  },
+  vite: {
+    server: {
+      hmr: {
+        protocol: "ws",
+        host: "0.0.0.0",
+        port: 24678,
+        clientPort: 24678,
+      },
+      watch: {
+        usePolling: true,
+      },
+    },
+    resolve: {
+      alias: {
+        // Add any path aliases here
+      },
+    },
+  },
+});' > /app/astro.config.docker.mjs
+
+# Create entry point script
+RUN echo '#!/bin/bash
+set -e
+
+# Copy the Docker-specific config
+cp /app/astro.config.docker.mjs /app/astro.config.mjs
+
+# Start the dev server
+exec npm run dev -- --host 0.0.0.0
+' > /app/docker-entrypoint.sh
+
+# Make the entrypoint script executable
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Create necessary directories and set permissions
+RUN mkdir -p /app/.astro && \
+    chown -R astro:nodejs /app && \
+    chmod -R 755 /app
+
+# Switch to non-root user
+USER astro
+
+# Set environment variables
+ENV NODE_ENV=development
+ENV HOST=0.0.0.0
+ENV PORT=4321
+ENV ASTRO_TELEMETRY_DISABLED=1
+ENV IS_KUBERNETES=true
+ENV VITE_HMR_PROTOCOL=ws
+ENV VITE_HMR_HOST=0.0.0.0
+ENV VITE_HMR_PORT=24678
+ENV VITE_HMR_CLIENT_PORT=24678
+ENV THEME_DEFAULT=dark
+
+# Use our custom entrypoint script
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

@@ -19,13 +19,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Modify astro.config.mjs to use static output
-RUN sed -i 's/output: "server",/output: "static",/' astro.config.mjs
+# We're not building the app, just running it in dev mode
+# No need to modify astro.config.mjs
 
-# Build the application with nocheck to bypass TypeScript errors
-RUN npm run build:nocheck
-
-# Production image, copy all the files and run static server
+# Create runner image (same as builder since we're not building)
 FROM base AS runner
 WORKDIR /app
 
@@ -33,11 +30,9 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 astro
 
-# Install serve for static file serving
-RUN npm install -g serve
-
-# Copy built application (static output)
-COPY --from=builder /app/dist/client ./dist
+# Copy the entire app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
 
 # Switch to non-root user
 USER astro
@@ -46,10 +41,16 @@ USER astro
 EXPOSE 4321
 
 # Environment variables
-ENV NODE_ENV=production
+ENV NODE_ENV=development
 ENV HOST=0.0.0.0
 ENV PORT=4321
 ENV ASTRO_TELEMETRY_DISABLED=1
 
-# Start the static file server
-CMD ["serve", "-s", "dist", "-l", "4321"]
+# Add Vite specific configurations for external access
+ENV VITE_HMR_PROTOCOL=ws
+ENV VITE_HMR_HOST=0.0.0.0
+ENV VITE_HMR_PORT=24678
+ENV VITE_HMR_CLIENT_PORT=24678
+
+# Start the development server with appropriate flags
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

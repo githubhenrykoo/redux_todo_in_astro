@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redux-todo-astro-prod
+  namespace: redux-todo-astro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redux-todo-astro-prod
+  template:
+    metadata:
+      labels:
+        app: redux-todo-astro-prod
+    spec:
+      containers:
+      - name: redux-todo-astro
+        image: redux-todo-prod:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 4321
+          name: http
+        - containerPort: 24678
+          name: websocket
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+          requests:
+            cpu: "0.5"
+            memory: "256Mi"
+        env:
+        - name: NODE_ENV
+          value: "development"
+        - name: HOST
+          value: "0.0.0.0"
+        - name: PORT
+          value: "4321"
+        - name: ASTRO_TELEMETRY_DISABLED
+          value: "1"
+        - name: VITE_HMR_PROTOCOL
+          value: "ws"
+        - name: VITE_HMR_HOST
+          value: "0.0.0.0"
+        - name: VITE_HMR_PORT
+          value: "24678"
+        - name: VITE_HMR_CLIENT_PORT
+          value: "24678"

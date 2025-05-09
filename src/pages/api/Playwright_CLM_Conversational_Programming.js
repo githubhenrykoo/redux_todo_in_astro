@@ -22,6 +22,9 @@ import { chromium } from 'playwright';
 
   await page.click('a.enter-button');
   await page.waitForTimeout(1000);
+
+  await page.click('#catalogLayoutBtn');
+  await page.waitForTimeout(1000);
   await page.screenshot({ path: 'step2.png' });
   await page.waitForTimeout(1000);
 

@@ -2,7 +2,7 @@
 import '../styles/globals.css';
 import ResizablePanels from '../components/panels/ResizablePanels.astro';
 import PanelGroupLayout from './PanelGroupLayout';
-import K8sTopBar from '../components/panels/K8sTopBar';
+import K8sTopBar from '../components/panels/K8sTopBar.jsx';
 import Sidebar from '../components/panels/Sidebar.astro';
 import { store } from '../store';
 
@@ -35,7 +35,7 @@ const initialTheme = 'dark'; // Default to dark theme for Kubernetes
 	</head>
 	<body class="min-h-screen max-h-screen h-screen flex flex-col bg-background text-foreground antialiased dark">
 		<div class="flex-none h-14">
-			<K8sTopBar client:load initialTheme={initialTheme} />
+			<K8sTopBar client:load />
 		</div>
 		<div class="flex-1 overflow-hidden">
 			<div class="flex h-full">

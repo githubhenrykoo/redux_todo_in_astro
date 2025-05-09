@@ -4,16 +4,13 @@ metadata:
   name: redux-todo-astro-config
   namespace: redux-todo-astro
 data:
-  NODE_ENV: "production"
+  NODE_ENV: "development"  # Using development mode for HMR
   HOST: "0.0.0.0"
-  PORT: "3000"
-  PUBLIC_APP_URL: "http://localhost:3000"
-  PUBLIC_AUTHENTIK_REDIRECT_URI: "http://localhost:3000/callback"
-  MCARD_DB_PATH: "public/data/cards.db"
-  MCARD_HASH_ALGORITHM: "sha256"
-  MCARD_HASH_LENGTH: "64"
-  MCARD_LOG_LEVEL: "info"
-  DEFAULT_PAGE_SIZE: "10"
-  LOG_LEVEL: "info"
-  DEFAULT_HASH_LENGTH: "64"
-  DEFAULT_HASH_ALGORITHM: "sha256"
+  PORT: "4321"  # Astro runs on 4321 by default
+  ASTRO_TELEMETRY_DISABLED: "1"
+  IS_KUBERNETES: "true"
+  THEME_DEFAULT: "dark"
+  VITE_HMR_PROTOCOL: "ws"
+  VITE_HMR_HOST: "0.0.0.0"
+  VITE_HMR_PORT: "24678"
+  VITE_HMR_CLIENT_PORT: "24678"

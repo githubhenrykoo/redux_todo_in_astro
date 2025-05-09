@@ -79,6 +79,11 @@ import { chromium } from 'playwright';
   await page.screenshot({ path: 'step11.png' });
   await page.waitForTimeout(1000);
 
+  const runningText1 = await page.locator('h3', { hasText: 'Python Interactive Console' }).first();
+  await runningText1.scrollIntoViewIfNeeded();
+  await runningText1.focus();
+  await page.waitForTimeout(1000);
+
   await page.click('button:has-text("Execute CLM")', { force: true });
   await page.waitForTimeout(1000);
   await page.screenshot({ path: 'step12.png' });

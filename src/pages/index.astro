@@ -53,14 +53,14 @@
       
       if (timeLeft <= 0) {
         clearInterval(countdown);
-        window.location.href = '/Page';
+        window.location.href = '/playwright?run=0';
       }
     }, 1000);
 
     // Still allow manual click
     document.getElementById('enterButton').addEventListener('click', () => {
       clearInterval(countdown);
-      window.location.href = '/Page';
+      window.location.href = '/playwright?run=0';
     });
   </script>
   <style>

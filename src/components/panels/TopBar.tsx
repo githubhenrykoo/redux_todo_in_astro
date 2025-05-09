@@ -1,18 +1,11 @@
-import React, { useState, useEffect, startTransition, useRef } from 'react';
-import { FiSun, FiMoon, FiLogOut, FiSave, FiCheck } from 'react-icons/fi';
-import { store } from '../../store';
-import { toggleTheme } from '../../features/themeSlice';
-import { createClient } from '../../lib/authentik/client';
-import { login, logout } from '../../features/userSlice';
+import React, { useState, useEffect } from 'react';
+import { FiSun, FiMoon } from 'react-icons/fi';
+import { store } from '../../store.js';
+import { toggleTheme } from '../../features/themeSlice.js';
+// No direct authentik import to avoid SSR errors
 
 interface TopBarProps {
   initialTheme?: 'light' | 'dark';
-}
-
-interface UserInfo {
-  email?: string | null;
-  email_verified?: boolean | null;
-  sub?: string | null;
 }
 
 // Add save function to window for external components to call

@@ -39,6 +39,9 @@ RUN mkdir -p /app/.astro && \
     chown -R astro:nodejs /app && \
     chmod -R 755 /app
 
+# Our application is now designed to work in Kubernetes by using K8sTopBar instead of TopBar
+# No need for special entrypoint scripts or mocking authentik client anymore
+
 # Switch to non-root user
 USER astro
 
@@ -50,12 +53,16 @@ ENV NODE_ENV=development
 ENV HOST=0.0.0.0
 ENV PORT=4321
 ENV ASTRO_TELEMETRY_DISABLED=1
+ENV IS_KUBERNETES=true
 
 # Add Vite specific configurations for external access
 ENV VITE_HMR_PROTOCOL=ws
 ENV VITE_HMR_HOST=0.0.0.0
 ENV VITE_HMR_PORT=24678
 ENV VITE_HMR_CLIENT_PORT=24678
+
+# Set environment variable for dark mode
+ENV THEME_DEFAULT=dark
 
 # Start the development server with appropriate flags
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

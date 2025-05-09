@@ -2,10 +2,8 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: runner
-      args:
-        BUILD_MODE: nocheck
+      dockerfile: Kubernetes/Dockerfile.dev
+      target: dev-runner
     ports:
       - "3000:3000"
     environment:
@@ -17,8 +15,8 @@ services:
   dev:
     build:
       context: .
-      dockerfile: Dockerfile
-      target: deps
+      dockerfile: Kubernetes/Dockerfile.dev
+      target: dev-runner
     ports:
       - "4321:4321"
     volumes:

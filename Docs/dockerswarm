@@ -1,0 +1,116 @@
+# 📦 Docker Swarm Setup Guide (ZeroTier + Multi-Node Cluster)
+
+## 🧰 Prerequisites
+- Docker installed on all nodes
+- ZeroTier installed and connected on all nodes
+- All nodes can ping each other via ZeroTier IP
+- Minimum 2 nodes (1 manager, 1 worker), ideally 3+ for HA
+
+---
+
+## 🧪 1. Install Docker (Linux)
+```bash
+sudo apt update
+sudo apt install docker.io -y
+sudo systemctl enable docker
+sudo systemctl start docker
+```
+
+---
+
+## 🌐 2. Setup ZeroTier Network
+### a. Install ZeroTier
+```bash
+curl -s https://install.zerotier.com | sudo bash
+```
+### b. Join the Network
+```bash
+sudo zerotier-cli join <network-id>
+```
+### c. Authorize node at https://my.zerotier.com
+### d. Check IP
+```bash
+ifconfig | grep zt
+```
+
+---
+
+## 🚀 3. Initialize Swarm on Manager Node
+```bash
+# Replace <ip-zerotier> with the node's ZeroTier IP
+sudo docker swarm init --advertise-addr <ip-zerotier>
+```
+
+Save the `--token` output for both worker and manager join commands.
+
+---
+
+## 🖇️ 4. Join Other Nodes to the Swarm
+### a. As Worker:
+```bash
+sudo docker swarm join --token <token-worker> <ip-manager>:2377
+```
+
+### b. As Manager:
+```bash
+sudo docker swarm join --token <token-manager> <ip-manager>:2377
+```
+
+Or promote after joining:
+```bash
+sudo docker node promote <node-name>
+```
+
+---
+
+## 🔍 5. Check Cluster Status
+```bash
+docker node ls
+```
+
+`MANAGER STATUS` column:
+- Leader: active
+- Reachable: standby
+- Unreachable: not connected
+
+---
+
+## 📦 6. Deploy Service Using Docker Swarm
+### a. Example `docker-compose.yml`
+```yaml
+version: "3.8"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
+    deploy:
+      replicas: 2
+```
+
+### b. Deploy from Manager:
+```bash
+docker stack deploy -c docker-compose.yml mosqstack
+```
+
+### c. Check Status
+```bash
+docker service ls
+docker service ps mosqstack_mosquitto
+```
+
+---
+
+## 💡 Additional Tips
+- Use an **odd number of manager nodes** (3/5) for high availability
+- Ensure all nodes are in `Ready` and `Active` state
+- Avoid placing all services on a single node (for proper load balancing)
+
+---
+
+## ✅ Done!
+Swarm is now active and capable of running replicated, HA-enabled services. You can proceed to integrate overlay networks, Traefik, or other stacks.

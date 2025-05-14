@@ -1,46 +1,63 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { 
-  setMessages, 
-  setInput, 
-  setLoading, 
-  setError, 
-  setModels, 
-  setSelectedModel 
-} from '../../features/chatbotSlice';
 
 const ChatbotPanel = ({ className = '' }) => {
-  // Add local state for mentions
+  // Add this with other state declarations
   const [mentions, setMentions] = useState([]);
   
-  const dispatch = useDispatch();
-  const {
-    messages,
-    input,
-    isLoading,
-    error,
-    models,
-    selectedModel
-  } = useSelector(state => state.chatbot);
+  const [messages, setMessages] = useState([
+    { 
+      role: 'system', 
+      content: `How can I help?
+
+Command:
+- "read the testing.txt", "show contents of testing.txt"
+- "list files in downloads"
+- "where am i"
+- "make directory testing"
+- "delete file testing.txt"`
+    }
+  ]);
+
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState('llama3');
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const terminalSocketRef = useRef(null);
 
+  // Fetch available models on component mount
   useEffect(() => {
     fetchModels();
   }, []);
 
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const fetchModels = async () => {
+    try {
+      const response = await fetch('http://localhost:11434/api/tags');
+      if (!response.ok) {
+        throw new Error('Failed to fetch models');
+      }
+      const data = await response.json();
+      setModels(data.models || []);
+    } catch (err) {
+      console.error('Error fetching models:', err);
+      setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434');
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleInputChange = (e) => {
-    dispatch(setInput(e.target.value));
+    setInput(e.target.value);
   };
 
   const handleKeyDown = (e) => {
@@ -50,81 +67,94 @@ const ChatbotPanel = ({ className = '' }) => {
     }
   };
 
-  const fetchModels = async () => {
-    try {
-      const response = await fetch('http://localhost:11434/api/tags');
-      if (!response.ok) {
-        throw new Error('Failed to fetch models');
+  useEffect(() => {
+    // Connect to terminal WebSocket server
+    connectToTerminal();
+    return () => {
+      if (terminalSocketRef.current) {
+        terminalSocketRef.current.close();
       }
-      const data = await response.json();
-      dispatch(setModels(data.models || []));
+    };
+  }, []);
+
+  const connectToTerminal = () => {
+    try {
+      const ws = new WebSocket('ws://localhost:3001');
+      terminalSocketRef.current = ws;
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'output') {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: message.data
+          }]);
+        }
+      };
     } catch (err) {
-      console.error('Error fetching models:', err);
-      dispatch(setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434'));
+      console.error('Terminal connection error:', err);
     }
   };
 
+  // Add this function after other function declarations
+  // Update the processNaturalLanguageCommand function
+  const processNaturalLanguageCommand = (text) => {
+    const commandMap = {
+      'read': 'cat',
+      'show': 'cat',
+      'list': 'ls',
+      'show files': 'ls',
+      'show directory': 'ls',
+      'current directory': 'pwd',
+      'where am i': 'pwd',
+      'clear screen': 'clear',
+      'make directory': 'mkdir',
+      'create directory': 'mkdir',
+      'remove': 'rm',
+      'delete': 'rm',
+    };
+  
+    // Common patterns for file operations
+    const readPattern = /(?:read|show|display|open)\s+(?:contents\s+of\s+|the\s+)?(?:file\s+)?["']?([^"']+?)["']?\s*$/i;
+    const listPattern = /(?:list|show)\s+(?:files|directory|contents)\s*(?:in\s+)?(.+)?/i;
+    const mkdirPattern = /(?:make|create)\s+(?:a\s+)?(?:new\s+)?directory\s+(?:named\s+)?(.+)/i;
+    const removePattern = /(?:remove|delete)\s+(?:the\s+)?(?:file|directory)?\s+(.+)/i;
+  
+    let command = '';
+  
+    if (readPattern.test(text)) {
+      const match = text.match(readPattern);
+      const filename = match[1].trim();
+      command = `cat "${filename}"`;
+    } else if (listPattern.test(text)) {
+      const match = text.match(listPattern);
+      command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
+    } else if (mkdirPattern.test(text)) {
+      const match = text.match(mkdirPattern);
+      command = `mkdir "${match[1].trim()}"`;
+    } else if (removePattern.test(text)) {
+      const match = text.match(removePattern);
+      command = `rm "${match[1].trim()}"`;
+    } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
+      command = 'pwd';
+    } else if (text.toLowerCase().includes('clear screen')) {
+      command = 'clear';
+    }
+  
+    return command;
+  };
+  
+  // Update the sendMessage function's command handling section
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
-
+  
     const userMessage = { role: 'user', content: input.trim() };
-    const timestamp = new Date().toLocaleTimeString();
     
-    // Save chat action to playwright-state.json
-    // In the sendMessage function, update the fetch calls:
-    
-    // First fetch call for user message
-    try {
-      await fetch('/api/update-playwright-state', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'chat',
-          userMessage: input.trim(),
-          timestamp: new Date().toISOString(),
-          status: 'active',
-          logs: [{
-            timestamp: new Date().toLocaleTimeString(),
-            message: `User: ${input.trim()}`,
-            type: 'chat'
-          }]
-        })
-      });
-    } catch (err) {
-      console.error('Error saving chat state:', err);
-    }
-
-    // Second fetch call for LLM response
-    try {
-      await fetch('/api/update-playwright-state', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'chat',
-          llmResponse: data.message?.content || 'No response from model',
-          model: selectedModel,
-          timestamp: new Date().toISOString(),
-          status: 'active',
-          logs: [{
-            timestamp: new Date().toLocaleTimeString(),
-            message: `Assistant (${selectedModel}): ${data.message?.content || 'No response from model'}`,
-            type: 'chat'
-          }]
-        })
-      });
-    } catch (err) {
-      console.error('Error saving LLM response:', err);
-    }
-
-    dispatch(setMessages([...messages, userMessage]));
-    dispatch(setInput(''));
-    dispatch(setLoading(true));
-    dispatch(setError(null));
-
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    setError(null);
+  
     // Check for terminal commands (both direct and natural language)
     const naturalCommand = processNaturalLanguageCommand(input.trim());
     if (input.trim().startsWith('$') || naturalCommand) {
@@ -135,13 +165,13 @@ const ChatbotPanel = ({ className = '' }) => {
           data: command + '\n'
         }));
       }
-      dispatch(setLoading(false));
+      setIsLoading(false);
       return;
     }
 
     try {
       // Add thinking indicator
-      dispatch(setMessages([...messages, userMessage, { role: 'assistant', content: '...', isThinking: true }]));
+      setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
 
       // Call Ollama API
       const response = await fetch('http://localhost:11434/api/chat', {
@@ -151,7 +181,7 @@ const ChatbotPanel = ({ className = '' }) => {
         },
         body: JSON.stringify({
           model: selectedModel,
-          messages: [...messages, userMessage].filter(m => !m.isThinking),
+          messages: [...messages.filter(m => !m.isThinking), userMessage],
           stream: false
         }),
       });
@@ -162,48 +192,24 @@ const ChatbotPanel = ({ className = '' }) => {
 
       const data = await response.json();
       
-      // Save LLM response to playwright-state.json
-      try {
-        await fetch('/api/update-playwright-state', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'chat',
-            llmResponse: data.message?.content || 'No response from model',
-            model: selectedModel,
-            timestamp: new Date().toISOString(),
-            status: 'active',
-            logs: [{
-              timestamp: new Date().toLocaleTimeString(),
-              message: `Assistant (${selectedModel}): ${data.message?.content || 'No response from model'}`,
-              type: 'chat'
-            }]
-          })
-        });
-      } catch (err) {
-        console.error('Error saving LLM response:', err);
-      }
-
       // Remove thinking indicator and add actual response
-      dispatch(setMessages([
-        ...messages,
-        userMessage,
+      setMessages(prev => [
+        ...prev.filter(m => !m.isThinking),
         { role: 'assistant', content: data.message?.content || 'No response from model' }
-      ]));
+      ]);
     } catch (err) {
       console.error('Error sending message:', err);
-      dispatch(setMessages([
-        ...messages,
-        userMessage,
+      
+      // Remove thinking indicator and add error message
+      setMessages(prev => [
+        ...prev.filter(m => !m.isThinking),
         { role: 'error', content: `Error: ${err.message}. Make sure Ollama is running with llama3 model.` }
-      ]));
-      dispatch(setError(err.message));
+      ]);
+      setError(err.message);
     } finally {
-      dispatch(setLoading(false));
+      setIsLoading(false);
     }
-};
+  };
 
   const clearChat = () => {
     setMessages([
@@ -370,50 +376,3 @@ const ChatbotPanel = ({ className = '' }) => {
 };
 
 export default ChatbotPanel;
-
-
-// Add this function before sendMessage
-const processNaturalLanguageCommand = (text) => {
-  const commandMap = {
-    'read': 'cat',
-    'show': 'cat',
-    'list': 'ls',
-    'show files': 'ls',
-    'show directory': 'ls',
-    'current directory': 'pwd',
-    'where am i': 'pwd',
-    'clear screen': 'clear',
-    'make directory': 'mkdir',
-    'create directory': 'mkdir',
-    'remove': 'rm',
-    'delete': 'rm',
-  };
-  
-  const readPattern = /(?:read|show|display|open)\s+(?:contents\s+of\s+|the\s+)?(?:file\s+)?["']?([^"']+?)["']?\s*$/i;
-  const listPattern = /(?:list|show)\s+(?:files|directory|contents)\s*(?:in\s+)?(.+)?/i;
-  const mkdirPattern = /(?:make|create)\s+(?:a\s+)?(?:new\s+)?directory\s+(?:named\s+)?(.+)/i;
-  const removePattern = /(?:remove|delete)\s+(?:the\s+)?(?:file|directory)?\s+(.+)/i;
-  
-  let command = '';
-  
-  if (readPattern.test(text)) {
-    const match = text.match(readPattern);
-    const filename = match[1].trim();
-    command = `cat "${filename}"`;
-  } else if (listPattern.test(text)) {
-    const match = text.match(listPattern);
-    command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
-  } else if (mkdirPattern.test(text)) {
-    const match = text.match(mkdirPattern);
-    command = `mkdir "${match[1].trim()}"`;
-  } else if (removePattern.test(text)) {
-    const match = text.match(removePattern);
-    command = `rm "${match[1].trim()}"`;
-  } else if (text.toLowerCase().includes('current directory') || text.toLowerCase().includes('where am i')) {
-    command = 'pwd';
-  } else if (text.toLowerCase().includes('clear screen')) {
-    command = 'clear';
-  }
-  
-  return command;
-};

@@ -1,3 +1,4 @@
+// Google Calendar API configuration
 const CLIENT_ID = import.meta.env.GOOGLE_CLIENT_ID;
 const API_KEY = import.meta.env.GOOGLE_API_KEY;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';

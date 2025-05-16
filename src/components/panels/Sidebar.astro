@@ -168,8 +168,8 @@ const { class: className, ...props } = Astro.props;
 </div>
 
 <script>
-  import { store } from '../../store';
-  import { changeLayout } from '../../features/panellayoutSlice';
+  import { store } from '../../store.js';
+  import { changeLayout } from '../../features/panellayoutSlice.js';
 
   // Get button elements
   const todoLayoutBtn = document.getElementById('todoLayoutBtn');
@@ -306,17 +306,37 @@ const { class: className, ...props } = Astro.props;
     }
   }
 
+  // Function to handle YouTube layout selection
+  function handleYoutubeLayout(layout: string) {
+    store.dispatch(changeLayout(layout));
+    updateActiveButton(layout);
+  }
+
+  // ... existing code ...
+
+  // Add type interface for the panel layout state
+  interface PanelLayoutState {
+    selectedLayout: string;
+  }
+
   // Listen for store changes to update active button
   store.subscribe(() => {
     const state = store.getState();
     if (state.panellayout) {
-      updateActiveButton(state.panellayout.selectedLayout);
+      updateActiveButton((state.panellayout as PanelLayoutState).selectedLayout);
     }
   });
 
   // Initialize with current state
-  const initialState = store.getState();
-  if (initialState.panellayout) {
-    updateActiveButton(initialState.panellayout.selectedLayout);
+  const state = store.getState();
+  if (state.panellayout) {
+    updateActiveButton((state.panellayout as PanelLayoutState).selectedLayout);
   }
 </script>
+
+<style>
+  /* Add styles to handle the multi-layer menu */
+  .group:hover .absolute {
+    display: block;
+  }
+</style>

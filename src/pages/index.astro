@@ -38,31 +38,7 @@
         </div>
       </div>
       
-      <a href="/Page" class="enter-button" id="enterButton">Push Me</a>
-      <p id="countdown" style="margin-top: 10px; color: #ffffff;">or I will push you in 10</p>
-    </div>
-  </div>
-
-  <script>
-    let timeLeft = 10;
-    const countdownElement = document.getElementById('countdown');
-    
-    const countdown = setInterval(() => {
-      timeLeft--;
-      countdownElement.textContent = `or I will push you in ${timeLeft}`;
-      
-      if (timeLeft <= 0) {
-        clearInterval(countdown);
-        window.location.href = '/Page';
-      }
-    }, 1000);
-
-    // Still allow manual click
-    document.getElementById('enterButton').addEventListener('click', () => {
-      clearInterval(countdown);
-      window.location.href = '/Page';
-    });
-  </script>
+      <a href="/Page" class="enter-button">Enter Page</a>
   <style>
     * {
       margin: 0;

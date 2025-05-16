@@ -3,7 +3,23 @@ import React, { useState, useEffect, useRef } from 'react';
 const ChatbotPanel = ({ className = '' }) => {
   // Add isTyping state with other state declarations
   const [isTyping, setIsTyping] = useState(false);
+  // Add isTyping state with other state declarations
+  const [isTyping, setIsTyping] = useState(false);
   const [mentions, setMentions] = useState([]);
+  const [showCommands, setShowCommands] = useState(false);
+  
+  const [messages, setMessages] = useState([
+    { 
+      role: 'system', 
+      content: `How can I help?`
+    }
+  ]);
+
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState('llama3');
   const [showCommands, setShowCommands] = useState(false);
   
   const [messages, setMessages] = useState([
@@ -24,14 +40,30 @@ const ChatbotPanel = ({ className = '' }) => {
   const terminalSocketRef = useRef(null);
 
   // Fetch available models on component mount
+  // Fetch available models on component mount
   useEffect(() => {
     fetchModels();
   }, []);
 
   // Scroll to bottom when messages change
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const fetchModels = async () => {
+    try {
+      const response = await fetch('http://localhost:11434/api/tags');
+      if (!response.ok) {
+        throw new Error('Failed to fetch models');
+      }
+      const data = await response.json();
+      setModels(data.models || []);
+    } catch (err) {
+      console.error('Error fetching models:', err);
+      setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434');
+    }
+  };
 
   const fetchModels = async () => {
     try {
@@ -57,6 +89,10 @@ const ChatbotPanel = ({ className = '' }) => {
     setIsTyping(true);
     const timer = setTimeout(() => setIsTyping(false), 1000);
     return () => clearTimeout(timer);
+    // Reset typing timer
+    setIsTyping(true);
+    const timer = setTimeout(() => setIsTyping(false), 1000);
+    return () => clearTimeout(timer);
   };
 
   const handleKeyDown = (e) => {
@@ -77,7 +113,30 @@ const ChatbotPanel = ({ className = '' }) => {
   }, []);
 
   const connectToTerminal = () => {
+  useEffect(() => {
+    // Connect to terminal WebSocket server
+    connectToTerminal();
+    return () => {
+      if (terminalSocketRef.current) {
+        terminalSocketRef.current.close();
+      }
+    };
+  }, []);
+
+  const connectToTerminal = () => {
     try {
+      const ws = new WebSocket('ws://localhost:3001');
+      terminalSocketRef.current = ws;
+
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'output') {
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: message.data
+          }]);
+        }
+      };
       const ws = new WebSocket('ws://localhost:3001');
       terminalSocketRef.current = ws;
 
@@ -198,10 +257,124 @@ const ChatbotPanel = ({ className = '' }) => {
   };
   
   // Update the sendMessage function's command handling section
+      console.error('Terminal connection error:', err);
+    }
+  };
+
+  // Add this function after other function declarations
+  // Update the processNaturalLanguageCommand function
+  const processNaturalLanguageCommand = (text) => {
+    // Helper function to calculate similarity between two strings
+    const calculateSimilarity = (str1, str2) => {
+      const s1 = str1.toLowerCase();
+      const s2 = str2.toLowerCase();
+      const len1 = s1.length;
+      const len2 = s2.length;
+      const matrix = Array(len1 + 1).fill().map(() => Array(len2 + 1).fill(0));
+
+      for (let i = 0; i <= len1; i++) matrix[i][0] = i;
+      for (let j = 0; j <= len2; j++) matrix[0][j] = j;
+
+      for (let i = 1; i <= len1; i++) {
+        for (let j = 1; j <= len2; j++) {
+          const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j - 1] + cost
+          );
+        }
+      }
+      return 1 - (matrix[len1][len2] / Math.max(len1, len2));
+    };
+
+    // Find closest matching command
+    const findClosestCommand = (input) => {
+      const commands = Object.keys(commandMap);
+      let bestMatch = null;
+      let highestSimilarity = 0;
+
+      commands.forEach(cmd => {
+        const similarity = calculateSimilarity(input, cmd);
+        if (similarity > highestSimilarity && similarity > 0.6) { // Threshold of 60% similarity
+          highestSimilarity = similarity;
+          bestMatch = cmd;
+        }
+      });
+      return bestMatch;
+    };
+
+    const commandMap = {
+      'read': 'cat',
+      'show': 'cat',
+      'list': 'ls',
+      'show files': 'ls',
+      'show directory': 'ls',
+      'current directory': 'pwd',
+      'where am i': 'pwd',
+      'clear screen': 'clear',
+      'make directory': 'mkdir',
+      'create directory': 'mkdir',
+      'remove': 'rm',
+      'delete': 'rm',
+    };
+
+    // Fuzzy patterns for file operations
+    const patterns = {
+      read: /(?:r[ea]+d|sh[o0]w|d[i1]spl[ae]y|[o0]p[e3]n)\s+(?:c[o0]nt[e3]nts?\s+[o0]f\s+|th[e3]\s+)?(?:f[i1]l[e3]\s+)?["']?([^"']+?)["']?\s*$/i,
+      list: /(?:l[i1]st|sh[o0]w)\s+(?:f[i1]l[e3]s?|d[i1]r[e3]ct[o0]r[yi]?s?|c[o0]nt[e3]nts?)\s*(?:[i1]n\s+)?(.+)?/i,
+      mkdir: /(?:m[a4]k[e3]|cr[e3][a4]t[e3])\s+(?:[a4]\s+)?(?:n[e3]w\s+)?d[i1]r(?:[e3]ct[o0]r[yi])?\s+(?:n[a4]m[e3]d\s+)?(.+)/i,
+      remove: /(?:r[e3]m[o0]v[e3]|d[e3]l[e3]t[e3])\s+(?:th[e3]\s+)?(?:f[i1]l[e3]|d[i1]r[e3]ct[o0]r[yi])?\s+(.+)/i,
+      where: /w[he]{1,2}r[e]?\s+(?:am|is)\s+(?:i|me|we)/i
+    };
+
+    let command = '';
+    const input = text.toLowerCase().trim();
+
+    // First try to find exact match
+    if (commandMap[input]) {
+      return commandMap[input];
+    }
+
+    // Then try to find closest match for simple commands
+    const closestMatch = findClosestCommand(input);
+    if (closestMatch) {
+      return commandMap[closestMatch];
+    }
+
+    // Check patterns with fuzzy matching
+    if (patterns.where.test(input)) {
+      command = 'pwd';
+    } else if (patterns.read.test(input)) {
+      const match = input.match(patterns.read);
+      const filename = match[1].trim();
+      command = `cat "${filename}"`;
+    } else if (patterns.list.test(input)) {
+      const match = input.match(patterns.list);
+      command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
+    } else if (patterns.mkdir.test(input)) {
+      const match = input.match(patterns.mkdir);
+      command = `mkdir "${match[1].trim()}"`;
+    } else if (patterns.remove.test(input)) {
+      const match = input.match(patterns.remove);
+      command = `rm "${match[1].trim()}"`;
+    }
+
+    return command;
+  };
+  
+  // Update the sendMessage function's command handling section
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
   
+  
     const userMessage = { role: 'user', content: input.trim() };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsLoading(true);
+    setError(null);
+  
     
     setMessages(prev => [...prev, userMessage]);
     setInput('');
@@ -219,11 +392,13 @@ const ChatbotPanel = ({ className = '' }) => {
         }));
       }
       setIsLoading(false);
+      setIsLoading(false);
       return;
     }
 
     try {
       // Add thinking indicator
+      setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
       setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
 
       // Call Ollama API
@@ -235,6 +410,7 @@ const ChatbotPanel = ({ className = '' }) => {
         body: JSON.stringify({
           model: selectedModel,
           messages: [...messages.filter(m => !m.isThinking), userMessage],
+          messages: [...messages.filter(m => !m.isThinking), userMessage],
           stream: false
         }),
       });
@@ -245,10 +421,14 @@ const ChatbotPanel = ({ className = '' }) => {
 
       const data = await response.json();
       
+      
       // Remove thinking indicator and add actual response
       setMessages(prev => [
         ...prev.filter(m => !m.isThinking),
+      setMessages(prev => [
+        ...prev.filter(m => !m.isThinking),
         { role: 'assistant', content: data.message?.content || 'No response from model' }
+      ]);
       ]);
     } catch (err) {
       console.error('Error sending message:', err);
@@ -256,12 +436,20 @@ const ChatbotPanel = ({ className = '' }) => {
       // Remove thinking indicator and add error message
       setMessages(prev => [
         ...prev.filter(m => !m.isThinking),
+      
+      // Remove thinking indicator and add error message
+      setMessages(prev => [
+        ...prev.filter(m => !m.isThinking),
         { role: 'error', content: `Error: ${err.message}. Make sure Ollama is running with llama3 model.` }
+      ]);
+      setError(err.message);
       ]);
       setError(err.message);
     } finally {
       setIsLoading(false);
+      setIsLoading(false);
     }
+  };
   };
 
   const clearChat = () => {
@@ -306,6 +494,13 @@ const ChatbotPanel = ({ className = '' }) => {
         >
           {showCommands ? 'Hide Commands' : 'Show Commands'}
         </button>
+        <div className="text-center flex-grow">Chatbot</div>
+        <button
+          onClick={() => setShowCommands(!showCommands)}
+          className="mr-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+        >
+          {showCommands ? 'Hide Commands' : 'Show Commands'}
+        </button>
         <select 
           value={selectedModel}
           onChange={handleModelChange}
@@ -328,6 +523,19 @@ const ChatbotPanel = ({ className = '' }) => {
           Clear
         </button>
       </div>
+      
+      {showCommands && (
+        <div className="bg-gray-800 p-4 border-b border-gray-700">
+          <h3 className="text-sm font-semibold mb-2">Available Commands:</h3>
+          <ul className="text-sm space-y-1 text-gray-300">
+            <li>- "read the testing.txt", "show contents of testing.txt"</li>
+            <li>- "list files in downloads"</li>
+            <li>- "where am i"</li>
+            <li>- "make directory testing"</li>
+            <li>- "delete file testing.txt"</li>
+          </ul>
+        </div>
+      )}
       
       {showCommands && (
         <div className="bg-gray-800 p-4 border-b border-gray-700">
@@ -427,12 +635,34 @@ const ChatbotPanel = ({ className = '' }) => {
               </div>
             )}
           </div>
+          <div className="relative flex-grow">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => {
+                handleInputChange(e);
+                setIsTyping(true);
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message here..."
+              className="w-full p-2 bg-gray-800 text-white rounded-lg resize-none h-12 max-h-32 min-h-[3rem] pr-10"
+              rows={1}
+              disabled={isLoading}
+            />
+            {isTyping && (
+              <div className="absolute right-2 bottom-2 text-xs text-gray-400">
+                typing...
+              </div>
+            )}
+          </div>
           <button
             onClick={sendMessage}
             disabled={isLoading || !input.trim()}
             className={`ml-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+            className={`ml-2 px-4 py-2 rounded-lg transition-all duration-200 ${
               isLoading || !input.trim() 
                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' 
+                : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
                 : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
             }`}
           >
@@ -448,6 +678,9 @@ const ChatbotPanel = ({ className = '' }) => {
             )}
           </button>
         </div>
+        <div className="text-xs text-gray-500 mt-2 flex justify-between items-center">
+          <span>Press Enter to send, Shift+Enter for new line</span>
+          <span>{input.length} characters</span>
         <div className="text-xs text-gray-500 mt-2 flex justify-between items-center">
           <span>Press Enter to send, Shift+Enter for new line</span>
           <span>{input.length} characters</span>

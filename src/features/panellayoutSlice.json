@@ -1,21 +1,21 @@
 {
     "generate_layout": {
         "left": {
-            "type": "CatalogPanel",
+            "type": "notion",
             "size": 30,
-            "minSize": 20,
+            "minSize": 0,
             "visible": true
         },
         "middle": {
             "type": "CLMDisplayPanel", 
-            "size": 40,
-            "minSize": 20,
+            "size": 30,
+            "minSize": 0,
             "visible": true
         },
         "right": {
             "type": "ContentViewerPanel",
             "size": 30,
-            "minSize": 20,
+            "minSize": 0,
             "visible": true
         }
     },
@@ -242,7 +242,7 @@
     "json_state_updater_layout": {
         "left": {
             "type": "CatalogPanel",
-            "size": 40,
+            "size": 30,
             "minSize": 0,
             "visible": true
         },
@@ -250,13 +250,14 @@
             "type": "JSONStateUpdaterPanel",
             "size": 30,
             "minSize": 0,
-            "visible": false
+            "visible": true
         },
         "right": {
             "type": "chatbot",
             "size": 30,
+            "size": 30,
             "minSize": 0,
-            "visible": false
+            "visible": true
         }
     }
 }

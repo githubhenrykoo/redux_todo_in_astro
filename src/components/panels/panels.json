@@ -74,6 +74,9 @@
   "PythonScriptExecutionPanel": {
     "component": "../components/panels/PythonScriptExecutionPanel.jsx"
   },
+  "QRCodeGenerator": {
+    "component": "../components/panels/QRCodeGenerator.jsx"
+  },
   "JSONStateUpdaterPanel": {
     "component": "../components/panels/JSONStateUpdaterPanel.jsx"
   }

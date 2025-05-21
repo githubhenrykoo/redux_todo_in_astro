@@ -23,7 +23,7 @@
         <div class="feature">
           <div class="feature-icon">🔍</div>
           <h3>10:05 AM</h3>
-          <p>Checks Kubernetes dev & prod clusters</p>
+          <p><a href="">Checks Kubernetes dev & prod clusters</a></p>
         </div>
         <div class="feature">
           <div class="feature-icon">📋</div>
@@ -48,7 +48,7 @@
       </div>
       
       <a href="/Page" class="enter-button" id="enterButton">Push Me</a>
-      <p id="countdown" style="margin-top: 10px; color: #ffffff;">Or I will push myself in 10</p>
+      <p id="countdown" style="margin-top: 10px; color: #ffffff;">Or I will push myself in 10 seconds</p>
     </div>
   </div>
 
@@ -58,7 +58,7 @@
     
     const countdown = setInterval(() => {
       timeLeft--;
-      countdownElement.textContent = `Or I will push myself in ${timeLeft}`;
+      countdownElement.textContent = `Or I will push myself in ${timeLeft} ${timeLeft === 1 ? 'second' : 'seconds'}`;
       
       if (timeLeft <= 0) {
         clearInterval(countdown);
@@ -177,6 +177,16 @@
     .feature p {
       color: #cccccc;
       font-size: 14px;
+    }
+    
+    .feature p a {
+      color: inherit;  /* Menggunakan warna yang sama dengan parent element */
+      text-decoration: none; /* Menghilangkan garis bawah default */
+      cursor: pointer; /* Menunjukkan bahwa ini masih bisa diklik */
+    }
+    
+    .feature p a:hover {
+      opacity: 0.8; /* Memberikan sedikit efek hover tanpa mengubah warna */
     }
     
     .enter-button {

@@ -146,12 +146,31 @@ const GoogleCalendar = () => {
       
       await signIn();
       setIsAuthenticated(true);
-      await fetchEvents();
+      
+      const response = await listEvents();
+      const events = response.result.items || [];
+      setEvents(events);
+      
+      // Calculate today's meetings
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate.getTime() === today.getTime();
+      });
+      
+      // Set error message based on today's meetings
+      if (todayEvents.length > 0) {
+        setError(`You have ${todayEvents.length} meeting${todayEvents.length > 1 ? 's' : ''} today`);
+      } else {
+        setError('No meeting today, would you like to take a vacation?');
+      }
       
     } catch (err) {
       console.error('Sign in error:', err);
       
-      // Handle specific error types
       if (err.error === 'popup_blocked_by_browser') {
         setError('Please allow popups for this site to sign in with Google.');
       } else if (err.error === 'access_denied') {
@@ -161,7 +180,7 @@ const GoogleCalendar = () => {
       } else if (err.message && err.message.includes('Cross-Origin-Opener-Policy')) {
         setError('Browser security policy blocked the sign-in process. Please try using a different browser or disable enhanced tracking protection for this site.');
       } else {
-        setError('Failed to sign in. Please try again later.');
+        setError('Failed to sign in. Please try again.');
       }
       
       setIsAuthenticated(false);
@@ -187,6 +206,71 @@ const GoogleCalendar = () => {
     }
   };
 
+  const sendEventsToContext = async (events) => {
+    try {
+      const today = new Date();
+      const oneWeekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const oneMonthFromNow = new Date(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+      // Filter events for different time periods
+      const todayEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        return eventDate.toDateString() === today.toDateString();
+      });
+
+      const weekEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        return eventDate <= oneWeekFromNow && eventDate >= today;
+      });
+
+      const monthEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        return eventDate <= oneMonthFromNow && eventDate >= today;
+      });
+
+      // Format events data
+      const eventsContext = {
+        today: todayEvents.map(event => ({
+          summary: event.summary,
+          start: event.start.dateTime || event.start.date,
+          end: event.end.dateTime || event.end.date
+        })),
+        week: weekEvents.map(event => ({
+          summary: event.summary,
+          start: event.start.dateTime || event.start.date,
+          end: event.end.dateTime || event.end.date
+        })),
+        month: monthEvents.map(event => ({
+          summary: event.summary,
+          start: event.start.dateTime || event.start.date,
+          end: event.end.dateTime || event.end.date
+        }))
+      };
+
+      // Send to API
+      await fetch('http://localhost:4321/api/card-collection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'add',
+          card: {
+            content: {
+              dimensionType: 'abstractSpecification',
+              context: JSON.stringify(eventsContext),
+              goal: '',
+              successCriteria: ''
+            }
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Error sending events to context:', error);
+    }
+  };
+
+  // Update fetchEvents to include sending to context
   const fetchEvents = async () => {
     try {
       setError(null);
@@ -197,7 +281,29 @@ const GoogleCalendar = () => {
       }
       
       const response = await listEvents();
-      setEvents(response.result.items || []);
+      const events = response.result.items || [];
+      
+      // Send events to context
+      await sendEventsToContext(events);
+      
+      // Calculate today's meetings
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayEvents = events.filter(event => {
+        const eventDate = new Date(event.start.dateTime || event.start.date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate.getTime() === today.getTime();
+      });
+      
+      setEvents(events);
+      
+      // Set error message based on today's meetings
+      if (todayEvents.length > 0) {
+        setError(`You have ${todayEvents.length} meeting${todayEvents.length > 1 ? 's' : ''} today`);
+      } else {
+        setError('No meeting today, would you like to take a vacation?');
+      }
       
     } catch (err) {
       console.error('Calendar fetch error:', err);
@@ -222,6 +328,12 @@ const GoogleCalendar = () => {
       event.summary?.toLowerCase().includes(searchLower) ||
       event.description?.toLowerCase().includes(searchLower)
     );
+  });
+
+  const todayMeetings = events.filter(event => {
+    const today = new Date();
+    const eventDate = new Date(event.start.dateTime || event.start.date);
+    return eventDate.toDateString() === today.toDateString();
   });
 
   // For initial loading state
@@ -255,35 +367,27 @@ const GoogleCalendar = () => {
     );
   }
 
-  // For authentication errors and loading states
-  if (error && !configError) {
-    return (
-      <div className="p-4 dark:bg-gray-800">
-        <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4">
-          <p className="text-red-600 dark:text-red-200 text-sm font-medium">{error}</p>
-          <div className="mt-3 flex gap-2">
-            {isAuthenticated && (
-              <button
-                onClick={fetchEvents}
-                className="text-sm bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
-              >
-                Retry
-              </button>
-            )}
-            <button
-              onClick={() => setError(null)}
-              className="text-sm bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-4 h-full overflow-auto dark:bg-gray-800 dark:text-white">
+    <div className="p-4 space-y-4">
+      {/* Show today's meetings summary */}
+      {isAuthenticated && (
+        <div className="text-center rounded-lg p-3 mb-4">
+          {todayMeetings.length > 0 ? (
+            <div className="bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg p-3">
+              <p className="text-lg font-semibold">
+                You have {todayMeetings.length} {todayMeetings.length === 1 ? 'meeting' : 'meetings'} today
+              </p>
+            </div>
+          ) : (
+            <div className="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg p-3">
+              <p className="text-lg font-semibold">
+                No meeting today, would you like to take a vacation?
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {!isAuthenticated ? (
         <div className="flex items-center justify-center h-full">
           <button
@@ -291,9 +395,6 @@ const GoogleCalendar = () => {
             disabled={isLoading}
             className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.545,12.151L12.545,12.151c0,1.054,0.855,1.909,1.909,1.909h3.536c-0.607,1.972-2.101,3.467-4.073,4.073v-1.909c0-1.054-0.855-1.909-1.909-1.909h-3.536c0.607-1.972,2.101-3.467,4.073-4.073V12.151z M12,2C6.477,2,2,6.477,2,12c0,5.523,4.477,10,10,10s10-4.477,10-10C22,6.477,17.523,2,12,2z M12,20c-4.418,0-8-3.582-8-8s3.582-8,8-8s8,3.582,8,8S16.418,20,12,20z"/>
-            </svg>
             <span>{isLoading ? 'Signing in...' : 'Sign in with Google'}</span>
           </button>
         </div>

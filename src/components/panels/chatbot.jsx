@@ -6,18 +6,27 @@ const ChatbotPanel = ({ className = '' }) => {
   const [mentions, setMentions] = useState([]);
   const [showCommands, setShowCommands] = useState(false);
   
-  const [messages, setMessages] = useState([
-    { 
-      role: 'system', 
-      content: `How can I help?`
-    }
-  ]);
+  // Initialize messages from localStorage if available
+  const [messages, setMessages] = useState(() => {
+    const savedMessages = localStorage.getItem('chatHistory');
+    return savedMessages ? JSON.parse(savedMessages) : [
+      { 
+        role: 'system', 
+        content: `How can I help?`
+      }
+    ];
+  });
+
+  // Save messages to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('chatHistory', JSON.stringify(messages));
+  }, [messages]);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('llama3');
+  const [selectedModel, setSelectedModel] = useState('llama3:8b');
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -48,14 +57,17 @@ const ChatbotPanel = ({ className = '' }) => {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'instant', block: 'end' });
+    }
   };
+  
 
   const handleInputChange = (e) => {
     dispatch(setInput(e.target.value));
     // Reset typing timer
     setIsTyping(true);
-    const timer = setTimeout(() => setIsTyping(false), 1000);
+    const timer = setTimeout(() => setIsTyping(false));
     return () => clearTimeout(timer);
   };
 
@@ -208,6 +220,85 @@ const ChatbotPanel = ({ className = '' }) => {
     setIsLoading(true);
     setError(null);
   
+    // Check if the message contains any hash mentions
+    const hashMatches = input.trim().match(/@([a-f0-9]{64})/g);
+    if (hashMatches) {
+      try {
+        // Extract all hashes without the @ symbol
+        const hashes = hashMatches.map(match => match.slice(1));
+        let updatedMessages = [...messages, userMessage];
+        
+        // Process hashes sequentially
+        for (const hash of hashes) {
+          const context = await fetchCatalogContext(hash);
+          const formattedContext = context.replace(/\n/g, '\n');
+          const hashResponse = {
+            role: 'assistant',
+            content: `${formattedContext}`
+          };
+          updatedMessages = [...updatedMessages, hashResponse];
+          setMessages(updatedMessages);
+          // Wait for state update
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Process the message without the hash part
+        const messageWithoutHash = input.trim().replace(/@[a-f0-9]{64}/g, '').trim();
+        if (messageWithoutHash) {
+          // Create a new user message for the remaining text
+          const followUpMessage = { role: 'user', content: messageWithoutHash };
+          updatedMessages = [...updatedMessages, followUpMessage];
+          setMessages(updatedMessages);
+          
+          // Add thinking indicator
+          setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
+    
+          try {
+            // Call Ollama API with complete chat history
+            const response = await fetch('http://localhost:11434/api/chat', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: selectedModel,
+                messages: updatedMessages.filter(m => !m.isThinking),
+                stream: false
+              }),
+            });
+    
+            if (!response.ok) {
+              throw new Error(`Error: ${response.statusText}`);
+            }
+    
+            const data = await response.json();
+            
+            // Remove thinking indicator and add actual response
+            setMessages(prev => [
+              ...prev.filter(m => !m.isThinking),
+              { role: 'assistant', content: data.message?.content || 'No response from model' }
+            ]);
+          } catch (err) {
+            // Handle API call error
+            setMessages(prev => [
+              ...prev.filter(m => !m.isThinking),
+              { role: 'error', content: `Error: ${err.message}. Make sure Ollama is running with the selected model.` }
+            ]);
+          }
+        }
+      } catch (err) {
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'error',
+            content: 'Failed to fetch catalog context. Please check the hash and try again.'
+          }
+        ]);
+      }
+      setIsLoading(false);
+      return;
+    }
+  
     // Check for terminal commands (both direct and natural language)
     const naturalCommand = processNaturalLanguageCommand(input.trim());
     if (input.trim().startsWith('$') || naturalCommand) {
@@ -265,9 +356,9 @@ const ChatbotPanel = ({ className = '' }) => {
   };
 
   const clearChat = () => {
-    setMessages([
-      { role: 'system', content: 'How can I help?' }
-    ]);
+    const initialMessage = { role: 'system', content: 'How can I help?' };
+    setMessages([initialMessage]);
+    localStorage.setItem('chatHistory', JSON.stringify([initialMessage]));
   };
 
   const handleModelChange = (e) => {
@@ -394,11 +485,6 @@ const ChatbotPanel = ({ className = '' }) => {
                   message.content
                 )}
               </div>
-              {message.role !== 'user' && message.role !== 'system' && message.role !== 'error' && (
-                <div className="text-xs text-gray-400 mt-1">
-                  System
-                </div>
-              )}
             </div>
           </div>
         ))}
@@ -458,3 +544,19 @@ const ChatbotPanel = ({ className = '' }) => {
 };
 
 export default ChatbotPanel;
+
+const fetchCatalogContext = async (hash) => {
+  try {
+    const response = await fetch(`http://localhost:4321/api/card-collection?action=get&hash=${hash}`);
+    const data = await response.json();
+    
+    if (data.success && data.card) {
+      const cardContent = JSON.parse(data.card.content);
+      return cardContent.context;
+    }
+    return 'Failed to fetch context';
+  } catch (error) {
+    console.error('Error fetching catalog context:', error);
+    return 'Error fetching context';
+  }
+};

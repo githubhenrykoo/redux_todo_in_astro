@@ -6,14 +6,15 @@ const PlaywrightTriggerWrapper = () => {
         if (typeof window === 'undefined') return null;
         const params = new URLSearchParams(window.location.search);
         const playwright = params.get('run');
-        if (playwright) {
-            // Allow both "run-5" and "5"
-            return playwright.startsWith('run-') ? playwright : `run-${playwright}`;
+        
+        // Check specifically for "clm" parameter
+        if (playwright === 'clm') {
+            return 'clm'; // This will map to /api/clm endpoint
         }
-        return 'run-5';
+        return null; // Don't run if not explicitly "clm"
     }, []);
 
     return <PlaywrightTrigger playwrightApi={playwrightApi} />;
 };
 
-export default PlaywrightTriggerWrapper;// ... existing code ...
+export default PlaywrightTriggerWrapper;

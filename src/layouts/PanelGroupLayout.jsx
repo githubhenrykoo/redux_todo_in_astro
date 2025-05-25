@@ -37,8 +37,8 @@ const PanelContent = () => {
     // Special handling for xterm
     if (config.type === 'xterm') {
       return (
-        <ClientOnly fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading terminal...</div>}>
-          <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Initializing terminal...</div>}>
+        <ClientOnly fallback={<div className="flex items-center justify-center h-full bg-white text-black">Loading terminal...</div>}>
+          <Suspense fallback={<div className="flex items-center justify-center h-full bg-white text-black">Initializing terminal...</div>}>
             {React.createElement(React.lazy(() => import('../components/panels/xterm.jsx')))}
           </Suspense>
         </ClientOnly>
@@ -49,7 +49,7 @@ const PanelContent = () => {
     if (panelComponents[config.type]) {
       const Component = panelComponents[config.type];
       return (
-        <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading {config.type}...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center h-full bg-white text-black">Loading {config.type}...</div>}>
           {mounted ? <Component /> : null}
         </Suspense>
       );
@@ -79,28 +79,28 @@ const PanelContent = () => {
     );
     
     return (
-      <Suspense fallback={<div className="flex items-center justify-center h-full dark:bg-gray-800 dark:text-white">Loading panel...</div>}>
+      <Suspense fallback={<div className="flex items-center justify-center h-full bg-white text-black">Loading panel...</div>}>
         {mounted ? <Component /> : null}
       </Suspense>
     );
   };
 
   return (
-    <div className="h-full w-full overflow-hidden dark:bg-gray-900">
+    <div className="h-full w-full overflow-hidden bg-white">
       <PanelGroup direction="horizontal" className="h-full">
-        <Panel defaultSize={panels.left.size} minSize={panels.left.minSize} className="dark:bg-gray-800">
+        <Panel defaultSize={panels.left.size} minSize={panels.left.minSize} className="bg-white text-black">
           {renderPanel(panels.left)}
         </Panel>
 
-        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors" />
+        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
 
-        <Panel defaultSize={panels.middle.size} minSize={panels.middle.minSize} className="dark:bg-gray-800">
+        <Panel defaultSize={panels.middle.size} minSize={panels.middle.minSize} className="bg-white text-black">
           {renderPanel(panels.middle)}
         </Panel>
 
-        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 dark:bg-gray-700 dark:hover:bg-gray-600 transition-colors" />
+        <PanelResizeHandle className="w-1 bg-slate-200 hover:bg-slate-400 transition-colors" />
 
-        <Panel defaultSize={panels.right.size} minSize={panels.right.minSize} className="dark:bg-gray-800">
+        <Panel defaultSize={panels.right.size} minSize={panels.right.minSize} className="bg-white text-black">
           {renderPanel(panels.right)}
         </Panel>
       </PanelGroup>

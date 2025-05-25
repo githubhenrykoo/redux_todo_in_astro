@@ -2,15 +2,12 @@ import React, { useState, useEffect } from 'react';
 
 // Add the extractTitle helper function
 const extractTitle = (page) => {
-  // Try to get title from properties
   if (page.properties && page.properties.title) {
     const titleProperty = page.properties.title;
     if (Array.isArray(titleProperty.title)) {
       return titleProperty.title.map(t => t.plain_text).join('');
     }
   }
-  
-  // Fallback to page ID if no title found
   return page.id;
 };
 
@@ -20,6 +17,7 @@ const NotionPanel = () => {
   const [error, setError] = useState(null);
   const [connected, setConnected] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [pageId, setPageId] = useState('1d83b3ef43448048abbbe3452cba06da'); // Default page ID
 
   useEffect(() => {
     checkConnection();
@@ -33,6 +31,13 @@ const NotionPanel = () => {
 
     return () => clearInterval(intervalId);
   }, [connected, retryCount]);
+
+  // Removed auto-sync effect, now sync only happens on button click
+  useEffect(() => {
+    if (connected) {
+      syncPage(pageId);
+    }
+  }, [connected, pageId]);
 
   const checkConnection = async () => {
     try {
@@ -52,10 +57,71 @@ const NotionPanel = () => {
     }
   };
 
+  const uploadToCardCollection = async (notionData) => {
+    try {
+      // Convert the Notion data to raw format
+      const contentData = notionData.map(doc => {
+        let rawContent = `Title: ${doc.title}\n\n`;
+        
+        // Add tables
+        if (doc.tables?.length > 0) {
+          rawContent += 'Tables:\n';
+          doc.tables.forEach(table => {
+            table.rows.forEach(row => {
+              rawContent += row.cells.join(' | ') + '\n';
+            });
+            rawContent += '\n';
+          });
+        }
+      
+        // Add descriptions
+        if (doc.descriptions?.length > 0) {
+          rawContent += 'Descriptions:\n';
+          doc.descriptions.forEach(desc => {
+            rawContent += `${desc.content}\n`;
+          });
+          rawContent += '\n';
+        }
+      
+        // Add subheadings
+        if (doc.subheadings?.length > 0) {
+          rawContent += 'Subheadings:\n';
+          doc.subheadings.forEach(heading => {
+            rawContent += `${'#'.repeat(heading.level)} ${heading.content}\n`;
+          });
+        }
+      
+        return rawContent;
+      }).join('\n---\n');
+    
+      await fetch('http://localhost:4321/api/card-collection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: "add",
+          card: {
+            content: {
+              dimensionType: "abstractSpecification",
+              context: contentData,
+              goal: "",
+              successCriteria: ""
+            }
+          }
+        })
+      });
+    
+      return true;
+    } catch (err) {
+      console.error('Upload error:', err);
+      return false;
+    }
+  };
+
   const syncDatabase = async () => {
     try {
       setLoading(true);
-      setError(null);
       const response = await fetch('http://localhost:3002/sync/database', {
         method: 'POST',
         headers: {
@@ -65,15 +131,27 @@ const NotionPanel = () => {
       const data = await response.json();
       if (data.success) {
         setDocuments(data.documents);
-      } else {
-        throw new Error(data.error || 'Failed to sync database');
+        await uploadToCardCollection(data.documents);
       }
     } catch (err) {
-      setError(err.message);
+      console.error('Sync error:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Daftarkan service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('Service Worker registered:', registration);
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+        });
+    }
+  }, []);
 
   const syncPage = async (pageId) => {
     if (!pageId.trim()) {
@@ -84,12 +162,27 @@ const NotionPanel = () => {
     try {
       setLoading(true);
       setError(null);
+
+      // Tampilkan data dari cache terlebih dahulu jika ada
+      const cachedData = await getCachedPage(pageId);
+      if (cachedData) {
+        setDocuments(prev => {
+          const exists = prev.find(doc => doc.id === cachedData.id);
+          if (!exists) {
+            return [...prev, cachedData];
+          }
+          return prev;
+        });
+      }
+
+      // Ambil data terbaru dari server
       const response = await fetch(`http://localhost:3002/sync/page/${pageId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         }
       });
+      
       const data = await response.json();
       if (data.success) {
         const formattedDoc = {
@@ -100,19 +193,51 @@ const NotionPanel = () => {
           subheadings: data.document.subheadings,
           lastEdited: data.document.page.last_edited_time
         };
-        setDocuments(prev => [...prev, formattedDoc]);
-      } else {
-        throw new Error(data.error || 'Failed to sync page');
+
+        setDocuments(prev => {
+          const filtered = prev.filter(doc => doc.id !== formattedDoc.id);
+          return [...filtered, formattedDoc];
+        });
+        
+        await uploadToCardCollection([formattedDoc]);
       }
     } catch (err) {
-      setError(err.message);
+      console.error('Sync error:', err);
+      if (!documents.length) {
+        setError('Failed to fetch data. Please check your connection.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const getCachedPage = async (pageId) => {
+    try {
+      const cache = await caches.open('notion-cache-v1');
+      const cachedResponse = await cache.match(`http://localhost:3002/sync/page/${pageId}`);
+      
+      if (cachedResponse) {
+        const data = await cachedResponse.json();
+        if (data.success) {
+          return {
+            id: data.document.page.id,
+            title: extractTitle(data.document.page),
+            tables: data.document.tables,
+            descriptions: data.document.descriptions,
+            subheadings: data.document.subheadings,
+            lastEdited: data.document.page.last_edited_time
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error reading cache:', error);
+      return null;
+    }
+  };
+
   return (
-    <div className="notion-panel" style={{ padding: '20px' }}>
+    <div className="notion-panel" style={{ padding: '20px', backgroundColor: 'white' }}>
       <div className="notion-header" style={{ 
         display: 'flex', 
         justifyContent: 'space-between',
@@ -127,32 +252,31 @@ const NotionPanel = () => {
             backgroundColor: connected ? '#e6ffe6' : '#ffe6e6',
             color: connected ? '#006600' : '#cc0000'
           }}>
-          {connected ? '🟢 Connected' : '🔴 Disconnected'}
+          {connected ? 'Connected' : 'Disconnected'}
         </span>
       </div>
       
       <div className="controls">
-        <button 
-          onClick={syncDatabase}
-          disabled={loading || !connected}
-          className="sync-button"
-        >
-          {loading ? 'Syncing...' : 'Sync Database'}
-        </button>
-        
         <div className="input-group">
           <input 
-            value="1d83b3ef43448048abbbe3452cba06da"
+            value={pageId}
+            onChange={(e) => setPageId(e.target.value)}
             type="text" 
             placeholder="Enter Page ID"
             disabled={!connected}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
                 syncPage(e.target.value);
-                e.target.value = '';
               }
             }}
           />
+          <button
+            onClick={() => syncPage(pageId)}
+            disabled={loading || !connected}
+            className="sync-button"
+          >
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -165,14 +289,56 @@ const NotionPanel = () => {
       <div className="documents-list">
         {documents.map((doc) => (
           <div key={doc.id} className="document-item">
-            <h3>{doc.title}</h3>
+            <h3 style={{ 
+              fontSize: '24px',
+              fontWeight: 'bold',
+              marginBottom: '16px'
+            }}>Title: {doc.title}</h3>
             
+            {/* Display bullet points */}
+            {doc.descriptions && doc.descriptions.length > 0 && (
+              <div className="descriptions">
+                <ul style={{ 
+                  listStyleType: 'disc',
+                  paddingLeft: '20px',
+                  marginBottom: '16px'
+                }}>
+                  {doc.descriptions.map(desc => (
+                    <li key={desc.id} style={{ marginBottom: '8px' }}>
+                      {desc.content}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Display code blocks */}
+            {doc.codeBlocks && doc.codeBlocks.length > 0 && (
+              <div className="code-blocks">
+                {doc.codeBlocks.map((block, index) => (
+                  <div key={index} className="code-block" style={{
+                    backgroundColor: '#f7f6f3',
+                    padding: '16px',
+                    borderRadius: '3px',
+                    marginBottom: '16px',
+                    fontFamily: 'Monaco, monospace',
+                    fontSize: '14px',
+                    lineHeight: '1.5'
+                  }}>
+                    <code style={{ color: '#333' }}>{block.content}</code>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Display tables */}
             {doc.tables && doc.tables.length > 0 && (
               <div className="tables">
-                <h4>Tables</h4>
                 {doc.tables.map(table => (
-                  <div key={table.id} className="table-container" style={{ overflowX: 'auto', marginBottom: '20px' }}>
+                  <div key={table.id} className="table-container" style={{ 
+                    overflowX: 'auto',
+                    marginBottom: '20px'
+                  }}>
                     <table style={{ 
                       width: '100%',
                       borderCollapse: 'collapse',
@@ -201,45 +367,11 @@ const NotionPanel = () => {
                 ))}
               </div>
             )}
-
-            {/* Display subheadings */}
-            {doc.subheadings && doc.subheadings.length > 0 && (
-              <div className="subheadings">
-                <h4>Subheadings</h4>
-                {doc.subheadings.map(heading => (
-                  <div 
-                    key={heading.id} 
-                    className={`heading-${heading.level}`}
-                    style={{ 
-                      marginLeft: `${(heading.level - 1) * 20}px`,
-                      fontSize: `${1.4 - (heading.level * 0.1)}em`,
-                      marginBottom: '8px'
-                    }}
-                  >
-                    {heading.content}
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Display descriptions */}
-            {doc.descriptions && doc.descriptions.length > 0 && (
-              <div className="descriptions">
-                <h4>Descriptions</h4>
-                {doc.descriptions.map(desc => (
-                  <p key={desc.id}>{desc.content}</p>
-                ))}
-              </div>
-            )}
-            
-            <div className="document-meta">
-              <span>ID: {doc.id}</span>
-            </div>
           </div>
         ))}
         {documents.length === 0 && !loading && (
           <div className="no-documents">
-            No documents synced yet. Click 'Sync Database' to start.
+            No documents synced yet.
           </div>
         )}
       </div>
@@ -254,7 +386,6 @@ const NotionPanel = () => {
         .document-item {
           margin-bottom: 24px;
           padding: 16px;
-          border: 1px solid #eee;
           border-radius: 8px;
         }
         

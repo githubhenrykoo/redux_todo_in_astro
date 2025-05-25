@@ -325,15 +325,16 @@ const DetailView = ({
       return rows.join('');
     };
     
-    // Helper to format primitive values with truncation and highlighting
+    // Helper to format primitive values with highlighting
     const renderPrimitiveValue = (value) => {
       // Format and truncate based on type
       if (typeof value === 'string') {
-        // Truncate long strings
-        const displayValue = value.length > 30 
-          ? `"${value.substring(0, 30)}..."` 
-          : `"${value}"`;
-        return `<span class="json-string">${displayValue}</span>`;
+        // Remove truncation for context values
+        if (value.includes('context:')) {
+          return `<span class="json-string">"${value}"</span>`;
+        }
+        // Display full string without truncation
+        return `<span class="json-string">"${value}"</span>`;
       } else if (typeof value === 'number') {
         return `<span class="json-number">${value}</span>`;
       } else if (typeof value === 'boolean') {

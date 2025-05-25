@@ -551,50 +551,54 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
     }
     
     return (
-        <div className="clm-display-panel" style={{ overflowY: 'auto' }}>
-            <div className="clm-header" style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '1rem'
-            }}>
-                <h2 style={{ margin: 0 }}>{rootClmMemo.title || 'Untitled CLM'}</h2>
-                <button 
-                    onClick={handleExecuteCLM} 
-                    style={{
-                        backgroundColor: '#4CAF50',
-                        border: 'none',
-                        color: 'white',
-                        padding: '8px 16px',
-                        textAlign: 'center',
-                        textDecoration: 'none',
-                        display: 'inline-block',
-                        fontSize: '14px',
-                        margin: '4px 2px',
-                        cursor: 'pointer',
-                        borderRadius: '4px'
-                    }}
-                >
-                    Execute CLM
-                </button>
-            </div>
+        <div className="clm-display-panel">
+            {error && (
+                <div className="error-message">
+                    {error}
+                </div>
+            )}
             
-            {/* Debug Info - Comment out in production */}
-            <div className="clm-debug-info" style={{ display: 'none' }}>
-                <h3>Debug Info</h3>
-                <pre>{JSON.stringify(debug, null, 2)}</pre>
-            </div>
-            
-            {/* Display CLM in table format */}
-            <table className="clm-table" width="600">
-                <tbody>
+            {loading ? (
+                <div className="loading">Loading...</div>
+            ) : (
+                <div className="clm-dimensions">
                     {/* Abstract Specification Section */}
-                    <AbstractSpecification 
-                        context={context}
-                        goal={goal}
-                        successCriteria={successCriteria}
-                    />
-                    
+                    <div className="dimension abstract-specification">
+                        <h2 className="text-lg font-semibold mb-4">Abstract Specification</h2>
+                        {dimensions.abstractSpecification ? (
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="col-span-1">
+                                    <div className="bg-card rounded-lg p-4">
+                                        <h3 className="text-primary font-medium mb-2">Context</h3>
+                                        <div className="text-card-foreground">
+                                            {dimensions.abstractSpecification.context || 'No context specified'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="col-span-1">
+                                    <div className="bg-card rounded-lg p-4">
+                                        <h3 className="text-primary font-medium mb-2">Goal</h3>
+                                        <div className="text-card-foreground">
+                                            {dimensions.abstractSpecification.goal || 'No goal specified'}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="col-span-1">
+                                    <div className="bg-card rounded-lg p-4">
+                                        <h3 className="text-primary font-medium mb-2">Success Criteria</h3>
+                                        <div className="text-card-foreground">
+                                            {dimensions.abstractSpecification.successCriteria || 'No success criteria specified'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="no-dimension">
+                                No Abstract Specification available
+                            </div>
+                        )}
+                    </div>
+
                     {/* Concrete Implementation Section */}
                     <ConcreteImplementation 
                         inputs={inputs}
@@ -602,45 +606,8 @@ const CLMDisplayPanel = ({ initialHash = '' }) => {
                         outputs={outputs}
                         cards={cards}
                     />
-                </tbody>
-            </table>
-            
-            {/* Dimension Hash References */}
-            <div className="clm-dimension-hashes">
-                <h3>Dimension Hash References</h3>
-                <ul>
-                    {rootClmMemo?.dimensions?.abstractSpecification && (
-                        <li><strong>Abstract Specification:</strong> <code>{rootClmMemo.dimensions.abstractSpecification}</code></li>
-                    )}
-                    {rootClmMemo?.dimensions?.concreteImplementation && (
-                        <li><strong>Concrete Implementation:</strong> <code>{rootClmMemo.dimensions.concreteImplementation}</code></li>
-                    )}
-                </ul>
-            </div>
-            
-            {/* Python Script Execution Output Section */}
-            <PythonREPLPanel />
-            
-            {/* Balanced Expectations Section */}
-            <BalancedExpectations 
-                balancedExpectations={balancedExpectations} 
-                selectedHash={selectedHash}
-            />
-
-            {/* JSON Structure Display - Optional, can be commented out if not needed */}
-            <div className="clm-root-json">
-                <h3>Root CLM Structure</h3>
-                <pre className="json-display">
-{JSON.stringify({
-  title: rootClmMemo?.title || 'Cubical Logic Model',
-  type: rootClmMemo?.type || '',
-  dimensions: {
-    abstractSpecification: rootClmMemo?.dimensions?.abstractSpecification || '',
-    concreteImplementation: rootClmMemo?.dimensions?.concreteImplementation || ''
-  }
-}, null, 2)}
-                </pre>
-            </div>
+                </div>
+            )}
         </div>
     );
 };

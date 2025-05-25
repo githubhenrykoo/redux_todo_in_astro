@@ -21,7 +21,7 @@
     },
     "todo_layout": {
         "left": {
-            "type": "pythonrepl",
+            "type": "notion",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -33,7 +33,7 @@
             "visible": true
         },
         "right": {
-            "type": "SimpleMQTTDashboardPanel",
+            "type": "googledocs",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -247,7 +247,7 @@
             "visible": true
         },
         "middle": {
-            "type": "JSONStateUpdaterPanel",
+            "type": "googledocs",
             "size": 30,
             "minSize": 0,
             "visible": true

@@ -14,31 +14,64 @@
   <div class="container">
     <div class="content">
       <div class="logo-container">
-        <div class="logo">PKC</div>
+        <div class="logo">To-Do</div>
       </div>
       
-      <h1>Welcome to PKC</h1>
-      <p class="subtitle">Your centralized dashboard for monitoring and controlling IoT devices</p>
+      <h1>Daily Rituals</h1>
       
       <div class="features">
         <div class="feature">
-          <div class="feature-icon">📊</div>
-          <h3>Real-time Data</h3>
-          <p>Monitor live sensor readings from your connected devices</p>
+          <div class="feature-icon">🔍</div>
+          <h3>10:05 AM</h3>
+          <p><a href="">Checks Kubernetes dev & prod clusters</a></p>
         </div>
         <div class="feature">
-          <div class="feature-icon">🔌</div>
-          <h3>Device Control</h3>
-          <p>Toggle devices and send custom commands remotely</p>
+          <div class="feature-icon">📋</div>
+          <h3>10:10 AM</h3>
+          <p>Verifies cluster logs and backup status</p>
         </div>
         <div class="feature">
-          <div class="feature-icon">📱</div>
-          <h3>Mobile Friendly</h3>
-          <p>Access your dashboard from any device, anywhere</p>
+          <div class="feature-icon">⚠️</div>
+          <h3>10:15 AM</h3>
+          <p>If any errors, we trigger incident alerts via Telegram or Email</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📝</div>
+          <h3>10:30 AM</h3>
+          <p>Status report published to Notion and shared with the community</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">📢</div>
+          <h3>05:00 PM</h3>
+          <p>Send daily report and voice record</p>
         </div>
       </div>
       
-      <a href="/Page" class="enter-button">Enter Page</a>
+      <a href="/Page" class="enter-button" id="enterButton">Push Me</a>
+      <p id="countdown" style="margin-top: 10px; color: #ffffff;">Or I will push myself in 10 seconds</p>
+    </div>
+  </div>
+
+  <script>
+    let timeLeft = 10;
+    const countdownElement = document.getElementById('countdown');
+    
+    const countdown = setInterval(() => {
+      timeLeft--;
+      countdownElement.textContent = `Or I will push myself in ${timeLeft} ${timeLeft === 1 ? 'second' : 'seconds'}`;
+      
+      if (timeLeft <= 0) {
+        clearInterval(countdown);
+        window.location.href = '/Page';
+      }
+    }, 1000);
+
+    // Still allow manual click
+    document.getElementById('enterButton').addEventListener('click', () => {
+      clearInterval(countdown);
+      window.location.href = '/Page';
+    });
+  </script>
   <style>
     * {
       margin: 0;
@@ -144,6 +177,16 @@
     .feature p {
       color: #cccccc;
       font-size: 14px;
+    }
+    
+    .feature p a {
+      color: inherit;  /* Menggunakan warna yang sama dengan parent element */
+      text-decoration: none; /* Menghilangkan garis bawah default */
+      cursor: pointer; /* Menunjukkan bahwa ini masih bisa diklik */
+    }
+    
+    .feature p a:hover {
+      opacity: 0.8; /* Memberikan sedikit efek hover tanpa mengubah warna */
     }
     
     .enter-button {

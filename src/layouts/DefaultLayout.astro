@@ -53,6 +53,17 @@ const initialTheme = 'dark'; // Default to dark theme for Kubernetes
 <script>
 	import { store } from '../store';
 	import { initServiceWorkerManager } from '../utils/serviceWorkerManager';
+	import { timeTracker } from '../utils/timeTracker';
+
+	// Initialize time tracking when the page loads
+	document.addEventListener('DOMContentLoaded', () => {
+		timeTracker.startSession();
+	});
+
+	// End session when the user leaves the page
+	window.addEventListener('beforeunload', () => {
+		timeTracker.endSession();
+	});
 
 	// Initialize service worker manager to handle API endpoint redirection
 	document.addEventListener('DOMContentLoaded', async () => {

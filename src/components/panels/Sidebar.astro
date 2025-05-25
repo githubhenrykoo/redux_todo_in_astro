@@ -172,6 +172,7 @@ const { class: className, ...props } = Astro.props;
   import { changeLayout } from '../../features/panellayoutSlice.js';
 
   // Get button elements
+  const timeTrackingBtn = document.getElementById('timeTrackingBtn');
   const todoLayoutBtn = document.getElementById('todoLayoutBtn');
   const generateLayoutBtn = document.getElementById('generateLayoutBtn');
   const clmLayoutBtn = document.getElementById('clmLayoutBtn');
@@ -311,8 +312,6 @@ const { class: className, ...props } = Astro.props;
     store.dispatch(changeLayout(layout));
     updateActiveButton(layout);
   }
-
-  // ... existing code ...
 
   // Add type interface for the panel layout state
   interface PanelLayoutState {

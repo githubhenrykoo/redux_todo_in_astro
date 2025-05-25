@@ -77,6 +77,9 @@
   "QRCodeGenerator": {
     "component": "../components/panels/QRCodeGenerator.jsx"
   },
+  "googledocs": {
+    "component": "../components/panels/googledocs.jsx"
+  },
   "JSONStateUpdaterPanel": {
     "component": "../components/panels/JSONStateUpdaterPanel.jsx"
   }

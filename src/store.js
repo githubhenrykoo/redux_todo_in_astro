@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { thunk } from 'redux-thunk';
 import chatbotReducer from './features/chatbotSlice';
 import testLogsReducer from './features/testLogsSlice';
 import pythonreplReducer from './features/pythonreplSlice';
@@ -44,15 +45,7 @@ export const store = configureStore({
     resizeable: resizeableReducer,
     selectedItem: selectedItemReducer,
   },
-  middleware: (getDefaultMiddleware) => 
-    getDefaultMiddleware({
-      serializableCheck: false
-    }),
-  devTools: {
-    name: 'Progressive Knowledge Container',
-    trace: true,
-    traceLimit: 25
-  }
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(thunk)
 });
 // Make store globally accessible in browser environments
 if (typeof window !== 'undefined') {

@@ -151,6 +151,9 @@ const GoogleCalendar = () => {
       const events = response.result.items || [];
       setEvents(events);
       
+      // Send events to API endpoint
+      await sendEventsToContext(events);
+      
       // Calculate today's meetings
       const today = new Date();
       today.setHours(0, 0, 0, 0);

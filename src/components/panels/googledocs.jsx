@@ -85,6 +85,30 @@ const GoogleDocsPanel = () => {
       });
       
       setEditorContent(fullText);
+
+      // Send initial request to card collection API after loading document
+      const response = await fetch('http://localhost:4321/api/card-collection', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'add',
+          card: {
+            content: {
+              dimensionType: 'abstractSpecification',
+              context: fullText,
+              goal: '',
+              successCriteria: ''
+            }
+          }
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to sync with card collection');
+      }
+
     } catch (error) {
       console.error('Error loading Google Doc:', error);
     }

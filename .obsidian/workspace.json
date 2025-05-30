@@ -20,8 +20,26 @@
               "icon": "lucide-file",
               "title": "benchmark_4digit_results"
             }
+          },
+          {
+            "id": "2b2612130ed97228",
+            "type": "leaf",
+            "state": {
+              "type": "canvas",
+              "state": {
+                "file": "Untitled 1.canvas",
+                "viewState": {
+                  "x": 0,
+                  "y": 0,
+                  "zoom": 0
+                }
+              },
+              "icon": "lucide-layout-dashboard",
+              "title": "Untitled 1"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -168,22 +186,32 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "0b6b33259aab1291",
+  "active": "2b2612130ed97228",
   "lastOpenFiles": [
+    "public/data/cards.db",
+    "node_modules/marked/man/marked.1.md",
+    "node_modules/marked/man/marked.1",
+    "node_modules/marked/lib/marked.umd.js.map",
+    "node_modules/marked/lib/marked.umd.js",
+    "node_modules/marked/lib/marked.esm.js.map",
+    "node_modules/marked/lib/marked.esm.js",
+    "node_modules/marked/lib/marked.d.ts",
+    "node_modules/marked/lib/marked.d.cts",
+    "node_modules/marked/lib/marked.cjs.map",
+    "node_modules/marked/lib/marked.cjs",
+    "node_modules/marked/bin/main.js",
+    "node_modules/marked/README.md",
+    "node_modules/marked/LICENSE.md",
+    "node_modules/@emnapi/runtime/README.md",
+    "Untitled 1.canvas",
+    "Untitled.canvas",
+    "2025-05-26.md",
     "src/gasing/addition/benchmark_md_formatted.md",
     "src/gasing/addition/benchmark_4digit_results.md",
-    "src/gasing/addition/benchmark_4digit_problems.py",
     "src/gasing/addition/additionplan.md",
     "src/gasing/addition/algorithm_explanations.md",
-    "src/gasing/addition/convert_benchmark_to_md.py",
-    "src/gasing/addition/convert_to_markdown.py",
     "src/gasing/addition/benchmark_digits_results_formatted.md",
-    "src/gasing/addition/format_to_markdown.py",
     "src/gasing/addition/benchmark_results.md",
-    "src/gasing/addition/benchmark_digits_results.md",
-    "src/gasing/addition/benchmark_digits_results copy.txt",
-    "src/gasing/addition/benchmark_digits_1_20.txt",
-    "src/gasing/addition/benchmark_digits_results.txt",
-    "src/gasing/addition/individual_problem_benchmark.py"
+    "src/gasing/addition/benchmark_digits_results.md"
   ]
 }

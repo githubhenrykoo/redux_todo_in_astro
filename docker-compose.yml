@@ -1,7 +1,10 @@
+version: "3.8"
 services:
   app:
-    image: henry768/redux-todo-astro:latest
-    container_name: redux-todo-astro
+    build: .
     ports:
-      - "8080:4321"
-    restart: unless-stopped
+      - "4321:4321"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev

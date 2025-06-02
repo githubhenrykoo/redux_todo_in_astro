@@ -1,0 +1,47 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: 'arm64,amd64'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          # Use GitHub secrets for credentials
+          username: henry768
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+          
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: henry768/redux-todo-astro:latest, henry768/redux-todo-astro:${{ github.sha }}
+          cache-from: type=registry,ref=henry768/redux-todo-astro:buildcache
+          cache-to: type=registry,ref=henry768/redux-todo-astro:buildcache,mode=max
+          build-args: |
+            ROLLUP_SKIP_NODEJS=true
+            npm_config_platform=linux
+            npm_config_arch=x64

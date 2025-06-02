@@ -1,8 +1,11 @@
 # Use official Node.js image
-FROM node:20
+FROM node:20-bullseye
 
 # Install Python & pip
-RUN apt-get update && apt-get install -y python3 python3-pip
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip
 
 # Set working directory
 WORKDIR /app
@@ -14,11 +17,10 @@ COPY package*.json ./
 COPY requirements.txt ./
 
 # Install Python dependencies
-RUN pip3 install -r requirements.txt
+RUN pip install --break-system-packages -r requirements.txt
 
 # Install dependencies including marked for markdown support
-RUN npm install && \
-    npm install marked
+RUN npm install && npm install marked
 
 # Copy the rest of the application code
 COPY . .

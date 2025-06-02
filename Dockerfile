@@ -10,11 +10,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY requirements.txt ./
 
-# Upgrade pip dulu
 RUN python3 -m pip install --upgrade pip setuptools wheel
-
-# Install dependencies Python
-RUN python3 -m pip install -r requirements.txt
 
 RUN npm install && npm install marked
 

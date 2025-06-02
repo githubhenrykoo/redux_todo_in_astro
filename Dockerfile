@@ -8,9 +8,6 @@ RUN apt-get update && \
 WORKDIR /app
 
 COPY package*.json ./
-COPY requirements.txt ./
-
-RUN python3 -m pip install --upgrade pip setuptools wheel
 
 RUN npm install && npm install marked
 

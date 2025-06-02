@@ -1,6 +1,5 @@
 FROM node:20-bullseye
 
-# Install Python & pip
 RUN apt-get update && \
     apt-get install -y python3 python3-pip && \
     ln -sf /usr/bin/python3 /usr/bin/python && \
@@ -11,7 +10,11 @@ WORKDIR /app
 COPY package*.json ./
 COPY requirements.txt ./
 
-RUN pip install --break-system-packages -r requirements.txt
+# Upgrade pip dulu
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+# Install dependencies Python
+RUN python3 -m pip install -r requirements.txt
 
 RUN npm install && npm install marked
 

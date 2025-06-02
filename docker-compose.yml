@@ -1,17 +1,7 @@
 services:
-  k8s-app:
-    build:
-      context: .
-      dockerfile: Dockerfile.prod
-    image: henry768/redux-todo-astro:v1.2.0
+  app:
+    image: henry768/redux-todo-astro:latest
+    container_name: redux-todo-astro
     ports:
-      - "4321:4321"
-      - "24678:24678"
-    environment:
-      - NODE_ENV=development
-      - HOST=0.0.0.0
-      - PORT=4321
-      - ASTRO_TELEMETRY_DISABLED=1
-      - IS_KUBERNETES=true
-      - THEME_DEFAULT=dark
+      - "8080:4321"
     restart: unless-stopped

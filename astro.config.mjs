@@ -143,22 +143,29 @@ export default defineConfig({
     },
     server: {
       hmr: {
-        clientPort: 4321
+        clientPort: 4321,
+        overlay: false
       },
       watch: {
         usePolling: true
       },
-      strictPort: true,
+      strictPort: false,
       proxy: {},
-      cors: true,
-      host: true,
-      allowedHosts: true
+      cors: {
+        origin: '*'
+      },
+      host: '0.0.0.0',
+      allowedHosts: true,
+      fs: {
+        allow: ['..']
+      }
     },
     build: {
       rollupOptions: {
         external: ['child_process', 'fs', 'path', 'os', 'crypto', 'util']
       }
-    }
+    },
+    envPrefix: ['GOOGLE_']
   },
   server: {
     host: '0.0.0.0',
@@ -168,8 +175,5 @@ export default defineConfig({
       'Content-Security-Policy': "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://*.gstatic.com;",
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
     }
-  },
-  vite: {
-    envPrefix: ['GOOGLE_']
   }
 });

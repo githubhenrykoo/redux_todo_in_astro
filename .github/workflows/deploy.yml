@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  DOCKER_HUB_REPOSITORY: henry768/redux_todo_in_astro
+  DOCKER_HUB_REPOSITORY: henry768/redux-todo-astro
 
 jobs:
   build-and-push:

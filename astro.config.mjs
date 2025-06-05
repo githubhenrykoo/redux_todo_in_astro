@@ -155,7 +155,8 @@ export default defineConfig({
         origin: '*'
       },
       host: '0.0.0.0',
-      allowedHosts: true,
+      // Use 'all' string instead of true to ensure all hosts are allowed, including kube.pkc.pub
+      allowedHosts: ['kube.pkc.pub', '.pkc.pub', 'localhost', '127.0.0.1', '.local'],
       fs: {
         allow: ['..']
       }

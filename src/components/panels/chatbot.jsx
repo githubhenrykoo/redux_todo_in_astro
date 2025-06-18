@@ -32,29 +32,159 @@ const ChatbotPanel = ({ className = '' }) => {
   const inputRef = useRef(null);
   const terminalSocketRef = useRef(null);
 
-  // Fetch available models on component mount
-  useEffect(() => {
-    fetchModels();
-  }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const fetchModels = async () => {
+  // Check if Ollama is running and get available models
+  useEffect(() => {
+    checkOllamaStatus();
+  }, []);
+  
+  // Function to fetch data from the API endpoint for RAG
+  const fetchExternalData = async () => {
     try {
-      const response = await fetch('http://localhost:11434/api/tags');
+      console.log('Fetching data from API endpoint...');
+      // Use no-cache to ensure we always get fresh data
+      const response = await fetch('http://localhost:4321/api/card-collection?action=getPage&pageNumber=1', {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch models');
+        throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
       }
+      
       const data = await response.json();
-      setModels(data.models || []);
+      console.log('External data fetched successfully:', data);
+      return data;
     } catch (err) {
-      console.error('Error fetching models:', err);
-      setError('Failed to connect to Ollama server. Make sure it\'s running on http://localhost:11434');
+      console.error('Error fetching external data:', err);
+      return null;
     }
   };
+  
+  // Function to process and extract relevant information from the API response
+  const processExternalData = (data) => {
+    console.log('Processing external data...');
+    
+    if (!data) {
+      console.warn('No data provided to processExternalData');
+      return null;
+    }
+    
+    if (!data.items || data.items.length === 0) {
+      console.warn('Data has no items array or empty items array');
+      return null;
+    }
+    
+    try {
+      // Extract content from the first item
+      const item = data.items[0];
+      console.log('Processing first item:', item);
+      
+      if (!item) {
+        console.warn('First item is undefined or null');
+        return null;
+      }
+      
+      let parsedContent;
+      
+      // Try to parse the content if it's a JSON string
+      try {
+        if (typeof item.content === 'string') {
+          console.log('Parsing item content as string');
+          parsedContent = JSON.parse(item.content);
+        } else {
+          console.log('Using item content directly as object');
+          parsedContent = item.content;
+        }
+        console.log('Parsed content:', parsedContent);
+      } catch (e) {
+        console.warn('Failed to parse content as JSON, using as is:', e);
+        parsedContent = item.content;
+      }
+      
+      // Format the data in a readable way
+      let formattedInfo = 'Here is the information I found:\n\n';
+      
+      // Handle calendar-like data with context structure
+      if (parsedContent && parsedContent.context) {
+        console.log('Found context structure in parsed content');
+        const context = parsedContent.context;
+        
+        // Process today, week, and month data if available
+        ['today', 'week', 'month'].forEach(timeframe => {
+          if (context[timeframe] && Array.isArray(context[timeframe]) && context[timeframe].length > 0) {
+            console.log(`Found ${context[timeframe].length} events for ${timeframe}`);
+            formattedInfo += `${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)}:\n`;
+            
+            context[timeframe].forEach((event) => {
+              formattedInfo += `- ${event.summary || 'Event'}`;
+              if (event.start) formattedInfo += ` (${event.start}`;
+              if (event.end && event.end !== event.start) formattedInfo += ` to ${event.end}`;
+              if (event.start) formattedInfo += `)`;
+              formattedInfo += '\n';
+            });
+            
+            formattedInfo += '\n';
+          } else {
+            console.log(`No events found for ${timeframe}`);
+          }
+        });
+      } else {
+        console.log('No context structure found, processing as generic data');
+        // For other types of data, include all available fields
+        formattedInfo += `Title: ${item.title || 'N/A'}\n`;
+        formattedInfo += `Description: ${item.description || 'N/A'}\n`;
+        
+        if (typeof parsedContent === 'object' && parsedContent !== null) {
+          formattedInfo += 'Content:\n';
+          Object.entries(parsedContent).forEach(([key, value]) => {
+            formattedInfo += `- ${key}: ${JSON.stringify(value)}\n`;
+          });
+        } else {
+          formattedInfo += `Content: ${parsedContent || 'N/A'}\n`;
+        }
+      }
+      
+      console.log('Formatted info created successfully');
+      return formattedInfo;
+    } catch (err) {
+      console.error('Error processing external data:', err);
+      return null;
+    }
+  };
+
+  const checkOllamaStatus = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:11434/api/tags');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.models && data.models.length > 0) {
+          setModels(data.models);
+          // If llama3:8b is available, use it
+          const llama3Model = data.models.find(model => model.name === 'llama3:8b');
+          if (llama3Model) {
+            setSelectedModel('llama3:8b');
+          } else {
+            // Otherwise use the first available model
+            setSelectedModel(data.models[0].name);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error checking Ollama status:', err);
+      setError('Cannot connect to Ollama server. Make sure Ollama is running at http://127.0.0.1:11434');
+    }
+  };
+
+
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -64,12 +194,14 @@ const ChatbotPanel = ({ className = '' }) => {
   
 
   const handleInputChange = (e) => {
-    dispatch(setInput(e.target.value));
+    setInput(e.target.value);
     // Reset typing timer
     setIsTyping(true);
-    const timer = setTimeout(() => setIsTyping(false));
+    const timer = setTimeout(() => setIsTyping(false), 1000);
     return () => clearTimeout(timer);
   };
+  
+
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -220,85 +352,6 @@ const ChatbotPanel = ({ className = '' }) => {
     setIsLoading(true);
     setError(null);
   
-    // Check if the message contains any hash mentions
-    const hashMatches = input.trim().match(/@([a-f0-9]{64})/g);
-    if (hashMatches) {
-      try {
-        // Extract all hashes without the @ symbol
-        const hashes = hashMatches.map(match => match.slice(1));
-        let updatedMessages = [...messages, userMessage];
-        
-        // Process hashes sequentially
-        for (const hash of hashes) {
-          const context = await fetchCatalogContext(hash);
-          const formattedContext = context.replace(/\n/g, '\n');
-          const hashResponse = {
-            role: 'assistant',
-            content: `${formattedContext}`
-          };
-          updatedMessages = [...updatedMessages, hashResponse];
-          setMessages(updatedMessages);
-          // Wait for state update
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-        
-        // Process the message without the hash part
-        const messageWithoutHash = input.trim().replace(/@[a-f0-9]{64}/g, '').trim();
-        if (messageWithoutHash) {
-          // Create a new user message for the remaining text
-          const followUpMessage = { role: 'user', content: messageWithoutHash };
-          updatedMessages = [...updatedMessages, followUpMessage];
-          setMessages(updatedMessages);
-          
-          // Add thinking indicator
-          setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
-    
-          try {
-            // Call Ollama API with complete chat history
-            const response = await fetch('http://localhost:11434/api/chat', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                model: selectedModel,
-                messages: updatedMessages.filter(m => !m.isThinking),
-                stream: false
-              }),
-            });
-    
-            if (!response.ok) {
-              throw new Error(`Error: ${response.statusText}`);
-            }
-    
-            const data = await response.json();
-            
-            // Remove thinking indicator and add actual response
-            setMessages(prev => [
-              ...prev.filter(m => !m.isThinking),
-              { role: 'assistant', content: data.message?.content || 'No response from model' }
-            ]);
-          } catch (err) {
-            // Handle API call error
-            setMessages(prev => [
-              ...prev.filter(m => !m.isThinking),
-              { role: 'error', content: `Error: ${err.message}. Make sure Ollama is running with the selected model.` }
-            ]);
-          }
-        }
-      } catch (err) {
-        setMessages(prev => [
-          ...prev,
-          {
-            role: 'error',
-            content: 'Failed to fetch catalog context. Please check the hash and try again.'
-          }
-        ]);
-      }
-      setIsLoading(false);
-      return;
-    }
-  
     // Check for terminal commands (both direct and natural language)
     const naturalCommand = processNaturalLanguageCommand(input.trim());
     if (input.trim().startsWith('$') || naturalCommand) {
@@ -317,15 +370,60 @@ const ChatbotPanel = ({ className = '' }) => {
       // Add thinking indicator
       setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
 
-      // Call Ollama API
-      const response = await fetch('http://localhost:11434/api/chat', {
+      // Implement RAG: Fetch external data to augment the response
+      console.log('Starting RAG process...');
+      
+      // Fetch external data and handle the response
+      const externalData = await fetchExternalData();
+      
+      // Prepare a string representation of the raw API response
+      let rawApiResponseStr = 'API Response: ';
+      if (!externalData) {
+        console.warn('No external data retrieved, proceeding without RAG context');
+        rawApiResponseStr += 'Failed to retrieve data from API';
+      } else {
+        console.log('Successfully retrieved external data for RAG');
+        rawApiResponseStr += JSON.stringify(externalData, null, 2);
+      }
+      
+      const contextInfo = processExternalData(externalData);
+      console.log('Processed context info:', contextInfo ? 'Available' : 'Not available');
+      
+      // Prepare messages array with external context if available
+      const messagesForModel = [];
+      
+      // Add system message with context information if available
+      messagesForModel.push({
+        role: 'system',
+        content: `You are a helpful assistant. ${contextInfo ? 'Here is some information that might be relevant to the user\'s query: ' + contextInfo : ''}`
+      });
+      
+      // Add a hidden message with the raw API data for the model to use
+      if (rawApiResponseStr) {
+        messagesForModel.push({
+          role: 'system',
+          content: `Additional context (not to be directly referenced in your response): Raw API response from http://localhost:4321/api/card-collection?action=getPage&pageNumber=1:\n\n${rawApiResponseStr}`
+        });
+      }
+      
+      // Add existing conversation history and user message
+      messagesForModel.push(
+        ...messages.filter(m => !m.isThinking && m.role !== 'system'),
+        userMessage
+      );
+
+      // Call Ollama API with the enhanced context
+      console.log('Sending request to Ollama API with', messagesForModel.length, 'messages');
+      console.log('First message role:', messagesForModel[0]?.role);
+      
+      const response = await fetch(`http://127.0.0.1:11434/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: selectedModel,
-          messages: [...messages.filter(m => !m.isThinking), userMessage],
+          messages: messagesForModel,
           stream: false
         }),
       });
@@ -335,21 +433,42 @@ const ChatbotPanel = ({ className = '' }) => {
       }
 
       const data = await response.json();
+      console.log('Received response from Ollama API');
+      
+      // Check if we have a valid response with content
+      if (!data.message || !data.message.content) {
+        console.warn('Received empty or invalid response from Ollama');
+      }
+      
+      // Only show the model's response to the user (hide API data)
+      const assistantResponse = data.message?.content || 'No response from model';
       
       // Remove thinking indicator and add actual response
       setMessages(prev => [
         ...prev.filter(m => !m.isThinking),
-        { role: 'assistant', content: data.message?.content || 'No response from model' }
+        { role: 'assistant', content: assistantResponse }
       ]);
     } catch (err) {
       console.error('Error sending message:', err);
       
-      // Remove thinking indicator and add error message
+      // Still fetch API data for debugging but don't show it to the user
+      try {
+        const externalData = await fetchExternalData();
+        if (externalData) {
+          console.log('API data retrieved during error recovery:', externalData);
+        }
+      } catch (apiErr) {
+        console.error('Error fetching API data during error recovery:', apiErr);
+      }
+      
+      // Remove thinking indicator and add error message without API data
+      const errorMessage = `Error: ${err.message}. Make sure Ollama is running with the ${selectedModel} model.`;
+      
       setMessages(prev => [
         ...prev.filter(m => !m.isThinking),
-        { role: 'error', content: `Error: ${err.message}. Make sure Ollama is running with llama3 model.` }
+        { role: 'error', content: errorMessage }
       ]);
-      setError(err.message);
+      setError(`${err.message}. Make sure Ollama is running with the ${selectedModel} model.`);
     } finally {
       setIsLoading(false);
     }
@@ -389,59 +508,38 @@ const ChatbotPanel = ({ className = '' }) => {
   // In the return statement, wrap the elements in a parent div
   return (
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
-      <div className="p-2 bg-gray-800 border-b border-gray-700 flex items-center">
-        <div className="text-center flex-grow">Chatbot</div>
-        <button
-          onClick={() => setShowCommands(!showCommands)}
-          className="mr-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
-        >
-          {showCommands ? 'Hide Commands' : 'Show Commands'}
-        </button>
-        <select 
-          value={selectedModel}
-          onChange={handleModelChange}
-          className="mr-2 px-2 py-1 text-xs bg-gray-700 text-white rounded"
-        >
-          {models.length > 0 ? (
-            models.map(model => (
-              <option key={model.name} value={model.name}>
-                {model.name}
-              </option>
-            ))
-          ) : (
-            <option value="llama3">llama3</option>
-          )}
-        </select>
-        <button 
-          onClick={clearChat}
-          className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
-        >
-          Clear
-        </button>
-      </div>
-      
-      {showCommands && (
-        <div className="bg-gray-800 p-4 border-b border-gray-700">
-          <h3 className="text-sm font-semibold mb-2">Available Commands:</h3>
-          <ul className="text-sm space-y-1 text-gray-300">
-            <li>- "read the testing.txt", "show contents of testing.txt"</li>
-            <li>- "list files in downloads"</li>
-            <li>- "where am i"</li>
-            <li>- "make directory testing"</li>
-            <li>- "delete file testing.txt"</li>
-          </ul>
+      <div className="p-2 bg-gray-800 border-b border-gray-700 flex flex-col">
+        <div className="flex items-center mb-2">
+          <div className="text-center flex-grow"><b>Chatbot</b></div>
+          <select 
+            value={selectedModel}
+            onChange={handleModelChange}
+            className="mr-2 px-2 py-1 text-xs bg-gray-700 text-white rounded"
+          >
+            {models.length > 0 ? (
+              models.map(model => (
+                <option key={model.name} value={model.name}>
+                  {model.name}
+                </option>
+              ))
+            ) : (
+              <option key="llama3:8b" value="llama3:8b">llama3:8b</option>
+            )}
+          </select>
+          <button 
+            onClick={clearChat}
+            className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+          >
+            Clear
+          </button>
         </div>
-      )}
+
+      </div>
       
       {error && (
         <div className="bg-red-900 text-red-100 p-2 text-sm">
           {error}
-          <button 
-            onClick={fetchModels}
-            className="ml-2 px-2 py-0.5 bg-red-800 hover:bg-red-700 rounded text-xs"
-          >
-            Retry
-          </button>
+
         </div>
       )}
       
@@ -507,11 +605,6 @@ const ChatbotPanel = ({ className = '' }) => {
               rows={1}
               disabled={isLoading}
             />
-            {isTyping && (
-              <div className="absolute right-2 bottom-2 text-xs text-gray-400">
-                typing...
-              </div>
-            )}
           </div>
           <button
             onClick={sendMessage}
@@ -534,29 +627,9 @@ const ChatbotPanel = ({ className = '' }) => {
             )}
           </button>
         </div>
-        <div className="text-xs text-gray-500 mt-2 flex justify-between items-center">
-          <span>Press Enter to send, Shift+Enter for new line</span>
-          <span>{input.length} characters</span>
-        </div>
       </div>
     </div>
   );
 };
 
 export default ChatbotPanel;
-
-const fetchCatalogContext = async (hash) => {
-  try {
-    const response = await fetch(`http://localhost:4321/api/card-collection?action=get&hash=${hash}`);
-    const data = await response.json();
-    
-    if (data.success && data.card) {
-      const cardContent = JSON.parse(data.card.content);
-      return cardContent.context;
-    }
-    return 'Failed to fetch context';
-  } catch (error) {
-    console.error('Error fetching catalog context:', error);
-    return 'Error fetching context';
-  }
-};

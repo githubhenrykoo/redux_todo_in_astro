@@ -8,86 +8,11 @@ const GoogleDocsPanel = () => {
   const [saveStatus, setSaveStatus] = useState('');
   const [isPreview, setIsPreview] = useState(false);
 
-  // Add text formatting functions
-  const formatText = (command, value = null) => {
-    document.execCommand(command, false, value);
-  };
-
-  const renderToolbar = () => (
-    <div style={{
-      padding: '8px',
-      borderBottom: '1px solid #e0e0e0',
-      display: 'flex',
-      gap: '4px',
-      backgroundColor: '#ffffff',
-    }}>
-      <button
-        onClick={() => formatText('bold')}
-        style={{
-          padding: '4px 8px',
-          border: '1px solid #e0e0e0',
-          borderRadius: '4px',
-          background: 'none',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-        }}
-      >B</button>
-      <button
-        onClick={() => formatText('italic')}
-        style={{
-          padding: '4px 8px',
-          border: '1px solid #e0e0e0',
-          borderRadius: '4px',
-          background: 'none',
-          cursor: 'pointer',
-          fontStyle: 'italic',
-        }}
-      >I</button>
-      <button
-        onClick={() => formatText('underline')}
-        style={{
-          padding: '4px 8px',
-          border: '1px solid #e0e0e0',
-          borderRadius: '4px',
-          background: 'none',
-          cursor: 'pointer',
-          textDecoration: 'underline',
-        }}
-      >U</button>
-      <button
-        onClick={() => formatText('insertOrderedList')}
-        style={{
-          padding: '4px 8px',
-          border: '1px solid #e0e0e0',
-          borderRadius: '4px',
-          background: 'none',
-          cursor: 'pointer',
-          fontSize: '14px',
-        }}
-        title="Numbered list"
-      >
-        <span style={{ fontFamily: 'Arial' }}>1.</span>
-      </button>
-      <button
-        onClick={() => formatText('insertUnorderedList')}
-        style={{
-          padding: '4px 8px',
-          border: '1px solid #e0e0e0',
-          borderRadius: '4px',
-          background: 'none',
-          cursor: 'pointer',
-          fontSize: '14px',
-        }}
-        title="Bullet list"
-      >
-        •
-      </button>
-    </div>
-  );
+  // Removed text formatting functions and toolbar
 
   const CLIENT_ID = import.meta.env.GOOGLE_CLIENT_ID;
   const API_KEY = import.meta.env.GOOGLE_API_KEY;
-  const DOC_ID = '1wGsMLmRByn5vi31BTV2VlZztrZJddDlEfNwHnbT2E4I';
+  const DOC_ID = '1w6OwWhBQkSy_1bY13a6tNrPYkxntJgR55SUVL4leu_8';
   const SCOPES = 'https://www.googleapis.com/auth/documents';
 
   useEffect(() => {
@@ -504,38 +429,28 @@ const GoogleDocsPanel = () => {
   />
 
   const handleExportMarkdown = () => {
-    // Get the raw content and ensure it's properly formatted as markdown
-    const markdownContent = editorContent
-      // Convert HTML tags to markdown
-      .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-      .replace(/<em>(.*?)<\/em>/g, '*$1*')
-      .replace(/<u>(.*?)<\/u>/g, '_$1_')
-      .replace(/<sup>(.*?)<\/sup>/g, '^$1')
-      .replace(/<sub>(.*?)<\/sub>/g, '~$1')
-      .replace(/<strike>(.*?)<\/strike>/g, '~~$1~~')
-      .replace(/<del>(.*?)<\/del>/g, '~~$1~~')
-      // Convert span styles to markdown where possible
-      .replace(/<span style="color:.*?">(.*?)<\/span>/g, '$1')
-      .replace(/<span style="font-size:.*?">(.*?)<\/span>/g, '$1')
-      .replace(/<span style="font-family:.*?">(.*?)<\/span>/g, '$1')
-      // Convert div alignments to markdown
-      .replace(/<div style="text-align: center">(.*?)<\/div>/g, '\n\n<center>$1</center>\n\n')
-      .replace(/<div style="text-align: right">(.*?)<\/div>/g, '\n\n<right>$1</right>\n\n')
-      // Clean up any remaining HTML tags
-      .replace(/<\/?[^>]+(>|$)/g, '')
-      // Fix double spaces and lines
-      .replace(/\n\s*\n/g, '\n\n')
-      .trim();
-  
-    const blob = new Blob([markdownContent], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'document.md';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Use Google Docs direct export URL for Markdown format
+    if (!DOC_ID) {
+      console.error('No document ID available');
+      setSaveStatus('Export failed: No document ID');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+    
+    // Create the export URL using the direct Google Docs export endpoint
+    const exportUrl = `https://docs.google.com/document/d/${DOC_ID}/export?format=md`;
+    
+    try {
+      // Open the URL in a new tab to trigger download
+      window.open(exportUrl, '_blank');
+      
+      setSaveStatus('Exported as Markdown');
+      setTimeout(() => setSaveStatus(''), 2000);
+    } catch (error) {
+      console.error('Error exporting document:', error);
+      setSaveStatus('Export failed');
+      setTimeout(() => setSaveStatus(''), 3000);
+    }
   };
 
   return (
@@ -558,62 +473,65 @@ const GoogleDocsPanel = () => {
         top: 0,
         zIndex: 100,
       }}>
-        <h2 style={{
-          fontSize: '18px',
-          color: '#202124',
-          margin: 0,
-          fontWeight: 400,
-        }}>Untitled document</h2>
-        
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
-            onClick={handleAuthClick}
-            disabled={!gapiInited}
-            style={{
-              backgroundColor: !gapiInited ? '#e0e0e0' : '#1a73e8',
-              color: '#ffffff',
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: !gapiInited ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s ease',
-            }}
-          >
-            {!gapiInited ? 'Initializing...' : 'Login & Load Document'}
-          </button>
-
-          <button
-            onClick={handleExportMarkdown}
-            style={{
-              backgroundColor: '#34a853',
-              color: '#ffffff',
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            Export Markdown
-          </button>
-
-          <button
-            onClick={togglePreview}
-            style={{
-              backgroundColor: isPreview ? '#34a853' : '#f1f3f4',
-              color: isPreview ? '#ffffff' : '#5f6368',
-              padding: '8px 16px',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            {isPreview ? 'Edit' : 'Preview'}
-          </button>
+          {!tokenClient && (
+            <button 
+              onClick={handleAuthClick}
+              disabled={!gapiInited}
+              style={{
+                backgroundColor: !gapiInited ? '#e0e0e0' : '#1a73e8',
+                color: '#ffffff',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '4px',
+                fontSize: '14px',
+                cursor: !gapiInited ? 'not-allowed' : 'pointer',
+                transition: 'background-color 0.2s ease',
+              }}
+            >
+              {!gapiInited ? 'Sign in with Google' : 'Sign in with Google'}
+            </button>
+          )}
+        </div>
+        
+        {/* Moved buttons to the right */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {tokenClient && (
+            <>
+              <button
+                onClick={togglePreview}
+                style={{
+                  backgroundColor: isPreview ? '#34a853' : '#f1f3f4',
+                  color: isPreview ? '#ffffff' : '#5f6368',
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {isPreview ? 'Markdown' : 'Preview'}
+              </button>
+              
+              <button
+                onClick={handleExportMarkdown}
+                style={{
+                  backgroundColor: '#34a853',
+                  color: '#ffffff',
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Export document as Markdown using Google Docs export"
+              >
+                Export Markdown
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -641,7 +559,7 @@ const GoogleDocsPanel = () => {
           />
         ) : (
           <div style={{ width: '816px', margin: '0 auto' }}>
-            {renderToolbar()}
+            {/* Toolbar removed */}
             <div
               contentEditable="true"
               style={{
@@ -662,6 +580,8 @@ const GoogleDocsPanel = () => {
                 MozOsxFontSmoothing: 'grayscale',
               }}
               onInput={handleEditorChange}
+              onKeyDown={handleKeyDown}
+              spellCheck="true"
               dangerouslySetInnerHTML={{ __html: editorContent }}
             />
           </div>

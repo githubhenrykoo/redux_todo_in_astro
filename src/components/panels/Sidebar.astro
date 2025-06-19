@@ -170,6 +170,21 @@ const { class: className, ...props } = Astro.props;
           HTML Scraper Viewer
         </span>
       </button>
+
+      <button
+        id="k8sDashboardBtn"
+        title="Kubernetes Dashboard"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-lg text-muted-foreground group-hover:text-primary transition-colors">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+          <path d="M2 17l10 5 10-5"></path>
+          <path d="M2 12l10 5 10-5"></path>
+        </svg>
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Kubernetes Dashboard
+        </span>
+      </button>
     </div>
     <div>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">

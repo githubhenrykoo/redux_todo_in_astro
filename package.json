@@ -52,6 +52,7 @@
     "express": "^5.1.0",
     "http": "^0.0.1-security",
     "jimp": "^0.22.8",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.284.0",
     "marked": "^15.0.12",
     "mqtt": "^5.10.4",

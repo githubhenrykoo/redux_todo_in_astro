@@ -7,6 +7,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSidebarItem, setActiveSidebarItem] = useState('dashboard');
   const [showChatbot, setShowChatbot] = useState(false);
+  const [showCsdt, setShowCsdt] = useState(false);
 
   // Icons for the dashboard
   const HomeIcon = () => (
@@ -65,8 +66,20 @@ const Dashboard = () => {
     // Show chatbot panel when chatbot is clicked
     if (item === 'chatbot') {
       setShowChatbot(true);
+      setShowCsdt(false);
+    } 
+    // Show CSDT iframe when csdt is clicked
+    else if (item === 'csdt') {
+      setShowCsdt(true);
+      setShowChatbot(false);
     } else {
       setShowChatbot(false);
+      setShowCsdt(false);
+    }
+    
+    // Open Kubernetes dashboard in a new tab when k8s button is clicked
+    if (item === 'k8s') {
+      window.open('https://dashboard.pkc.pub/#/workloads?namespace=default', '_blank');
     }
   };
 
@@ -74,6 +87,22 @@ const Dashboard = () => {
   const ChatIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
       <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+    </svg>
+  );
+  
+  // Kubernetes icon for sidebar
+  const KubernetesIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  );
+  
+  // CSDT icon for sidebar
+  const CsdtIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
     </svg>
   );
 
@@ -90,6 +119,8 @@ const Dashboard = () => {
     { id: 'laporan', label: 'Laporan', icon: <ClockIcon /> },
     { id: 'langganan', label: 'Langganan', icon: <UserIcon /> },
     { id: 'device', label: 'Register Device', icon: <RoomIcon /> },
+    { id: 'csdt', label: 'CSDT', icon: <CsdtIcon /> },
+    { id: 'k8s', label: 'K8s Dashboard', icon: <KubernetesIcon /> },
     { id: 'pengaturan', label: 'Pengaturan', icon: <ClockIcon /> },
   ];
 
@@ -163,6 +194,16 @@ const Dashboard = () => {
             /* Map Panel */
             <div className="bg-white rounded-lg shadow-sm p-4 h-full flex-1">
               <MapPanel />
+            </div>
+          ) : activeSidebarItem === 'csdt' ? (
+            /* CSDT Panel with iframe */
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
+              <iframe 
+                src="https://csdt.pkc.pub/" 
+                title="CSDT Dashboard" 
+                className="w-full h-full border-none"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              />
             </div>
           ) : (
             /* Regular Dashboard Content */

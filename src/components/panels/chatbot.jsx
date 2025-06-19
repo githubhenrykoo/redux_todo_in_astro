@@ -507,7 +507,7 @@ const ChatbotPanel = ({ className = '' }) => {
   // Update the header section in the return statement
   // In the return statement, wrap the elements in a parent div
   return (
-    <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 ${className}`}>
+    <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 overflow-hidden ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex flex-col">
         <div className="flex items-center mb-2">
           <div className="text-center flex-grow"><b>Chatbot</b></div>
@@ -543,7 +543,7 @@ const ChatbotPanel = ({ className = '' }) => {
         </div>
       )}
       
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div className="flex-1 p-4 overflow-y-auto min-h-0">
         {messages.map((message, index) => (
           <div key={index} className={`mb-4 ${
             message.role === 'user' ? 'text-right' : 

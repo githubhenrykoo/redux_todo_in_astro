@@ -88,7 +88,7 @@ const EventCard = ({ event, view }) => {
   );
 };
 
-const GoogleCalendar = () => {
+const GoogleCalendar = ({ className = '' }) => {
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -342,7 +342,7 @@ const GoogleCalendar = () => {
   // For initial loading state
   if (isInitializing) {
     return (
-      <div className="flex items-center justify-center h-full dark:bg-gray-800">
+      <div className={`flex items-center justify-center h-full dark:bg-gray-800 ${className}`}>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary dark:border-blue-400"></div>
       </div>
     );
@@ -351,7 +351,7 @@ const GoogleCalendar = () => {
   // For configuration errors, show a more helpful message
   if (configError) {
     return (
-      <div className="p-6 dark:bg-gray-800">
+      <div className={`p-6 dark:bg-gray-800 h-full overflow-auto ${className}`}>
         <div className="bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
           <h3 className="text-lg font-medium text-yellow-800 dark:text-yellow-200 mb-2">Configuration Required</h3>
           <p className="text-yellow-700 dark:text-yellow-300 mb-4">{error}</p>
@@ -371,7 +371,7 @@ const GoogleCalendar = () => {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className={`p-4 space-y-4 h-full overflow-auto ${className}`}>
       {/* Show today's meetings summary */}
       {isAuthenticated && (
         <div className="text-center rounded-lg p-3 mb-4">

@@ -11,7 +11,7 @@ const extractTitle = (page) => {
   return page.id;
 };
 
-const NotionPanel = () => {
+const NotionPanel = ({ className = '' }) => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -237,7 +237,7 @@ const NotionPanel = () => {
   };
 
   return (
-    <div className="notion-panel" style={{ padding: '20px', backgroundColor: 'white' }}>
+    <div className={`notion-panel ${className}`} style={{ padding: '20px', backgroundColor: 'white', height: '100%', overflowY: 'auto' }}>
       <div className="notion-header" style={{ 
         display: 'flex', 
         justifyContent: 'space-between',

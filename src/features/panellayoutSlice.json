@@ -255,9 +255,28 @@
         "right": {
             "type": "chatbot",
             "size": 30,
-            "size": 30,
             "minSize": 0,
             "visible": true
+        }
+    },
+    "proxy_layout": {
+        "left": {
+            "type": "CatalogPanel",
+            "size": 20,
+            "minSize": 0,
+            "visible": false
+        },
+        "middle": {
+            "type": "ProxyPanel",
+            "size": 100,
+            "minSize": 80,
+            "visible": true
+        },
+        "right": {
+            "type": "ContentViewerPanel",
+            "size": 20,
+            "minSize": 0,
+            "visible": false
         }
     }
 }

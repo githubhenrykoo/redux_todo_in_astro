@@ -82,5 +82,8 @@
   },
   "JSONStateUpdaterPanel": {
     "component": "../components/panels/JSONStateUpdaterPanel.jsx"
+  },
+  "ProxyPanel": {
+    "component": "../components/panels/ProxyPanel.jsx"
   }
 }

@@ -1,6 +1,6 @@
 ---
 import { cn } from '../../lib/utils';
-import { FaCode, FaTerminal, FaCog, FaCube, FaFile, FaMicrophone, FaBrain, FaYoutube, FaCamera, FaBook, FaCalendar } from 'react-icons/fa';
+import { FaCode, FaTerminal, FaCog, FaCube, FaFile, FaMicrophone, FaBrain, FaYoutube, FaCamera, FaBook, FaCalendar, FaGlobe } from 'react-icons/fa';
 import { store } from '../../store';
 import { changeLayout } from '../../features/panellayoutSlice';
 
@@ -138,24 +138,19 @@ const { class: className, ...props } = Astro.props;
           Python Environment
         </span>
       </button>
+
       <button
-        id="transcriptionLayoutBtn"
-        title="AI Training Data"
-        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative hidden"
-      >
-        <FaMicrophone className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
-        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          AI Training Data
-        </span>
-      </button>
-      <button
-        id="jsonStateUpdaterLayoutBtn"
-        title="JSON State Updater"
+        id="proxyLayoutBtn"
+        title="Web Proxy Viewer"
         class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
       >
-        <FaCog className="text-lg text-muted-foreground group-hover:text-primary transition-colors" />
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-lg text-muted-foreground group-hover:text-primary transition-colors">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
         <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-          JSON State Updater
+          Web Proxy Viewer
         </span>
       </button>
     </div>
@@ -184,8 +179,7 @@ const { class: className, ...props } = Astro.props;
   const llmVizLayoutBtn = document.getElementById('llmVizLayoutBtn');
   const testingLayoutBtn = document.getElementById('testingLayoutBtn');
   const pythonReplLayoutBtn = document.getElementById('pythonReplLayoutBtn');
-  const transcriptionLayoutBtn = document.getElementById('transcriptionLayoutBtn');
-  const jsonStateUpdaterLayoutBtn = document.getElementById('jsonStateUpdaterLayoutBtn');
+  const proxyLayoutBtn = document.getElementById('proxyLayoutBtn');
 
   // Add click handlers
   todoLayoutBtn?.addEventListener('click', () => {
@@ -232,12 +226,10 @@ const { class: className, ...props } = Astro.props;
     store.dispatch(changeLayout('python_repl_layout'));
   });
 
-  transcriptionLayoutBtn?.addEventListener('click', () => {
-    store.dispatch(changeLayout('transcription_layout'));
-  });
+
   
-  jsonStateUpdaterLayoutBtn?.addEventListener('click', () => {
-    store.dispatch(changeLayout('json_state_updater_layout'));
+  proxyLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('proxy_layout'));
   });
 
   // Function to update active button styles
@@ -254,7 +246,7 @@ const { class: className, ...props } = Astro.props;
     catalogLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     llmVizLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     pythonReplLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
-    transcriptionLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    proxyLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
 
     // Reset icon colors
     todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
@@ -268,7 +260,7 @@ const { class: className, ...props } = Astro.props;
     catalogLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     llmVizLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     pythonReplLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
-    transcriptionLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    proxyLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
     if (layout === 'todo_layout') {
@@ -296,14 +288,15 @@ const { class: className, ...props } = Astro.props;
       catalogLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       catalogLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     } else if (layout === 'transcription_layout') {
-      transcriptionLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
-      transcriptionLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     } else if (layout === 'llm_viz_layout') {
       llmVizLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       llmVizLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     } else if (layout === 'python_repl_layout') {
       pythonReplLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       pythonReplLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (layout === 'proxy_layout') {
+      proxyLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      proxyLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     }
   }
 

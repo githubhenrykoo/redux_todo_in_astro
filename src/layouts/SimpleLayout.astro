@@ -1,0 +1,33 @@
+---
+import '../styles/globals.css';
+import Dashboard from '../components/dashboard/Dashboard.jsx';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" class="min-h-screen">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="description" content="Simple Dashboard Layout" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>{title}</title>
+	</head>
+	<body class="min-h-screen bg-gray-100">
+		<div class="flex flex-col min-h-screen">
+			<!-- Main content area -->
+			<main class="flex-1">
+				<!-- Dashboard component with client:only to prevent hydration mismatch -->
+				<Dashboard client:only="react" />
+				
+				<!-- Page content from <slot /> -->
+				<slot />
+			</main>
+		</div>
+	</body>
+</html>

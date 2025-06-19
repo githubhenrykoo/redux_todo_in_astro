@@ -9,6 +9,7 @@ const Dashboard = () => {
   const [activeSidebarItem, setActiveSidebarItem] = useState('dashboard');
   const [showChatbot, setShowChatbot] = useState(false);
   const [showCsdt, setShowCsdt] = useState(false);
+  const [showLlm, setShowLlm] = useState(false);
   const [showProductivityHub, setShowProductivityHub] = useState(false);
 
   // Icons for the dashboard
@@ -75,6 +76,14 @@ const Dashboard = () => {
     else if (item === 'csdt') {
       setShowCsdt(true);
       setShowChatbot(false);
+      setShowLlm(false);
+      setShowProductivityHub(false);
+    }
+    // Show LLM iframe when llm is clicked
+    else if (item === 'llm') {
+      setShowLlm(true);
+      setShowChatbot(false);
+      setShowCsdt(false);
       setShowProductivityHub(false);
     }
     // Show ProductivityHub when productivity is clicked
@@ -82,6 +91,7 @@ const Dashboard = () => {
       setShowProductivityHub(true);
       setShowChatbot(false);
       setShowCsdt(false);
+      setShowLlm(false);
     } else {
       setShowChatbot(false);
       setShowCsdt(false);
@@ -117,6 +127,18 @@ const Dashboard = () => {
     </svg>
   );
   
+  // LLM icon for sidebar (brain icon)
+  const LlmIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-2.5 2.5H9a2.5 2.5 0 0 1-2.5-2.5v-15A2.5 2.5 0 0 1 9 2h.5Z" />
+      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 2.5 2.5h.5a2.5 2.5 0 0 0 2.5-2.5v-15A2.5 2.5 0 0 0 15 2h-.5Z" />
+      <path d="M4 9a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9Z" />
+      <path d="M4 14a2 2 0 0 1 2-2h1a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-1Z" />
+      <path d="M17 9a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2V9Z" />
+      <path d="M17 14a2 2 0 0 0-2-2h-1a2 2 0 0 0-2 2v1a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-1Z" />
+    </svg>
+  );
+  
   // Productivity Hub icon for sidebar
   const ProductivityIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
@@ -139,6 +161,7 @@ const Dashboard = () => {
     // { id: 'device', label: 'Register Device', icon: <RoomIcon /> },
     { id: 'productivity', label: 'Productivity', icon: <ProductivityIcon /> },
     { id: 'csdt', label: 'CSDT', icon: <CsdtIcon /> },
+    { id: 'llm', label: 'LLM Visualizer', icon: <LlmIcon /> },
     { id: 'k8s', label: 'K8s Dashboard', icon: <KubernetesIcon /> },
     // { id: 'pengaturan', label: 'Pengaturan', icon: <ClockIcon /> },
   ];
@@ -225,6 +248,33 @@ const Dashboard = () => {
                 className="w-full h-full border-none"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
               />
+            </div>
+          ) : activeSidebarItem === 'llm' ? (
+            /* LLM Visualizer with iframe */
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
+              <div className="h-full flex flex-col">
+                <div className="bg-gray-800 text-white p-3 border-b border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium">LLM Visualizer</h3>
+                    <a 
+                      href="https://bbycroft.net/llm" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-300 hover:text-blue-200"
+                    >
+                      Open in new tab
+                    </a>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <iframe 
+                    src="https://bbycroft.net/llm" 
+                    title="LLM Visualizer" 
+                    className="w-full h-full border-none"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                  />
+                </div>
+              </div>
             </div>
           ) : activeSidebarItem === 'productivity' ? (
             /* Productivity Hub */

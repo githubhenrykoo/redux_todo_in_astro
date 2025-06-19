@@ -84,6 +84,13 @@
     "component": "../components/panels/JSONStateUpdaterPanel.jsx"
   },
   "ProxyPanel": {
-    "component": "../components/panels/ProxyPanel.jsx"
+    "id": "ProxyPanel",
+    "name": "ProxyPanel",
+    "component": "ProxyPanel"
+  },
+  "ScraperPanel": {
+    "id": "ScraperPanel",
+    "name": "ScraperPanel",
+    "component": "../components/panels/ScraperPanel.jsx"
   }
 }

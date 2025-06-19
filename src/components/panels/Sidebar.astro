@@ -153,6 +153,23 @@ const { class: className, ...props } = Astro.props;
           Web Proxy Viewer
         </span>
       </button>
+
+      <button
+        id="scraperLayoutBtn"
+        title="HTML Scraper Viewer"
+        class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors group relative"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-lg text-muted-foreground group-hover:text-primary transition-colors">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+          <line x1="10" y1="9" x2="8" y2="9"></line>
+        </svg>
+        <span class="absolute left-full ml-2 bg-neutral-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          HTML Scraper Viewer
+        </span>
+      </button>
     </div>
     <div>
       <div class="flex items-center justify-center w-12 h-12 hover:bg-muted-foreground/10 transition-colors">
@@ -180,6 +197,7 @@ const { class: className, ...props } = Astro.props;
   const testingLayoutBtn = document.getElementById('testingLayoutBtn');
   const pythonReplLayoutBtn = document.getElementById('pythonReplLayoutBtn');
   const proxyLayoutBtn = document.getElementById('proxyLayoutBtn');
+  const scraperLayoutBtn = document.getElementById('scraperLayoutBtn');
 
   // Add click handlers
   todoLayoutBtn?.addEventListener('click', () => {
@@ -231,6 +249,10 @@ const { class: className, ...props } = Astro.props;
   proxyLayoutBtn?.addEventListener('click', () => {
     store.dispatch(changeLayout('proxy_layout'));
   });
+  
+  scraperLayoutBtn?.addEventListener('click', () => {
+    store.dispatch(changeLayout('scraper_layout'));
+  });
 
   // Function to update active button styles
   function updateActiveButton(layout: string) {
@@ -247,6 +269,7 @@ const { class: className, ...props } = Astro.props;
     llmVizLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     pythonReplLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
     proxyLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
+    scraperLayoutBtn?.classList.remove('border-l-2', 'border-primary', 'bg-muted');
 
     // Reset icon colors
     todoLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
@@ -261,6 +284,7 @@ const { class: className, ...props } = Astro.props;
     llmVizLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     pythonReplLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
     proxyLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
+    scraperLayoutBtn?.querySelector('.text-primary')?.classList.replace('text-primary', 'text-muted-foreground');
 
     // Add active styles to the selected button
     if (layout === 'todo_layout') {
@@ -297,6 +321,9 @@ const { class: className, ...props } = Astro.props;
     } else if (layout === 'proxy_layout') {
       proxyLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
       proxyLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
+    } else if (layout === 'scraper_layout') {
+      scraperLayoutBtn?.classList.add('border-l-2', 'border-primary', 'bg-muted');
+      scraperLayoutBtn?.querySelector('.text-muted-foreground')?.classList.replace('text-muted-foreground', 'text-primary');
     }
   }
 

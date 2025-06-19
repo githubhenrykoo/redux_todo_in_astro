@@ -278,5 +278,25 @@
             "minSize": 0,
             "visible": false
         }
+    },
+    "scraper_layout": {
+        "left": {
+            "type": "CatalogPanel",
+            "size": 20,
+            "minSize": 0,
+            "visible": false
+        },
+        "middle": {
+            "type": "ScraperPanel",
+            "size": 100,
+            "minSize": 80,
+            "visible": true
+        },
+        "right": {
+            "type": "ContentViewerPanel",
+            "size": 20,
+            "minSize": 0,
+            "visible": false
+        }
     }
 }

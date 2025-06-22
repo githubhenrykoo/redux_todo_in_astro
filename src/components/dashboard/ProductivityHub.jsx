@@ -1,4 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
+import ErrorBoundary from '../ErrorBoundary.jsx';
+
+// Import panel components with explicit error handling
 import GoogleCalendar from '../panels/googlecalendar.jsx';
 import NotionPanel from '../panels/notion.jsx';
 import ChatbotPanel from '../panels/chatbot.jsx';
@@ -75,7 +78,11 @@ const ProductivityHub = () => {
             className="overflow-auto border-b border-gray-200 relative" 
             style={{ height: `${verticalSplit}%` }}
           >
-            <GoogleCalendar className="h-full" />
+            <Suspense fallback={<div className="p-4 text-center">Loading calendar...</div>}>
+              <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading the calendar</div>}>
+                <GoogleCalendar className="h-full" />
+              </ErrorBoundary>
+            </Suspense>
           </div>
           
           {/* Vertical resizer for top/bottom split */}
@@ -93,7 +100,11 @@ const ProductivityHub = () => {
           
           {/* Bottom left: Notion Panel */}
           <div className="flex-1 overflow-auto">
-            <NotionPanel className="h-full" />
+            <Suspense fallback={<div className="p-4 text-center">Loading Notion data...</div>}>
+              <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading Notion panel</div>}>
+                <NotionPanel className="h-full" />
+              </ErrorBoundary>
+            </Suspense>
           </div>
         </div>
         
@@ -111,7 +122,11 @@ const ProductivityHub = () => {
           style={{ width: `${100 - horizontalSplit}%` }}
         >
           <div className="h-full overflow-auto">
-            <ChatbotPanel className="h-full" />
+            <Suspense fallback={<div className="p-4 text-center">Loading Chatbot...</div>}>
+              <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading the Chatbot</div>}>
+                <ChatbotPanel className="h-full" />
+              </ErrorBoundary>
+            </Suspense>
           </div>
         </div>
       </div>

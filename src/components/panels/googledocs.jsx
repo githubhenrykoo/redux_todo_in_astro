@@ -7,13 +7,16 @@ const GoogleDocsPanel = () => {
   const [editorContent, setEditorContent] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
   const [isPreview, setIsPreview] = useState(false);
+  const [pickerInited, setPickerInited] = useState(false);
+  const [selectedDocId, setSelectedDocId] = useState(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [docUrlInput, setDocUrlInput] = useState('');
 
   // Removed text formatting functions and toolbar
 
   const CLIENT_ID = import.meta.env.GOOGLE_CLIENT_ID;
   const API_KEY = import.meta.env.GOOGLE_API_KEY;
-  const DOC_ID = '1w6OwWhBQkSy_1bY13a6tNrPYkxntJgR55SUVL4leu_8';
-  const SCOPES = 'https://www.googleapis.com/auth/documents';
+  const SCOPES = 'https://www.googleapis.com/auth/documents https://www.googleapis.com/auth/drive.readonly';
 
   useEffect(() => {
     // Load Google API script
@@ -27,8 +30,14 @@ const GoogleDocsPanel = () => {
       script2.src = 'https://apis.google.com/js/api.js';
       script2.onload = gapiLoaded;
       
+      // Add Google Picker API script
+      const script3 = document.createElement('script');
+      script3.src = 'https://apis.google.com/js/platform.js';
+      script3.onload = () => setPickerInited(true);
+      
       document.body.appendChild(script1);
       document.body.appendChild(script2);
+      document.body.appendChild(script3);
     };
 
     loadGoogleApi();
@@ -64,17 +73,114 @@ const GoogleDocsPanel = () => {
       scope: SCOPES,
       callback: async (tokenResponse) => {
         await window.gapi.client.setToken(tokenResponse);
-        loadGoogleDoc();
+        // After successful authentication, don't automatically open picker
+        // Let user choose between picker and URL input
       },
     });
     
     setTokenClient(newTokenClient);
     newTokenClient.requestAccessToken();
   };
-
-  const loadGoogleDoc = async () => {
+  
+  // Toggle URL input visibility
+  const toggleUrlInput = () => {
+    setShowUrlInput(!showUrlInput);
+    setDocUrlInput('');
+  };
+  
+  // Extract document ID from Google Docs URL
+  const extractDocIdFromUrl = (url) => {
     try {
-      const res = await window.gapi.client.docs.documents.get({documentId: DOC_ID});
+      // Handle different Google Docs URL formats
+      const patterns = [
+        /https:\/\/docs\.google\.com\/document\/d\/([a-zA-Z0-9_-]+)(\/|$)/,  // Standard format
+        /https:\/\/docs\.google\.com\/document\/u\/\d+\/d\/([a-zA-Z0-9_-]+)(\/|$)/,  // User-specific format
+        /https:\/\/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/,  // Drive link format
+        /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)(\/|$)/  // Drive file format
+      ];
+      
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+      
+      throw new Error('Invalid Google Docs URL format');
+    } catch (error) {
+      console.error('Error extracting document ID:', error);
+      return null;
+    }
+  };
+  
+  // Handle URL submission
+  const handleUrlSubmit = () => {
+    if (!docUrlInput.trim()) {
+      setSaveStatus('Please enter a valid Google Docs URL');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+    
+    const docId = extractDocIdFromUrl(docUrlInput.trim());
+    if (!docId) {
+      setSaveStatus('Invalid Google Docs URL');
+      setTimeout(() => setSaveStatus(''), 3000);
+      return;
+    }
+    
+    setSelectedDocId(docId);
+    loadGoogleDoc(docId);
+    setShowUrlInput(false);
+  };
+  
+  // Create and render a Google Picker
+  const createPicker = () => {
+    if (!window.google || !pickerInited || !tokenClient) {
+      console.error('Google Picker API not loaded or user not authenticated');
+      return;
+    }
+    
+    // Hide URL input if shown
+    setShowUrlInput(false);
+    
+    // Load the picker API
+    window.gapi.load('picker', () => {
+      const view = new window.google.picker.View(window.google.picker.ViewId.DOCS);
+      view.setMimeTypes('application/vnd.google-apps.document');
+      
+      const picker = new window.google.picker.PickerBuilder()
+        .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
+        .setAppId(CLIENT_ID.split('-')[0])
+        .setOAuthToken(window.gapi.client.getToken().access_token)
+        .addView(view)
+        .setTitle('Select a Google Document')
+        .setCallback(pickerCallback)
+        .build();
+        
+      picker.setVisible(true);
+    });
+  };
+  
+  const pickerCallback = (data) => {
+    if (data.action === window.google.picker.Action.PICKED) {
+      const document = data.docs[0];
+      const docId = document.id;
+      setSelectedDocId(docId);
+      loadGoogleDoc(docId);
+    }
+  };
+
+  const loadGoogleDoc = async (docId) => {
+    try {
+      if (!docId) {
+        console.error('No document ID provided');
+        return;
+      }
+      
+      // Show loading status
+      setSaveStatus('Loading document...');
+      
+      const res = await window.gapi.client.docs.documents.get({documentId: docId});
       const bodyContent = res.result.body.content;
       let formattedText = '';
       
@@ -226,6 +332,8 @@ const GoogleDocsPanel = () => {
     });
     
       setEditorContent(formattedText);
+      setSaveStatus('Document loaded');
+      setTimeout(() => setSaveStatus(''), 2000);
 
       // Send initial request to card collection API after loading document
       const response = await fetch('http://localhost:4321/api/card-collection', {
@@ -252,18 +360,20 @@ const GoogleDocsPanel = () => {
 
     } catch (error) {
       console.error('Error loading Google Doc:', error);
+      setSaveStatus('Error loading document');
+      setTimeout(() => setSaveStatus(''), 3000);
     }
   };
 
   const saveToMCardsAndGoogleDoc = async (content) => {
-    if (!tokenClient) return;
+    if (!tokenClient || !selectedDocId) return;
     
     try {
       setSaveStatus('Saving...');
 
       // Save to Google Docs
       const doc = await window.gapi.client.docs.documents.get({
-        documentId: DOC_ID
+        documentId: selectedDocId
       });
       
       const currentLength = doc.result.body.content.reduce((acc, el) => {
@@ -278,7 +388,7 @@ const GoogleDocsPanel = () => {
       }, 0);
 
       await window.gapi.client.docs.documents.batchUpdate({
-        documentId: DOC_ID,
+        documentId: selectedDocId,
         resource: {
           requests: [
             {
@@ -430,7 +540,7 @@ const GoogleDocsPanel = () => {
 
   const handleExportMarkdown = () => {
     // Use Google Docs direct export URL for Markdown format
-    if (!DOC_ID) {
+    if (!selectedDocId) {
       console.error('No document ID available');
       setSaveStatus('Export failed: No document ID');
       setTimeout(() => setSaveStatus(''), 3000);
@@ -438,7 +548,7 @@ const GoogleDocsPanel = () => {
     }
     
     // Create the export URL using the direct Google Docs export endpoint
-    const exportUrl = `https://docs.google.com/document/d/${DOC_ID}/export?format=md`;
+    const exportUrl = `https://docs.google.com/document/d/${selectedDocId}/export?format=md`;
     
     try {
       // Open the URL in a new tab to trigger download
@@ -473,7 +583,7 @@ const GoogleDocsPanel = () => {
         top: 0,
         zIndex: 100,
       }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {!tokenClient && (
             <button 
               onClick={handleAuthClick}
@@ -492,12 +602,124 @@ const GoogleDocsPanel = () => {
               {!gapiInited ? 'Sign in with Google' : 'Sign in with Google'}
             </button>
           )}
+          {tokenClient && !selectedDocId && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {!showUrlInput ? (
+                <>
+                  <button
+                    onClick={createPicker}
+                    style={{
+                      backgroundColor: '#f1f3f4',
+                      color: '#5f6368',
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    Open Google Drive
+                  </button>
+                  <button
+                    onClick={toggleUrlInput}
+                    style={{
+                      backgroundColor: '#f1f3f4',
+                      color: '#5f6368',
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    Open by URL
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={docUrlInput}
+                    onChange={(e) => setDocUrlInput(e.target.value)}
+                    placeholder="https://docs.google.com/document/d/..."
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      width: '300px',
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleUrlSubmit();
+                    }}
+                  />
+                  <button
+                    onClick={handleUrlSubmit}
+                    style={{
+                      backgroundColor: '#1a73e8',
+                      color: '#ffffff',
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Open
+                  </button>
+                  <button
+                    onClick={toggleUrlInput}
+                    style={{
+                      backgroundColor: '#f1f3f4',
+                      color: '#5f6368',
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {selectedDocId && (
+            <span style={{ fontSize: '14px', color: '#5f6368' }}>
+              Document selected
+            </span>
+          )}
         </div>
         
         {/* Moved buttons to the right */}
         <div style={{ display: 'flex', gap: '8px' }}>
-          {tokenClient && (
+          {tokenClient && selectedDocId && (
             <>
+              <button
+                onClick={createPicker}
+                style={{
+                  backgroundColor: '#f1f3f4',
+                  color: '#5f6368',
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  marginRight: '8px',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Change Document
+              </button>
               <button
                 onClick={togglePreview}
                 style={{
@@ -528,7 +750,7 @@ const GoogleDocsPanel = () => {
                 }}
                 title="Export document as Markdown using Google Docs export"
               >
-                Export Markdown
+                Export
               </button>
             </>
           )}

@@ -1,4 +1,5 @@
 ---
+// No imports needed in the frontmatter for client-side libraries
 ---
 
 <html lang="en">
@@ -9,70 +10,111 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- No external animation libraries needed -->
 </head>
 <body>
   <div class="container">
     <div class="content">
       <div class="logo-container">
-        <div class="logo">To-Do</div>
-      </div>
-      
-      <h1>Daily Rituals</h1>
-      
-      <div class="features">
-        <div class="feature">
-          <div class="feature-icon">🔍</div>
-          <h3>10:05 AM</h3>
-          <p><a href="">Checks Kubernetes dev & prod clusters</a></p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">📋</div>
-          <h3>10:10 AM</h3>
-          <p>Verifies cluster logs and backup status</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">⚠️</div>
-          <h3>10:15 AM</h3>
-          <p>If any errors, we trigger incident alerts via Telegram or Email</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">📝</div>
-          <h3>10:30 AM</h3>
-          <p>Status report published to Notion and shared with the community</p>
-        </div>
-        <div class="feature">
-          <div class="feature-icon">📢</div>
-          <h3>05:00 PM</h3>
-          <p>Send daily report and voice record</p>
-        </div>
+        <div class="logo">To-Do App</div>
       </div>
       
       <a href="/Page" class="enter-button" id="enterButton">Push Me</a>
-      <p id="countdown" style="margin-top: 10px; color: #ffffff;">Or I will push myself in 10 seconds</p>
+      <p id="countdown" class="countdown-text">Or I will push myself in 10 seconds.</p>
     </div>
   </div>
 
   <script>
-    let timeLeft = 10;
-    const countdownElement = document.getElementById('countdown');
-    
-    const countdown = setInterval(() => {
-      timeLeft--;
-      countdownElement.textContent = `Or I will push myself in ${timeLeft} ${timeLeft === 1 ? 'second' : 'seconds'}`;
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      let timeLeft = 10;
+      const countdownElement = document.getElementById('countdown');
       
-      if (timeLeft <= 0) {
-        clearInterval(countdown);
-        window.location.href = '/Page';
+      // Animation function for countdown text using CSS classes
+      function animateCountdown(newText) {
+        // Add fade-out class
+        countdownElement.classList.add('fade-out');
+        
+        // After fade out completes, update text and fade back in
+        setTimeout(() => {
+          countdownElement.textContent = newText;
+          countdownElement.classList.remove('fade-out');
+          countdownElement.classList.add('fade-in');
+          
+          // Remove the fade-in class after animation completes
+          setTimeout(() => {
+            countdownElement.classList.remove('fade-in');
+          }, 600);
+        }, 300);
       }
-    }, 1000);
+      
+      // Start the countdown
+      const countdown = setInterval(() => {
+        timeLeft--;
+        
+        if (timeLeft <= 0) {
+          clearInterval(countdown);
+          
+          // Final animation before redirect
+          countdownElement.classList.add('fade-out-final');
+          
+          // Redirect after animation completes
+          setTimeout(() => {
+            window.location.href = '/Pagedemo';
+          }, 500);
+        } else {
+          const newText = `Or I will push myself in ${timeLeft} ${timeLeft === 1 ? 'second.' : 'seconds.'}`;
+          animateCountdown(newText);
+        }
+      }, 1000);
 
-    // Still allow manual click
-    document.getElementById('enterButton').addEventListener('click', () => {
-      clearInterval(countdown);
-      window.location.href = '/Page';
+      // Handle button click
+      document.getElementById('enterButton').addEventListener('click', () => {
+        clearInterval(countdown);
+        
+        // Button press animation using CSS
+        const button = document.getElementById('enterButton');
+        button.classList.add('button-press');
+        
+        // Redirect after animation completes
+        setTimeout(() => {
+          window.location.href = '/Pagedemo';
+        }, 300);
+      });
     });
   </script>
   <style>
+    /* Animation styles */
+    .countdown-text {
+      margin-top: 10px;
+      color: rgb(75 85 99 / var(--tw-text-opacity, 1));
+      font-size: 20px;
+      opacity: 1;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    
+    .fade-out {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    
+    .fade-in {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .fade-out-final {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.8);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+    
+    .button-press {
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+    }
+    
     * {
       margin: 0;
       padding: 0;
@@ -81,8 +123,8 @@
     
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: #ffffff;
+      background: #e5e7eb;
+      color: rgb(75 85 99 / var(--tw-text-opacity, 1));
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -96,13 +138,12 @@
     }
     
     .content {
-      background: rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
+      background: white;
       border-radius: 16px;
       padding: 60px 40px;
       text-align: center;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
     
     .logo-container {
@@ -114,30 +155,28 @@
     .logo {
       font-size: 48px;
       font-weight: 700;
-      color: #ffffff;
+      color: white;
       background: linear-gradient(135deg, #00c6ff, #0072ff);
       border-radius: 16px;
-      width: 120px;
-      height: 120px;
+      width: 170px;
+      height: 140px;
       display: flex;
       align-items: center;
       justify-content: center;
       box-shadow: 0 10px 20px rgba(0, 114, 255, 0.3);
+      border: none;
     }
     
     h1 {
       font-size: 36px;
       margin-bottom: 16px;
       font-weight: 700;
-      background: linear-gradient(to right, #00c6ff, #0072ff);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: rgb(75 85 99 / var(--tw-text-opacity, 1));
     }
     
     .subtitle {
       font-size: 18px;
-      color: #e0e0e0;
+      color: rgb(75 85 99 / var(--tw-text-opacity, 1));
       margin-bottom: 50px;
       max-width: 600px;
       margin-left: auto;
@@ -154,7 +193,8 @@
     .feature {
       padding: 20px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
+      background: white;
+      border: 1px solid rgba(0, 0, 0, 0.1);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     
@@ -175,7 +215,7 @@
     }
     
     .feature p {
-      color: #cccccc;
+      color: rgb(75 85 99 / var(--tw-text-opacity, 1));
       font-size: 14px;
     }
     
@@ -193,19 +233,20 @@
       display: inline-block;
       background: linear-gradient(135deg, #00c6ff, #0072ff);
       color: white;
-      font-weight: 600;
-      font-size: 18px;
-      padding: 16px 40px;
-      border-radius: 40px;
+      font-weight: 700;
+      font-size: 30px;
+      padding: 30px 70px;
+      border-radius: 60px;
       text-decoration: none;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
-      margin-top: 20px;
+      margin-top: 30px;
+      margin-bottom: 27px;
       box-shadow: 0 10px 20px rgba(0, 114, 255, 0.3);
     }
     
     .enter-button:hover {
       transform: translateY(-3px);
-      box-shadow: 0 15px 30px rgba(0, 114, 255, 0.4);
+      box-shadow: 0 12px 30px rgba(0, 114, 255, 0.4);
     }
     
     @media (max-width: 768px) {

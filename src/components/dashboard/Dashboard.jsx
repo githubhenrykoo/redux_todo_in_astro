@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ChatbotPanel from '../panels/chatbot.jsx';
 import MapPanel from '../panels/MapPanel.jsx';
-import ProductivityHub from './ProductivityHub.jsx';
+import ProductivityHub from './Docs.jsx';
 
 const Dashboard = () => {
   const [activeMonth, setActiveMonth] = useState('Jun 2025');
@@ -11,6 +11,7 @@ const Dashboard = () => {
   const [showCsdt, setShowCsdt] = useState(false);
   const [showLlm, setShowLlm] = useState(false);
   const [showProductivityHub, setShowProductivityHub] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
 
   // Icons for the dashboard
   const HomeIcon = () => (
@@ -71,6 +72,7 @@ const Dashboard = () => {
       setShowChatbot(true);
       setShowCsdt(false);
       setShowProductivityHub(false);
+      setShowDocs(false);
     } 
     // Show CSDT iframe when csdt is clicked
     else if (item === 'csdt') {
@@ -78,6 +80,7 @@ const Dashboard = () => {
       setShowChatbot(false);
       setShowLlm(false);
       setShowProductivityHub(false);
+      setShowDocs(false);
     }
     // Show LLM iframe when llm is clicked
     else if (item === 'llm') {
@@ -85,6 +88,7 @@ const Dashboard = () => {
       setShowChatbot(false);
       setShowCsdt(false);
       setShowProductivityHub(false);
+      setShowDocs(false);
     }
     // Show ProductivityHub when productivity is clicked
     else if (item === 'productivity') {
@@ -92,10 +96,20 @@ const Dashboard = () => {
       setShowChatbot(false);
       setShowCsdt(false);
       setShowLlm(false);
+      setShowDocs(false);
+    }
+    // Show Docs component when docs is clicked
+    else if (item === 'docs') {
+      setShowDocs(true);
+      setShowProductivityHub(false);
+      setShowChatbot(false);
+      setShowCsdt(false);
+      setShowLlm(false);
     } else {
       setShowChatbot(false);
       setShowCsdt(false);
       setShowProductivityHub(false);
+      setShowDocs(false);
     }
     
     // Open Kubernetes dashboard in a new tab when k8s button is clicked
@@ -145,6 +159,14 @@ const Dashboard = () => {
       <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
     </svg>
   );
+  
+  // Docs icon for sidebar
+  const DocsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"/>
+      <path d="M8 12h8v1H8zm0 2h8v1H8zm0 2h5v1H8z"/>
+    </svg>
+  );
 
   // Sidebar items
   const sidebarItems = [
@@ -160,6 +182,7 @@ const Dashboard = () => {
     // { id: 'langganan', label: 'Langganan', icon: <UserIcon /> },
     // { id: 'device', label: 'Register Device', icon: <RoomIcon /> },
     { id: 'productivity', label: 'Productivity', icon: <ProductivityIcon /> },
+    { id: 'docs', label: 'Docs', icon: <DocsIcon /> },
     { id: 'csdt', label: 'CSDT', icon: <CsdtIcon /> },
     { id: 'llm', label: 'LLM Visualizer', icon: <LlmIcon /> },
     { id: 'k8s', label: 'K8s Dashboard', icon: <KubernetesIcon /> },
@@ -278,6 +301,11 @@ const Dashboard = () => {
             </div>
           ) : activeSidebarItem === 'productivity' ? (
             /* Productivity Hub */
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
+              <ProductivityHub />
+            </div>
+          ) : activeSidebarItem === 'docs' ? (
+            /* Docs Component with Google Docs and Chatbot */
             <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
               <ProductivityHub />
             </div>

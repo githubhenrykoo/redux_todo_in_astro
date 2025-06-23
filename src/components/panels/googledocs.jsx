@@ -622,7 +622,7 @@ const GoogleDocsPanel = () => {
                       gap: '8px',
                     }}
                   >
-                    Open Google Drive
+                    Select Document
                   </button>
                   <button
                     onClick={toggleUrlInput}

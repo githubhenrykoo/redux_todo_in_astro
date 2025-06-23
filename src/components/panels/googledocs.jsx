@@ -323,28 +323,99 @@ const GoogleDocsPanel = () => {
       
       setSaveStatus('Loading markdown version...');
       
-      // Create the export URL using the direct Google Docs export endpoint
+      // First try direct export URL
       const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=md`;
       
-      // Fetch the markdown content
-      const response = await fetch(exportUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch markdown: ${response.status} ${response.statusText}`);
+      try {
+        const response = await fetch(exportUrl);
+        if (response.ok) {
+          const mdContent = await response.text();
+          setEditorContent(mdContent);
+          setSaveStatus('Markdown loaded');
+          setTimeout(() => setSaveStatus(''), 2000);
+          return mdContent;
+        }
+      } catch (exportError) {
+        console.log('Direct export failed, trying OAuth...', exportError);
       }
       
-      const mdContent = await response.text();
-      
-      // Update the editor with the fetched markdown content
-      setEditorContent(mdContent);
-      
-      setSaveStatus('Markdown loaded');
+      // If direct export fails, try OAuth
+      if (!window.gapi?.client) {
+        setSaveStatus('Initializing Google API...');
+        await new Promise((resolve) => window.gapi.load('client', resolve));
+        await window.gapi.client.init({
+          apiKey: API_KEY,
+          discoveryDocs: ["https://docs.googleapis.com/$discovery/rest?version=v1"],
+        });
+      }
+
+      // Check if we have a valid token
+      if (!window.gapi.client.getToken()) {
+        setSaveStatus('Authentication required');
+        if (!tokenClient) {
+          const newTokenClient = window.google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: async (tokenResponse) => {
+              await window.gapi.client.setToken(tokenResponse);
+              // After authentication, retry loading
+              await loadMarkdownVersion(docId);
+            },
+          });
+          setTokenClient(newTokenClient);
+          newTokenClient.requestAccessToken();
+          return;
+        } else {
+          tokenClient.requestAccessToken();
+          return;
+        }
+      }
+
+      // Fetch document content using Google Docs API
+      const response = await window.gapi.client.docs.documents.get({
+        documentId: docId
+      });
+
+      // Convert Google Docs content to markdown
+      let markdown = '';
+      const doc = response.result;
+      const content = doc.body.content;
+
+      content.forEach(element => {
+        if (element.paragraph) {
+          const paragraph = element.paragraph;
+          let text = '';
+          
+          paragraph.elements.forEach(elem => {
+            if (elem.textRun) {
+              const style = elem.textRun.textStyle || {};
+              let formattedText = elem.textRun.content;
+
+              if (style.bold) formattedText = `**${formattedText}**`;
+              if (style.italic) formattedText = `*${formattedText}*`;
+              
+              text += formattedText;
+            }
+          });
+
+          // Handle different paragraph styles
+          if (paragraph.paragraphStyle?.namedStyleType?.includes('HEADING')) {
+            const level = parseInt(paragraph.paragraphStyle.namedStyleType.slice(-1));
+            text = '#'.repeat(level) + ' ' + text;
+          }
+
+          markdown += text + (text.endsWith('\n') ? '' : '\n');
+        }
+      });
+
+      setEditorContent(markdown);
+      setSaveStatus('Document loaded via API');
       setTimeout(() => setSaveStatus(''), 2000);
-      
-      return mdContent;
+      return markdown;
+
     } catch (error) {
-      console.error('Error loading markdown version:', error);
-      setSaveStatus('Failed to load markdown');
+      console.error('Error loading document:', error);
+      setSaveStatus('Failed to load document');
       setTimeout(() => setSaveStatus(''), 2000);
       return null;
     }

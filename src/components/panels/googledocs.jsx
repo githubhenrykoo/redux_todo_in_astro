@@ -207,8 +207,7 @@ const GoogleDocsPanel = () => {
     setIsPreview(!isPreview);
   };
 
-  // Update the renderMarkdown function to allow HTML
-  // Update the renderMarkdown function to properly handle all markdown elements
+  // Update the renderMarkdown function to allow HTML and handle Google Docs image references
   const renderMarkdown = (content) => {
     try {
       marked.setOptions({
@@ -221,20 +220,50 @@ const GoogleDocsPanel = () => {
         smartLists: true,
         smartypants: true
       });
-  
+
+      // Extract image references from the content
+      // Google Docs exports images in format: ![][imageN] followed by [imageN]: <data:image/...> or URL
+      const imageReferences = {};
+      const imageRefRegex = /\[([^\]]+)\]:\s*<?([^>\s]+)>?/g;
+      let match;
+      
+      // Find all image references and store them in a map
+      while ((match = imageRefRegex.exec(content)) !== null) {
+        const refName = match[1];
+        const refUrl = match[2];
+        imageReferences[refName] = refUrl;
+      }
+      
       // Pre-process the content to handle special cases
       let processedContent = content
-      // Handle bold with double asterisks
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      // Handle italic with single asterisks
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      // Handle bold+italic with triple asterisks
-      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
-      // Handle escaped characters
-      .replace(/\\([\*\\])/g, '$1');
-  
+        // Handle bold with double asterisks
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        // Handle italic with single asterisks
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        // Handle bold+italic with triple asterisks
+        .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+        // Handle escaped characters
+        .replace(/\\([\*\\])/g, '$1')
+        // Replace image references with direct img tags for better rendering
+        .replace(/!\[([^\]]*)\]\[([^\]]+)\]/g, (match, alt, refName) => {
+          if (imageReferences[refName]) {
+            return `<img src="${imageReferences[refName]}" alt="${alt || refName}" style="max-width: 100%;" />`;
+          }
+          return match; // Keep original if reference not found
+        });
+
       const html = marked(processedContent);
-      return { __html: html };
+      
+      // Add custom styles for headings to ensure proper sizing
+      const styledHtml = html
+        .replace(/<h1>/g, '<h1 style="font-size: 24pt; font-weight: 500; margin-top: 24px; margin-bottom: 8px;">')
+        .replace(/<h2>/g, '<h2 style="font-size: 18pt; font-weight: 500; margin-top: 20px; margin-bottom: 6px;">')
+        .replace(/<h3>/g, '<h3 style="font-size: 16pt; font-weight: 500; margin-top: 16px; margin-bottom: 4px;">')
+        .replace(/<h4>/g, '<h4 style="font-size: 14pt; font-weight: 500; margin-top: 14px; margin-bottom: 4px;">')
+        .replace(/<h5>/g, '<h5 style="font-size: 12pt; font-weight: 500; margin-top: 12px; margin-bottom: 4px;">')
+        .replace(/<h6>/g, '<h6 style="font-size: 11pt; font-weight: 500; margin-top: 12px; margin-bottom: 4px;">');
+      
+      return { __html: styledHtml };
     } catch (error) {
       console.error('Error parsing markdown:', error);
       return { __html: content };
@@ -601,7 +630,7 @@ const GoogleDocsPanel = () => {
 
 export default GoogleDocsPanel;
 
-// Add this CSS to style the numbered lists like Google Docs
+// Add this CSS to style the numbered lists and headings like Google Docs
 const editorStyles = {
   '.editor-content ol': {
     listStyleType: 'decimal',

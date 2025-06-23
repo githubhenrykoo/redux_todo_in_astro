@@ -11,6 +11,8 @@ const GoogleDocsPanel = () => {
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [docUrlInput, setDocUrlInput] = useState('');
+  const [syncInterval, setSyncInterval] = useState(null);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
 
   // Removed text formatting functions and toolbar
 
@@ -46,8 +48,13 @@ const GoogleDocsPanel = () => {
       // Cleanup scripts on unmount
       const scripts = document.querySelectorAll('script[src*="google"]');
       scripts.forEach(script => script.remove());
+      
+      // Clear auto-sync interval when component unmounts
+      if (syncInterval) {
+        clearInterval(syncInterval);
+      }
     };
-  }, []);
+  }, [syncInterval]);
 
   const gapiLoaded = () => {
     window.gapi.load('client', initializeGapiClient);
@@ -131,6 +138,9 @@ const GoogleDocsPanel = () => {
     setSelectedDocId(docId);
     loadGoogleDoc(docId);
     setShowUrlInput(false);
+    
+    // Start auto-sync when document is loaded via URL
+    startAutoSync(docId);
   };
   
   // Create and render a Google Picker
@@ -167,9 +177,202 @@ const GoogleDocsPanel = () => {
       const docId = document.id;
       setSelectedDocId(docId);
       loadGoogleDoc(docId);
+      
+      // Start auto-sync when document is selected
+      startAutoSync(docId);
     }
   };
 
+  // Function to start auto-sync with Google Docs
+  const startAutoSync = (docId) => {
+    // Clear any existing interval
+    if (syncInterval) {
+      clearInterval(syncInterval);
+    }
+    
+    // Set up new interval for auto-sync every 5 seconds
+    const interval = setInterval(() => {
+      if (docId && tokenClient) {
+        // Only sync if we're not already in the middle of a sync operation
+        if (!saveStatus.includes('Saving') && !saveStatus.includes('Loading')) {
+          syncWithGoogleDoc(docId);
+        }
+      }
+    }, 5000); // 5000 ms = 5 seconds
+    
+    setSyncInterval(interval);
+  };
+  
+  // Function to sync with Google Docs
+  const syncWithGoogleDoc = async (docId) => {
+    try {
+      // Show subtle sync status
+      setSaveStatus('Syncing...');
+      
+      const res = await window.gapi.client.docs.documents.get({documentId: docId});
+      const bodyContent = res.result.body.content;
+      let formattedText = '';
+      
+      bodyContent.forEach(el => {
+        if (el.paragraph) {
+          // Handle paragraph styles
+          const style = el.paragraph.paragraphStyle;
+          const alignment = style?.alignment?.toLowerCase() || 'start';
+          
+          // Handle lists
+          if (el.paragraph.bullet) {
+            const nesting = el.paragraph.bullet.nestingLevel || 0;
+            const indent = '  '.repeat(nesting);
+            const isOrdered = el.paragraph.bullet.listId && el.paragraph.bullet.textStyle;
+            formattedText += `${indent}${isOrdered ? '1. ' : '- '}`;
+          }
+      
+          // Handle paragraph styles for headings
+          if (style?.namedStyleType) {
+            switch (style.namedStyleType) {
+              case 'HEADING_1': formattedText += '# '; break;
+              case 'HEADING_2': formattedText += '## '; break;
+              case 'HEADING_3': formattedText += '### '; break;
+              case 'HEADING_4': formattedText += '#### '; break;
+              case 'HEADING_5': formattedText += '##### '; break;
+              case 'HEADING_6': formattedText += '###### '; break;
+            }
+          }
+      
+          // Process each text element in the paragraph
+          el.paragraph.elements.forEach(e => {
+            if (e.textRun) {
+              let text = e.textRun.content;
+              const textStyle = e.textRun.textStyle;
+      
+              // Apply text styling
+              if (textStyle) {
+                // Handle code blocks
+                if (textStyle.backgroundColor) {
+                  text = `\`${text.trim()}\``;
+                }
+      
+                // Handle strikethrough
+                if (textStyle.strikethrough) {
+                  text = `~~${text.trim()}~~`;
+                }
+      
+                // Handle superscript
+                if (textStyle.baselineOffset === 'SUPERSCRIPT') {
+                  text = `<sup>${text.trim()}</sup>`;
+                }
+      
+                // Handle subscript
+                if (textStyle.baselineOffset === 'SUBSCRIPT') {
+                  text = `<sub>${text.trim()}</sub>`;
+                }
+      
+                // Handle bold
+                if (textStyle.bold) {
+                  text = `**${text.trim()}**`;
+                }
+      
+                // Handle italic
+                if (textStyle.italic) {
+                  text = `_${text.trim()}_`;
+                }
+      
+                // Handle underline
+                if (textStyle.underline) {
+                  text = `<u>${text.trim()}</u>`;
+                }
+      
+                // Handle links
+                if (textStyle.link) {
+                  text = `[${text.trim()}](${textStyle.link.url})`;
+                }
+      
+                // Handle foreground color
+                if (textStyle.foregroundColor?.color) {
+                  const color = textStyle.foregroundColor.color.rgbColor;
+                  if (color) {
+                    const rgb = `rgb(${Math.round(color.red * 255)}, ${Math.round(color.green * 255)}, ${Math.round(color.blue * 255)})`;
+                    text = `<span style="color: ${rgb}">${text.trim()}</span>`;
+                  }
+                }
+      
+                // Handle font size
+                if (textStyle.fontSize) {
+                  const size = textStyle.fontSize.magnitude;
+                  text = `<span style="font-size: ${size}pt">${text.trim()}</span>`;
+                }
+      
+                // Handle font family
+                if (textStyle.fontFamily) {
+                  text = `<span style="font-family: ${textStyle.fontFamily}">${text.trim()}</span>`;
+                }
+              }
+              formattedText += text;
+            }
+      
+            // Handle images
+            if (e.inlineObjectElement) {
+              const objectId = e.inlineObjectElement.inlineObjectId;
+              const object = res.result.inlineObjects[objectId];
+              if (object?.inlineObjectProperties?.embeddedObject?.imageProperties) {
+                const imageUrl = object.inlineObjectProperties.embeddedObject.imageProperties.contentUri;
+                formattedText += `![image](${imageUrl})`;
+              }
+            }
+          });
+      
+          // Handle text alignment
+          if (alignment !== 'start') {
+            formattedText = `<div style="text-align: ${alignment}">${formattedText.trim()}</div>`;
+          }
+      
+          formattedText += '\n\n'; // Add newlines after each paragraph
+        }
+      
+      // Handle tables
+      if (el.table) {
+        const rows = el.table.tableRows;
+        const headerRow = rows[0];
+        
+        // Create table header
+        formattedText += '|';
+        headerRow.tableCells.forEach(cell => {
+          formattedText += ` ${cell.content[0].paragraph.elements[0].textRun.content.trim()} |`;
+        });
+        formattedText += '\n|';
+        
+        // Add separator row
+        headerRow.tableCells.forEach(() => {
+          formattedText += ' --- |';
+        });
+        formattedText += '\n';
+        
+        // Add table content
+        rows.slice(1).forEach(row => {
+          formattedText += '|';
+          row.tableCells.forEach(cell => {
+            formattedText += ` ${cell.content[0].paragraph.elements[0].textRun.content.trim()} |`;
+          });
+          formattedText += '\n';
+        });
+        
+        formattedText += '\n';
+      }
+    });
+      
+      // Update editor content with the synced content
+      setEditorContent(formattedText);
+      setLastSyncTime(new Date());
+      setSaveStatus('Synced');
+      setTimeout(() => setSaveStatus(''), 1000);
+      
+    } catch (error) {
+      console.error('Error syncing with Google Doc:', error);
+      setSaveStatus('Sync failed');
+      setTimeout(() => setSaveStatus(''), 2000);
+    }
+  };
+  
   const loadGoogleDoc = async (docId) => {
     try {
       if (!docId) {
@@ -818,13 +1021,18 @@ const GoogleDocsPanel = () => {
         borderRadius: '4px',
         backgroundColor: saveStatus ? '#ffffff' : 'transparent',
         boxShadow: saveStatus ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
-        color: saveStatus === 'Saved' ? '#34a853' : 
-               saveStatus === 'Saving...' ? '#1a73e8' : 
-               saveStatus === 'Save failed' ? '#ea4335' : 'transparent',
+        color: saveStatus === 'Saved' || saveStatus === 'Synced' ? '#34a853' : 
+               saveStatus === 'Saving...' || saveStatus === 'Syncing...' ? '#1a73e8' : 
+               saveStatus === 'Save failed' || saveStatus === 'Sync failed' ? '#ea4335' : 'transparent',
         fontSize: '13px',
         transition: 'all 0.2s ease',
       }}>
         {saveStatus}
+        {lastSyncTime && !saveStatus && (
+          <div style={{ fontSize: '10px', color: '#5f6368', marginTop: '2px' }}>
+            Last synced: {lastSyncTime.toLocaleTimeString()}
+          </div>
+        )}
       </div>
     </div>
   );

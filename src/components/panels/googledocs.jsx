@@ -498,7 +498,7 @@ const GoogleDocsPanel = () => {
                       gap: '8px',
                     }}
                   >
-                    Open by URL
+                    Open via Link
                   </button>
                 </>
               ) : (

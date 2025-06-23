@@ -190,9 +190,9 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen flex">
+    <div className="bg-gray-50 min-h-screen flex overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-sm min-h-screen flex-shrink-0">
+      <div className="w-64 bg-white shadow-sm min-h-screen flex-shrink-0 overflow-y-auto">
         {/* Sidebar Header */}
         <div className="flex items-center space-x-2 px-4 py-4 border-b border-gray-100">
           <div className="bg-blue-500 text-white p-1.5 rounded-md">
@@ -220,7 +220,7 @@ const Dashboard = () => {
         </nav>
       </div>
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between px-4 py-3">
@@ -249,17 +249,17 @@ const Dashboard = () => {
         </header>
         
         {/* Main Dashboard Content */}
-        <main className="p-4 flex-1 flex flex-col">
+        <main className="p-4 flex-1 flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 57px)' }}>
           {activeSidebarItem === 'chatbot' ? (
             /* Chatbot Panel */
             <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
-              <div className="h-full overflow-auto">
+              <div className="h-full overflow-auto max-h-full">
                 <ChatbotPanel className="h-full" />
               </div>
             </div>
           ) : activeSidebarItem === 'dashboard' ? (
             /* Map Panel */
-            <div className="bg-white rounded-lg shadow-sm p-4 h-full flex-1">
+            <div className="bg-white rounded-lg shadow-sm p-4 h-full flex-1 overflow-auto max-h-full">
               <MapPanel />
             </div>
           ) : activeSidebarItem === 'csdt' ? (
@@ -270,6 +270,7 @@ const Dashboard = () => {
                 title="CSDT Dashboard" 
                 className="w-full h-full border-none"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                style={{ height: '100%', maxHeight: 'calc(100vh - 57px)' }}
               />
             </div>
           ) : activeSidebarItem === 'llm' ? (
@@ -295,6 +296,7 @@ const Dashboard = () => {
                     title="LLM Visualizer" 
                     className="w-full h-full border-none"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                    style={{ height: '100%', maxHeight: 'calc(100vh - 100px)' }}
                   />
                 </div>
               </div>
@@ -311,7 +313,7 @@ const Dashboard = () => {
             </div>
           ) : (
             /* Regular Dashboard Content */
-            <>
+            <div className="overflow-auto max-h-full">
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 {stats.map((stat, index) => (
@@ -352,7 +354,7 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           )}
         </main>
       </div>

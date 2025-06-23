@@ -274,16 +274,18 @@ const GoogleDocsPanel = () => {
   <div
     className="markdown-preview"
     style={{
-      width: '816px',
-      minHeight: '1056px',
+      width: '100%',
+      maxWidth: '816px',
+      height: 'auto',
       margin: '0 auto',
-      padding: '96px 72px',
+      padding: '40px 32px',
       backgroundColor: '#ffffff',
       boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
       fontSize: '11pt',
       lineHeight: 1.5,
       color: '#202124',
       fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+      overflowWrap: 'break-word',
     }}
     dangerouslySetInnerHTML={renderMarkdown(editorContent)}
   />
@@ -423,12 +425,13 @@ const GoogleDocsPanel = () => {
 
   return (
     <div className="google-docs-panel" style={{
-      maxWidth: '850px',
+      maxWidth: '100%',
       margin: '0 auto',
-      minHeight: '100vh',
+      height: '100%',
       backgroundColor: '#f8f9fa',
       display: 'flex',
       flexDirection: 'column',
+      overflow: 'hidden',
     }}>
       <div style={{
         padding: '8px 16px',
@@ -440,6 +443,7 @@ const GoogleDocsPanel = () => {
         position: 'sticky',
         top: 0,
         zIndex: 100,
+        flexShrink: 0,
       }}>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {!tokenClient && (
@@ -627,34 +631,38 @@ const GoogleDocsPanel = () => {
 
       <div style={{
         flex: 1,
-        padding: '40px 0',
+        padding: '20px 0',
         backgroundColor: '#f8f9fa',
+        overflow: 'auto',
+        height: '100%',
+        maxHeight: 'calc(100% - 56px)',
       }}>
         {isPreview ? (
           <div
             className="markdown-preview"
             style={{
-              width: '816px',
-              minHeight: '1056px',
+              width: '100%',
+              maxWidth: '816px',
               margin: '0 auto',
-              padding: '96px 72px',
+              padding: '40px 32px',
               backgroundColor: '#ffffff',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
               fontSize: '11pt',
               lineHeight: 1.5,
               color: '#202124',
               fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+              overflowWrap: 'break-word',
             }}
             dangerouslySetInnerHTML={renderMarkdown(editorContent)}
           />
         ) : (
-          <div style={{ width: '816px', margin: '0 auto' }}>
+          <div style={{ width: '100%', maxWidth: '816px', margin: '0 auto' }}>
             {/* Toolbar removed */}
             <div
               contentEditable="true"
               style={{
-                minHeight: '1056px',
-                padding: '96px 72px',
+                height: 'auto',
+                padding: '40px 32px',
                 backgroundColor: '#ffffff',
                 boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
                 outline: 'none',

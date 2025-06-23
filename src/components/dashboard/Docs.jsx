@@ -48,15 +48,15 @@ const ProductivityHub = () => {
   }, [isDraggingHorizontal]);
   
   return (
-    <div className="flex flex-1 h-full bg-white overflow-hidden">
+    <div className="flex flex-1 h-full bg-white overflow-hidden" style={{ maxHeight: 'calc(100vh - 57px)' }}>
       {/* Main content area with resizable panels */}
       <div className="flex flex-1 h-full relative">
         {/* Left column: Google Docs */}
         <div 
           className="h-full border-r border-gray-200 overflow-hidden" 
-          style={{ width: `${horizontalSplit}%` }}
+          style={{ width: `${horizontalSplit}%`, maxHeight: '100%' }}
         >
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto max-h-full">
             <Suspense fallback={<div className="p-4 text-center">Loading Google Docs...</div>}>
               <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading Google Docs</div>}>
                 <GoogleDocsPanel className="h-full" />
@@ -76,9 +76,9 @@ const ProductivityHub = () => {
         {/* Right column: Chat panel */}
         <div 
           className="h-full overflow-hidden" 
-          style={{ width: `${100 - horizontalSplit}%` }}
+          style={{ width: `${100 - horizontalSplit}%`, maxHeight: '100%' }}
         >
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto max-h-full">
             <Suspense fallback={<div className="p-4 text-center">Loading Chatbot...</div>}>
               <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading the Chatbot</div>}>
                 <ChatbotPanel className="h-full" />

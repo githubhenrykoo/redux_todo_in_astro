@@ -239,7 +239,7 @@ const MapPanel = ({ className = '' }) => {
       </div>
 
       {/* CSS for tooltips */}
-      <style jsx>{`
+      <style>{`
         :global(.device-id-tooltip) {
           background-color: white;
           border: 1px solid #ccc;

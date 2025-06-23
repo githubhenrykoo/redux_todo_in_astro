@@ -65,7 +65,7 @@ const ProductivityHub = () => {
   }, [isDraggingHorizontal, isDraggingVertical]);
   
   return (
-    <div className="flex flex-1 h-full bg-white overflow-hidden">
+    <div className="flex flex-1 h-full bg-white overflow-hidden" style={{ maxHeight: 'calc(100vh - 57px)' }}>
       {/* Main content area with resizable panels */}
       <div className="flex flex-1 h-full relative">
         {/* Left column divided into top and bottom */}
@@ -75,8 +75,8 @@ const ProductivityHub = () => {
         >
           {/* Top left: Google Calendar */}
           <div 
-            className="overflow-auto border-b border-gray-200 relative" 
-            style={{ height: `${verticalSplit}%` }}
+            className="overflow-auto border-b border-gray-200 relative max-h-full" 
+            style={{ height: `${verticalSplit}%`, maxHeight: `${verticalSplit}%` }}
           >
             <Suspense fallback={<div className="p-4 text-center">Loading calendar...</div>}>
               <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading the calendar</div>}>
@@ -99,7 +99,7 @@ const ProductivityHub = () => {
           ></div>
           
           {/* Bottom left: Notion Panel */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto" style={{ maxHeight: `${100 - verticalSplit}%` }}>
             <Suspense fallback={<div className="p-4 text-center">Loading Notion data...</div>}>
               <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading Notion panel</div>}>
                 <NotionPanel className="h-full" />
@@ -119,9 +119,9 @@ const ProductivityHub = () => {
         {/* Right column: Chat panel */}
         <div 
           className="h-full overflow-hidden" 
-          style={{ width: `${100 - horizontalSplit}%` }}
+          style={{ width: `${100 - horizontalSplit}%`, maxHeight: '100%' }}
         >
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto max-h-full">
             <Suspense fallback={<div className="p-4 text-center">Loading Chatbot...</div>}>
               <ErrorBoundary fallback={<div className="p-4 text-center">Something went wrong loading the Chatbot</div>}>
                 <ChatbotPanel className="h-full" />

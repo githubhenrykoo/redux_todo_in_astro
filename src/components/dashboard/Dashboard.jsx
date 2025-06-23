@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import ChatbotPanel from '../panels/chatbot.jsx';
 import MapPanel from '../panels/MapPanel.jsx';
-import ProductivityHub from './Docs.jsx';
+import ProductivityHub from './ProductivityHub.jsx';
+import Docs from './Docs.jsx';
 
 const Dashboard = () => {
   const [activeMonth, setActiveMonth] = useState('Jun 2025');
@@ -190,7 +191,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="bg-gray-50 min-h-screen flex overflow-hidden">
+    <div className="bg-gray-50 h-screen flex overflow-hidden">
       {/* Sidebar */}
       <div className="w-64 bg-white shadow-sm min-h-screen flex-shrink-0 overflow-y-auto">
         {/* Sidebar Header */}
@@ -249,11 +250,11 @@ const Dashboard = () => {
         </header>
         
         {/* Main Dashboard Content */}
-        <main className="p-4 flex-1 flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 57px)' }}>
+        <main className="p-4 flex-1 flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 57px)', maxHeight: 'calc(100vh - 57px)' }}>
           {activeSidebarItem === 'chatbot' ? (
             /* Chatbot Panel */
-            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
-              <div className="h-full overflow-auto max-h-full">
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
+              <div className="h-full overflow-auto" style={{ maxHeight: '100%' }}>
                 <ChatbotPanel className="h-full" />
               </div>
             </div>
@@ -264,19 +265,19 @@ const Dashboard = () => {
             </div>
           ) : activeSidebarItem === 'csdt' ? (
             /* CSDT Panel with iframe */
-            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
               <iframe 
                 src="https://csdt.pkc.pub/" 
                 title="CSDT Dashboard" 
                 className="w-full h-full border-none"
                 sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                style={{ height: '100%', maxHeight: 'calc(100vh - 57px)' }}
+                style={{ height: '100%' }}
               />
             </div>
           ) : activeSidebarItem === 'llm' ? (
             /* LLM Visualizer with iframe */
-            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
-              <div className="h-full flex flex-col">
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
+              <div className="h-full flex flex-col" style={{ maxHeight: '100%' }}>
                 <div className="bg-gray-800 text-white p-3 border-b border-gray-700">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">LLM Visualizer</h3>
@@ -290,26 +291,26 @@ const Dashboard = () => {
                     </a>
                   </div>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 overflow-hidden">
                   <iframe 
                     src="https://bbycroft.net/llm" 
                     title="LLM Visualizer" 
                     className="w-full h-full border-none"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                    style={{ height: '100%', maxHeight: 'calc(100vh - 100px)' }}
+                    style={{ height: '100%' }}
                   />
                 </div>
               </div>
             </div>
           ) : activeSidebarItem === 'productivity' ? (
             /* Productivity Hub */
-            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
               <ProductivityHub />
             </div>
           ) : activeSidebarItem === 'docs' ? (
             /* Docs Component with Google Docs and Chatbot */
-            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden">
-              <ProductivityHub />
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
+              <Docs />
             </div>
           ) : (
             /* Regular Dashboard Content */

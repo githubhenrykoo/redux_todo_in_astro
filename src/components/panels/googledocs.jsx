@@ -11,8 +11,7 @@ const GoogleDocsPanel = () => {
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [docUrlInput, setDocUrlInput] = useState('');
-  const [syncInterval, setSyncInterval] = useState(null);
-  const [lastSyncTime, setLastSyncTime] = useState(null);
+  // Removed sync-related state variables
 
   // Removed text formatting functions and toolbar
 
@@ -48,13 +47,8 @@ const GoogleDocsPanel = () => {
       // Cleanup scripts on unmount
       const scripts = document.querySelectorAll('script[src*="google"]');
       scripts.forEach(script => script.remove());
-      
-      // Clear auto-sync interval when component unmounts
-      if (syncInterval) {
-        clearInterval(syncInterval);
-      }
     };
-  }, [syncInterval]);
+  }, []);
 
   const gapiLoaded = () => {
     window.gapi.load('client', initializeGapiClient);
@@ -136,11 +130,9 @@ const GoogleDocsPanel = () => {
     }
     
     setSelectedDocId(docId);
-    loadGoogleDoc(docId);
+    // Load the markdown version directly from export URL
+    loadMarkdownVersion(docId);
     setShowUrlInput(false);
-    
-    // Start auto-sync when document is loaded via URL
-    startAutoSync(docId);
   };
   
   // Create and render a Google Picker
@@ -176,489 +168,16 @@ const GoogleDocsPanel = () => {
       const document = data.docs[0];
       const docId = document.id;
       setSelectedDocId(docId);
-      loadGoogleDoc(docId);
-      
-      // Start auto-sync when document is selected
-      startAutoSync(docId);
+      // Load the markdown version directly from export URL
+      loadMarkdownVersion(docId);
     }
   };
 
-  // Function to start auto-sync with Google Docs
-  const startAutoSync = (docId) => {
-    // Clear any existing interval
-    if (syncInterval) {
-      clearInterval(syncInterval);
-    }
-    
-    // Set up new interval for auto-sync every 5 seconds
-    const interval = setInterval(() => {
-      if (docId && tokenClient) {
-        // Only sync if we're not already in the middle of a sync operation
-        if (!saveStatus.includes('Saving') && !saveStatus.includes('Loading')) {
-          syncWithGoogleDoc(docId);
-        }
-      }
-    }, 5000); // 5000 ms = 5 seconds
-    
-    setSyncInterval(interval);
-  };
-  
-  // Function to sync with Google Docs
-  const syncWithGoogleDoc = async (docId) => {
-    try {
-      // Show subtle sync status
-      setSaveStatus('Syncing...');
-      
-      const res = await window.gapi.client.docs.documents.get({documentId: docId});
-      const bodyContent = res.result.body.content;
-      let formattedText = '';
-      
-      bodyContent.forEach(el => {
-        if (el.paragraph) {
-          // Handle paragraph styles
-          const style = el.paragraph.paragraphStyle;
-          const alignment = style?.alignment?.toLowerCase() || 'start';
-          
-          // Handle lists
-          if (el.paragraph.bullet) {
-            const nesting = el.paragraph.bullet.nestingLevel || 0;
-            const indent = '  '.repeat(nesting);
-            const isOrdered = el.paragraph.bullet.listId && el.paragraph.bullet.textStyle;
-            formattedText += `${indent}${isOrdered ? '1. ' : '- '}`;
-          }
-      
-          // Handle paragraph styles for headings
-          if (style?.namedStyleType) {
-            switch (style.namedStyleType) {
-              case 'HEADING_1': formattedText += '# '; break;
-              case 'HEADING_2': formattedText += '## '; break;
-              case 'HEADING_3': formattedText += '### '; break;
-              case 'HEADING_4': formattedText += '#### '; break;
-              case 'HEADING_5': formattedText += '##### '; break;
-              case 'HEADING_6': formattedText += '###### '; break;
-            }
-          }
-      
-          // Process each text element in the paragraph
-          el.paragraph.elements.forEach(e => {
-            if (e.textRun) {
-              let text = e.textRun.content;
-              const textStyle = e.textRun.textStyle;
-      
-              // Apply text styling
-              if (textStyle) {
-                // Handle code blocks
-                if (textStyle.backgroundColor) {
-                  text = `\`${text.trim()}\``;
-                }
-      
-                // Handle strikethrough
-                if (textStyle.strikethrough) {
-                  text = `~~${text.trim()}~~`;
-                }
-      
-                // Handle superscript
-                if (textStyle.baselineOffset === 'SUPERSCRIPT') {
-                  text = `<sup>${text.trim()}</sup>`;
-                }
-      
-                // Handle subscript
-                if (textStyle.baselineOffset === 'SUBSCRIPT') {
-                  text = `<sub>${text.trim()}</sub>`;
-                }
-      
-                // Handle bold
-                if (textStyle.bold) {
-                  text = `**${text.trim()}**`;
-                }
-      
-                // Handle italic
-                if (textStyle.italic) {
-                  text = `_${text.trim()}_`;
-                }
-      
-                // Handle underline
-                if (textStyle.underline) {
-                  text = `<u>${text.trim()}</u>`;
-                }
-      
-                // Handle links
-                if (textStyle.link) {
-                  text = `[${text.trim()}](${textStyle.link.url})`;
-                }
-      
-                // Handle foreground color
-                if (textStyle.foregroundColor?.color) {
-                  const color = textStyle.foregroundColor.color.rgbColor;
-                  if (color) {
-                    const rgb = `rgb(${Math.round(color.red * 255)}, ${Math.round(color.green * 255)}, ${Math.round(color.blue * 255)})`;
-                    text = `<span style="color: ${rgb}">${text.trim()}</span>`;
-                  }
-                }
-      
-                // Handle font size
-                if (textStyle.fontSize) {
-                  const size = textStyle.fontSize.magnitude;
-                  text = `<span style="font-size: ${size}pt">${text.trim()}</span>`;
-                }
-      
-                // Handle font family
-                if (textStyle.fontFamily) {
-                  text = `<span style="font-family: ${textStyle.fontFamily}">${text.trim()}</span>`;
-                }
-              }
-              formattedText += text;
-            }
-      
-            // Handle images
-            if (e.inlineObjectElement) {
-              const objectId = e.inlineObjectElement.inlineObjectId;
-              const object = res.result.inlineObjects[objectId];
-              if (object?.inlineObjectProperties?.embeddedObject?.imageProperties) {
-                const imageUrl = object.inlineObjectProperties.embeddedObject.imageProperties.contentUri;
-                formattedText += `![image](${imageUrl})`;
-              }
-            }
-          });
-      
-          // Handle text alignment
-          if (alignment !== 'start') {
-            formattedText = `<div style="text-align: ${alignment}">${formattedText.trim()}</div>`;
-          }
-      
-          formattedText += '\n\n'; // Add newlines after each paragraph
-        }
-      
-      // Handle tables
-      if (el.table) {
-        const rows = el.table.tableRows;
-        const headerRow = rows[0];
-        
-        // Create table header
-        formattedText += '|';
-        headerRow.tableCells.forEach(cell => {
-          formattedText += ` ${cell.content[0].paragraph.elements[0].textRun.content.trim()} |`;
-        });
-        formattedText += '\n|';
-        
-        // Add separator row
-        headerRow.tableCells.forEach(() => {
-          formattedText += ' --- |';
-        });
-        formattedText += '\n';
-        
-        // Add table content
-        rows.slice(1).forEach(row => {
-          formattedText += '|';
-          row.tableCells.forEach(cell => {
-            formattedText += ` ${cell.content[0].paragraph.elements[0].textRun.content.trim()} |`;
-          });
-          formattedText += '\n';
-        });
-        
-        formattedText += '\n';
-      }
-    });
-      
-      // Update editor content with the synced content
-      setEditorContent(formattedText);
-      setLastSyncTime(new Date());
-      setSaveStatus('Synced');
-      setTimeout(() => setSaveStatus(''), 1000);
-      
-    } catch (error) {
-      console.error('Error syncing with Google Doc:', error);
-      setSaveStatus('Sync failed');
-      setTimeout(() => setSaveStatus(''), 2000);
-    }
-  };
-  
-  const loadGoogleDoc = async (docId) => {
-    try {
-      if (!docId) {
-        console.error('No document ID provided');
-        return;
-      }
-      
-      // Show loading status
-      setSaveStatus('Loading document...');
-      
-      const res = await window.gapi.client.docs.documents.get({documentId: docId});
-      const bodyContent = res.result.body.content;
-      let formattedText = '';
-      
-      bodyContent.forEach(el => {
-        if (el.paragraph) {
-          // Handle paragraph styles
-          const style = el.paragraph.paragraphStyle;
-          const alignment = style?.alignment?.toLowerCase() || 'start';
-          
-          // Handle lists
-          if (el.paragraph.bullet) {
-            const nesting = el.paragraph.bullet.nestingLevel || 0;
-            const indent = '  '.repeat(nesting);
-            const isOrdered = el.paragraph.bullet.listId && el.paragraph.bullet.textStyle;
-            formattedText += `${indent}${isOrdered ? '1. ' : '- '}`;
-          }
-      
-          // Handle paragraph styles for headings
-          if (style?.namedStyleType) {
-            switch (style.namedStyleType) {
-              case 'HEADING_1': formattedText += '# '; break;
-              case 'HEADING_2': formattedText += '## '; break;
-              case 'HEADING_3': formattedText += '### '; break;
-              case 'HEADING_4': formattedText += '#### '; break;
-              case 'HEADING_5': formattedText += '##### '; break;
-              case 'HEADING_6': formattedText += '###### '; break;
-            }
-          }
-      
-          // Process each text element in the paragraph
-          el.paragraph.elements.forEach(e => {
-            if (e.textRun) {
-              let text = e.textRun.content;
-              const textStyle = e.textRun.textStyle;
-      
-              // Apply text styling
-              if (textStyle) {
-                // Handle code blocks
-                if (textStyle.backgroundColor) {
-                  text = `\`${text.trim()}\``;
-                }
-      
-                // Handle strikethrough
-                if (textStyle.strikethrough) {
-                  text = `~~${text.trim()}~~`;
-                }
-      
-                // Handle superscript
-                if (textStyle.baselineOffset === 'SUPERSCRIPT') {
-                  text = `<sup>${text.trim()}</sup>`;
-                }
-      
-                // Handle subscript
-                if (textStyle.baselineOffset === 'SUBSCRIPT') {
-                  text = `<sub>${text.trim()}</sub>`;
-                }
-      
-                // Handle bold
-                if (textStyle.bold) {
-                  text = `**${text.trim()}**`;
-                }
-      
-                // Handle italic
-                if (textStyle.italic) {
-                  text = `_${text.trim()}_`;
-                }
-      
-                // Handle underline
-                if (textStyle.underline) {
-                  text = `<u>${text.trim()}</u>`;
-                }
-      
-                // Handle links
-                if (textStyle.link) {
-                  text = `[${text.trim()}](${textStyle.link.url})`;
-                }
-      
-                // Handle foreground color
-                if (textStyle.foregroundColor?.color) {
-                  const color = textStyle.foregroundColor.color.rgbColor;
-                  if (color) {
-                    const rgb = `rgb(${Math.round(color.red * 255)}, ${Math.round(color.green * 255)}, ${Math.round(color.blue * 255)})`;
-                    text = `<span style="color: ${rgb}">${text.trim()}</span>`;
-                  }
-                }
-      
-                // Handle font size
-                if (textStyle.fontSize) {
-                  const size = textStyle.fontSize.magnitude;
-                  text = `<span style="font-size: ${size}pt">${text.trim()}</span>`;
-                }
-      
-                // Handle font family
-                if (textStyle.fontFamily) {
-                  text = `<span style="font-family: ${textStyle.fontFamily}">${text.trim()}</span>`;
-                }
-              }
-              formattedText += text;
-            }
-      
-            // Handle images
-            if (e.inlineObjectElement) {
-              const objectId = e.inlineObjectElement.inlineObjectId;
-              const object = res.result.inlineObjects[objectId];
-              if (object?.inlineObjectProperties?.embeddedObject?.imageProperties) {
-                const imageUrl = object.inlineObjectProperties.embeddedObject.imageProperties.contentUri;
-                formattedText += `![image](${imageUrl})`;
-              }
-            }
-          });
-      
-          // Handle text alignment
-          if (alignment !== 'start') {
-            formattedText = `<div style="text-align: ${alignment}">${formattedText.trim()}</div>`;
-          }
-      
-          formattedText += '\n\n'; // Add newlines after each paragraph
-        }
-      
-      // Handle tables
-      if (el.table) {
-        const rows = el.table.tableRows;
-        const headerRow = rows[0];
-        
-        // Create table header
-        formattedText += '|';
-        headerRow.tableCells.forEach(cell => {
-          formattedText += ` ${cell.content[0].paragraph.elements[0].textRun.content.trim()} |`;
-        });
-        formattedText += '\n|';
-        
-        // Add separator row
-        headerRow.tableCells.forEach(() => {
-          formattedText += ' --- |';
-        });
-        formattedText += '\n';
-        
-        // Add table content
-        rows.slice(1).forEach(row => {
-          formattedText += '|';
-          row.tableCells.forEach(cell => {
-            formattedText += ` ${cell.content[0].paragraph.elements[0].textRun.content.trim()} |`;
-          });
-          formattedText += '\n';
-        });
-        
-        formattedText += '\n';
-      }
-    });
-    
-      setEditorContent(formattedText);
-      setSaveStatus('Document loaded');
-      setTimeout(() => setSaveStatus(''), 2000);
+  // All other load functions removed - only using direct markdown export
 
-      // Send initial request to card collection API after loading document
-      const response = await fetch('http://localhost:4321/api/card-collection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'add',
-          card: {
-            content: {
-              dimensionType: 'abstractSpecification',
-              context: fullText,
-              goal: '',
-              successCriteria: ''
-            }
-          }
-        })
-      });
+  // Save functionality removed - no longer syncing with Google Docs or MCards
 
-      if (!response.ok) {
-        console.error('Failed to sync with card collection');
-      }
-
-    } catch (error) {
-      console.error('Error loading Google Doc:', error);
-      setSaveStatus('Error loading document');
-      setTimeout(() => setSaveStatus(''), 3000);
-    }
-  };
-
-  const saveToMCardsAndGoogleDoc = async (content) => {
-    if (!tokenClient || !selectedDocId) return;
-    
-    try {
-      setSaveStatus('Saving...');
-
-      // Save to Google Docs
-      const doc = await window.gapi.client.docs.documents.get({
-        documentId: selectedDocId
-      });
-      
-      const currentLength = doc.result.body.content.reduce((acc, el) => {
-        if (el.paragraph) {
-          el.paragraph.elements.forEach(e => {
-            if (e.textRun && e.textRun.content) {
-              acc += e.textRun.content.length;
-            }
-          });
-        }
-        return acc;
-      }, 0);
-
-      await window.gapi.client.docs.documents.batchUpdate({
-        documentId: selectedDocId,
-        resource: {
-          requests: [
-            {
-              deleteContentRange: {
-                range: {
-                  startIndex: 1,
-                  endIndex: Math.max(currentLength, 1)
-                }
-              }
-            },
-            {
-              insertText: {
-                location: {
-                  index: 1
-                },
-                text: content || ' '
-              }
-            }
-          ]
-        }
-      });
-
-      // Save to MCards Catalog
-      const response = await fetch('http://localhost:4321/api/card-collection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'add',
-          card: {
-            content: {
-              dimensionType: 'abstractSpecification',
-              context: content,
-              goal: '',
-              successCriteria: ''
-            }
-          }
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save to MCards Catalog');
-      }
-
-      setSaveStatus('Saved');
-      setTimeout(() => setSaveStatus(''), 2000);
-    } catch (error) {
-      console.error('Error saving content:', error);
-      setSaveStatus('Save failed');
-      setTimeout(() => setSaveStatus(''), 3000);
-    }
-  };
-
-  // Debounced save function
-  const debouncedSave = useCallback(
-    (() => {
-      let timeoutId;
-      return (content) => {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          saveToMCardsAndGoogleDoc(content);
-        }, 1000);
-      };
-    })(),
-    [tokenClient]
-  );
+  // Debounced save function removed
 
   const handleEditorChange = (e) => {
     const content = e.currentTarget;
@@ -682,7 +201,6 @@ const GoogleDocsPanel = () => {
 
     const newContent = content.innerHTML;
     setEditorContent(newContent);
-    debouncedSave(newContent);
   };
 
   const togglePreview = () => {
@@ -750,7 +268,7 @@ const GoogleDocsPanel = () => {
       return;
     }
     
-    // Create the export URL using the direct Google Docs export endpoint
+    // Create the  export URL using the direct Google Docs export endpoint
     const exportUrl = `https://docs.google.com/document/d/${selectedDocId}/export?format=md`;
     
     try {
@@ -763,6 +281,43 @@ const GoogleDocsPanel = () => {
       console.error('Error exporting document:', error);
       setSaveStatus('Export failed');
       setTimeout(() => setSaveStatus(''), 3000);
+    }
+  };
+  
+  // Function to load the markdown version of a Google Doc
+  const loadMarkdownVersion = async (docId) => {
+    try {
+      if (!docId) {
+        console.error('No document ID provided');
+        return;
+      }
+      
+      setSaveStatus('Loading markdown version...');
+      
+      // Create the export URL using the direct Google Docs export endpoint
+      const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=md`;
+      
+      // Fetch the markdown content
+      const response = await fetch(exportUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch markdown: ${response.status} ${response.statusText}`);
+      }
+      
+      const mdContent = await response.text();
+      
+      // Update the editor with the fetched markdown content
+      setEditorContent(mdContent);
+      
+      setSaveStatus('Markdown loaded');
+      setTimeout(() => setSaveStatus(''), 2000);
+      
+      return mdContent;
+    } catch (error) {
+      console.error('Error loading markdown version:', error);
+      setSaveStatus('Failed to load markdown');
+      setTimeout(() => setSaveStatus(''), 2000);
+      return null;
     }
   };
 
@@ -955,6 +510,16 @@ const GoogleDocsPanel = () => {
               >
                 Export
               </button>
+              <button
+                onClick={() => loadMarkdownVersion(selectedDocId)}
+                className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh events"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span className="sr-only">Refresh</span>
+              </button>
             </>
           )}
         </div>
@@ -1013,27 +578,23 @@ const GoogleDocsPanel = () => {
         )}
       </div>
 
-      <div style={{
-        position: 'fixed',
-        bottom: '16px',
-        right: '16px',
-        padding: '8px 12px',
-        borderRadius: '4px',
-        backgroundColor: saveStatus ? '#ffffff' : 'transparent',
-        boxShadow: saveStatus ? '0 2px 6px rgba(0,0,0,0.15)' : 'none',
-        color: saveStatus === 'Saved' || saveStatus === 'Synced' ? '#34a853' : 
-               saveStatus === 'Saving...' || saveStatus === 'Syncing...' ? '#1a73e8' : 
-               saveStatus === 'Save failed' || saveStatus === 'Sync failed' ? '#ea4335' : 'transparent',
-        fontSize: '13px',
-        transition: 'all 0.2s ease',
-      }}>
-        {saveStatus}
-        {lastSyncTime && !saveStatus && (
-          <div style={{ fontSize: '10px', color: '#5f6368', marginTop: '2px' }}>
-            Last synced: {lastSyncTime.toLocaleTimeString()}
-          </div>
-        )}
-      </div>
+      {saveStatus && (
+        <div style={{
+          position: 'fixed',
+          bottom: '16px',
+          right: '16px',
+          padding: '8px 12px',
+          borderRadius: '4px',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          color: saveStatus.includes('Error') || saveStatus.includes('failed') ? '#ea4335' : 
+                 saveStatus.includes('loaded') || saveStatus.includes('Exported') ? '#34a853' : '#1a73e8',
+          fontSize: '13px',
+          transition: 'all 0.2s ease',
+        }}>
+          {saveStatus}
+        </div>
+      )}
     </div>
   );
 };

@@ -41,19 +41,20 @@ const NotionPanel = ({ className = '' }) => {
 
   const checkConnection = async () => {
     try {
-      const response = await fetch('http://localhost:3002/health');
+      const response = await fetch('/api/notion/verify');
       const data = await response.json();
       
-      if (response.status === 401) {
+      if (response.status !== 200) {
         setConnected(false);
         setError('API token is invalid. Please check your Notion API key in the .env file.');
         return;
       }
       
-      setConnected(data.status === 'ok');
+      setConnected(true);
+      setError(null);
     } catch (err) {
       setConnected(false);
-      setError('Cannot connect to Notion server. Please ensure the server is running.');
+      setError('Cannot connect to Notion API. Please check your API key.');
     }
   };
 
@@ -122,19 +123,16 @@ const NotionPanel = ({ className = '' }) => {
   const syncDatabase = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:3002/sync/database', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch('/api/notion/database');
       const data = await response.json();
+      
       if (data.success) {
         setDocuments(data.documents);
         await uploadToCardCollection(data.documents);
       }
     } catch (err) {
       console.error('Sync error:', err);
+      setError('Failed to sync database. Please check your connection and API key.');
     } finally {
       setLoading(false);
     }
@@ -175,16 +173,20 @@ const NotionPanel = ({ className = '' }) => {
         });
       }
 
-      // Ambil data terbaru dari server
-      const response = await fetch(`http://localhost:3002/sync/page/${pageId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      // Get fresh data from Notion
+      const response = await fetch(`/api/notion/page?pageId=${pageId}`);
       const data = await response.json();
+      
       if (data.success) {
+        // Update cache
+        const cache = await caches.open('notion-cache-v2');
+        await cache.put(
+          `notion-page-${pageId}`,
+          new Response(JSON.stringify(data), {
+            headers: { 'Content-Type': 'application/json' }
+          })
+        );
+
         const formattedDoc = {
           id: data.document.page.id,
           title: extractTitle(data.document.page),
@@ -213,8 +215,8 @@ const NotionPanel = ({ className = '' }) => {
 
   const getCachedPage = async (pageId) => {
     try {
-      const cache = await caches.open('notion-cache-v1');
-      const cachedResponse = await cache.match(`http://localhost:3002/sync/page/${pageId}`);
+      const cache = await caches.open('notion-cache-v2');
+      const cachedResponse = await cache.match(`notion-page-${pageId}`);
       
       if (cachedResponse) {
         const data = await cachedResponse.json();

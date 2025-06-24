@@ -163,7 +163,7 @@ export default defineConfig({
     },
     build: {
       rollupOptions: {
-        external: ['child_process', 'fs', 'path', 'os', 'crypto', 'util']
+        external: ['child_process', 'fs', 'path', 'os', 'crypto', 'util', 'http', 'https', 'url', 'stream', 'zlib']
       }
     },
     envPrefix: ['GOOGLE_']

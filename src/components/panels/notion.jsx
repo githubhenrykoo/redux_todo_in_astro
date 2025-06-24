@@ -17,7 +17,7 @@ const NotionPanel = ({ className = '' }) => {
   const [error, setError] = useState(null);
   const [connected, setConnected] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  const [pageId, setPageId] = useState('1d83b3ef43448048abbbe3452cba06da'); // Default page ID
+  const [pageId, setPageId] = useState(''); // Default page ID
 
   useEffect(() => {
     checkConnection();
@@ -246,7 +246,7 @@ const NotionPanel = ({ className = '' }) => {
         alignItems: 'center',
         marginBottom: '20px'
       }}>
-        <h2 style={{ margin: 0 }}>Notion Documents</h2>
+        <h2 style={{ margin: 0 }}>Notion</h2>
         <span className={`connection-status ${connected ? 'connected' : 'disconnected'}`}
           style={{
             padding: '5px 10px',
@@ -254,7 +254,6 @@ const NotionPanel = ({ className = '' }) => {
             backgroundColor: connected ? '#e6ffe6' : '#ffe6e6',
             color: connected ? '#006600' : '#cc0000'
           }}>
-          {connected ? 'Connected' : 'Disconnected'}
         </span>
       </div>
       
@@ -264,7 +263,7 @@ const NotionPanel = ({ className = '' }) => {
             value={pageId}
             onChange={(e) => setPageId(e.target.value)}
             type="text" 
-            placeholder="Enter Page ID"
+            placeholder="Enter Notion Page ID"
             disabled={!connected}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {

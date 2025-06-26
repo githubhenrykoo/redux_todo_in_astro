@@ -1,10 +1,11 @@
-version: "3.8"
 services:
   app:
     build:
       context: .
       args:
         BUILD_MODE: nocheck
+    pull_policy: always
+    image: redux-todo-astro:latest
     ports:
       - "4321:4321"
     volumes:

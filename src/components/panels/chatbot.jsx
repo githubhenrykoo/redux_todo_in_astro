@@ -392,10 +392,14 @@ const ChatbotPanel = ({ className = '' }) => {
       // Prepare messages array with external context if available
       const messagesForModel = [];
       
-      // Add system message with context information if available
+      // Add system message with RAG prompt template
       messagesForModel.push({
         role: 'system',
-        content: `You are a helpful assistant. ${contextInfo ? 'Here is some information that might be relevant to the user\'s query: ' + contextInfo : ''}`
+        content: `You are an assistant who is very good at searching documents. If you do not find an answer from the provided information, say sorry.
+
+Context: ${contextInfo || 'No relevant context found in the database.'}
+
+Answer based on the above context.`
       });
       
       // Add a hidden message with the raw API data for the model to use

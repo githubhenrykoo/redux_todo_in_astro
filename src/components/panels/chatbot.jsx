@@ -27,6 +27,12 @@ const ChatbotPanel = ({ className = '' }) => {
   const [error, setError] = useState(null);
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('llama3:8b');
+  const [selectedPort, setSelectedPort] = useState('11434');
+  const [ollamaInstance, setOllamaInstance] = useState('local');
+  const [instanceStatus, setInstanceStatus] = useState({
+    local: { connected: false, models: [] },
+    docker: { connected: false, models: [] }
+  }); // 'local' or 'docker'
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -41,7 +47,7 @@ const ChatbotPanel = ({ className = '' }) => {
   // Check if Ollama is running and get available models
   useEffect(() => {
     checkOllamaStatus();
-  }, []);
+  }, [selectedPort]);
   
   // Function to fetch data from the API endpoint for RAG
   const fetchExternalData = async () => {
@@ -162,12 +168,22 @@ const ChatbotPanel = ({ className = '' }) => {
   };
 
   const checkOllamaStatus = async () => {
+    const instance = selectedPort === '11434' ? 'local' : 'docker';
+    setInstanceStatus(prev => ({
+      ...prev,
+      [instance]: { ...prev[instance], connected: false }
+    }));
     try {
-      const response = await fetch('http://127.0.0.1:11434/api/tags');
+      const response = await fetch(`http://127.0.0.1:${selectedPort}/api/tags`);
       if (response.ok) {
         const data = await response.json();
         if (data.models && data.models.length > 0) {
+          const instance = selectedPort === '11434' ? 'local' : 'docker';
           setModels(data.models);
+          setInstanceStatus(prev => ({
+            ...prev,
+            [instance]: { connected: true, models: data.models }
+          }));
           // If llama3:8b is available, use it
           const llama3Model = data.models.find(model => model.name === 'llama3:8b');
           if (llama3Model) {
@@ -180,7 +196,8 @@ const ChatbotPanel = ({ className = '' }) => {
       }
     } catch (err) {
       console.error('Error checking Ollama status:', err);
-      setError('Cannot connect to Ollama server. Make sure Ollama is running at http://127.0.0.1:11434');
+      const instanceType = selectedPort === '11434' ? 'local' : 'Docker';
+      setError(`Cannot connect to ${instanceType} Ollama server. Make sure ${instanceType} Ollama is running at http://127.0.0.1:${selectedPort}`);
     }
   };
 
@@ -420,7 +437,7 @@ Answer based on the above context.`
       console.log('Sending request to Ollama API with', messagesForModel.length, 'messages');
       console.log('First message role:', messagesForModel[0]?.role);
       
-      const response = await fetch(`http://127.0.0.1:11434/api/chat`, {
+      const response = await fetch(`http://127.0.0.1:${selectedPort}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -514,7 +531,23 @@ Answer based on the above context.`
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 overflow-hidden ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex flex-col">
         <div className="flex items-center mb-2">
-          <div className="text-center flex-grow"><b>Chatbot</b></div>
+          <div className="flex items-center space-x-2 mr-4">
+            <div className={`w-2 h-2 rounded-full ${instanceStatus.local.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <div className={`w-2 h-2 rounded-full ${instanceStatus.docker.connected ? 'bg-green-500' : 'bg-red-500'}`} />
+          </div>
+          <div className="text-center flex-grow"><b>Chatbot ({ollamaInstance === 'local' ? 'Local' : 'Docker'} Instance)</b></div>
+          <select 
+            value={selectedPort}
+            onChange={(e) => {
+              const port = e.target.value;
+              setSelectedPort(port);
+              setOllamaInstance(port === '11434' ? 'local' : 'docker');
+            }}
+            className="mr-2 px-2 py-1 text-xs bg-gray-700 text-white rounded"
+          >
+            <option value="11434">Local Ollama (11434)</option>
+            <option value="11435">Docker Ollama (11435)</option>
+          </select>
           <select 
             value={selectedModel}
             onChange={handleModelChange}

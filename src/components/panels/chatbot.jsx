@@ -531,11 +531,7 @@ Answer based on the above context.`
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 overflow-hidden ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex flex-col">
         <div className="flex items-center mb-2">
-          <div className="flex items-center space-x-2 mr-4">
-            <div className={`w-2 h-2 rounded-full ${instanceStatus.local.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-            <div className={`w-2 h-2 rounded-full ${instanceStatus.docker.connected ? 'bg-green-500' : 'bg-red-500'}`} />
-          </div>
-          <div className="text-center flex-grow"><b>Chatbot ({ollamaInstance === 'local' ? 'Local' : 'Docker'} Instance)</b></div>
+          <div className="text-center flex-grow"><b>Chatbot ({ollamaInstance === 'local' ? 'Local' : 'Docker'})</b></div>
           <select 
             value={selectedPort}
             onChange={(e) => {
@@ -545,8 +541,8 @@ Answer based on the above context.`
             }}
             className="mr-2 px-2 py-1 text-xs bg-gray-700 text-white rounded"
           >
-            <option value="11434">Local Ollama (11434)</option>
-            <option value="11435">Docker Ollama (11435)</option>
+            <option value="11434">Your Local Ollama</option>
+            <option value="11435">Docker Server</option>
           </select>
           <select 
             value={selectedModel}

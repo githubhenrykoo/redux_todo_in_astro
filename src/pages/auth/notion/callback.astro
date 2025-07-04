@@ -1,229 +1,98 @@
 ---
-import Layout from '../layouts/BaseLayout.astro';
+const code = Astro.url.searchParams.get('code');
+const state = Astro.url.searchParams.get('state');
 
-// Remove the immediate server-side redirect to allow client-side code to run first
+let error = '';
+
+if (code) {
+  try {
+    // Get credentials from environment variables
+    const clientId = import.meta.env.PUBLIC_NOTION_CLIENT_ID;
+    const clientSecret = import.meta.env.PUBLIC_NOTION_CLIENT_SECRET;
+
+    // Debug: Log environment variable presence (not values)
+    console.log('Environment variables check:', {
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      envKeys: Object.keys(import.meta.env)
+    });
+
+    if (!clientId || !clientSecret) {
+      throw new Error('Missing Notion credentials. Please check your .env file');
+    }
+
+    // Create authorization string with proper encoding
+    const credentials = `${clientId}:${clientSecret}`;
+    const authString = Buffer.from(credentials).toString('base64');
+    
+    console.log('Starting OAuth token exchange...');
+    console.log('Authorization code length:', code?.length);
+    console.log('Using redirect URI:', 'http://localhost:4321/auth/notion/callback');
+
+    const response = await fetch('https://api.notion.com/v1/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${authString}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Notion-Version': '2022-06-28'
+      },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: 'http://localhost:4321/auth/notion/callback'
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorJson;
+      try {
+        errorJson = JSON.parse(errorText);
+      } catch (e) {
+        errorJson = null;
+      }
+
+      console.error('Token exchange failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorJson || errorText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      // More descriptive error message
+      const errorDetail = errorJson ? `${errorJson.error}: ${errorJson.error_description || ''}` : errorText;
+      throw new Error(`Token exchange failed (${response.status}): ${errorDetail}`);
+    }
+
+    const data = await response.json();
+    if (!data.access_token) {
+      throw new Error('No access token received');
+    }
+
+    // Redirect to the success page with token data
+    return Astro.redirect(`/auth/notion/success?access_token=${data.access_token}&workspace_id=${data.workspace_id}&workspace_name=${encodeURIComponent(data.workspace_name)}`);
+  } catch (err) {
+    console.error('OAuth error:', err);
+    error = err.message;
+  }
+}
 ---
 
-<Layout title="Authentication Callback">
-  <!-- Immediate inline script for debugging -->
-  <script is:inline>
-    console.log('INLINE DEBUG: Script executing', {
-      time: new Date().toISOString(),
-      url: window.location.href,
-      code: new URLSearchParams(window.location.search).get('code') ? 'present' : 'missing'
-    });
-
-    // Store the redirect path in localStorage as early as possible
-    try {
-      localStorage.setItem('authentik_top_banner_authredirect_uri', '/Page');
-      console.log('INLINE DEBUG: Stored redirect path in localStorage');
-    } catch (storageError) {
-      console.error('INLINE DEBUG: Error storing redirect path:', storageError);
-    }
-  </script>
-  
-  <div class="min-h-screen flex items-center justify-center">
-    <div class="text-center">
-      <h1 class="text-2xl font-semibold mb-4">Processing Authentication...</h1>
-      <p class="text-gray-600">You will be redirected back automatically.</p>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Notion OAuth Callback</title>
+</head>
+<body>
+  {error ? (
+    <div style="color: #e74c3c; padding: 20px; margin: 20px; background-color: #fadbd8; border-radius: 4px;">
+      ⚠️ {error}
     </div>
-  </div>
-
-  <script>
-    // Immediate logging to verify script execution
-    console.log('CALLBACK DEBUG: Script started', {
-      timestamp: new Date().toISOString(),
-      url: window.location.href
-    });
-
-    // Function to handle the authentication callback
-    async function handleAuthCallback() {
-      console.log('CALLBACK DEBUG: handleAuthCallback function called');
-      
-      try {
-        // Extract the authorization code from the URL and trim any whitespace
-        const urlParams = new URLSearchParams(window.location.search);
-        const rawCode = urlParams.get('code');
-        const rawState = urlParams.get('state');
-        const code = rawCode ? rawCode.trim() : null;
-
-        // Detailed logging of all URL parameters
-        console.log('Authentication Callback Full URL Details:', {
-          fullUrl: window.location.href,
-          searchParams: Object.fromEntries(urlParams.entries())
-        });
-
-        if (!code) {
-          console.error('No authorization code found');
-          throw new Error('No authorization code present in the URL');
-        }
-
-        // Log detailed debug information
-        console.log('Authentication Callback Debug:', {
-          code: code ? 'Code Present' : 'No Code',
-          rawCode,
-          rawState,
-          origin: window.location.origin,
-          fullUrl: window.location.href,
-          clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID ? 'Present' : 'Missing',
-          baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL,
-          redirectUri: import.meta.env.PUBLIC_AUTHENTIK_REDIRECT_URI,
-          clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET ? 'Present' : 'Missing'
-        });
-
-        // Import the Authentik client dynamically
-        console.log('CALLBACK DEBUG: About to import authentik client');
-        let createClient;
-        try {
-          const module = await import('../lib/authentik/client');
-          createClient = module.createClient;
-          console.log('CALLBACK DEBUG: Authentik client imported successfully');
-        } catch (importError: unknown) {
-          console.error('CALLBACK DEBUG: Failed to import authentik client', 
-            importError instanceof Error ? 
-              { message: importError.message, stack: importError.stack } : 
-              String(importError)
-          );
-          throw new Error(`Import failed: ${importError instanceof Error ? importError.message : String(importError)}`);
-        }
-
-        if (!createClient || typeof createClient !== 'function') {
-          console.error('CALLBACK DEBUG: createClient is not a function', { createClient });
-          throw new Error('createClient is not a function');
-        }
-
-        // Hardcode the redirect URI based on hostname for maximum reliability
-        const isLocalhost = window.location.hostname === 'localhost';
-        const hardcodedRedirectUri = isLocalhost ? 'http://localhost:4321/callback' : 'http://todo.pkc.pub/callback';
-
-        console.log('Callback page redirect URI check:', {
-          isLocalhost,
-          hardcodedRedirectUri,
-          currentUrl: window.location.href
-        });
-
-        // Create the Authentik client with the same configuration used in TopBar
-        const client = createClient({
-          clientId: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_ID || '',
-          clientSecret: import.meta.env.PUBLIC_AUTHENTIK_CLIENT_SECRET || '',
-          redirectUri: hardcodedRedirectUri,
-          scopes: import.meta.env.PUBLIC_AUTHENTIK_SCOPES || 'openid profile email',
-          baseUrl: import.meta.env.PUBLIC_AUTHENTIK_URL || '',
-          storageKey: `${import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_'}top_banner_auth`,
-        });
-
-        // Handle the callback
-        console.log('CALLBACK DEBUG: About to call client.handleCallback');
-        const userInfo = await client.handleCallback(code);
-        
-        console.log('Authentication Successful:', {
-          userInfoReceived: !!userInfo,
-          userInfoFields: userInfo ? Object.keys(userInfo) : [],
-          accessTokenReceived: !!userInfo?.access_token
-        });
-        
-        // Explicitly store all user information in localStorage with multiple keys for redundancy
-        if (userInfo && typeof userInfo === 'object') {
-          try {
-            // Get the storage key prefix
-            const authStorageKeyPrefix = import.meta.env.PUBLIC_AUTHENTIK_STORAGE_KEY_PREFIX || 'authentik_';
-            
-            // Store user info in multiple formats to ensure it's found
-            localStorage.setItem(`${authStorageKeyPrefix}top_banner_authuser_info`, JSON.stringify(userInfo));
-            localStorage.setItem(`${authStorageKeyPrefix}user_info`, JSON.stringify(userInfo));
-            
-            // Store tokens separately for easier access
-            if (userInfo.access_token) {
-              localStorage.setItem(`${authStorageKeyPrefix}top_banner_authaccess_token`, userInfo.access_token);
-              localStorage.setItem(`${authStorageKeyPrefix}access_token`, userInfo.access_token);
-            }
-            
-            if (userInfo.id_token) {
-              localStorage.setItem(`${authStorageKeyPrefix}top_banner_authid_token`, userInfo.id_token);
-              localStorage.setItem(`${authStorageKeyPrefix}id_token`, userInfo.id_token);
-            }
-            
-            // Log successful storage
-            console.log('Authentication data stored successfully', {
-              keys: Object.keys(localStorage).filter(k => k.includes(authStorageKeyPrefix)),
-              userInfoSize: JSON.stringify(userInfo).length
-            });
-            
-            // Dispatch login action to Redux if possible
-            if (typeof window !== 'undefined') {
-              try {
-                // Safely check for store property on window
-                // @ts-ignore - The store is attached to window in store.js
-                const reduxStore = window.store;
-                
-                if (reduxStore && typeof reduxStore.dispatch === 'function') {
-                  const loginPayload = {
-                    isAuthenticated: true,
-                    profile: {
-                      email: userInfo.email,
-                      email_verified: userInfo.email_verified,
-                      sub: userInfo.sub,
-                      name: userInfo.name,
-                      given_name: userInfo.given_name,
-                      family_name: userInfo.family_name,
-                      nickname: userInfo.nickname,
-                      preferred_username: userInfo.preferred_username,
-                      groups: userInfo.groups || [],
-                      picture: userInfo.picture
-                    },
-                    tokens: {
-                      access_token: userInfo.access_token,
-                      id_token: userInfo.id_token,
-                      token_type: userInfo.token_type || 'Bearer',
-                      expires_at: userInfo.exp ? new Date(userInfo.exp * 1000).toISOString() : null
-                    }
-                  };
-                  
-                  console.log('Dispatching login action to Redux');
-                  reduxStore.dispatch({ type: 'user/login', payload: loginPayload });
-                } else {
-                  console.warn('Redux store not found on window or missing dispatch method');
-                }
-              } catch (reduxError) {
-                console.error('Error dispatching to Redux:', reduxError);
-              }
-            }
-          } catch (storageError) {
-            console.error('Error storing authentication data:', storageError);
-          }
-        } else {
-          console.warn('User info missing or invalid:', userInfo);
-        }
-        
-        // Determine where to redirect after successful authentication
-        const storedState = rawState ? JSON.parse(decodeURIComponent(rawState)) : null;
-        const redirectPath = storedState?.returnTo || '/Page';
-        
-        // Redirect back to the application
-        console.log('Authentication complete. Redirecting to:', redirectPath);
-        window.location.href = redirectPath;
-      } catch (error: unknown) {
-        const errorDetails = error instanceof Error 
-          ? {
-              errorName: error.name,
-              errorMessage: error.message,
-              errorStack: error.stack
-            }
-          : {
-              errorName: 'Unknown Error',
-              errorMessage: String(error),
-              errorStack: null
-            };
-
-        console.error('Authentication callback failed:', errorDetails);
-
-        // Fallback redirect if something goes wrong - also redirect to /Page instead of root
-        console.log('Authentication failed. Redirecting to fallback: /Page');
-        window.location.href = '/Page';
-      }
-    }
-
-    // Run the callback handler when the page loads
-    handleAuthCallback();
-  </script>
-</Layout>
+  ) : (
+    <div style="text-align: center; padding: 20px;">
+      <p>Processing authentication...</p>
+    </div>
+  )}
+</body>
+</html>

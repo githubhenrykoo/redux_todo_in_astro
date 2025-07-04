@@ -1,0 +1,129 @@
+---
+import SimpleLayout from '../../../layouts/SimpleLayout.astro';
+
+const accessToken = Astro.url.searchParams.get('access_token');
+const workspaceId = Astro.url.searchParams.get('workspace_id');
+const workspaceName = Astro.url.searchParams.get('workspace_name');
+
+if (!accessToken) {
+  return Astro.redirect('/page');
+}
+---
+
+<SimpleLayout title="Notion Connection Successful">
+  <div class="success-container">
+    <div class="success-card">
+      <div class="success-icon">✓</div>
+      <h1>Successfully Connected to Notion!</h1>
+      <p>Connected to workspace: <strong>{workspaceName}</strong></p>
+      <div class="redirect-message">
+        <p>Connecting to Notion...</p>
+      </div>
+      <div class="success-actions">
+        <button onclick="window.close()" class="close-button">Close Window</button>
+      </div>
+    </div>
+  </div>
+</SimpleLayout>
+
+<style>
+  .success-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 20px;
+  }
+
+  .success-card {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+  }
+
+  .success-icon {
+    width: 60px;
+    height: 60px;
+    background: #2ecc71;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 20px;
+  }
+
+  h1 {
+    color: #2c3e50;
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  p {
+    color: #34495e;
+    margin-bottom: 12px;
+  }
+
+  .redirect-message {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+  }
+
+  .redirect-message p {
+    color: #7f8c8d;
+    font-size: 14px;
+  }
+
+  .success-actions {
+    margin-top: 20px;
+  }
+
+  .close-button {
+    background: #2ecc71;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+  }
+
+  .close-button:hover {
+    background: #27ae60;
+  }
+</style>
+
+<script>
+  // Store the tokens in localStorage immediately
+  const params = new URLSearchParams(window.location.search);
+  const accessToken = params.get('access_token');
+  const workspaceId = params.get('workspace_id');
+  const workspaceName = params.get('workspace_name');
+  
+  // Store the tokens in localStorage
+  localStorage.setItem('notion_access_token', accessToken);
+  localStorage.setItem('notion_workspace_id', workspaceId);
+  localStorage.setItem('notion_workspace_name', workspaceName);
+
+  // Update the UI to show success
+  const messageEl = document.querySelector('.redirect-message p');
+  if (messageEl) {
+    messageEl.textContent = 'Successfully connected! You can now use Notion features.';
+  }
+
+  // Dispatch a custom event to notify the NotionPanel component
+  window.dispatchEvent(new CustomEvent('notionConnected', {
+    detail: {
+      accessToken,
+      workspaceId,
+      workspaceName
+    }
+  }));
+</script>

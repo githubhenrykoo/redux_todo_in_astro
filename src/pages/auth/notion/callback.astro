@@ -70,8 +70,54 @@ if (code) {
       throw new Error('No access token received');
     }
 
-    // Redirect to the success page with token data
-    return Astro.redirect(`/auth/notion/success?access_token=${data.access_token}&workspace_id=${data.workspace_id}&workspace_name=${encodeURIComponent(data.workspace_name)}`);
+    // Store tokens securely in session
+    if (!Astro.cookies.has('notion_session')) {
+      Astro.cookies.set('notion_session', JSON.stringify({
+        access_token: data.access_token,
+        workspace_id: data.workspace_id,
+        workspace_name: data.workspace_name
+      }), {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'strict',
+        path: '/'
+      });
+    }
+
+    // Return a page that will store tokens in localStorage and redirect
+    return new Response(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Completing Authentication...</title>
+        </head>
+        <body>
+          <script>
+            // Store the tokens in localStorage
+            const authData = ${JSON.stringify({
+              access_token: data.access_token,
+              workspace_id: data.workspace_id,
+              workspace_name: data.workspace_name
+            })};
+            
+            localStorage.setItem('notion_access_token', authData.access_token);
+            localStorage.setItem('notion_workspace_id', authData.workspace_id);
+            localStorage.setItem('notion_workspace_name', authData.workspace_name);
+
+            // Notify components about successful connection
+            window.dispatchEvent(new CustomEvent('notionConnected', { detail: authData }));
+
+            // Redirect to success page without sensitive data in URL
+            window.location.href = '/auth/notion/success';
+          </script>
+          <div style="text-align: center; padding: 20px;">
+            <p>Completing authentication...</p>
+          </div>
+        </body>
+      </html>
+    `, {
+      headers: { 'Content-Type': 'text/html' }
+    });
   } catch (err) {
     console.error('OAuth error:', err);
     error = err.message;

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
+// Notion OAuth configuration
+const NOTION_AUTH_URL = 'https://api.notion.com/v1/oauth/authorize?client_id=226d872b-594c-80ac-90cf-003720fc68f2&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A4321%2Fauth%2Fnotion%2Fcallback';
+
 // Add the extractTitle helper function
 const extractTitle = (page) => {
   if (page.properties && page.properties.title) {
@@ -16,14 +19,67 @@ const NotionPanel = ({ className = '' }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pageId, setPageId] = useState(''); // Default page ID
-  const [connected, setConnected] = useState(true); // Default to true since we don't have actual WebSocket connection
+  const [connected, setConnected] = useState(false); // Default to false until authenticated
+  const [accessToken, setAccessToken] = useState(null);
+  const [workspaceName, setWorkspaceName] = useState('');
 
-  // Auto-sync when pageId changes
+  // Check for existing token and listen for OAuth success
   useEffect(() => {
-    if (pageId) {
+    const savedToken = localStorage.getItem('notion_access_token');
+    if (savedToken) {
+      const savedWorkspaceName = localStorage.getItem('notion_workspace_name');
+      setAccessToken(savedToken);
+      setWorkspaceName(savedWorkspaceName || '');
+      setConnected(true);
+      console.log('Restored previous Notion session');
+    }
+
+    // Listen for OAuth success event
+    const handleNotionConnected = (event) => {
+      const { accessToken, workspaceId, workspaceName } = event.detail;
+      setAccessToken(accessToken);
+      setWorkspaceName(workspaceName);
+      setConnected(true);
+      console.log('Notion connected via OAuth');
+    };
+
+    window.addEventListener('notionConnected', handleNotionConnected);
+    return () => window.removeEventListener('notionConnected', handleNotionConnected);
+  }, []);
+
+  // Auto-sync when pageId changes and we're connected
+  useEffect(() => {
+    if (pageId && connected) {
       syncPage(pageId);
     }
-  }, [pageId]);
+  }, [pageId, connected]);
+
+
+
+  const handleLogin = () => {
+    // Open OAuth window
+    const width = 600;
+    const height = 700;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    window.open(
+      NOTION_AUTH_URL,
+      'Notion OAuth',
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('notion_access_token');
+    localStorage.removeItem('notion_workspace_id');
+    localStorage.removeItem('notion_workspace_name');
+    
+    setAccessToken(null);
+    setConnected(false);
+    setDocuments([]);
+    setError(null);
+  };
 
 
 
@@ -142,20 +198,11 @@ const NotionPanel = ({ className = '' }) => {
         });
       }
 
-      // Get fresh data from Notion
-      const response = await fetch(`/api/notion/page?pageId=${pageId}`);
+      // Get fresh data from Notion through our API endpoint
+      const response = await fetch(`/api/notion/getpage?pageId=${pageId}&accessToken=${accessToken}`);
       const data = await response.json();
       
       if (data.success) {
-        // Update cache
-        const cache = await caches.open('notion-cache-v2');
-        await cache.put(
-          `notion-page-${pageId}`,
-          new Response(JSON.stringify(data), {
-            headers: { 'Content-Type': 'application/json' }
-          })
-        );
-
         const formattedDoc = {
           id: data.document.page.id,
           title: extractTitle(data.document.page),
@@ -171,12 +218,12 @@ const NotionPanel = ({ className = '' }) => {
         });
         
         await uploadToCardCollection([formattedDoc]);
+      } else if (data.error) {
+        throw new Error(data.error);
       }
     } catch (err) {
       console.error('Sync error:', err);
-      if (!documents.length) {
-        setError('Failed to fetch data. Please check your connection.');
-      }
+      setError(err.message || 'Failed to fetch data. Please check your connection.');
     } finally {
       setLoading(false);
     }
@@ -211,7 +258,28 @@ const NotionPanel = ({ className = '' }) => {
     <div className={`notion-panel ${className}`} style={{ padding: '20px', backgroundColor: 'white', height: '100%', overflowY: 'auto' }}>
       
       <div className="controls">
-        <div className="input-group">
+        {!connected ? (
+          <button
+            onClick={handleLogin}
+            className="connect-button"
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#000',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            Connect to Notion
+          </button>
+        ) : (
+          <div className="input-group">
           <div style={{ position: 'relative', flex: 1 }}>
             <input 
               value={pageId}
@@ -259,8 +327,53 @@ const NotionPanel = ({ className = '' }) => {
           >
             {loading ? 'Syncing...' : 'Sync Page'}
           </button>
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Workspace Info & Logout */}
+      {connected && (
+        <div className="workspace-info" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '10px 0',
+          marginBottom: '20px',
+          borderBottom: '1px solid #e0e0e0'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ 
+              backgroundColor: '#000',
+              color: '#fff',
+              width: '24px',
+              height: '24px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px'
+            }}>
+              {workspaceName.charAt(0)}
+            </span>
+            <span style={{ fontWeight: '500' }}>{workspaceName}</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: '#f5f5f5',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              color: '#666',
+              transition: 'all 0.2s'
+            }}
+          >
+            Logout
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="error-message">

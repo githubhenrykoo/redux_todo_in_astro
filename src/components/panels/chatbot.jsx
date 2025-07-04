@@ -24,19 +24,20 @@ const ChatbotPanel = ({ className = '' }) => {
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSwitching, setIsSwitching] = useState(false);
+  const switchTimeoutRef = useRef(null);
   const [error, setError] = useState(null);
   const [models, setModels] = useState([]);
-  const [selectedModel, setSelectedModel] = useState('llama3:8b');
+  const [selectedModel, setSelectedModel] = useState('');
   const [selectedPort, setSelectedPort] = useState('11434');
   const [ollamaInstance, setOllamaInstance] = useState('local');
   const [instanceStatus, setInstanceStatus] = useState({
     local: { connected: false, models: [] },
-    docker: { connected: false, models: [] }
-  }); // 'local' or 'docker'
+    server: { connected: false, models: [] }
+  });
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const terminalSocketRef = useRef(null);
 
 
   // Scroll to bottom when messages change
@@ -168,36 +169,46 @@ const ChatbotPanel = ({ className = '' }) => {
   };
 
   const checkOllamaStatus = async () => {
-    const instance = selectedPort === '11434' ? 'local' : 'docker';
+    const instance = selectedPort === '11434' ? 'local' : 'server';
+
     setInstanceStatus(prev => ({
       ...prev,
       [instance]: { ...prev[instance], connected: false }
     }));
+
     try {
-      const response = await fetch(`http://127.0.0.1:${selectedPort}/api/tags`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.models && data.models.length > 0) {
-          const instance = selectedPort === '11434' ? 'local' : 'docker';
-          setModels(data.models);
-          setInstanceStatus(prev => ({
-            ...prev,
-            [instance]: { connected: true, models: data.models }
-          }));
-          // If llama3:8b is available, use it
-          const llama3Model = data.models.find(model => model.name === 'llama3:8b');
-          if (llama3Model) {
-            setSelectedModel('llama3:8b');
-          } else {
-            // Otherwise use the first available model
-            setSelectedModel(data.models[0].name);
-          }
-        }
+      // Try /api/list endpoint directly - it's more reliable
+      const response = await fetch(`http://127.0.0.1:${selectedPort}/api/tags`, {
+        signal: AbortSignal.timeout(2000) // 2 second timeout
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to fetch models');
+      }
+
+      const data = await response.json();
+      const models = data.models?.map(model => ({ name: model.name })) || [];
+
+      if (models.length > 0) {
+        setModels(models);
+        setInstanceStatus(prev => ({
+          ...prev,
+          [instance]: { connected: true, models: models }
+        }));
+        setSelectedModel(models[0].name);
+        setError(null);
+      } else {
+        throw new Error('No models available');
       }
     } catch (err) {
       console.error('Error checking Ollama status:', err);
-      const instanceType = selectedPort === '11434' ? 'local' : 'Docker';
-      setError(`Cannot connect to ${instanceType} Ollama server. Make sure ${instanceType} Ollama is running at http://127.0.0.1:${selectedPort}`);
+      const instanceType = selectedPort === '11434' ? 'Local LLM' : 'Server LLM';
+      const errorMessage = err.name === 'TimeoutError' 
+        ? `${instanceType} connection timed out. Make sure ${instanceType} is running.`
+        : `${instanceType} is not available. Make sure ${instanceType} is running and has models installed.`;
+      setError(errorMessage);
+      setModels([]);
+      setSelectedModel('');
     }
   };
 
@@ -227,138 +238,7 @@ const ChatbotPanel = ({ className = '' }) => {
     }
   };
 
-  useEffect(() => {
-    // Connect to terminal WebSocket server
-    connectToTerminal();
-    return () => {
-      if (terminalSocketRef.current) {
-        terminalSocketRef.current.close();
-      }
-    };
-  }, []);
 
-  const connectToTerminal = () => {
-    try {
-      const ws = new WebSocket('ws://localhost:3001');
-      terminalSocketRef.current = ws;
-
-      ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (message.type === 'output') {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: message.data
-          }]);
-        }
-      };
-    } catch (err) {
-      console.error('Terminal connection error:', err);
-    }
-  };
-
-  // Add this function after other function declarations
-  // Update the processNaturalLanguageCommand function
-  const processNaturalLanguageCommand = (text) => {
-    // Helper function to calculate similarity between two strings
-    const calculateSimilarity = (str1, str2) => {
-      const s1 = str1.toLowerCase();
-      const s2 = str2.toLowerCase();
-      const len1 = s1.length;
-      const len2 = s2.length;
-      const matrix = Array(len1 + 1).fill().map(() => Array(len2 + 1).fill(0));
-
-      for (let i = 0; i <= len1; i++) matrix[i][0] = i;
-      for (let j = 0; j <= len2; j++) matrix[0][j] = j;
-
-      for (let i = 1; i <= len1; i++) {
-        for (let j = 1; j <= len2; j++) {
-          const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j - 1] + cost
-          );
-        }
-      }
-      return 1 - (matrix[len1][len2] / Math.max(len1, len2));
-    };
-
-    // Find closest matching command
-    const findClosestCommand = (input) => {
-      const commands = Object.keys(commandMap);
-      let bestMatch = null;
-      let highestSimilarity = 0;
-
-      commands.forEach(cmd => {
-        const similarity = calculateSimilarity(input, cmd);
-        if (similarity > highestSimilarity && similarity > 0.6) { // Threshold of 60% similarity
-          highestSimilarity = similarity;
-          bestMatch = cmd;
-        }
-      });
-      return bestMatch;
-    };
-
-    const commandMap = {
-      'read': 'cat',
-      'show': 'cat',
-      'list': 'ls',
-      'show files': 'ls',
-      'show directory': 'ls',
-      'current directory': 'pwd',
-      'where am i': 'pwd',
-      'clear screen': 'clear',
-      'make directory': 'mkdir',
-      'create directory': 'mkdir',
-      'remove': 'rm',
-      'delete': 'rm',
-    };
-
-    // Fuzzy patterns for file operations
-    const patterns = {
-      read: /(?:r[ea]+d|sh[o0]w|d[i1]spl[ae]y|[o0]p[e3]n)\s+(?:c[o0]nt[e3]nts?\s+[o0]f\s+|th[e3]\s+)?(?:f[i1]l[e3]\s+)?["']?([^"']+?)["']?\s*$/i,
-      list: /(?:l[i1]st|sh[o0]w)\s+(?:f[i1]l[e3]s?|d[i1]r[e3]ct[o0]r[yi]?s?|c[o0]nt[e3]nts?)\s*(?:[i1]n\s+)?(.+)?/i,
-      mkdir: /(?:m[a4]k[e3]|cr[e3][a4]t[e3])\s+(?:[a4]\s+)?(?:n[e3]w\s+)?d[i1]r(?:[e3]ct[o0]r[yi])?\s+(?:n[a4]m[e3]d\s+)?(.+)/i,
-      remove: /(?:r[e3]m[o0]v[e3]|d[e3]l[e3]t[e3])\s+(?:th[e3]\s+)?(?:f[i1]l[e3]|d[i1]r[e3]ct[o0]r[yi])?\s+(.+)/i,
-      where: /w[he]{1,2}r[e]?\s+(?:am|is)\s+(?:i|me|we)/i
-    };
-
-    let command = '';
-    const input = text.toLowerCase().trim();
-
-    // First try to find exact match
-    if (commandMap[input]) {
-      return commandMap[input];
-    }
-
-    // Then try to find closest match for simple commands
-    const closestMatch = findClosestCommand(input);
-    if (closestMatch) {
-      return commandMap[closestMatch];
-    }
-
-    // Check patterns with fuzzy matching
-    if (patterns.where.test(input)) {
-      command = 'pwd';
-    } else if (patterns.read.test(input)) {
-      const match = input.match(patterns.read);
-      const filename = match[1].trim();
-      command = `cat "${filename}"`;
-    } else if (patterns.list.test(input)) {
-      const match = input.match(patterns.list);
-      command = `ls ${match[1] ? `"${match[1].trim()}"` : ''}`.trim();
-    } else if (patterns.mkdir.test(input)) {
-      const match = input.match(patterns.mkdir);
-      command = `mkdir "${match[1].trim()}"`;
-    } else if (patterns.remove.test(input)) {
-      const match = input.match(patterns.remove);
-      command = `rm "${match[1].trim()}"`;
-    }
-
-    return command;
-  };
-  
-  // Update the sendMessage function's command handling section
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
   
@@ -369,19 +249,7 @@ const ChatbotPanel = ({ className = '' }) => {
     setIsLoading(true);
     setError(null);
   
-    // Check for terminal commands (both direct and natural language)
-    const naturalCommand = processNaturalLanguageCommand(input.trim());
-    if (input.trim().startsWith('$') || naturalCommand) {
-      const command = input.trim().startsWith('$') ? input.trim().slice(1) : naturalCommand;
-      if (terminalSocketRef.current?.readyState === WebSocket.OPEN) {
-        terminalSocketRef.current.send(JSON.stringify({
-          type: 'input',
-          data: command + '\n'
-        }));
-      }
-      setIsLoading(false);
-      return;
-    }
+
 
     try {
       // Add thinking indicator
@@ -531,19 +399,60 @@ Answer based on the above context.`
     <div className={`h-full w-full flex flex-col bg-gray-900 text-gray-200 overflow-hidden ${className}`}>
       <div className="p-2 bg-gray-800 border-b border-gray-700 flex flex-col">
         <div className="flex items-center mb-2">
-          <div className="text-center flex-grow"><b>Chatbot ({ollamaInstance === 'local' ? 'Local' : 'Docker'})</b></div>
-          <select 
-            value={selectedPort}
-            onChange={(e) => {
-              const port = e.target.value;
-              setSelectedPort(port);
-              setOllamaInstance(port === '11434' ? 'local' : 'docker');
-            }}
-            className="mr-2 px-2 py-1 text-xs bg-gray-700 text-white rounded"
-          >
-            <option value="11434">Your Local Ollama</option>
-            <option value="11435">Docker Server</option>
-          </select>
+          <div className="text-center flex-grow"><b>Chatbot</b></div>
+          <div className="flex items-center mr-2">
+            <span className="text-xs text-gray-300 font-medium mr-3">LLM Provider:</span>
+            <button
+              disabled={isSwitching}
+              onClick={() => {
+                // Prevent concurrent switches
+                if (isSwitching) return;
+
+                // Clear any pending switch timeout
+                if (switchTimeoutRef.current) {
+                  clearTimeout(switchTimeoutRef.current);
+                }
+
+                // Set a 100ms debounce timeout
+                switchTimeoutRef.current = setTimeout(async () => {
+                  setIsSwitching(true);
+                  try {
+                    const newPort = selectedPort === '11434' ? '11435' : '11434';
+                    const newInstance = selectedPort === '11434' ? 'server' : 'local';
+
+                    // Batch state updates
+                    setModels([]);
+                    setError(null);
+                    setIsLoading(false);
+                    setMessages(prev => prev.filter(m => !m.isThinking));
+                    setSelectedPort(newPort);
+                    setOllamaInstance(newInstance);
+
+                    await checkOllamaStatus();
+                  } catch (err) {
+                    console.error('Switch error:', err);
+                    setError(`Failed to switch LLM provider: ${err.message}`);
+                  } finally {
+                    setIsSwitching(false);
+                    switchTimeoutRef.current = null;
+                  }
+                }, 100);
+              }}
+              className={`flex items-center gap-2 px-3 py-1 text-xs ${isSwitching ? 'bg-gray-600 cursor-not-allowed' : 'bg-gray-700 hover:bg-gray-600'} text-white rounded transition-colors duration-200 min-w-[80px] text-center font-medium`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="relative h-4 w-6 flex justify-between px-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="white">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="white">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+                </div>
+                <span className="min-w-[36px]">{selectedPort === '11434' ? 'Local' : 'Server'}</span>
+              </div>
+            </button>
+          </div>
           <select 
             value={selectedModel}
             onChange={handleModelChange}
@@ -556,7 +465,7 @@ Answer based on the above context.`
                 </option>
               ))
             ) : (
-              <option key="llama3:8b" value="llama3:8b">llama3:8b</option>
+              <option key="LLM Models" value="LLM Models">LLM Models</option>
             )}
           </select>
           <button 

@@ -107,8 +107,8 @@ if (code) {
             // Notify components about successful connection
             window.dispatchEvent(new CustomEvent('notionConnected', { detail: authData }));
 
-            // Redirect to success page without sensitive data in URL
-            window.location.href = '/auth/notion/success';
+            // Redirect directly to page
+            window.location.href = '/Page';
           </script>
           <div style="text-align: center; padding: 20px;">
             <p>Completing authentication...</p>

@@ -1,11 +1,12 @@
 ---
 import SimpleLayout from '../../../layouts/SimpleLayout.astro';
 
-const accessToken = Astro.url.searchParams.get('access_token');
-const workspaceId = Astro.url.searchParams.get('workspace_id');
-const workspaceName = Astro.url.searchParams.get('workspace_name');
-
-if (!accessToken) {
+// Get session data
+let workspaceName = '';
+const sessionData = Astro.cookies.get('notion_session')?.json();
+if (sessionData?.workspace_name) {
+  workspaceName = sessionData.workspace_name;
+} else {
   return Astro.redirect('/page');
 }
 ---
@@ -101,21 +102,12 @@ if (!accessToken) {
 </style>
 
 <script>
-  // Store the tokens in localStorage immediately
-  const params = new URLSearchParams(window.location.search);
-  const accessToken = params.get('access_token');
-  const workspaceId = params.get('workspace_id');
-  const workspaceName = params.get('workspace_name');
-  
-  // Store the tokens in localStorage
-  localStorage.setItem('notion_access_token', accessToken);
-  localStorage.setItem('notion_workspace_id', workspaceId);
-  localStorage.setItem('notion_workspace_name', workspaceName);
+  // The tokens are already stored in localStorage by the callback page
 
   // Update the UI to show success
   const messageEl = document.querySelector('.redirect-message p');
   if (messageEl) {
-    messageEl.textContent = 'Successfully connected! You can now use Notion features.';
+    messageEl.textContent = 'Successfully connected! Redirecting to dashboard...';
   }
 
   // Dispatch a custom event to notify the NotionPanel component
@@ -126,4 +118,9 @@ if (!accessToken) {
       workspaceName
     }
   }));
+
+  // Redirect to /page after a short delay
+  setTimeout(() => {
+    window.location.href = '/page';
+  }, 2000);
 </script>

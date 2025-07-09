@@ -1,37 +1,10 @@
 version: '3.8'
 services:
-  app:
-    image: henry768/redux_todo_in_astro:sha-d59d715145805157224e9289047b46e717a2edad
-    container_name: redux-todo-astro
-    ports:
-      - "4321:4321"
-    env_file:
-      - .env
-    environment:
-      - VITE_HOST=0.0.0.0
-      - HOST=0.0.0.0
-    command: npm run dev -- --host
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11435:11434"
-    env_file:
-      - .env
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["ollama serve & sleep 5 && ollama pull qwen3:0.6b && wait"]
   status_checker:
-    image: henry768/redux_todo_in_astro:sha-d59d715145805157224e9289047b46e717a2edad
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: status-checker
     env_file:
-      - .env
-    command: >
-      /bin/sh -c '
-      pip install requests python-dotenv &&
-      echo "Waiting for app to start..." &&
-      sleep 30 &&
-      sed -i "s/response.status_code == 200/response.status_code in [200, 403]/" /app/status_checking/status_checking.py &&
-      python /app/status_checking/status_checking.py'
+      - ../.env
     restart: always
-    depends_on:
-      - app

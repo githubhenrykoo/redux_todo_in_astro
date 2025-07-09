@@ -17,7 +17,7 @@ const ChatbotPanel = ({ className = '' }) => {
     ];
   });
 
-  // Save messages to localStorage whenever they change
+  // Save messages to localStorage whenever they changes
   useEffect(() => {
     localStorage.setItem('chatHistory', JSON.stringify(messages));
   }, [messages]);

@@ -20,7 +20,7 @@ was_down = None
 
 def get_ollama_analysis(error_info):
     try:
-        prompt = f"Analyze this website error and provide a brief explanation and possible solution:\n{error_info}"
+        prompt = f"Analyze this website error and provide a brief explanation and possible solution in 1 or 2 important sentences:\n{error_info}"
         payload = {
             "model": "qwen3:0.6b",
             "prompt": prompt,

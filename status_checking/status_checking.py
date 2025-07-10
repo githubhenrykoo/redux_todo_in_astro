@@ -13,7 +13,7 @@ load_dotenv()
 WEBSITE_URL = os.getenv('TELEGRAM_WEBSITE_URL')
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-OLLAMA_URL = 'http://localhost:11435/api/generate'
+OLLAMA_URL = 'http://localhost:11434/api/generate'
 
 # Untuk mendeteksi perubahan status
 was_down = None
@@ -22,7 +22,7 @@ def get_ollama_analysis(error_info):
     try:
         prompt = f"Analyze this website error and provide a brief explanation and possible solution in 1 or 2 important sentences:\n{error_info}"
         payload = {
-            "model": "qwen3:0.6b",
+            "model": "llama3:8b",
             "prompt": prompt,
             "stream": False
         }

@@ -5,6 +5,7 @@ import sys
 import os
 import json
 from dotenv import load_dotenv
+from threading import Thread
 
 # Load environment variables from .env file
 load_dotenv()
@@ -12,11 +13,42 @@ load_dotenv()
 # Konfigurasi
 WEBSITE_URL = os.getenv('TELEGRAM_WEBSITE_URL')
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 OLLAMA_URL = 'http://localhost:11434/api/generate'
 
 # Untuk mendeteksi perubahan status
 was_down = None
+
+# Store active chat IDs
+active_chats = set()
+
+def handle_telegram_updates():
+    last_update_id = 0
+    while True:
+        try:
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+            params = {
+                'offset': last_update_id + 1,
+                'timeout': 30
+            }
+            response = requests.get(url, params=params, timeout=35)
+            updates = response.json()
+            
+            if updates.get('ok') and updates.get('result'):
+                for update in updates['result']:
+                    if 'message' in update:
+                        chat_id = update['message']['chat']['id']
+                        active_chats.add(chat_id)
+                        # Send welcome message
+                        if update['message'].get('text') == '/start':
+                            welcome_msg = (
+                                f"👋 Welcome! I'll notify you about the status of {WEBSITE_URL}\n"
+                                "You'll receive notifications when the website goes up or down."
+                            )
+                            send_telegram_message(welcome_msg, chat_id)
+                    last_update_id = update['update_id']
+        except Exception as e:
+            print(f"Error in Telegram updates handler: {e}")
+        time.sleep(1)
 
 def get_ollama_analysis(error_info):
     try:
@@ -34,16 +66,30 @@ def get_ollama_analysis(error_info):
     except Exception as e:
         return f"Error getting Ollama analysis: {str(e)}"
 
-def send_telegram_message(message):
+def send_telegram_message(message, chat_id=None):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    data = {
-        "chat_id": CHAT_ID,
-        "text": message
-    }
-    try:
-        requests.post(url, data=data)
-    except Exception as e:
-        print("Failed to send Telegram message:", e)
+    
+    if chat_id:
+        # Send to specific chat IDz
+        data = {
+            "chat_id": chat_id,
+            "text": message
+        }
+        try:
+            requests.post(url, data=data)
+        except Exception as e:
+            print(f"Failed to send Telegram message to {chat_id}:", e)
+    else:
+        # Broadcast to all active chats
+        for chat_id in active_chats:
+            data = {
+                "chat_id": chat_id,
+                "text": message
+            }
+            try:
+                requests.post(url, data=data)
+            except Exception as e:
+                print(f"Failed to send Telegram message to {chat_id}:", e)
 
 def get_status_description(status_code):
     status_codes = {
@@ -159,6 +205,10 @@ if __name__ == "__main__":
     
     print(f'Starting website monitoring for {WEBSITE_URL}')
     print('Press Ctrl+C to stop')
+    
+    # Start Telegram updates handler in a separate thread
+    telegram_thread = Thread(target=handle_telegram_updates, daemon=True)
+    telegram_thread.start()
     
     while True:
         try:

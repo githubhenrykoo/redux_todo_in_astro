@@ -108,13 +108,6 @@ def check_website():
     global was_down
     try:
         response = requests.get(WEBSITE_URL, timeout=5)
-        status_info = {
-            'status_code': response.status_code,
-            'headers': dict(response.headers),
-            'response_time': response.elapsed.total_seconds(),
-            'content_type': response.headers.get('content-type', 'unknown')
-        }
-        
         if response.status_code == 200:
             if was_down is not False:
                 message = (
@@ -216,4 +209,4 @@ if __name__ == "__main__":
             time.sleep(1)
         except Exception as e:
             print(f'Error occurred: {e}')
-            time.sleep(1)
+            time.sleep(3)

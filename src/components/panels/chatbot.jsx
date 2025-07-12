@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// Cache for API responses
+const apiCache = new Map();
+const CACHE_DURATION = 30000; // 30 seconds cache
+
 const ChatbotPanel = ({ className = '' }) => {
   // Add isTyping state with other state declarations
   const [isTyping, setIsTyping] = useState(false);
@@ -58,8 +62,7 @@ const ChatbotPanel = ({ className = '' }) => {
       const response = await fetch('http://localhost:4321/api/card-collection?action=getPage&pageNumber=1', {
         method: 'GET',
         headers: {
-          'Cache-Control': 'no-cache',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
       });
       
@@ -170,6 +173,21 @@ const ChatbotPanel = ({ className = '' }) => {
 
   const checkOllamaStatus = async () => {
     const instance = selectedPort === '11434' ? 'local' : 'server';
+    const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.241.179.204:11435';
+    const cacheKey = `models_${baseUrl}`;
+
+    // Check cache first
+    const cachedData = apiCache.get(cacheKey);
+    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
+      setModels(cachedData.models);
+      setInstanceStatus(prev => ({
+        ...prev,
+        [instance]: { connected: true, models: cachedData.models }
+      }));
+      setSelectedModel(cachedData.models[0]?.name || '');
+      setError(null);
+      return;
+    }
 
     setInstanceStatus(prev => ({
       ...prev,
@@ -177,9 +195,9 @@ const ChatbotPanel = ({ className = '' }) => {
     }));
 
     try {
-      // Try /api/list endpoint directly - it's more reliable
-      const response = await fetch(`http://127.0.0.1:${selectedPort}/api/tags`, {
-        signal: AbortSignal.timeout(2000) // 2 second timeout
+      // Faster timeout for model list
+      const response = await fetch(`${baseUrl}/api/tags`, {
+        signal: AbortSignal.timeout(1000) // 1 second timeout
       });
 
       if (!response.ok) {
@@ -190,6 +208,12 @@ const ChatbotPanel = ({ className = '' }) => {
       const models = data.models?.map(model => ({ name: model.name })) || [];
 
       if (models.length > 0) {
+        // Cache the successful response
+        apiCache.set(cacheKey, {
+          models,
+          timestamp: Date.now()
+        });
+        
         setModels(models);
         setInstanceStatus(prev => ({
           ...prev,
@@ -253,13 +277,21 @@ const ChatbotPanel = ({ className = '' }) => {
 
     try {
       // Add thinking indicator
-      setMessages(prev => [...prev, { role: 'assistant', content: '...', isThinking: true }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Thinking...', isThinking: true }]);
 
-      // Implement RAG: Fetch external data to augment the response
-      console.log('Starting RAG process...');
+      // Implement optimized RAG with quick timeout
+      console.log('Starting optimized RAG process...');
       
-      // Fetch external data and handle the response
-      const externalData = await fetchExternalData();
+      // Fetch external data with timeout to ensure quick response
+      const externalData = await Promise.race([
+        fetchExternalData(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('RAG timeout')), 2000)
+        )
+      ]).catch(err => {
+        console.log('RAG fetch skipped:', err.message);
+        return null;
+      });
       
       // Prepare a string representation of the raw API response
       let rawApiResponseStr = 'API Response: ';
@@ -277,14 +309,14 @@ const ChatbotPanel = ({ className = '' }) => {
       // Prepare messages array with external context if available
       const messagesForModel = [];
       
-      // Add system message with RAG prompt template
+      // Add system message with enhanced RAG prompt template
       messagesForModel.push({
         role: 'system',
-        content: `You are an assistant who is very good at searching documents. If you do not find an answer from the provided information, say sorry.
+        content: `You are a helpful assistant with access to both document search and general knowledge.
 
-Context: ${contextInfo || 'No relevant context found in the database.'}
+If relevant document context is found, use it: ${contextInfo || 'No relevant context found.'}
 
-Answer based on the above context.`
+Please explain very quickly. If no relevant documents are found or the context doesn't answer the question completely, use your general knowledge to provide a helpful response. Always aim to give the most accurate and useful answer possible, whether it comes from documents or your general knowledge.`
       });
       
       // Add a hidden message with the raw API data for the model to use
@@ -305,38 +337,73 @@ Answer based on the above context.`
       console.log('Sending request to Ollama API with', messagesForModel.length, 'messages');
       console.log('First message role:', messagesForModel[0]?.role);
       
-      const response = await fetch(`http://127.0.0.1:${selectedPort}/api/chat`, {
+      const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.241.179.204:11435';
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      const response = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: selectedModel,
           messages: messagesForModel,
-          stream: false
+          stream: true,
+          options: {
+            temperature: 0.7,
+            num_predict: 1024,
+            top_k: 20,
+            top_p: 0.9,
+            repeat_penalty: 1.1,
+            num_ctx: 2048
+          }
         }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log('Received response from Ollama API');
+      const reader = response.body.getReader();
+      let accumulatedResponse = '';
       
-      // Check if we have a valid response with content
-      if (!data.message || !data.message.content) {
-        console.warn('Received empty or invalid response from Ollama');
+      // Remove thinking indicator before starting stream
+      setMessages(prev => prev.filter(m => !m.isThinking));
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n').filter(Boolean);
+        
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data.message?.content) {
+              accumulatedResponse += data.message.content;
+              setMessages(prev => {
+                const newMessages = [...prev];
+                const lastMessage = newMessages[newMessages.length - 1];
+                
+                if (lastMessage?.role === 'assistant') {
+                  lastMessage.content = accumulatedResponse;
+                  return newMessages;
+                } else {
+                  return [...prev, { role: 'assistant', content: accumulatedResponse }];
+                }
+              });
+            }
+          } catch (parseError) {
+            console.warn('Failed to parse streaming chunk:', parseError);
+            continue;
+          }
+        }
       }
-      
-      // Only show the model's response to the user (hide API data)
-      const assistantResponse = data.message?.content || 'No response from model';
-      
-      // Remove thinking indicator and add actual response
-      setMessages(prev => [
-        ...prev.filter(m => !m.isThinking),
-        { role: 'assistant', content: assistantResponse }
-      ]);
     } catch (err) {
       console.error('Error sending message:', err);
       
@@ -497,7 +564,14 @@ Answer based on the above context.`
               message.role === 'system' ? 'bg-gray-700 text-gray-200' : 
               message.role === 'error' ? 'bg-red-600 text-white' : 
               'bg-gray-800 text-gray-200 rounded-bl-none'
-            } ${message.isThinking ? 'animate-pulse' : ''}`}>
+            } ${message.isThinking ? 'relative' : ''}`}>
+              {message.isThinking && (
+                <div className="absolute -bottom-6 left-4 flex space-x-1">
+                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-[bounce_0.9s_infinite]" style={{animationDelay: '0s'}}></div>
+                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-[bounce_0.9s_infinite]" style={{animationDelay: '0.1s'}}></div>
+                  <div className="w-1 h-1 bg-gray-400 rounded-full animate-[bounce_0.9s_infinite]" style={{animationDelay: '0.2s'}}></div>
+                </div>
+              )}
               <div 
                 className="whitespace-pre-wrap"
                 onMouseUp={() => {
@@ -558,13 +632,14 @@ Answer based on the above context.`
             }`}
           >
             {isLoading ? (
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <div className="flex space-x-1 items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full animate-[bounce_0.9s_infinite]" style={{animationDelay: '0s'}}></div>
+                <div className="w-1.5 h-1.5 bg-white rounded-full animate-[bounce_0.9s_infinite]" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-1.5 h-1.5 bg-white rounded-full animate-[bounce_0.9s_infinite]" style={{animationDelay: '0.2s'}}></div>
+              </div>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 transform transition-transform duration-200 ease-in-out hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
             )}
           </button>

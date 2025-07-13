@@ -1,18 +1,16 @@
+version: '3.8'
 services:
   app:
-    image: henry768/redux_todo_in_astro:last
+    image: henry768/redux_todo_in_astro:test
     container_name: redux-todo-astro
     ports:
       - "4321:4321"
+    volumes:
+      - ./public/data:/app/public/data
     env_file:
       - .env
-    command: npm run dev
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: ollama
-    ports:
-      - "11435:11434"
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["ollama serve & sleep 5 && ollama pull qwen3:0.6b && wait"]
+networks:
+  default:
+    driver: bridge

@@ -85,6 +85,12 @@ if (code) {
     }
 
     // Return a page that will store tokens in localStorage and redirect
+    const authDataJson = JSON.stringify({
+      access_token: data.access_token,
+      workspace_id: data.workspace_id,
+      workspace_name: data.workspace_name
+    });
+    
     return new Response(`
       <!DOCTYPE html>
       <html>
@@ -94,11 +100,7 @@ if (code) {
         <body>
           <script>
             // Store the tokens in localStorage
-            const authData = ${JSON.stringify({
-              access_token: data.access_token,
-              workspace_id: data.workspace_id,
-              workspace_name: data.workspace_name
-            })};
+            const authData = ${authDataJson};
             
             localStorage.setItem('notion_access_token', authData.access_token);
             localStorage.setItem('notion_workspace_id', authData.workspace_id);

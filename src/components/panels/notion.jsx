@@ -315,8 +315,6 @@ const NotionPanel = ({ className = '' }) => {
               padding: '8px 12px',
               backgroundColor: '#2ecc71',
               color: '#fff',
-              backgroundColor: '#2ecc71',
-              color: '#fff',
               border: 'none',
               borderRadius: '4px',
               cursor: loading ? 'not-allowed' : 'pointer',

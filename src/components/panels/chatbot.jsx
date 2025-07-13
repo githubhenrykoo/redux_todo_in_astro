@@ -173,7 +173,7 @@ const ChatbotPanel = ({ className = '' }) => {
 
   const checkOllamaStatus = async () => {
     const instance = selectedPort === '11434' ? 'local' : 'server';
-    const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.241.179.204:11435';
+    const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.243.179.204:11435';
     const cacheKey = `models_${baseUrl}`;
 
     // Check cache first
@@ -337,7 +337,7 @@ Please explain very quickly. If no relevant documents are found or the context d
       console.log('Sending request to Ollama API with', messagesForModel.length, 'messages');
       console.log('First message role:', messagesForModel[0]?.role);
       
-      const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.241.179.204:11435';
+      const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.243.179.204:11435';
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
 

@@ -174,7 +174,7 @@ const ChatbotPanel = ({ className = '' }) => {
   const checkOllamaStatus = async () => {
     const instance = selectedPort === '11434' ? 'local' : 'server';
     // Use the appropriate API proxy based on the selected port
-    const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_public';
+    const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_publics';
     const cacheKey = `models_${baseUrl}_${selectedPort}`;
 
     // Check cache first
@@ -336,7 +336,7 @@ Please explain very quickly. If no relevant documents are found or the context d
       );
 
       // Use the appropriate API proxy based on the selected port
-      const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_public';
+      const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_publics';
       const endpoint = '';
       
       // Make API call to Ollama via proxy

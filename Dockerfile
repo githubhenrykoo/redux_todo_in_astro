@@ -25,8 +25,12 @@ RUN mkdir -p public/assets
 # Copy PDF.js worker file to public directory
 RUN cp -r node_modules/pdfjs-dist/build/pdf.worker.* public/assets/ || echo "PDF worker files not found in expected location"
 
-# Ensure public/data directory exists for PDFs
+# Ensure all required directories exist for PDFs
 RUN mkdir -p public/data
+
+# Create directory structure for PDF access from both /app/data and /data paths
+RUN mkdir -p /data
+RUN ln -s /app/public/data/* /data/ || echo "No data files to link yet - will be linked at runtime"
 
 EXPOSE 4321
 

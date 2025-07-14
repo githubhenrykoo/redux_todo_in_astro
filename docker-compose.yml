@@ -1,12 +1,11 @@
 version: '3.8'
 services:
   app:
-    image: henry768/redux_todo_in_astro:test
+    image: henry768/redux_todo_in_astro:selfcontained
     container_name: redux-todo-astro
     ports:
-      - "4321:4321"
-    volumes:
-      - ./public/data:/app/public/data
+      - "4323:4321"
+    # No volumes - using self-contained image with PDFs included
     env_file:
       - .env
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

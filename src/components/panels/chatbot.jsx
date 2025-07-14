@@ -173,9 +173,9 @@ const ChatbotPanel = ({ className = '' }) => {
 
   const checkOllamaStatus = async () => {
     const instance = selectedPort === '11434' ? 'local' : 'server';
-    // Use the Astro API proxy for local Ollama, or direct connection for remote server
-    const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : 'http://10.241.179.204:11435';
-    const cacheKey = `models_${baseUrl}`;
+    // Use the appropriate API proxy based on the selected port
+    const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_public';
+    const cacheKey = `models_${baseUrl}_${selectedPort}`;
 
     // Check cache first
     const cachedData = apiCache.get(cacheKey);
@@ -197,9 +197,9 @@ const ChatbotPanel = ({ className = '' }) => {
 
     try {
       // Faster timeout for model list
-      const endpoint = selectedPort === '11434' ? '?endpoint=/api/tags' : '/api/tags';
+      const endpoint = '?endpoint=/api/tags';
       const response = await fetch(`${baseUrl}${endpoint}`, {
-        signal: AbortSignal.timeout(1000) // 1 second timeout
+        signal: AbortSignal.timeout(2000) // 2 second timeout
       });
 
       if (!response.ok) {
@@ -335,9 +335,9 @@ Please explain very quickly. If no relevant documents are found or the context d
         userMessage
       );
 
-      // Use the Astro API proxy for local Ollama, or direct connection for remote server
-      const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : 'http://10.241.179.204:11435';
-      const endpoint = selectedPort === '11434' ? '' : '/api/chat';
+      // Use the appropriate API proxy based on the selected port
+      const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_public';
+      const endpoint = '';
       
       // Make API call to Ollama via proxy
       const response = await fetch(`${baseUrl}${endpoint}`, {

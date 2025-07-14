@@ -9,7 +9,18 @@ const SimplePdfPanel = ({ pdfPath }) => {
   
   // Construct the full URL for the PDF
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const fullPdfUrl = pdfPath.startsWith('/') ? `${baseUrl}${pdfPath}` : pdfPath;
+  
+  // Handle different path formats to ensure the PDF loads correctly
+  let fullPdfUrl;
+  if (pdfPath.startsWith('/data/')) {
+    // Correctly handle paths under /data
+    fullPdfUrl = `${baseUrl}/public${pdfPath}`;
+    console.log('Converted PDF path:', pdfPath, 'to', fullPdfUrl);
+  } else if (pdfPath.startsWith('/')) {
+    fullPdfUrl = `${baseUrl}${pdfPath}`;
+  } else {
+    fullPdfUrl = pdfPath;
+  }
   
   const loadAndRenderPdf = async () => {
     try {

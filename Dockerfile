@@ -6,7 +6,6 @@ WORKDIR /app
 
 COPY package*.json ./
 # No Python packages required
-
 # Install npm dependencies including PDF.js
 RUN npm install && \
     npm install marked pdfjs-dist@5.1.91

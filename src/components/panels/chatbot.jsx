@@ -173,7 +173,8 @@ const ChatbotPanel = ({ className = '' }) => {
 
   const checkOllamaStatus = async () => {
     const instance = selectedPort === '11434' ? 'local' : 'server';
-    const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.243.179.204:11435';
+    // Use the Astro API proxy for local Ollama, or direct connection for remote server
+    const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : 'http://10.241.179.204:11435';
     const cacheKey = `models_${baseUrl}`;
 
     // Check cache first
@@ -196,7 +197,8 @@ const ChatbotPanel = ({ className = '' }) => {
 
     try {
       // Faster timeout for model list
-      const response = await fetch(`${baseUrl}/api/tags`, {
+      const endpoint = selectedPort === '11434' ? '?endpoint=/api/tags' : '/api/tags';
+      const response = await fetch(`${baseUrl}${endpoint}`, {
         signal: AbortSignal.timeout(1000) // 1 second timeout
       });
 
@@ -333,23 +335,21 @@ Please explain very quickly. If no relevant documents are found or the context d
         userMessage
       );
 
-      // Call Ollama API with the enhanced context
-      console.log('Sending request to Ollama API with', messagesForModel.length, 'messages');
-      console.log('First message role:', messagesForModel[0]?.role);
+      // Use the Astro API proxy for local Ollama, or direct connection for remote server
+      const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : 'http://10.241.179.204:11435';
+      const endpoint = selectedPort === '11434' ? '' : '/api/chat';
       
-      const baseUrl = selectedPort === '11434' ? 'http://localhost:11434' : 'http://10.243.179.204:11435';
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-      const response = await fetch(`${baseUrl}/api/chat`, {
+      // Make API call to Ollama via proxy
+      const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: selectedModel,
           messages: messagesForModel,
           stream: true,
+          endpoint: '/api/chat', // Only used by the proxy
           options: {
             temperature: 0.7,
             num_predict: 1024,
@@ -359,10 +359,8 @@ Please explain very quickly. If no relevant documents are found or the context d
             num_ctx: 2048
           }
         }),
-        signal: controller.signal
+        signal: AbortSignal.timeout(10000) // 10s timeout
       });
-
-      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);

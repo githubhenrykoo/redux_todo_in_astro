@@ -3,7 +3,7 @@ import ChatbotPanel from '../panels/chatbot.jsx';
 import MapPanel from '../panels/MapPanel.jsx';
 import ProductivityHub from './ProductivityHub.jsx';
 import Docs from './Docs.jsx';
-import SimplePdfPanel from '../panels/SimplePdfPanel';
+import MCardPanel from '../panels/MCardPanel.tsx';
 
 const Dashboard = () => {
   const [activeMonth, setActiveMonth] = useState('Jun 2025');
@@ -14,7 +14,6 @@ const Dashboard = () => {
   const [showLlm, setShowLlm] = useState(false);
   const [showProductivityHub, setShowProductivityHub] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
-  const [showWhitepaper, setShowWhitepaper] = useState(false);
 
   // Icons for the dashboard
   const HomeIcon = () => (
@@ -108,22 +107,11 @@ const Dashboard = () => {
       setShowChatbot(false);
       setShowCsdt(false);
       setShowLlm(false);
-      setShowWhitepaper(false);
-    }
-    // Show Whitepaper component when whitepaper is clicked
-    else if (item === 'whitepaper') {
-      setShowWhitepaper(true);
-      setShowDocs(false);
-      setShowProductivityHub(false);
-      setShowChatbot(false);
-      setShowCsdt(false);
-      setShowLlm(false);
     } else {
       setShowChatbot(false);
       setShowCsdt(false);
       setShowProductivityHub(false);
       setShowDocs(false);
-      setShowWhitepaper(false);
     }
     
     // Open Kubernetes dashboard in a new tab when k8s button is clicked
@@ -182,17 +170,10 @@ const Dashboard = () => {
     </svg>
   );
 
-  // Card icon for MCard
+  // Card icon for sidebar
   const CardIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/>
-    </svg>
-  );
-  
-  // Whitepaper icon for sidebar
-  const WhitepaperIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M8 16h8v2H8zm0-4h8v2H8zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/>
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
     </svg>
   );
 
@@ -203,7 +184,6 @@ const Dashboard = () => {
     { id: 'chatbot', label: 'Chatbot', icon: <ChatIcon /> },
     { id: 'productivity', label: 'Productivity', icon: <ProductivityIcon /> },
     { id: 'docs', label: 'Docs', icon: <DocsIcon /> },
-    { id: 'whitepaper', label: 'AI Whitepaper', icon: <WhitepaperIcon /> },
     { id: 'csdt', label: 'CSDT', icon: <CsdtIcon /> },
     { id: 'llm', label: 'LLM Visualizer', icon: <LlmIcon /> },
     { id: 'k8s', label: 'K8s Dashboard', icon: <KubernetesIcon /> },
@@ -272,10 +252,9 @@ const Dashboard = () => {
         <main className="p-4 flex-1 flex flex-col overflow-hidden" style={{ height: 'calc(100vh - 57px)', maxHeight: 'calc(100vh - 57px)' }}>
           {activeSidebarItem === 'mcard' ? (
             /* MCard Panel */
-            <div className="bg-white rounded-lg shadow-sm p-4 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
-              <div className="h-full overflow-auto p-4" style={{ maxHeight: '100%' }}>
-                <h2 className="text-xl font-medium mb-4">MCard Panel</h2>
-                <p className="text-gray-600">MCard functionality will be implemented soon.</p>
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%' }}>
+              <div className="h-full overflow-auto" style={{ maxHeight: '100%' }}>
+                <MCardPanel />
               </div>
             </div>
           ) : activeSidebarItem === 'chatbot' ? (
@@ -338,12 +317,6 @@ const Dashboard = () => {
             /* Docs Component with Google Docs and Chatbot */
             <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
               <Docs />
-            </div>
-          ) : activeSidebarItem === 'whitepaper' ? (
-            /* AI Whitepaper PDF Viewer */
-            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
-              {/* Using SimplePdfPanel for testing */}
-              <SimplePdfPanel pdfPath="/data/AI-Toba.pdf" />
             </div>
           ) : (
             /* Regular Dashboard Content */

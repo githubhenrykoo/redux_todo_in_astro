@@ -4,6 +4,7 @@ import MapPanel from '../panels/MapPanel.jsx';
 import ProductivityHub from './ProductivityHub.jsx';
 import Docs from './Docs.jsx';
 import MCardPanel from '../panels/MCardPanel.tsx';
+import SimplePdfPanel from '../panels/SimplePdfPanel.jsx';
 
 const Dashboard = () => {
   const [activeMonth, setActiveMonth] = useState('Jun 2025');
@@ -317,6 +318,12 @@ const Dashboard = () => {
             /* Docs Component with Google Docs and Chatbot */
             <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
               <Docs />
+            </div>
+          ) : activeSidebarItem === 'whitepaper' ? (
+            /* AI Whitepaper PDF Viewer */
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
+              {/* Using SimplePdfPanel for testing */}
+              <SimplePdfPanel pdfPath="/AI-Toba.pdf" />
             </div>
           ) : (
             /* Regular Dashboard Content */

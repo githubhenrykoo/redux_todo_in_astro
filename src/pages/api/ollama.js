@@ -5,7 +5,7 @@ export async function post({ request }) {
       const body = await request.json();
       
       // Default to localhost:11434 for Ollama
-      const ollamaUrl = 'http://localhost:11434';
+      const ollamaUrl = 'http://127.0.0.1:11434';
       
       // Extract the endpoint from the request body or use default
       const endpoint = body.endpoint || '/api/chat';
@@ -74,7 +74,7 @@ export async function post({ request }) {
       const endpoint = url.searchParams.get('endpoint') || '/api/tags';
       
       // Default to localhost:11434 for Ollama
-      const ollamaUrl = 'http://localhost:11434';
+      const ollamaUrl = 'http://127.0.0.1:11434';
       
       // Construct the full URL
       const fullUrl = `${ollamaUrl}${endpoint}`;

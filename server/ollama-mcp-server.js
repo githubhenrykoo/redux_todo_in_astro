@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 // Ollama API endpoint
-const OLLAMA_API = 'http://localhost:11434/api';
+const OLLAMA_API = 'http://127.0.0.1:11434/api';
 
 // Health check endpoint
 app.get('/health', async (req, res) => {

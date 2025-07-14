@@ -1,16 +1,11 @@
 FROM node:20-bullseye
 
-RUN apt-get update && \
-    apt-get install -y python3 python3-pip && \
-    ln -sf /usr/bin/python3 /usr/bin/python && \
-    [ -e /usr/bin/pip ] || ln -s /usr/bin/pip3 /usr/bin/pip
+# No Python dependencies needed for the core app functionality
 
 WORKDIR /app
 
 COPY package*.json ./
-COPY requirements.txt ./
-
-RUN python3 -m pip install -r requirements.txt
+# No Python packages required
 
 # Install npm dependencies including PDF.js
 RUN npm install && \

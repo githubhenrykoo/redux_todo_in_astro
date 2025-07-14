@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   app:
-    image: henry768/redux_todo_in_astro:selfcontained
+    image: henry768/redux_todo_in_astro:slim
     container_name: redux-todo-astro
     ports:
       - "4323:4321"

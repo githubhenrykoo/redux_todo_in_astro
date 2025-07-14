@@ -231,7 +231,7 @@ const ChatbotPanel = ({ className = '' }) => {
       const instanceType = selectedPort === '11434' ? 'Local LLM' : 'Server LLM';
       const errorMessage = err.name === 'TimeoutError' 
         ? `${instanceType} connection timed out. Make sure ${instanceType} is running.`
-        : `${instanceType} is not available. Make sure ${instanceType} is running and has models installed.`;
+        : `${instanceType} is not available. Make sure ${instanceType} is running and has model installed.`;
       setError(errorMessage);
       setModels([]);
       setSelectedModel('');

@@ -3,7 +3,8 @@
 
 export const prerender = false;
 
-const TARGET = 'http://10.241.179.204:11435';
+// Read from environment variable with fallback
+const TARGET = import.meta.env.OLLAMA_SERVER_TARGET;
 
 export async function GET({ request, url }) {
   // Extract the endpoint from the query parameters

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-// Notion OAuth configuration
-const NOTION_AUTH_URL = 'https://api.notion.com/v1/oauth/authorize?client_id=226d872b-594c-80ac-90cf-003720fc68f2&response_type=code&owner=user&redirect_uri=http%3A%2F%2Flocalhost%3A4321%2Fauth%2Fnotion%2Fcallback';
+// Notion OAuth configuration - using environment variable
+const NOTION_AUTH_URL = import.meta.env.PUBLIC_NOTION_AUTH_URL;
+console.log('Available env variables:', Object.keys(import.meta.env));
+console.log('Notion Auth URL from env:', import.meta.env.PUBLIC_NOTION_AUTH_URL);
 
 // Add the extractTitle helper function
 const extractTitle = (page) => {
@@ -62,6 +64,14 @@ const NotionPanel = ({ className = '' }) => {
     const height = 700;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
+    
+    if (!NOTION_AUTH_URL) {
+      console.error('Notion Auth URL is not defined. Check your .env file for PUBLIC_NOTION_AUTH_URL');
+      alert('Notion Auth URL is not configured properly. Please check the console for more information.');
+      return;
+    }
+    
+    console.log('Opening OAuth window with URL:', NOTION_AUTH_URL);
     
     window.open(
       NOTION_AUTH_URL,

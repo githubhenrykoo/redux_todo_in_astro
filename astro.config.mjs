@@ -166,7 +166,7 @@ export default defineConfig({
         external: ['child_process', 'fs', 'path', 'os', 'crypto', 'util', 'http', 'https', 'url', 'stream', 'zlib']
       }
     },
-    envPrefix: ['GOOGLE_']
+    envPrefix: ['GOOGLE_', 'PUBLIC_']
   },
   server: {
     host: '0.0.0.0',

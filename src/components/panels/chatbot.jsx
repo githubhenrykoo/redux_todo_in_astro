@@ -33,8 +33,8 @@ const ChatbotPanel = ({ className = '' }) => {
   const [error, setError] = useState(null);
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
-  const [selectedPort, setSelectedPort] = useState('11434');
-  const [ollamaInstance, setOllamaInstance] = useState('local');
+  const [selectedPort, setSelectedPort] = useState('11435');
+  const [ollamaInstance, setOllamaInstance] = useState('server');
   const [instanceStatus, setInstanceStatus] = useState({
     local: { connected: false, models: [] },
     server: { connected: false, models: [] }
@@ -172,9 +172,9 @@ const ChatbotPanel = ({ className = '' }) => {
   };
 
   const checkOllamaStatus = async () => {
-    const instance = selectedPort === '11434' ? 'local' : 'server';
+    const instance = selectedPort === '11435' ? 'server' : 'local';
     // Use the appropriate API proxy based on the selected port
-    const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_publics';
+    const baseUrl = selectedPort === '11435' ? '/api/ollama_publics' : '/api/ollama-proxy';
     const cacheKey = `models_${baseUrl}_${selectedPort}`;
 
     // Check cache first
@@ -336,7 +336,7 @@ Please explain very quickly. If no relevant documents are found or the context d
       );
 
       // Use the appropriate API proxy based on the selected port
-      const baseUrl = selectedPort === '11434' ? '/api/ollama-proxy' : '/api/ollama_publics';
+      const baseUrl = selectedPort === '11435' ? '/api/ollama_publics' : '/api/ollama-proxy';
       const endpoint = '';
       
       // Make API call to Ollama via proxy
@@ -482,8 +482,8 @@ Please explain very quickly. If no relevant documents are found or the context d
                 switchTimeoutRef.current = setTimeout(async () => {
                   setIsSwitching(true);
                   try {
-                    const newPort = selectedPort === '11434' ? '11435' : '11434';
-                    const newInstance = selectedPort === '11434' ? 'server' : 'local';
+                    const newPort = selectedPort === '11435' ? '11434' : '11435';
+                    const newInstance = selectedPort === '11435' ? 'local' : 'server';
 
                     // Batch state updates
                     setModels([]);
@@ -514,7 +514,7 @@ Please explain very quickly. If no relevant documents are found or the context d
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                   </svg>
                 </div>
-                <span className="min-w-[36px]">{selectedPort === '11434' ? 'Local' : 'Server'}</span>
+                <span className="min-w-[36px]">{selectedPort === '11435' ? 'Server' : 'Local'}</span>
               </div>
             </button>
           </div>

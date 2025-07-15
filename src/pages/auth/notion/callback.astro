@@ -100,7 +100,7 @@ if (code) {
         <body>
           <script>
             // Store the tokens in localStorage
-            const authData = ${authDataJson};
+            const authData = JSON.parse(`${authDataJson}`);
             
             localStorage.setItem('notion_access_token', authData.access_token);
             localStorage.setItem('notion_workspace_id', authData.workspace_id);

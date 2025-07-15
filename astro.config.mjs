@@ -8,7 +8,11 @@ import path from 'path';
 export default defineConfig({
   output: 'server', // Changed from 'static' to 'server' to handle POST requests
   integrations: [
-    react(),
+    // Standard React integration
+    react({
+      // Include all JSX files in the project
+      include: ['**/*.jsx', '**/*.tsx', '**/*.js', '**/*.ts']
+    }),
     AstroPWA({
       mode: 'production',
       base: '/',

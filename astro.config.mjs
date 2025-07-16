@@ -177,8 +177,8 @@ export default defineConfig({
     port: 4321,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Content-Security-Policy': "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://*.gstatic.com;",
+      'Content-Security-Policy': "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://*.gstatic.com https://unpkg.com;",
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups'
-    }
+    }    
   }
 });

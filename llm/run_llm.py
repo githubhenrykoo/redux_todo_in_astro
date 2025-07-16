@@ -3,7 +3,7 @@ import torch
 import os
 
 # Set Hugging Face token for authentication
-os.environ["HUGGING_FACE_HUB_TOKEN"] = "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"
+os.environ["HUGGING_FACE_HUB_TOKEN"] = ""
 
 print("Loading tokenizer...")
 tokenizer = AutoTokenizer.from_pretrained(
@@ -16,7 +16,7 @@ model = AutoModelForCausalLM.from_pretrained(
     "itdel/Gasing-8B-v0.1",  # Use the non-quantized model
     torch_dtype=torch.float16,  # Use float16 to reduce memory usage
     low_cpu_mem_usage=True,    # Enable low CPU memory usage
-    token="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"
+    token=""
 )
 
 # Test the model with a simple prompt

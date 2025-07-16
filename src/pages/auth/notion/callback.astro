@@ -98,9 +98,9 @@ if (code) {
           <title>Completing Authentication...</title>
         </head>
         <body>
-          <script>
+          <script define:vars={{authDataJson}}>
             // Store the tokens in localStorage
-            const authData = JSON.parse(`${authDataJson}`);
+            const authData = JSON.parse(authDataJson);
             
             localStorage.setItem('notion_access_token', authData.access_token);
             localStorage.setItem('notion_workspace_id', authData.workspace_id);

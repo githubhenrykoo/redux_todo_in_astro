@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import ChatbotPanel from '../panels/chatbot.jsx';
-import MapPanel from '../panels/MapPanel.jsx';
 import ProductivityHub from './ProductivityHub.jsx';
 import Docs from './Docs.jsx';
 import MCardPanel from '../panels/MCardPanel.tsx';
@@ -177,6 +176,13 @@ const Dashboard = () => {
       <path d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" />
     </svg>
   );
+  
+  // Map icon for sidebar
+  const MapIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M12 1.586l-4 4v12.689l4-4V1.586zM3.707 3.293A1 1 0 002 4v10a1 1 0 00.293.707L6 18.689V5.003L3.707 3.293zM17.707 5.293L14 1.586v16.689l2.293-2.293A1 1 0 0017 15V6a1 1 0 00-.293-.707z" clipRule="evenodd" />
+    </svg>
+  );
 
   // PDF Document icon for sidebar
   const PDFDocumentIcon = () => (
@@ -274,9 +280,21 @@ const Dashboard = () => {
               </div>
             </div>
           ) : activeSidebarItem === 'dashboard' ? (
-            /* Map Panel */
-            <div className="bg-white rounded-lg shadow-sm p-4 h-full flex-1 overflow-auto max-h-full">
-              <MapPanel />
+            /* Map Iframe */
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
+              <div className="h-full flex flex-col">
+                <div className="flex-1 overflow-hidden relative">
+                  <iframe 
+                    src="/maps/index.html" 
+                    title="IoT Map Viewer" 
+                    className="w-full h-full border-none absolute inset-0"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads"
+                    allow="geolocation; fullscreen"
+                    style={{ minHeight: '600px' }}
+                    loading="lazy"
+                  />
+                </div>
+              </div>
             </div>
           ) : activeSidebarItem === 'csdt' ? (
             /* CSDT Panel with iframe */
@@ -332,6 +350,36 @@ const Dashboard = () => {
             <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
               {/* Using SimplePdfPanel for testing */}
               <SimplePdfPanel pdfPath="/AI-Toba.pdf" />
+            </div>
+          ) : activeSidebarItem === 'map-viewer' ? (
+            /* Map Viewer iframe */
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
+              <div className="h-full flex flex-col">
+                <div className="bg-gray-800 text-white p-3 border-b border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-medium">Map Viewer</h3>
+                    <a 
+                      href="/maps/index.html" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-300 hover:text-blue-200"
+                    >
+                      Open in new tab
+                    </a>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-hidden relative">
+                  <iframe 
+                    src="/maps/index.html" 
+                    title="IoT Map Viewer" 
+                    className="w-full h-full border-none absolute inset-0"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads"
+                    allow="geolocation; fullscreen"
+                    style={{ minHeight: '600px' }}
+                    loading="lazy"
+                  />
+                </div>
+              </div>
             </div>
           ) : (
             /* Regular Dashboard Content */

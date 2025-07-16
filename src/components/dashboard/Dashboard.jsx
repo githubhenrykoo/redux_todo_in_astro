@@ -349,7 +349,7 @@ const Dashboard = () => {
             /* AI Whitepaper PDF Viewer */
             <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
               {/* Using SimplePdfPanel for testing */}
-              <SimplePdfPanel pdfPath="/AI-Toba.pdf" />
+              <SimplePdfPanel pdfPath="/data/AI-Toba.pdf" />
             </div>
           ) : activeSidebarItem === 'map-viewer' ? (
             /* Map Viewer iframe */

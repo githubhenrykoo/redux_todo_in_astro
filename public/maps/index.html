@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indonesia IoT MQTT Tracker</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- MQTT.js Library -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background-color: #fff;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 5px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 32px;
+            font-size: 14px;
+        }
+        
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+        
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        
+        .device-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .device-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .device-item:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .device-item.active {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .device-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .device-status {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-online {
+            background-color: #4caf50;
+        }
+        
+        .status-offline {
+            background-color: #f44336;
+        }
+        
+        .status-idle {
+            background-color: #ff9800;
+        }
+        
+        .device-details {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #555;
+        }
+        
+        .device-details div {
+            margin-bottom: 3px;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .btn {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 5px;
+            transition: background-color 0.2s;
+        }
+        
+        .btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .btn-refresh {
+            background-color: #4caf50;
+        }
+        
+        .btn-refresh:hover {
+            background-color: #45a049;
+        }
+        
+        .custom-marker {
+            text-align: center;
+            position: relative;
+        }
+        
+        .marker-icon {
+            font-size: 18px;
+            background-color: white;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            border: 3px solid #fff;
+            margin: 0 auto;
+        }
+        
+        .marker-icon i {
+            filter: drop-shadow(0px 1px 1px rgba(0,0,0,0.3));
+        }
+        
+        .marker-label {
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            border: 1px solid #eee;
+            color: #333;
+            z-index: 1000;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Energy Meter Box Style */
+        .energy-marker {
+            text-align: center;
+        }
+        
+        .energy-box {
+            background-color: white;
+            border-radius: 10px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            border: 3px solid #fff;
+            display: inline-block;
+            min-width: 120px;
+            max-width: 140px;
+        }
+        
+        .energy-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+        
+        .relay-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+        
+        .relay-on {
+            color: #FFD700; /* Gold color for on state */
+        }
+        
+        .relay-off {
+            color: #888; /* Gray color for off state */
+        }
+        
+        .toggle-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .energy-label {
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+            color: #333;
+            margin-top: 2px;
+        }
+        
+        #mqttStatus {
+            margin: 0 5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            height: 24px;
+            box-sizing: border-box;
+        }
+        
+        .btn-reconnect {
+            margin: 0 0 0 5px;
+            padding: 2px 8px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+        
+        .btn-reconnect:hover {
+            background-color: #218838;
+        }
+        
+        .mqtt-debug {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Devices</h2>
+            <ul class="device-list" id="deviceList">
+                <!-- Device list will be populated by JavaScript -->
+            </ul>
+            <div class="controls">
+                <button class="btn" id="addDeviceBtn">
+                    <i class="fas fa-plus"></i> Add Device
+                </button>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <header class="header">
+                <h1 style="font-size: 16px; margin: 0;">Indonesia IoT Device Tracker</h1>
+                <div style="display: flex; align-items: center;">
+                    <span id="lastUpdated" style="font-size: 12px; margin-right: 10px;">Last updated: </span>
+                    <div id="mqttStatus" style="height: 24px; line-height: 20px; padding: 2px 8px;">Connected</div>
+                    <button id="reconnectMqtt" class="btn-reconnect" style="height: 24px; line-height: 20px;">Reconnect MQTT</button>
+                </div>
+            </header>
+            
+            <div id="map"></div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
+    <script>
+        // MQTT Client for Energy Meter
+        let mqttClient = null;
+        let reconnectTimeout = null;
+        
+        // Devices array
+        let devices = [
+            {
+                id: 17,
+                name: 'Energy Meter PDM1106J',
+                type: 'energy',
+                status: 'connecting',
+                lastSeen: new Date().toISOString(),
+                battery: 100, // Usually connected to main power
+                location: [-8.67730, 115.22862], // Bali coordinates
+                readings: { 
+                    voltage: 0, 
+                    current: 0, 
+                    power: 0, 
+                    energy: 0, 
+                    pf: 0, 
+                    fr: 0 
+                },
+                isMoving: false
+            },
+            {
+                id: 18,
+                name: 'Energy Meter Batam',
+                type: 'energy',
+                status: 'connecting',
+                lastSeen: new Date().toISOString(),
+                battery: 100, // Usually connected to main power
+                location: [1.1280155269730592, 104.00416811176784], // Batam coordinates
+                readings: { 
+                    voltage: 0, 
+                    current: 0, 
+                    power: 0, 
+                    energy: 0, 
+                    pf: 0, 
+                    fr: 0 
+                },
+                isMoving: false
+            },
+            {
+                id: 19,
+                name: 'Lampu Kontrol',
+                type: 'relay',
+                status: 'connecting',
+                lastSeen: new Date().toISOString(),
+                battery: 100,
+                location: [2.383537279604491, 99.14866808491621], // IT DEL coordinates     
+                readings: { 
+                    state: 0 // 0 = mati, 1 = menyala
+                },
+                isMoving: false
+            },
+            {
+                id: 1,
+                name: 'GPS Tracker Jakarta',
+                type: 'gps',
+                status: 'online',
+                lastSeen: new Date().toISOString(),
+                battery: 85,
+                location: [-6.2088, 106.8456], // Jakarta coordinates
+                readings: { 
+                    speed: 45, 
+                    altitude: 12, 
+                    heading: 270 
+                },
+                isMoving: true
+            },
+            {
+                id: 2,
+                name: 'Temperature Sensor Surabaya',
+                type: 'temperature',
+                status: 'online',
+                lastSeen: new Date().toISOString(),
+                battery: 72,
+                location: [-7.2575, 112.7521], // Surabaya coordinates
+                readings: { 
+                    temperature: 32.5, 
+                    humidity: 65 
+                },
+                isMoving: false
+            },
+            {
+                id: 3,
+                name: 'Air Quality Bandung',
+                type: 'air',
+                status: 'idle',
+                lastSeen: new Date().toISOString(),
+                battery: 45,
+                location: [-6.9175, 107.6191], // Bandung coordinates
+                readings: { 
+                    pm25: 35, 
+                    pm10: 75, 
+                    co2: 450 
+                },
+                isMoving: false
+            },
+            {
+                id: 4,
+                name: 'Humidity Sensor Makassar',
+                type: 'humidity',
+                status: 'offline',
+                lastSeen: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+                battery: 10,
+                location: [-5.1477, 119.4327], // Makassar coordinates
+                readings: { 
+                    humidity: 80 
+                },
+                isMoving: false
+            }
+        ];
+        
+        // Reference to Energy Meter Device for MQTT updates
+        let energyMeterDevice = devices[0];
+        
+        // Reconnect variables
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 5;
+        
+        // MQTT Configuration - Menggunakan konfigurasi yang sama dengan project gusti
+        function connectMQTT() {
+            // Determine protocol based on page protocol (ws or wss)
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = '202.74.74.42';
+            const port = 8084;
+            const url = `${protocol}//${host}:${port}/mqtt`;
+            const clientId = `web_energy_${Date.now()}`;
+            
+            console.log(`Connecting to MQTT broker at ${url}`);
+            updateMqttStatus(`Connecting to ${host}:${port}...`, '#FFA500');
+            logMqttMessage(`Connecting to ${url} with client ID ${clientId}`);
+            
+            // Disconnect existing client if any
+            if (mqttClient) {
+                try {
+                    mqttClient.end(true);
+                } catch (e) {
+                    console.error('Error ending previous connection:', e);
+                }
+            }
+            
+            // Connect using mqtt.js with the same options as in gusti project
+            mqttClient = mqtt.connect(url, {
+                clientId: clientId,
+                clean: true,
+                connectTimeout: 10000,
+                keepalive: 30,
+                reconnectPeriod: 3000,
+                rejectUnauthorized: false,
+                protocolVersion: 4,
+                resubscribe: true
+            });
+            
+            // Set up event handlers
+            mqttClient.on('connect', function() {
+                console.log('MQTT Connected successfully');
+                logMqttMessage('Connected successfully');
+                
+                // Update energy meter devices status
+                const baliMeter = devices.find(d => d.id === 17);
+                const batamMeter = devices.find(d => d.id === 18);
+                
+                if (baliMeter) {
+                    baliMeter.status = 'online';
+                    updateDeviceInList(baliMeter);
+                }
+                
+                if (batamMeter) {
+                    batamMeter.status = 'online';
+                    updateDeviceInList(batamMeter);
+                }
+                
+                // Update MQTT status display
+                updateMqttStatus('Connected', '#4CAF50');
+                
+                // Subscribe to topics with prefix PDM1106J
+                mqttClient.subscribe('PDM1106J/voltage');
+                mqttClient.subscribe('PDM1106J/current');
+                mqttClient.subscribe('PDM1106J/power');
+                mqttClient.subscribe('PDM1106J/energy');
+                mqttClient.subscribe('PDM1106J/pf');
+                
+                // Subscribe to Batam energy meter topics
+                mqttClient.subscribe('pzem/voltage');
+                mqttClient.subscribe('pzem/current');
+                mqttClient.subscribe('pzem/power');
+                mqttClient.subscribe('pzem/energy');
+                mqttClient.subscribe('pzem/pf');
+                mqttClient.subscribe('pzem/fr');
+                
+                // Subscribe to relay control topic
+                mqttClient.subscribe('kontrol/relay');
+                
+                // Reset reconnect attempts counter
+                reconnectAttempts = 0;
+            });
+            
+            mqttClient.on('error', function(err) {
+                console.error('MQTT Error:', err);
+                logMqttMessage(`Error: ${err.message}`);
+                
+                // Update energy meter devices status
+                const baliMeter = devices.find(d => d.id === 17);
+                const batamMeter = devices.find(d => d.id === 18);
+                
+                if (baliMeter) {
+                    baliMeter.status = 'offline';
+                    updateDeviceInList(baliMeter);
+                    updateDeviceMarker(baliMeter);
+                }
+                
+                if (batamMeter) {
+                    batamMeter.status = 'offline';
+                    updateDeviceInList(batamMeter);
+                    updateDeviceMarker(batamMeter);
+                }
+                
+                // Update MQTT status display
+                updateMqttStatus('Error: ' + err.message, '#FF5252');
+                
+                // End client and retry connection
+                mqttClient.end();
+                retryConnect();
+            });
+            
+            mqttClient.on('close', function() {
+                console.log('MQTT Connection closed');
+                logMqttMessage('Connection closed');
+                
+                // Update energy meter devices status
+                const baliMeter = devices.find(d => d.id === 17);
+                const batamMeter = devices.find(d => d.id === 18);
+                
+                if (baliMeter) {
+                    baliMeter.status = 'offline';
+                    updateDeviceInList(baliMeter);
+                    updateDeviceMarker(baliMeter);
+                }
+                
+                if (batamMeter) {
+                    batamMeter.status = 'offline';
+                    updateDeviceInList(batamMeter);
+                    updateDeviceMarker(batamMeter);
+                }
+                
+                // Update MQTT status display
+                updateMqttStatus('Disconnected', '#FFA500');
+                
+                // Retry connection
+                retryConnect();
+            });
+            
+            mqttClient.on('message', function(topic, message) {
+                const payload = parseFloat(message.toString());
+                console.log('MQTT message:', topic, payload);
+                logMqttMessage(`Message on ${topic}: ${payload}`);
+                
+                if (!isNaN(payload)) {
+                    // Get the energy meter devices
+                    const energyMeterBali = devices.find(d => d.id === 17);
+                    const energyMeterBatam = devices.find(d => d.id === 18);
+                    
+                    // Update the appropriate reading based on the topic
+                    // Handle PDM1106J topics (Bali energy meter)
+                    if (topic === 'PDM1106J/voltage') {
+                        energyMeterBali.readings.voltage = payload.toFixed(1);
+                        energyMeterBali.status = 'online';
+                        energyMeterBali.lastSeen = new Date().toISOString();
+                    } else if (topic === 'PDM1106J/current') {
+                        energyMeterBali.readings.current = payload.toFixed(2);
+                        energyMeterBali.status = 'online';
+                        energyMeterBali.lastSeen = new Date().toISOString();
+                    } else if (topic === 'PDM1106J/power') {
+                        energyMeterBali.readings.power = payload.toFixed(0);
+                        energyMeterBali.status = 'online';
+                        energyMeterBali.lastSeen = new Date().toISOString();
+                    } else if (topic === 'PDM1106J/energy') {
+                        energyMeterBali.readings.energy = payload.toFixed(4);
+                        energyMeterBali.status = 'online';
+                        energyMeterBali.lastSeen = new Date().toISOString();
+                    } else if (topic === 'PDM1106J/pf') {
+                        energyMeterBali.readings.pf = payload.toFixed(2);
+                        energyMeterBali.status = 'online';
+                        energyMeterBali.lastSeen = new Date().toISOString();
+                    } 
+                    // Handle pzem topics (Batam energy meter)
+                    else if (topic === 'pzem/voltage') {
+                        energyMeterBatam.readings.voltage = payload.toFixed(1);
+                        energyMeterBatam.status = 'online';
+                        energyMeterBatam.lastSeen = new Date().toISOString();
+                    } else if (topic === 'pzem/current') {
+                        energyMeterBatam.readings.current = payload.toFixed(2);
+                        energyMeterBatam.status = 'online';
+                        energyMeterBatam.lastSeen = new Date().toISOString();
+                    } else if (topic === 'pzem/power') {
+                        energyMeterBatam.readings.power = payload.toFixed(0);
+                        energyMeterBatam.status = 'online';
+                        energyMeterBatam.lastSeen = new Date().toISOString();
+                    } else if (topic === 'pzem/energy') {
+                        energyMeterBatam.readings.energy = payload.toFixed(4);
+                        energyMeterBatam.status = 'online';
+                        energyMeterBatam.lastSeen = new Date().toISOString();
+                    } else if (topic === 'pzem/pf') {
+                        energyMeterBatam.readings.pf = payload.toFixed(2);
+                        energyMeterBatam.status = 'online';
+                        energyMeterBatam.lastSeen = new Date().toISOString();
+                    } else if (topic === 'pzem/fr') {
+                        energyMeterBatam.readings.fr = payload.toFixed(1);
+                        energyMeterBatam.status = 'online';
+                        energyMeterBatam.lastSeen = new Date().toISOString();
+                    } else if (topic === 'kontrol/relay') {
+                        // Get the relay device
+                        const relayDevice = devices.find(d => d.id === 19);
+                        if (relayDevice) {
+                            // Update relay state (0 = mati, 1 = menyala)
+                            relayDevice.readings.state = parseInt(payload);
+                            relayDevice.status = 'online';
+                            relayDevice.lastSeen = new Date().toISOString();
+                            updateDeviceInList(relayDevice);
+                            updateDeviceMarker(relayDevice);
+                        }
+                    }
+                    
+                    // Update the devices in the list and on the map
+                    if (topic.startsWith('PDM1106J/')) {
+                        updateDeviceInList(energyMeterBali);
+                        updateDeviceMarker(energyMeterBali);
+                    } else if (topic.startsWith('pzem/')) {
+                        updateDeviceInList(energyMeterBatam);
+                        updateDeviceMarker(energyMeterBatam);
+                    }
+                }
+            });
+        }
+        
+        // Function to retry connection after a delay
+        function retryConnect() {
+            // Clear any existing timeout
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+            
+            reconnectAttempts++;
+            console.log(`Scheduling reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
+            logMqttMessage(`Scheduling reconnect attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+            
+            if (reconnectAttempts <= MAX_RECONNECT_ATTEMPTS) {
+                updateMqttStatus(`Reconnecting (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`, '#FFA500');
+                reconnectTimeout = setTimeout(connectMQTT, 3000);
+            } else {
+                console.log('Maximum reconnection attempts reached. Please try manually reconnecting.');
+                logMqttMessage('Maximum reconnection attempts reached. Please try manually reconnecting.');
+                updateMqttStatus('Connection failed. Try reconnect.', '#FF5252');
+                reconnectAttempts = 0; // Reset for next manual attempt
+            }
+        }
+        
+        // Update MQTT connection status in UI
+        function updateMqttStatus(status, color) {
+            const mqttStatusElement = document.getElementById('mqttStatus');
+            mqttStatusElement.textContent = status;
+            mqttStatusElement.style.backgroundColor = color;
+            mqttStatusElement.style.color = 'white';
+        }
+        
+        // Function to log MQTT messages to console
+        function logMqttMessage(message) {
+            console.log(`MQTT: ${message}`);
+        }
+        
+        // Simulate energy meter data for demo purposes when MQTT connection fails
+        function simulateEnergyMeterData() {
+            console.log('Starting energy meter data simulation');
+            logMqttMessage('Starting energy meter data simulation (fallback mode)');
+            energyMeterDevice.status = 'online (simulated)';
+            
+            // Update voltage (220-240V)
+            energyMeterDevice.readings.voltage = (220 + Math.random() * 20).toFixed(1);
+            
+            // Update current (0.5-5A)
+            energyMeterDevice.readings.current = (0.5 + Math.random() * 4.5).toFixed(2);
+            
+            // Update power (100-1200W)
+            energyMeterDevice.readings.power = (100 + Math.random() * 1100).toFixed(0);
+            
+            // Update energy (incrementing)
+            const currentEnergy = parseFloat(energyMeterDevice.readings.energy || 0);
+            energyMeterDevice.readings.energy = (currentEnergy + Math.random() * 0.01).toFixed(4);
+            
+            // Update power factor (0.8-1.0)
+            energyMeterDevice.readings.pf = (0.8 + Math.random() * 0.2).toFixed(2);
+            
+            // Update last seen time
+            energyMeterDevice.lastSeen = new Date().toISOString();
+            
+            // Update the device in the list and on the map
+            updateDeviceInList(energyMeterDevice);
+            updateDeviceMarker(energyMeterDevice);
+            
+            // Schedule next update
+            setTimeout(simulateEnergyMeterData, 5000);
+        }
+        
+        // Simulate data for other devices (temperature, humidity, air quality)
+        function simulateOtherDevicesData() {
+            // Find devices that are not energy meter and not GPS
+            const otherDevices = devices.filter(device => 
+                device.type !== 'energy' && device.type !== 'gps');
+            
+            otherDevices.forEach(device => {
+                // Only update online or idle devices
+                if (device.status === 'offline') return;
+                
+                // Update last seen time
+                device.lastSeen = new Date().toISOString();
+                
+                // Update readings based on device type
+                if (device.type === 'temperature') {
+                    // Temperature varies between 28-35°C
+                    device.readings.temperature = (28 + Math.random() * 7).toFixed(1);
+                    // Humidity varies between 60-80%
+                    device.readings.humidity = (60 + Math.random() * 20).toFixed(0);
+                } else if (device.type === 'humidity') {
+                    // Humidity varies between 70-90%
+                    device.readings.humidity = (70 + Math.random() * 20).toFixed(0);
+                } else if (device.type === 'air') {
+                    // PM2.5 varies between 20-50 µg/m³
+                    device.readings.pm25 = (20 + Math.random() * 30).toFixed(0);
+                    // PM10 varies between 40-100 µg/m³
+                    device.readings.pm10 = (40 + Math.random() * 60).toFixed(0);
+                    // CO2 varies between 400-600 ppm
+                    device.readings.co2 = (400 + Math.random() * 200).toFixed(0);
+                }
+                
+                // Update battery level (slowly decreasing)
+                if (device.battery > 5) {
+                    device.battery -= Math.random() * 2;
+                    device.battery = Math.max(5, Math.round(device.battery));
+                }
+                
+                // Update the device in the list and on the map
+                updateDeviceInList(device);
+                updateDeviceMarker(device);
+            });
+        }
+        
+        // Simulate GPS movement for the GPS tracker
+        function startGpsSimulation() {
+            // Find the GPS device
+            const gpsDevice = devices.find(device => device.type === 'gps');
+            if (!gpsDevice || !gpsDevice.isMoving) return;
+            
+            // Define waypoints around Jakarta (rough rectangle path)
+            const waypoints = [
+                [-6.2088, 106.8456], // Jakarta center
+                [-6.1800, 106.8300], // North Jakarta
+                [-6.1600, 106.8500], // Northeast Jakarta
+                [-6.1800, 106.8700], // East Jakarta
+                [-6.2088, 106.8900], // Southeast Jakarta
+                [-6.2300, 106.8700], // South Jakarta
+                [-6.2400, 106.8500], // Southwest Jakarta
+                [-6.2300, 106.8300], // West Jakarta
+            ];
+            
+            let waypointIndex = 0;
+            let progress = 0;
+            
+            function moveGps() {
+                if (!gpsDevice.isMoving) return;
+                
+                // Get current and next waypoint
+                const currentWaypoint = waypoints[waypointIndex];
+                const nextWaypointIndex = (waypointIndex + 1) % waypoints.length;
+                const nextWaypoint = waypoints[nextWaypointIndex];
+                
+                // Interpolate between waypoints based on progress
+                const lat = currentWaypoint[0] + (nextWaypoint[0] - currentWaypoint[0]) * progress;
+                const lng = currentWaypoint[1] + (nextWaypoint[1] - currentWaypoint[1]) * progress;
+                
+                // Update GPS device location
+                gpsDevice.location = [lat, lng];
+                
+                // Update speed (30-60 km/h)
+                gpsDevice.readings.speed = (30 + Math.random() * 30).toFixed(0);
+                
+                // Update heading based on direction
+                const dx = nextWaypoint[1] - currentWaypoint[1];
+                const dy = nextWaypoint[0] - currentWaypoint[0];
+                const heading = Math.atan2(dx, dy) * 180 / Math.PI;
+                gpsDevice.readings.heading = Math.round(heading < 0 ? heading + 360 : heading);
+                
+                // Update last seen time
+                gpsDevice.lastSeen = new Date().toISOString();
+                
+                // Update the device in the list and on the map
+                updateDeviceInList(gpsDevice);
+                updateDeviceMarker(gpsDevice);
+                
+                // Increment progress
+                progress += 0.05;
+                
+                // If reached next waypoint, move to the next one
+                if (progress >= 1) {
+                    progress = 0;
+                    waypointIndex = nextWaypointIndex;
+                }
+                
+                // Schedule next update
+                setTimeout(moveGps, 2000);
+            }
+            
+            // Start moving
+            moveGps();
+        }
+        
+        // Initialize the map centered on Indonesia
+        const map = L.map('map').setView([-2.5, 118], 5);
+        
+        // Add the OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Store device markers
+        const deviceMarkers = {};
+        
+        // Function to get icon based on device type
+        function getDeviceIcon(type) {
+            switch(type) {
+                case 'temperature':
+                    return 'fa-thermometer-half';
+                case 'humidity':
+                    return 'fa-tint';
+                case 'pressure':
+                    return 'fa-compress-alt';
+                case 'air':
+                    return 'fa-wind';
+                case 'gps':
+                    return 'fa-map-marker-alt';
+                case 'energy':
+                    return 'fa-bolt';
+                case 'relay':
+                    return 'fa-lightbulb';
+                default:
+                    return 'fa-microchip';
+            }
+        }
+        
+        // Function to get color based on device status
+        function getStatusColor(status) {
+            if (status === 'online' || status === 'online (simulated)') return '#4caf50';
+            if (status === 'offline') return '#f44336';
+            if (status === 'idle') return '#ff9800';
+            return '#FFA500'; // Default for connecting, etc.
+        }
+        
+        // Function to get background color based on device type
+        function getDeviceBackgroundColor(type) {
+            switch(type) {
+                case 'temperature':
+                    return '#ffcdd2';
+                case 'humidity':
+                    return '#bbdefb';
+                case 'pressure':
+                    return '#c8e6c9';
+                case 'air':
+                    return '#e1bee7';
+                case 'gps':
+                    return '#fff9c4';
+                case 'energy':
+                    return '#ffe0b2';
+                case 'relay':
+                    return '#ffffcc';
+                default:
+                    return '#f5f5f5';
+            }
+        }
+        
+        // Create custom icon for device markers
+        function createCustomIcon(device) {
+            // Get device type for specific styling
+            const deviceType = device.type;
+            
+            // Shorten device name for label if needed
+            let shortName = device.name;
+            if (device.name.length > 15) {
+                // If name is too long, use only the first part
+                const nameParts = device.name.split(' ');
+                if (nameParts.length > 1) {
+                    shortName = nameParts[0] + ' ' + nameParts[1];
+                }
+                if (shortName.length > 15) {
+                    shortName = shortName.substring(0, 12) + '...';
+                }
+            }
+            
+            // Use circular style for all devices
+            const iconHtml = `
+                <div class="custom-marker">
+                    <div class="marker-icon" style="border-color: ${getStatusColor(device.status)};">
+                        <i class="fas ${getDeviceIcon(deviceType)}" style="color: ${getStatusColor(device.status)};"></i>
+                    </div>
+                    <div class="marker-label">${shortName}</div>
+                </div>
+            `;
+            
+            return L.divIcon({
+                html: iconHtml,
+                className: 'custom-div-icon',
+                iconSize: [80, 60],
+                iconAnchor: [40, 30]
+            });
+        }
+        
+        // Format the device details based on type
+        function formatReadings(device) {
+            let html = '';
+            
+            if (device.type === 'gps') {
+                html = `
+                    <div class="reading-item">Latitude: ${device.location[0].toFixed(6)}</div>
+                    <div class="reading-item">Longitude: ${device.location[1].toFixed(6)}</div>
+                    <div class="reading-item">Speed: ${device.readings.speed} km/h</div>
+                    <div class="reading-item">Altitude: ${device.readings.altitude} m</div>
+                    <div class="reading-item">Heading: ${device.readings.heading}°</div>
+                `;
+            } else if (device.type === 'temperature') {
+                html = `
+                    <div class="reading-item">Temperature: ${device.readings.temperature}°C</div>
+                    <div class="reading-item">Humidity: ${device.readings.humidity}%</div>
+                `;
+            } else if (device.type === 'humidity') {
+                html = `
+                    <div class="reading-item">Soil Moisture: ${device.readings.moisture}%</div>
+                    <div class="reading-item">Temperature: ${device.readings.temperature}°C</div>
+                `;
+            } else if (device.type === 'air') {
+                html = `
+                    <div class="reading-item">PM2.5: ${device.readings.pm25} µg/m³</div>
+                    <div class="reading-item">PM10: ${device.readings.pm10} µg/m³</div>
+                    <div class="reading-item">CO2: ${device.readings.co2} ppm</div>
+                    <div class="reading-item">TVOC: ${device.readings.tvoc} ppb</div>
+                `;
+            } else if (device.type === 'energy') {
+                html = `
+                    <div class="reading-item">Voltage: ${device.readings.voltage} V</div>
+                    <div class="reading-item">Current: ${device.readings.current} A</div>
+                    <div class="reading-item">Power: ${device.readings.power} W</div>
+                    <div class="reading-item">Energy: ${device.readings.energy} kWh</div>
+                    <div class="reading-item">Power Factor: ${device.readings.pf}</div>
+                `;
+            } else if (device.type === 'relay') {
+                const state = device.readings.state === 1 ? 'Menyala' : 'Mati';
+                const stateClass = device.readings.state === 1 ? 'relay-on' : 'relay-off';
+                html = `
+                    <div class="reading-item">Status: <span class="${stateClass}">${state}</span></div>
+                    <div class="reading-item">
+                        <button class="toggle-button" onclick="toggleRelay(${device.id})">
+                            ${device.readings.state === 1 ? 'Matikan' : 'Nyalakan'}
+                        </button>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+        
+        // Function to update a device marker on the map
+        function updateDeviceMarker(device) {
+            // If marker exists, update it
+            if (deviceMarkers[device.id]) {
+                const marker = deviceMarkers[device.id];
+                
+                // Update icon to reflect current status
+                marker.setIcon(createCustomIcon(device));
+                
+                // Update popup content
+                const popupContent = `
+                    <div style="min-width: 200px;">
+                        <h3>${device.name}</h3>
+                        <div style="margin-bottom: 10px;">
+                            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${getStatusColor(device.status)}; margin-right: 5px;"></span>
+                            <span>${device.status}</span>
+                        </div>
+                        <div>${formatReadings(device)}</div>
+                    </div>
+                `;
+                
+                marker.getPopup().setContent(popupContent);
+                
+                // If the marker is for a GPS device and it's moving, update its position
+                if (device.type === 'gps' && device.isMoving) {
+                    marker.setLatLng(device.location);
+                }
+            } else {
+                // Create new marker
+                const marker = L.marker(device.location, {
+                    icon: createCustomIcon(device)
+                }).addTo(map);
+                
+                // Add popup
+                const popupContent = `
+                    <div style="min-width: 220px; max-width: 300px;">
+                        <h3 style="margin-top: 0; color: #2c3e50; border-bottom: 2px solid ${getStatusColor(device.status)}; padding-bottom: 5px;">
+                            ${device.name}
+                        </h3>
+                        <div style="margin-bottom: 10px; display: flex; align-items: center;">
+                            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${getStatusColor(device.status)}; margin-right: 8px;"></span>
+                            <span style="font-weight: bold;">${device.status}</span>
+                        </div>
+                        <div style="background-color: ${getDeviceBackgroundColor(device.type)}; padding: 10px; border-radius: 5px;">
+                            ${formatReadings(device)}
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                
+                // Store marker reference
+                deviceMarkers[device.id] = marker;
+            }
+        }
+        
+        // Function to update a device in the sidebar list
+        function updateDeviceInList(device) {
+            // Check if device already exists in the list
+            let deviceElement = document.getElementById(`device-${device.id}`);
+            
+            if (!deviceElement) {
+                // Create new device element
+                deviceElement = document.createElement('li');
+                deviceElement.id = `device-${device.id}`;
+                deviceElement.className = 'device-item';
+                deviceElement.setAttribute('data-id', device.id);
+                
+                // Add to the list
+                document.getElementById('deviceList').appendChild(deviceElement);
+                
+                // Add click event to focus on the device
+                deviceElement.addEventListener('click', function() {
+                    const deviceId = parseInt(this.getAttribute('data-id'));
+                    
+                    // Remove active class from all devices
+                    document.querySelectorAll('.device-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked device
+                    this.classList.add('active');
+                    
+                    // Find the device and focus map on it
+                    if (deviceMarkers[deviceId]) {
+                        map.setView(deviceMarkers[deviceId].getLatLng(), 15);
+                        deviceMarkers[deviceId].openPopup();
+                    }
+                });
+            }
+            
+            // Update device element content
+            deviceElement.innerHTML = `
+                <div class="device-name">${device.name}</div>
+                <div class="device-status">
+                    <div class="status-indicator" style="background-color: ${getStatusColor(device.status)};"></div>
+                    ${device.status}
+                </div>
+                <div class="device-details" style="background-color: ${getDeviceBackgroundColor(device.type)}; padding: 5px; border-radius: 4px; margin-top: 5px;">
+                    ${formatReadings(device)}
+                </div>
+            `;
+        }
+        
+        // Function to toggle relay state
+        function toggleRelay(deviceId) {
+            const relayDevice = devices.find(d => d.id === deviceId);
+            if (!relayDevice || !mqttClient || mqttClient.connected !== true) {
+                alert('Tidak dapat mengontrol relay. Pastikan koneksi MQTT aktif.');
+                return;
+            }
+            
+            // Toggle state (0 -> 1 or 1 -> 0)
+            const newState = relayDevice.readings.state === 1 ? 0 : 1;
+            
+            // Publish message to MQTT broker
+            mqttClient.publish('kontrol/relay', newState.toString(), { qos: 0, retain: false }, function(err) {
+                if (err) {
+                    console.error('Error publishing message:', err);
+                    alert('Gagal mengirim perintah ke relay.');
+                } else {
+                    console.log(`Sent relay command: ${newState}`);
+                    // Update local state immediately for better UX
+                    relayDevice.readings.state = newState;
+                    updateDeviceInList(relayDevice);
+                    updateDeviceMarker(relayDevice);
+                }
+            });
+        }
+        
+        // Initialize the application
+        function initApp() {
+            console.log('Initializing application...');
+            
+            // Update last updated time
+            document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date().toLocaleString();
+            
+            // Add all devices to the list and map
+            devices.forEach(device => {
+                updateDeviceInList(device);
+                updateDeviceMarker(device);
+            });
+            
+            // Start moving the GPS tracker (device with id 1)
+            startGpsSimulation();
+            
+            // Connect to MQTT broker for energy meter updates
+            connectMQTT();
+            
+            // Add event listener for reconnect button
+            document.getElementById('reconnectMqtt').addEventListener('click', function() {
+                console.log('Manual reconnect requested');
+                logMqttMessage('Manual reconnect requested');
+                reconnectAttempts = 0; // Reset reconnect attempts
+                connectMQTT();
+            });
+            
+            // Add event listener for add device button
+            document.getElementById('addDeviceBtn').addEventListener('click', function() {
+                alert('Fitur ini tidak tersedia di versi demo');
+            });
+        }
+        
+        // Initialize the app when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

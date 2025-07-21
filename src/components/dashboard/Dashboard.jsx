@@ -4,6 +4,7 @@ import ProductivityHub from './ProductivityHub.jsx';
 import Docs from './Docs.jsx';
 import MCardPanel from '../panels/MCardPanel.tsx';
 import SimplePdfPanel from '../panels/SimplePdfPanel.jsx';
+import RAGPanel from '../panels/RAGPanel.jsx';
 
 const Dashboard = () => {
   const [activeMonth, setActiveMonth] = useState('Jun 2025');
@@ -14,6 +15,7 @@ const Dashboard = () => {
   const [showLlm, setShowLlm] = useState(false);
   const [showProductivityHub, setShowProductivityHub] = useState(false);
   const [showDocs, setShowDocs] = useState(false);
+  const [showRAG, setShowRAG] = useState(false);
 
   // Icons for the dashboard
   const HomeIcon = () => (
@@ -75,6 +77,7 @@ const Dashboard = () => {
       setShowCsdt(false);
       setShowProductivityHub(false);
       setShowDocs(false);
+      setShowRAG(false);
     } 
     // Show CSDT iframe when csdt is clicked
     else if (item === 'csdt') {
@@ -83,6 +86,7 @@ const Dashboard = () => {
       setShowLlm(false);
       setShowProductivityHub(false);
       setShowDocs(false);
+      setShowRAG(false);
     }
     // Show LLM iframe when llm is clicked
     else if (item === 'llm') {
@@ -91,6 +95,7 @@ const Dashboard = () => {
       setShowCsdt(false);
       setShowProductivityHub(false);
       setShowDocs(false);
+      setShowRAG(false);
     }
     // Show ProductivityHub when productivity is clicked
     else if (item === 'productivity') {
@@ -99,10 +104,21 @@ const Dashboard = () => {
       setShowCsdt(false);
       setShowLlm(false);
       setShowDocs(false);
+      setShowRAG(false);
     }
     // Show Docs component when docs is clicked
     else if (item === 'docs') {
       setShowDocs(true);
+      setShowProductivityHub(false);
+      setShowChatbot(false);
+      setShowCsdt(false);
+      setShowLlm(false);
+      setShowRAG(false);
+    }
+    // Show RAG panel when rag is clicked
+    else if (item === 'rag') {
+      setShowRAG(true);
+      setShowDocs(false);
       setShowProductivityHub(false);
       setShowChatbot(false);
       setShowCsdt(false);
@@ -112,6 +128,7 @@ const Dashboard = () => {
       setShowCsdt(false);
       setShowProductivityHub(false);
       setShowDocs(false);
+      setShowRAG(false);
     }
     
     // Open Kubernetes dashboard in a new tab when k8s button is clicked
@@ -190,12 +207,24 @@ const Dashboard = () => {
       <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
     </svg>
   );
+  
+  // RAG icon for sidebar (database with magnifying glass)
+  const RAGIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+      <path d="M3 12v3c0 1.657 3.134 3 7 3s7-1.343 7-3v-3c0 1.657-3.134 3-7 3s-7-1.343-7-3z" />
+      <path d="M3 7v3c0 1.657 3.134 3 7 3s7-1.343 7-3V7c0 1.657-3.134 3-7 3S3 8.657 3 7z" />
+      <path d="M17 5c0 1.657-3.134 3-7 3S3 6.657 3 5s3.134-3 7-3 7 1.343 7 3z" />
+      <circle cx="14" cy="15" r="3" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <path d="M16.5 17.5L19 20" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
 
   // Sidebar items
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <HomeIcon /> },
     { id: 'mcard', label: 'MCard', icon: <CardIcon /> },
     { id: 'chatbot', label: 'Chatbot', icon: <ChatIcon /> },
+    { id: 'rag', label: 'RAG Search', icon: <RAGIcon /> },
     { id: 'productivity', label: 'Productivity', icon: <ProductivityIcon /> },
     { id: 'docs', label: 'Docs', icon: <DocsIcon /> },
     { id: 'whitepaper', label: 'AI Whitepaper', icon: <PDFDocumentIcon /> },
@@ -344,6 +373,13 @@ const Dashboard = () => {
             /* Docs Component with Google Docs and Chatbot */
             <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
               <Docs />
+            </div>
+          ) : activeSidebarItem === 'rag' ? (
+            /* RAG Panel */
+            <div className="bg-white rounded-lg shadow-sm p-0 h-full flex-1 overflow-hidden" style={{ maxHeight: '100%', height: '100%' }}>
+              <div className="h-full overflow-auto" style={{ maxHeight: '100%' }}>
+                <RAGPanel className="h-full" />
+              </div>
             </div>
           ) : activeSidebarItem === 'whitepaper' ? (
             /* AI Whitepaper PDF Viewer */

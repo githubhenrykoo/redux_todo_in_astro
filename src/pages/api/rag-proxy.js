@@ -1,11 +1,14 @@
 // API proxy to forward requests to RAG service
-export const post = async ({ request }) => {
+export async function POST({ request }) {
+  console.log('RAG proxy received request:', new Date().toISOString());
   try {
     // Extract the endpoint from URL parameters
     const url = new URL(request.url);
     const ragEndpoint = url.searchParams.get('endpoint') || '';
+    console.log('Request URL:', request.url);
     
     if (!ragEndpoint) {
+      console.error('Missing endpoint parameter in request');
       return new Response(JSON.stringify({ 
         error: 'Invalid endpoint - must specify endpoint parameter' 
       }), { 
@@ -14,6 +17,12 @@ export const post = async ({ request }) => {
           'Content-Type': 'application/json'
         }
       });
+    }
+    
+    // Log all request headers for debugging
+    console.log('Request headers:');
+    for (const [key, value] of request.headers.entries()) {
+      console.log(`${key}: ${value}`);
     }
     
     console.log(`RAG proxy forwarding to endpoint: ${ragEndpoint}`);
@@ -26,17 +35,29 @@ export const post = async ({ request }) => {
     
     // Forward the request to the RAG service
     let ragResponse;
+    const ragBaseUrl = 'http://localhost:28302';
+    const ragFullUrl = `${ragBaseUrl}/${ragEndpoint}`;
+    console.log(`Forwarding to RAG service URL: ${ragFullUrl}`);
     
     if (contentType.includes('multipart/form-data')) {
       // Handle file uploads - directly stream the FormData
       console.log('Handling multipart/form-data upload');
-      ragResponse = await fetch(`http://localhost:28302/${ragEndpoint}`, {
-        method: 'POST',
-        body: await request.arrayBuffer(), // Pass the raw body for multipart/form-data
-        headers: {
-          'Content-Type': contentType
-        }
-      });
+      const rawBody = await request.arrayBuffer();
+      console.log(`Raw body size: ${rawBody.byteLength} bytes`);
+      
+      try {
+        ragResponse = await fetch(ragFullUrl, {
+          method: 'POST',
+          body: rawBody, // Pass the raw body for multipart/form-data
+          headers: {
+            'Content-Type': contentType
+          }
+        });
+        console.log(`RAG upload response status: ${ragResponse.status} ${ragResponse.statusText}`);
+      } catch (fetchError) {
+        console.error('Error fetching from RAG service:', fetchError);
+        throw new Error(`RAG service connection error: ${fetchError.message}`);
+      }
     } else {
       // Handle JSON requests
       console.log('Handling JSON request');
@@ -45,27 +66,42 @@ export const post = async ({ request }) => {
         body = await clonedRequest.json();
         console.log('Request body:', JSON.stringify(body));
       } catch (e) {
-        console.log('No JSON body or empty body');
+        console.log('No JSON body or empty body:', e.message);
         body = {};
       }
       
-      ragResponse = await fetch(`http://localhost:28302/${ragEndpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      });
+      try {
+        ragResponse = await fetch(ragFullUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+        console.log(`RAG query response status: ${ragResponse.status} ${ragResponse.statusText}`);
+      } catch (fetchError) {
+        console.error('Error fetching from RAG service:', fetchError);
+        throw new Error(`RAG service connection error: ${fetchError.message}`);
+      }
     }
     
     // Process the response
     const responseContentType = ragResponse.headers.get('Content-Type') || 'application/json';
+    console.log('RAG response content type:', responseContentType);
+    
+    // Log all response headers for debugging
+    console.log('RAG response headers:');
+    for (const [key, value] of ragResponse.headers.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+    
     let responseBody;
     
     if (responseContentType.includes('application/json')) {
       // Handle JSON response
       try {
         responseBody = await ragResponse.json();
+        console.log('RAG JSON response:', JSON.stringify(responseBody));
         
         // Return the response to the client
         return new Response(JSON.stringify(responseBody), {
@@ -76,8 +112,15 @@ export const post = async ({ request }) => {
         });
       } catch (e) {
         console.error('Error parsing JSON response:', e);
+        
+        // Try to get the text to see what was actually returned
+        const rawText = await ragResponse.text().catch(err => 'Could not read response text');
+        console.error('Raw response text:', rawText);
+        
         return new Response(JSON.stringify({ 
-          error: 'Error parsing response from RAG service' 
+          error: 'Error parsing response from RAG service',
+          details: e.message,
+          rawResponse: rawText.substring(0, 500) // Limit length for safety
         }), { 
           status: 500,
           headers: {
@@ -87,21 +130,51 @@ export const post = async ({ request }) => {
       }
     } else {
       // Handle other response types (text, binary, etc.)
-      responseBody = await ragResponse.text();
-      
-      return new Response(responseBody, {
-        status: ragResponse.status,
-        headers: {
-          'Content-Type': responseContentType
-        }
-      });
+      try {
+        responseBody = await ragResponse.text();
+        console.log('RAG text response:', responseBody.substring(0, 200) + '...');
+        
+        return new Response(responseBody, {
+          status: ragResponse.status,
+          headers: {
+            'Content-Type': responseContentType
+          }
+        });
+      } catch (textError) {
+        console.error('Error reading text response:', textError);
+        return new Response(JSON.stringify({
+          error: 'Error reading response from RAG service',
+          details: textError.message
+        }), {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+      }
     }
   } catch (error) {
     console.error('RAG proxy error:', error);
+    console.error('Error stack trace:', error.stack);
+    
+    // Try to determine if it's a connection issue with the RAG service
+    let statusCode = 500;
+    let errorType = 'general_error';
+    
+    if (error.message && error.message.includes('ECONNREFUSED')) {
+      errorType = 'connection_refused';
+      console.error('Connection to RAG service refused - is the Docker service running?');
+    } else if (error.message && error.message.includes('Not Found')) {
+      errorType = 'endpoint_not_found';
+      statusCode = 404;
+    }
+    
     return new Response(JSON.stringify({ 
-      error: `RAG proxy error: ${error.message}` 
+      error: `RAG proxy error: ${error.message}`,
+      errorType: errorType,
+      timestamp: new Date().toISOString()
     }), { 
-      status: 500,
+      status: statusCode,
       headers: {
         'Content-Type': 'application/json'
       }

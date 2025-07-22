@@ -2,7 +2,7 @@
 
 ## 1. Copy the file "docker-compose.yml" and ".env" in the same directory.
 
-### docker-compose.yml:
+### docker-compose.yml
 
 ```
 version: '3.8'
@@ -17,7 +17,7 @@ services:
     command: npm run dev
 ```
 
-### .env:
+### .env
 
 ```
 PUBLIC_NOTION_AUTH_URL=${PUBLIC_NOTION_AUTH_URL}

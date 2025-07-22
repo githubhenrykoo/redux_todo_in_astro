@@ -2,6 +2,7 @@
 
 ## docker-compose.yml:
 
+```
 version: '3.8'
 services:
   app:
@@ -12,6 +13,7 @@ services:
     env_file:
       - .env
     command: npm run dev
+```
 
 ## .env:
 

@@ -1,15 +1,36 @@
 version: '3.8'
+
 services:
+  local-rag:
+    image: henry768/local-rag:sha-475e804
+    ports:
+      - "28302:28302"
+    environment:
+      - PORT=28302
+    command: ["python", "app.py", "--port", "28302"]
+    restart: unless-stopped
+    depends_on:
+      - ollama
+
   app:
-    image: henry768/redux_todo_in_astro:slim
+    image: henry768/redux_todo_in_astro:latest
     container_name: redux-todo-astro
     ports:
-      - "4323:4321"
-    # No volumes - using self-contained image with PDFs included
+      - "4321:4321"
     env_file:
       - .env
-    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    command: npm run dev
+    restart: unless-stopped
+    depends_on:
+      - ollama
 
-networks:
-  default:
-    driver: bridge
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

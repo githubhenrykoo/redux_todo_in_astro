@@ -1,11 +1,11 @@
 # Ollama Local LLM with MCP
 
-## 1. Download Ollama: https://ollama.com/download
-## 2. Pull LLM: ollama pull mistral
-## 3. Ensure Ollama is running: ollama serve
-## 4. Download Go Programming Language: https://go.dev/doc/install
-## 5. Install MCP Host via terminal: go install github.com/mark3labs/mcphost@latest
-## 6. Create file "mcp.json":
+### 1. Download Ollama: https://ollama.com/download
+### 2. Pull LLM: ollama pull mistral
+### 3. Ensure Ollama is running: ollama serve
+### 4. Download Go Programming Language: https://go.dev/doc/install
+### 5. Install MCP Host via terminal: go install github.com/mark3labs/mcphost@latest
+### 6. Create file "mcp.json":
 
 ```
 {
@@ -42,4 +42,4 @@
   }
 ```
 
-## 7. Run Ollama with MCP via command: export PATH="$HOME/go/bin:$PATH" && mcphost -m ollama:mistral --config "/Users/${username}/Documents/demo.json"
+### 7. Run Ollama with MCP via command: export PATH="$HOME/go/bin:$PATH" && mcphost -m ollama:mistral --config "/Users/${username}/Documents/demo.json"

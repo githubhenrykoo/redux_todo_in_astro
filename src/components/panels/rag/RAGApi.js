@@ -12,24 +12,50 @@ const CACHE_DURATION = 30000; // 30 seconds cache
  */
 export const fetchCardStats = async () => {
   try {
-    const response = await fetch('/api/card-collection?action=getStats');
-    if (!response.ok) {
-      console.warn('Could not fetch card stats');
-      return null;
+    // First try to get stats from the RAG service directly
+    try {
+      const ragResponse = await fetch('/api/rag-proxy?endpoint=stats');
+      if (ragResponse.ok) {
+        const ragData = await ragResponse.json();
+        return {
+          totalCards: ragData.total_documents || 0,
+          indexedCards: ragData.indexed_documents || 0,
+          lastUpdated: ragData.last_updated || new Date().toISOString()
+        };
+      }
+    } catch (ragErr) {
+      console.log('Could not fetch from RAG service, falling back to local stats');
     }
-    
-    const data = await response.json();
-    if (data.success) {
-      return {
-        totalCards: data.totalCards || 0,
-        indexedCards: data.indexedCards || 0,
-        lastUpdated: data.lastUpdated || new Date().toISOString()
-      };
+
+    // Fallback to local stats if RAG service is not available
+    try {
+      const response = await fetch('/api/card-collection?action=stats');
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          totalCards: data.total || 0,
+          indexedCards: data.indexed || 0,
+          lastUpdated: data.lastUpdated || new Date().toISOString()
+        };
+      }
+    } catch (err) {
+      console.warn('Could not fetch card stats from local API');
     }
-    return null;
+
+    // Return default values if both methods fail
+    console.warn('Using default card stats');
+    return {
+      totalCards: 0,
+      indexedCards: 0,
+      lastUpdated: new Date().toISOString()
+    };
   } catch (err) {
-    console.error('Error fetching card stats:', err);
-    return null;
+    console.error('Error in fetchCardStats:', err);
+    return {
+      totalCards: 0,
+      indexedCards: 0,
+      lastUpdated: new Date().toISOString()
+    };
   }
 };
 

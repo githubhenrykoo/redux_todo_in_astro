@@ -1,7 +1,7 @@
 # Ollama Local LLM with MCP
 
 ### 1. Download Ollama: https://ollama.com/download
-### 2. Pull LLM: ollama pull mistral
+### 2. Pull LLM: ollama pull qwen2.5
 ### 3. Ensure Ollama is running: ollama serve
 ### 4. Download Go Programming Language: https://go.dev/doc/install
 ### 5. Install MCP Host via terminal: go install github.com/mark3labs/mcphost@latest
@@ -19,10 +19,19 @@
           "./"
         ],
         "environment": {
-          "ALLOWED_DIRS": "/Users/alessandrorumampuk/Downloads",
+          "ALLOWED_DIRS": "/Users/${username}/Downloads",
           "DEBUG": "true"
         },
         "allowedTools": ["code", "docs"]
+      },
+      "weather": {
+        "command": "uv",
+        "args": [
+          "--directory",
+          "/Users/${username}/code/MCP/my_host/weather",
+          "run",
+          "weather.py"
+        ]
       },
       "google-maps": {
         "command": "docker",
@@ -45,5 +54,5 @@
 ### 7. Run Ollama with MCP via command:
 
 ```
-export PATH="$HOME/go/bin:$PATH" && mcphost -m ollama:mistral --config "/Users/${username}/Documents/MCP/demo.json"
+export PATH="$HOME/go/bin:$PATH" && mcphost -m ollama:qwen2.5 --config "/Users/${username}/Documents/MCP/demo.json"
 ```

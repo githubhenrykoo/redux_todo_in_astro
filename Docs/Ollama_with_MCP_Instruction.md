@@ -42,4 +42,8 @@
   }
 ```
 
-### 7. Run Ollama with MCP via command: export PATH="$HOME/go/bin:$PATH" && mcphost -m ollama:mistral --config "/Users/${username}/Documents/demo.json"
+### 7. Run Ollama with MCP via command:
+
+```
+export PATH="$HOME/go/bin:$PATH" && mcphost -m ollama:mistral --config "/Users/${username}/Documents/demo.json"
+```

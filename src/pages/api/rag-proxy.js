@@ -1,4 +1,17 @@
 // API proxy to forward requests to RAG service
+export async function OPTIONS() {
+  // Handle CORS preflight requests
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400', // 24 hours
+    },
+  });
+}
+
 export async function POST({ request }) {
   console.log('RAG proxy received request:', new Date().toISOString());
   try {
@@ -63,22 +76,46 @@ export async function POST({ request }) {
       console.log('Handling JSON request');
       let body;
       try {
-        body = await clonedRequest.json();
-        console.log('Request body:', JSON.stringify(body));
+        // For query endpoint, ensure we have a proper query object
+        if (ragEndpoint === 'query') {
+          const requestBody = await clonedRequest.json().catch(() => ({}));
+          body = { query: requestBody.query || '' };
+          console.log('Query request:', JSON.stringify(body));
+        } else {
+          body = await clonedRequest.json();
+          console.log('Request body:', JSON.stringify(body));
+        }
       } catch (e) {
-        console.log('No JSON body or empty body:', e.message);
-        body = {};
+        console.log('No JSON body or empty body, using default:', e.message);
+        // For query endpoint, default to empty query string
+        body = ragEndpoint === 'query' ? { query: '' } : {};
       }
       
       try {
+        // For query endpoint, ensure we're sending the correct format
+        const requestBody = ragEndpoint === 'query' 
+          ? JSON.stringify({ query: body.query || '' })
+          : JSON.stringify(body);
+        
+        console.log(`Sending to ${ragFullUrl}:`, requestBody);
+        
         ragResponse = await fetch(ragFullUrl, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
-          body: JSON.stringify(body)
+          body: requestBody
         });
-        console.log(`RAG query response status: ${ragResponse.status} ${ragResponse.statusText}`);
+        
+        console.log(`RAG ${ragEndpoint} response status: ${ragResponse.status} ${ragResponse.statusText}`);
+        
+        // If the response is not OK, try to get the error details
+        if (!ragResponse.ok) {
+          const errorText = await ragResponse.text().catch(() => 'No error details');
+          console.error(`RAG service error (${ragResponse.status}):`, errorText);
+          throw new Error(`RAG service returned ${ragResponse.status}: ${ragResponse.statusText}`);
+        }
       } catch (fetchError) {
         console.error('Error fetching from RAG service:', fetchError);
         throw new Error(`RAG service connection error: ${fetchError.message}`);
@@ -103,11 +140,14 @@ export async function POST({ request }) {
         responseBody = await ragResponse.json();
         console.log('RAG JSON response:', JSON.stringify(responseBody));
         
-        // Return the response to the client
+        // Return the response to the client with CORS headers
         return new Response(JSON.stringify(responseBody), {
           status: ragResponse.status,
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
           }
         });
       } catch (e) {
@@ -176,7 +216,10 @@ export async function POST({ request }) {
     }), { 
       status: statusCode,
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
       }
     });
   }

@@ -105,15 +105,41 @@ const GoogleCalendar = ({ className = '' }) => {
         setIsLoading(true);
         setError(null);
         
-        // No longer need to check for API keys since they're hardcoded
+        // Check for saved auth token in localStorage
+        const savedToken = localStorage.getItem('googleAuthToken');
         
         await loadGoogleApi();
         
         // Check if user is already authenticated by checking for token
         const token = window.gapi.client.getToken();
-        setIsAuthenticated(token !== null);
+        const isTokenValid = token !== null;
         
-        if (token !== null) {
+        // If we have a saved token but no current token, try to restore the session
+        if (savedToken && !isTokenValid) {
+          try {
+            // Try to restore the session with the saved token
+            window.gapi.client.setToken(JSON.parse(savedToken));
+            // Verify the token is still valid by making a test request
+            const response = await window.gapi.client.calendar.events.list({
+              'calendarId': 'primary',
+              'timeMin': (new Date()).toISOString(),
+              'showDeleted': false,
+              'singleEvents': true,
+              'maxResults': 1
+            });
+            
+            // If we get here, the token is still valid
+            setIsAuthenticated(true);
+            await fetchEvents();
+            return;
+          } catch (err) {
+            console.log('Saved token is invalid or expired, clearing...');
+            localStorage.removeItem('googleAuthToken');
+            setIsAuthenticated(false);
+          }
+        } else if (isTokenValid) {
+          // If we have a valid token from gapi
+          setIsAuthenticated(true);
           await fetchEvents();
         }
       } catch (err) {
@@ -146,6 +172,12 @@ const GoogleCalendar = ({ className = '' }) => {
       
       await signIn();
       setIsAuthenticated(true);
+      
+      // Save the token to localStorage for persistence
+      const token = window.gapi.client.getToken();
+      if (token) {
+        localStorage.setItem('googleAuthToken', JSON.stringify(token));
+      }
       
       const response = await listEvents();
       const events = response.result.items || [];
@@ -200,6 +232,9 @@ const GoogleCalendar = ({ className = '' }) => {
       await signOut();
       setIsAuthenticated(false);
       setEvents([]);
+      
+      // Clear the saved token from localStorage
+      localStorage.removeItem('googleAuthToken');
       
     } catch (err) {
       console.error('Sign out error:', err);

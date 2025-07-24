@@ -265,8 +265,16 @@ const NotionPanel = ({ className = '' }) => {
   };
 
   return (
-    <div className={`notion-panel ${className}`} style={{ padding: '20px', backgroundColor: 'white', height: '100%', overflowY: 'auto' }}>
-      
+    <div className={`notion-panel ${className}`} style={{ 
+      padding: '20px', 
+      backgroundColor: 'white', 
+      height: '100%', 
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '300px' // Ensures there's enough space for vertical centering
+    }}>
       <div className="controls">
         {!connected ? (
           <button

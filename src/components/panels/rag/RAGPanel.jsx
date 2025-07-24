@@ -236,7 +236,7 @@ const RAGPanel = ({ className = '' }) => {
 
   // Function to clear chat history
   const clearChat = () => {
-    const initialMessage = { role: 'system', content: 'Welcome to the RAG (Retrieval-Augmented Generation) panel. You can search through the MCard database or load new content for indexing.' };
+    const initialMessage = { role: 'system', content: 'Welcome to the RAG (Retrieval-Augmented Generation) panel.' };
     setMessages([initialMessage]);
     saveMessages([initialMessage]);
   };

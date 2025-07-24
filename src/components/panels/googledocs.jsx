@@ -6,7 +6,7 @@ const GoogleDocsPanel = () => {
   const [tokenClient, setTokenClient] = useState(null);
   const [editorContent, setEditorContent] = useState('');
   const [saveStatus, setSaveStatus] = useState('');
-  const [isPreview, setIsPreview] = useState(false);
+  const [isPreview] = useState(true);
   const [pickerInited, setPickerInited] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
@@ -203,11 +203,7 @@ const GoogleDocsPanel = () => {
     setEditorContent(newContent);
   };
 
-  const togglePreview = () => {
-    setIsPreview(!isPreview);
-  };
-
-  // Update the renderMarkdown function to allow HTML and handle Google Docs image references
+  // Function to render markdown with HTML support and handle Google Docs image references
   const renderMarkdown = (content) => {
     try {
       marked.setOptions({
@@ -613,22 +609,7 @@ const GoogleDocsPanel = () => {
               >
                 Change Document
               </button>
-              <button
-                onClick={togglePreview}
-                style={{
-                  backgroundColor: isPreview ? '#34a853' : '#f1f3f4',
-                  color: isPreview ? '#ffffff' : '#5f6368',
-                  padding: '8px 16px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {isPreview ? 'Markdown' : 'Preview'}
-              </button>
-              
+
               <button
                 onClick={handleExportMarkdown}
                 style={{
@@ -665,52 +646,22 @@ const GoogleDocsPanel = () => {
         padding: '40px 0',
         backgroundColor: '#f8f9fa',
       }}>
-        {isPreview ? (
-          <div
-            className="markdown-preview"
-            style={{
-              width: '816px',
-              minHeight: '1056px',
-              margin: '0 auto',
-              padding: '96px 72px',
-              backgroundColor: '#ffffff',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-              fontSize: '11pt',
-              lineHeight: 1.5,
-              color: '#202124',
-              fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
-            }}
-            dangerouslySetInnerHTML={renderMarkdown(editorContent)}
-          />
-        ) : (
-          <div style={{ width: '816px', margin: '0 auto' }}>
-            {/* Toolbar removed */}
-            <div
-              contentEditable="true"
-              style={{
-                minHeight: '1056px',
-                padding: '96px 72px',
-                backgroundColor: '#ffffff',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-                outline: 'none',
-                fontSize: '11pt',
-                lineHeight: '1.15',
-                color: 'rgb(32, 33, 36)',
-                fontFamily: '"docs-Roboto", Helvetica, Arial, sans-serif',
-                letterSpacing: 'normal',
-                fontWeight: 400,
-                wordSpacing: 'normal',
-                textAlign: 'left',
-                WebkitFontSmoothing: 'antialiased',
-                MozOsxFontSmoothing: 'grayscale',
-              }}
-              onInput={handleEditorChange}
-              onKeyDown={handleKeyDown}
-              spellCheck="true"
-              dangerouslySetInnerHTML={{ __html: editorContent }}
-            />
-          </div>
-        )}
+        <div
+          className="markdown-preview"
+          style={{
+            width: '816px',
+            minHeight: '1056px',
+            margin: '0 auto',
+            padding: '96px 72px',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+            fontSize: '11pt',
+            lineHeight: 1.5,
+            color: '#202124',
+            fontFamily: '"Google Sans", Roboto, Arial, sans-serif',
+          }}
+          dangerouslySetInnerHTML={renderMarkdown(editorContent)}
+        />
       </div>
 
       {saveStatus && (

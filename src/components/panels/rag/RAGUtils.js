@@ -87,7 +87,7 @@ export const getInitialMessages = () => {
   return savedMessages ? JSON.parse(savedMessages) : [
     { 
       role: 'system', 
-      content: `Welcome to the RAG (Retrieval-Augmented Generation) panel. You can search through the MCard database or load new content for indexing.`
+      content: `Welcome to the RAG (Retrieval-Augmented Generation) panel.`
     }
   ];
 };

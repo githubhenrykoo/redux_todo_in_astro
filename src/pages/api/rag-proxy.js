@@ -48,7 +48,8 @@ export async function POST({ request }) {
     
     // Forward the request to the RAG service
     let ragResponse;
-    const ragBaseUrl = 'http://localhost:28302';
+    // Use environment variable or fallback to service name in Docker network
+    const ragBaseUrl = process.env.LOCAL_RAG_URL || 'http://local-rag:28302';
     const ragFullUrl = `${ragBaseUrl}/${ragEndpoint}`;
     console.log(`Forwarding to RAG service URL: ${ragFullUrl}`);
     

@@ -431,8 +431,13 @@ const GoogleCalendar = ({ className = '' }) => {
           <button
             onClick={handleSignIn}
             disabled={isLoading}
-            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-white text-gray-700 px-6 py-3 rounded-lg border border-gray-300 hover:bg-gray-50 flex items-center space-x-3 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            <img 
+              src="https://www.google.com/favicon.ico" 
+              alt="Google" 
+              className="w-5 h-5"
+            />
             <span>{isLoading ? 'Signing in...' : 'Sign in with Google'}</span>
           </button>
         </div>

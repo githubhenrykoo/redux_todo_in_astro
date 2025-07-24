@@ -221,8 +221,8 @@ const Dashboard = () => {
 
   // Sidebar items
   const sidebarItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <HomeIcon /> },
     { id: 'mcard', label: 'MCard', icon: <CardIcon /> },
+    { id: 'dashboard', label: 'Map', icon: <MapIcon /> },
     { id: 'chatbot', label: 'Chatbot', icon: <ChatIcon /> },
     { id: 'rag', label: 'RAG Search', icon: <RAGIcon /> },
     { id: 'productivity', label: 'Productivity', icon: <ProductivityIcon /> },

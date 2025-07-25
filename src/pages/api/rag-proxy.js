@@ -48,9 +48,12 @@ export async function POST({ request }) {
     
     // Forward the request to the RAG service
     let ragResponse;
-    // Use environment variable or fallback to service name in Docker network
-    const ragBaseUrl = process.env.LOCAL_RAG_URL || 'http://local-rag:28302';
-    const ragFullUrl = `${ragBaseUrl}/${ragEndpoint}`;
+    // Get RAG URL from environment variables
+    const ragBaseUrl = process.env.OLLAMA_PROXY_RAG;
+    if (!ragBaseUrl) {
+      throw new Error('OLLAMA_PROXY_RAG environment variable is not set');
+    }
+    const ragFullUrl = `${ragBaseUrl.replace(/\/+$/, '')}/${ragEndpoint.replace(/^\/+/, '')}`;
     console.log(`Forwarding to RAG service URL: ${ragFullUrl}`);
     
     if (contentType.includes('multipart/form-data')) {

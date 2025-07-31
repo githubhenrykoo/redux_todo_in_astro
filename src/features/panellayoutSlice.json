@@ -21,7 +21,7 @@
     },
     "todo_layout": {
         "left": {
-            "type": "notion",
+            "type": "xterm",
             "size": 30,
             "minSize": 20,
             "visible": true
@@ -241,7 +241,7 @@
     },
     "json_state_updater_layout": {
         "left": {
-            "type": "CatalogPanel",
+            "type": "xterm",
             "size": 30,
             "minSize": 0,
             "visible": true

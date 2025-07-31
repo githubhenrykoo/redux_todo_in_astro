@@ -32,6 +32,9 @@
   "chatbot": {
     "component": "../components/panels/chatbot.jsx"
   },
+  "xterm": {
+    "component": "../components/panels/xterm.jsx"
+  },
   "codeeditor": {
     "component": "../components/panels/codeeditor.jsx"
   },

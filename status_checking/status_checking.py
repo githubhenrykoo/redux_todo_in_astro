@@ -10,14 +10,18 @@ from threading import Thread
 # Load environment variables from .env file
 load_dotenv()
 
-# Konfigurasi
-WEBSITE_URL = os.getenv('TELEGRAM_WEBSITE_URL')
+# Get configuration from environment variables
+WEBSITES = os.getenv('MONITORED_WEBSITES', '').split(',')
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
-OLLAMA_URL = 'http://localhost:11434/api/generate'
+# Validate required environment variables
+if not BOT_TOKEN:
+    raise ValueError("TELEGRAM_BOT_TOKEN environment variable is required")
+if not WEBSITES or not any(WEBSITES):
+    raise ValueError("MONITORED_WEBSITES environment variable is required with at least one URL")
 
-# Untuk mendeteksi perubahan status
-was_down = None
+# Track status for each domain
+website_status = {url.strip(): None for url in WEBSITES if url.strip()}
 
 # Store active chat IDs
 active_chats = set()
@@ -46,46 +50,17 @@ def handle_telegram_updates():
                         active_chats.add(chat_id)
                         # Send welcome message
                         if update['message'].get('text') == '/start':
+                            websites_list = "\n- " + "\n- ".join(WEBSITES)
                             welcome_msg = (
-                                f"👋 Welcome! I'll notify you about the status of {WEBSITE_URL}\n"
-                                "You'll receive notifications when the website goes up or down."
+                                "👋 Welcome! I'll monitor the following websites:\n"
+                                f"{websites_list}\n\n"
+                                "You'll receive notifications when any website goes up or down."
                             )
                             send_telegram_message(welcome_msg, chat_id)
                     last_update_id = update['update_id']
         except Exception as e:
             print(f"Error in Telegram updates handler: {e}")
         time.sleep(1)
-
-def get_ollama_analysis(error_info):
-    try:
-        # First check if Ollama service is available without sending full request
-        try:
-            # Quick connection test with a short timeout
-            test_response = requests.get(OLLAMA_URL.split('/api/')[0], timeout=1)
-        except requests.exceptions.ConnectionError:
-            # Ollama server is not running or not accessible
-            return "Analysis not available (Ollama service not active)"
-        except Exception:
-            # Any other error with the test connection, continue with the actual request
-            pass
-            
-        prompt = f"Analyze this website error and provide a brief explanation and possible solution in 1 or 2 important sentences:\n{error_info}"
-        payload = {
-            "model": "llama3:8b",
-            "prompt": prompt,
-            "stream": False
-        }
-        response = requests.post(OLLAMA_URL, json=payload, timeout=30)
-        if response.status_code == 200:
-            result = response.json()
-            return result.get('response', 'No analysis available')
-        return f"Analysis not available (status code: {response.status_code})"
-    except requests.exceptions.ConnectionError:
-        # Handle connection errors specifically
-        return "Analysis not available (Ollama service not active)"
-    except Exception as e:
-        # Handle other errors but with a cleaner message
-        return "Analysis not available (error connecting to analysis service)"
 
 def send_telegram_message(message, chat_id=None):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -142,53 +117,67 @@ def get_status_description(status_code):
     }
     return status_codes.get(status_code, f"HTTP {status_code} - Unknown Status Code")
 
-def check_website():
-    global was_down
+def check_website(url):
+    global website_status
     try:
-        response = requests.get(WEBSITE_URL, timeout=5)
+        start_time = time.time()
+        response = requests.get(url, timeout=5, allow_redirects=True)
+        response_time = time.time() - start_time
+        
         if response.status_code == 200:
-            if was_down is not False:
+            if website_status[url] != 'up':
                 message = (
-                    f"Website is UP: {WEBSITE_URL}\n"
+                    f"✅ Website is UP: {url}\n"
+                    f"Response Time: {response_time:.2f}s"
                 )
                 send_telegram_message(message)
                 print(message)
-                was_down = False
+                website_status[url] = 'up'
         else:
-            if was_down is not True:
+            if website_status[url] != 'down':
                 error_content = response.text[:500] if response.text else 'No error content'
                 status_desc = get_status_description(response.status_code)
                 
-                # Calculate response time
-                response_time = response.elapsed.total_seconds()
-                
                 error_info = {
                     'status': status_desc,
-                    'url': WEBSITE_URL,
+                    'url': url,
                     'status_code': response.status_code,
                     'response_time': f"{response_time:.2f}s",
                     'error_content': error_content,
                     'headers': dict(response.headers)
                 }
                 
-                # Get analysis from Ollama
-                ollama_analysis = get_ollama_analysis(json.dumps(error_info, indent=2))
-                
                 # Get content type from headers if available
                 content_type = response.headers.get('content-type', 'Unknown')
                 
                 message = (
-                    f"Website Error Detected\n"
-                    f"URL: {WEBSITE_URL}\n"
+                    f"❌ Website Error Detected\n"
+                    f"URL: {url}\n"
                     f"Status: {status_desc}\n"
                     f"Response Time: {response_time:.2f}s\n"
                     f"Content Type: {content_type}\n"
-                    f"Error Content: {error_content}\n\n"
-                    f"Analysis:\n{ollama_analysis}"
+                    f"Error Content: {error_content}"
                 )
                 send_telegram_message(message)
                 print(message)
-                was_down = True
+                website_status[url] = 'down'
+    
+    except requests.exceptions.RequestException as e:
+        if website_status[url] != 'error':
+            error_info = {
+                'url': url,
+                'error': str(e),
+                'type': type(e).__name__
+            }
+            message = (
+                f"❌ Connection Error\n"
+                f"URL: {url}\n"
+                f"Error: {str(e)}\n"
+                f"Type: {type(e).__name__}"
+            )
+            send_telegram_message(message)
+            print(message)
+            website_status[url] = 'error'
                 
     except requests.exceptions.Timeout:
         if was_down is not True:
@@ -197,9 +186,7 @@ def check_website():
                 'url': WEBSITE_URL,
                 'error': 'Connection timed out after 5 seconds'
             }
-            ollama_analysis = get_ollama_analysis(json.dumps(error_info, indent=2))
-            
-            message = f"Website timeout after 5 seconds: {WEBSITE_URL}\n\nAnalysis:\n{ollama_analysis}"
+            message = f"Website timeout after 5 seconds: {url}"
             send_telegram_message(message)
             print(message)
             was_down = True
@@ -208,12 +195,10 @@ def check_website():
         if was_down is not True:
             error_info = {
                 'status': 'CONNECTION_ERROR',
-                'url': WEBSITE_URL,
+                'url': url,
                 'error': str(e)
             }
-            ollama_analysis = get_ollama_analysis(json.dumps(error_info, indent=2))
-            
-            message = f"Website is DOWN: {WEBSITE_URL}\n\nAnalysis:\n{ollama_analysis}"
+            message = f"❌ Website is DOWN: {url}\nError: {str(e)}"
             send_telegram_message(message)
             print(message)
             was_down = True
@@ -225,9 +210,7 @@ def check_website():
                 'url': WEBSITE_URL,
                 'error': str(e)
             }
-            ollama_analysis = get_ollama_analysis(json.dumps(error_info, indent=2))
-            
-            message = f"Unexpected error: {str(e)}\nWebsite: {WEBSITE_URL}\n\nAnalysis:\n{ollama_analysis}"
+            message = f"Unexpected error: {str(e)}\nWebsite: {url}"
             send_telegram_message(message)
             print(message)
             was_down = True
@@ -236,28 +219,30 @@ def signal_handler(signum, frame):
     print('\nShutting down...')
     sys.exit(0)
 
-if __name__ == "__main__":
-    # Set up signal handler for graceful shutdown
-    signal.signal(signal.SIGINT, signal_handler)
+def main():
+    if not website_status:
+        print("No websites to monitor. Please set MONITORED_WEBSITES environment variable.")
+        print("Example: export MONITORED_WEBSITES=\"https://example1.com,https://example2.com\"")
+        return
+        
+    print(f"Starting website monitoring for {len(website_status)} websites:")
+    for url in website_status:
+        print(f"- {url}")
     
-    print(f'Starting website monitoring for {WEBSITE_URL}')
-    print(f'Bot token available: {"Yes" if BOT_TOKEN else "No"}')
-    print(f'Chat ID from environment: {CHAT_ID if CHAT_ID else "Not set"}')
-    print('Press Ctrl+C to stop')
-    
-    # Start Telegram updates handler in a separate thread
-    telegram_thread = Thread(target=handle_telegram_updates, daemon=True)
+    # Start the Telegram updates handler in a separate thread
+    telegram_thread = Thread(target=handle_telegram_updates)
+    telegram_thread.daemon = True
     telegram_thread.start()
-    
-    # Send initial startup message
-    if BOT_TOKEN and CHAT_ID:
-        startup_message = f"🚀 Website monitoring service started for {WEBSITE_URL}"
-        send_telegram_message(startup_message, CHAT_ID)
     
     while True:
         try:
-            check_website()
-            time.sleep(1)
+            for url in list(website_status.keys()):
+                check_website(url)
+                time.sleep(5)  # Small delay between checking different websites
+            time.sleep(60)  # Check all websites every minute
         except Exception as e:
             print(f'Error occurred: {e}')
             time.sleep(3)
+
+if __name__ == "__main__":
+    main()
